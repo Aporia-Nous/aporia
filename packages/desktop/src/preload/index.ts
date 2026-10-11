@@ -40,5 +40,6 @@ contextBridge.exposeInMainWorld("electron", {
     vault: (input: unknown) => ipcRenderer.invoke("aporia:vault", input),
     update: (input: unknown) => ipcRenderer.invoke("aporia:update", input),
     accounts: (input: unknown) => ipcRenderer.invoke("aporia:accounts", input),
+    bots: (input: unknown) => ipcRenderer.invoke("aporia:bots", input),
   },
 })

@@ -341,3 +341,13 @@
 .ap-activity-err { border-left-color: #f87171; }
 .ap-copy-row { display: flex; gap: var(--ap-s2); align-items: center; }
 .ap-code { flex: 1; font: 12px ui-monospace, Consolas, monospace; padding: 6px 8px; border-radius: var(--ap-r-sm); background: rgb(0 0 0 / 0.3); border: 1px solid var(--ap-line); user-select: all; overflow-x: auto; white-space: nowrap; }
+
+/* APORIA teammates */
+.ap-bot-list { display: flex; flex-direction: column; gap: 2px; padding: 0 var(--ap-s2) var(--ap-s2); max-height: 38vh; overflow-y: auto; }
+.ap-bot-folder { background: none; border: 0; color: var(--ap-muted); text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; padding: 6px 6px 2px; cursor: pointer; }
+.ap-bot { display: flex; align-items: center; gap: 2px; padding: 0 !important; }
+.ap-bot-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; background: none; border: 0; color: inherit; text-align: left; padding: 6px 8px; cursor: pointer; }
+.ap-bot-avatar { width: 28px; height: 28px; font-size: 14px; }
+.ap-bot-mini { opacity: 0; background: none; border: 0; color: var(--ap-muted); cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+.ap-bot:hover .ap-bot-mini { opacity: 1; }
+.ap-bot-mini:hover { background: var(--ap-hover); color: var(--ap-text); }

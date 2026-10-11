@@ -1,6 +1,7 @@
 // APORIA: three-column session layout. The center column is the stock OpenCode session view
 import { AlertBell, AlertToasts } from "./alerts"
 import { UpdateWatcher } from "./update"
+import { TeammatesSection } from "./bots"
 // (timeline, tool runs, permission/question prompts, composer, attachments), so all agent
 // behaviour stays upstream; this file only frames it.
 import { createEffect, createMemo, createResource, createSignal, For, lazy, Show, type ParentProps } from "solid-js"
@@ -86,6 +87,7 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
       <AporiaSidebar
         directory={props.view.directory()}
         currentID={props.view.sessionID()}
+        currentAgent={info()?.agent}
         onConnect={() => setConnectOpen(true)}
       />
       <main class="ap-center">
@@ -133,7 +135,7 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
   )
 }
 
-function AporiaSidebar(props: { directory: string; currentID?: string; onConnect: () => void }) {
+function AporiaSidebar(props: { directory: string; currentID?: string; currentAgent?: string; onConnect: () => void }) {
   const data = useData()
   const server = useServer()
   const navigate = useNavigate()
@@ -192,6 +194,7 @@ function AporiaSidebar(props: { directory: string; currentID?: string; onConnect
           )}
         </For>
       </div>
+      <TeammatesSection sessions={sessions()} currentAgent={props.currentAgent} />
       <div class="ap-section-label ap-chats-label">
         Chats <span class="ap-count">{sessions().length}</span>
         <button
