@@ -4,6 +4,7 @@ import { app } from "electron"
 import { acquireApplicationLock, configureApplication } from "./lifecycle/configure"
 import { startSidecarProbe } from "./service/sidecar-probe"
 import { registerStorageSnapshotHandler } from "./storage/snapshot"
+import { registerAporiaMcpHandler } from "./aporia-mcp" // APORIA
 import { createEarlyWindow } from "./windows/early"
 import { rendererAssetsServed } from "./windows/protocol"
 import { registerRendererScheme } from "./windows/scheme"
@@ -21,6 +22,7 @@ if (acquireApplicationLock()) {
   void app.whenReady().then(async () => {
     marks.ready = Date.now()
     registerStorageSnapshotHandler()
+    registerAporiaMcpHandler() // APORIA
     createEarlyWindow()
     marks.window = Date.now()
     startSidecarProbe()

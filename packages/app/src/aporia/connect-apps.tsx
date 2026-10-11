@@ -5,6 +5,7 @@ import { createMemo, createResource, createSignal, For, Show } from "solid-js"
 import { useServerSDK } from "@/runtime/server/client"
 import catalog from "./catalog"
 import { EmptyState, Icon, Skeleton } from "./icons"
+import { connectionEvents, persistMcp } from "./events"
 
 type CatalogApp = {
   id: string
@@ -41,7 +42,7 @@ export function buildMcpConfig(app: CatalogApp, envNames: Record<string, string>
   }
 }
 
-export function ConnectAppsModal(props: { directory: string; onClose: () => void }) {
+export function ConnectAppsModal(props: { directory: string; sessionID?: string; onClose: () => void }) {
   const sdk = useServerSDK()
   const [query, setQuery] = createSignal("")
   const [pending, setPending] = createSignal<CatalogApp>()
@@ -78,12 +79,24 @@ export function ConnectAppsModal(props: { directory: string; onClose: () => void
   const save = async (app: CatalogApp, envNames: Record<string, string>) => {
     setError("")
     try {
-      await sdk.api.mcp.add({
-        server: app.id,
-        location: { directory: props.directory },
-        config: buildMcpConfig(app, envNames),
+      const config = buildMcpConfig(app, envNames)
+      await sdk.api.mcp.add({ server: app.id, location: { directory: props.directory }, config })
+      // Persist to the global opencode config so it survives restarts (desktop only).
+      let saved: { file: string; backup?: string } | undefined
+      let persistError: string | undefined
+      try {
+        saved = await persistMcp(app.id, config)
+      } catch (err) {
+        persistError = err instanceof Error ? err.message : String(err)
+      }
+      connectionEvents.add(props.sessionID, {
+        app: app.name,
+        at: Date.now(),
+        persisted: saved?.file,
+        backup: saved?.backup,
+        error: persistError,
       })
-      setNotice(`${app.name} added to your OpenCode MCP config.`)
+      setNotice(saved ? `${app.name} connected and saved to ${saved.file}` : `${app.name} connected for this run.`)
       setPending(undefined)
       await refetch()
     } catch (err) {

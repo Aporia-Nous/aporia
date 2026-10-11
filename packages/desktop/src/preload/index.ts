@@ -29,4 +29,8 @@ contextBridge.exposeInMainWorld("electron", {
   storageSnapshot: snapshot.then((snapshot) => snapshot.storage),
   extensions: snapshot.then((snapshot) => snapshot.extensions),
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
+  // APORIA: persist a Connect-apps MCP server into the global opencode config ({env:NAME} refs only).
+  aporia: {
+    persistMcp: (name: string, config: unknown) => ipcRenderer.invoke("aporia:mcp-persist", { name, config }),
+  },
 })
