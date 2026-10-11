@@ -9,6 +9,7 @@ import path from "node:path"
 import { app, ipcMain } from "electron"
 import { applyEdits, modify } from "jsonc-parser"
 import { globalConfigFile } from "./aporia-mcp"
+import { aporiaLog } from "./aporia-log"
 
 export type OwnerState = { owner: boolean; spendCap?: number }
 const file = () => path.join(app.getPath("userData"), "aporia-owner.json")
@@ -24,7 +25,15 @@ export function ownerState(): OwnerState {
 }
 
 export function logActivity(entry: { kind: string; detail: string; ok: boolean; amount?: number }) {
-  appendFileSync(logFile(), JSON.stringify({ at: new Date().toISOString(), ...entry }) + "\n")
+  const at = new Date().toISOString()
+  // Keep the daily spend total incrementally instead of re-parsing the whole activity log per poll.
+  // Update it before appending so the one-time backfill (missing spend file) cannot see this entry twice.
+  if (entry.ok && typeof entry.amount === "number") {
+    const state = loadSpend(at.slice(0, 10))
+    state.total += entry.amount
+    persistSpend(state)
+  }
+  appendFileSync(logFile(), JSON.stringify({ at, ...entry }) + "\n")
 }
 
 export function readActivity(limit = 200) {
@@ -38,11 +47,46 @@ export function readActivity(limit = 200) {
     .reverse()
 }
 
+type SpendState = { path: string; day: string; total: number }
+let spend: SpendState | undefined
+const todayKey = () => new Date().toISOString().slice(0, 10)
+const spendFile = (day: string) => path.join(app.getPath("userData"), `spend-${day}.json`)
+
+// Sum of ok, spend-typed entries logged for `day`. Only used once per day (see loadSpend) to seed the
+// running total when the small spend file is missing (e.g. first poll after an app restart).
+function sumLoggedSpend(day: string): number {
+  if (!existsSync(logFile())) return 0
+  return readFileSync(logFile(), "utf8")
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => { try { return JSON.parse(line) } catch { return undefined } })
+    .filter((e): e is { at: string; ok: boolean; amount: number } => !!e && e.ok === true && typeof e.at === "string" && e.at.startsWith(day) && typeof e.amount === "number")
+    .reduce((sum, e) => sum + e.amount, 0)
+}
+
+function loadSpend(day: string): SpendState {
+  const filePath = spendFile(day)
+  if (spend?.path === filePath) return spend
+  try {
+    const value = JSON.parse(readFileSync(filePath, "utf8"))
+    spend = { path: filePath, day, total: typeof value.total === "number" ? value.total : 0 }
+  } catch {
+    spend = { path: filePath, day, total: sumLoggedSpend(day) }
+    persistSpend(spend)
+  }
+  return spend
+}
+
+function persistSpend(state: SpendState) {
+  try {
+    writeFileSync(state.path, JSON.stringify({ day: state.day, total: state.total }))
+  } catch (error) {
+    aporiaLog.error("aporia spend persist failed", error instanceof Error ? (error.stack ?? error.message) : String(error))
+  }
+}
+
 export function spentToday() {
-  const day = new Date().toISOString().slice(0, 10)
-  return readActivity(5000)
-    .filter((e: { at: string; ok: boolean; amount?: number }) => e.ok && e.at.startsWith(day) && typeof e.amount === "number")
-    .reduce((sum: number, e: { amount: number }) => sum + e.amount, 0)
+  return loadSpend(todayKey()).total
 }
 
 function setEnginePermission(owner: boolean) {
