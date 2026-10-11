@@ -26,6 +26,8 @@ import { SessionErrorFallback } from "./route-error"
 import { createSessionResolution } from "./session-resolution"
 import { SessionScreenView } from "./screen"
 import { PreparingComposer } from "./preparing-composer"
+import { AporiaSessionLayout } from "@/aporia/layout" // APORIA
+import { aporiaPrefs } from "@/aporia/prefs" // APORIA
 
 export function TargetSessionRouteContent() {
   const params = useParams<{ serverKey: string; id: string }>()
@@ -183,7 +185,14 @@ function TargetSessionPage() {
 function SessionPage() {
   const session = useSessionModel()
 
-  return <SessionScreenView session={session} />
+  // APORIA: wrap the stock view in the Aporia layout when enabled.
+  return (
+    <Show when={aporiaPrefs.layoutEnabled()} fallback={<SessionScreenView session={session} />}>
+      <AporiaSessionLayout session={session}>
+        <SessionScreenView session={session} />
+      </AporiaSessionLayout>
+    </Show>
+  )
 }
 
 function MarkSessionNotificationsViewed(props: { sessionID: () => string | undefined }) {
