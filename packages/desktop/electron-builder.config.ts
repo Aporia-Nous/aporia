@@ -62,13 +62,13 @@ const channel = (() => {
 })()
 
 const APP_IDS = {
-  dev: "ai.opencode.desktop.dev",
-  beta: "ai.opencode.desktop.beta",
-  prod: "ai.opencode.desktop",
+  dev: "com.aporianous.desktop.dev",
+  beta: "com.aporianous.desktop.beta",
+  prod: "com.aporianous.desktop",
 } as const
 
 const getBase = (appId: string): Configuration => ({
-  artifactName: "opencode-desktop-${os}-${arch}.${ext}",
+  artifactName: "aporia-desktop-${os}-${arch}.${ext}",
   directories: {
     output: "dist",
     buildResources: "resources",
@@ -138,8 +138,8 @@ const getBase = (appId: string): Configuration => ({
     target: ["dmg", "zip"],
   },
   protocols: {
-    name: "OpenCode",
-    schemes: ["opencode"],
+    name: "Aporia",
+    schemes: ["aporia"],
   },
   win: {
     icon: `resources/icons/icon.ico`,
@@ -180,7 +180,7 @@ function getConfig() {
       return {
         ...base,
         appId,
-        productName: "OpenCode Dev",
+        productName: "Aporia Dev",
         deb: { fpm: [metainfoFpm(appId)] },
         rpm: { packageName: "opencode-dev", fpm: [metainfoFpm(appId)] },
       }
@@ -190,8 +190,8 @@ function getConfig() {
       return {
         ...base,
         appId,
-        productName: "OpenCode Beta",
-        protocols: { name: "OpenCode Beta", schemes: ["opencode"] },
+        productName: "Aporia Beta",
+        protocols: { name: "Aporia Beta", schemes: ["aporia"] },
         publish: {
           provider: "generic",
           url: "https://opencode.ai/update/api/beta/desktop/opencode/",
@@ -206,8 +206,8 @@ function getConfig() {
       return {
         ...base,
         appId,
-        productName: "OpenCode",
-        protocols: { name: "OpenCode", schemes: ["opencode"] },
+        productName: "Aporia",
+        protocols: { name: "Aporia", schemes: ["aporia"] },
         publish: {
           provider: "generic",
           url: "https://opencode.ai/update/api/latest/desktop/opencode/",
