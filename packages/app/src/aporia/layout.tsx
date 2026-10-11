@@ -18,7 +18,6 @@ import { aporiaPrefs } from "./prefs"
 import { contextTokens, formatTokens, tokenTotal } from "./session-stats"
 import { AporiaRightPanel } from "./right-panel"
 import { Avatar } from "./avatar"
-import { connectionEvents } from "./events"
 import { EmptyState, Icon } from "./icons"
 import logo from "./logo.png"
 
@@ -81,6 +80,7 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
   return (
     <div class="ap-root" data-component="aporia-layout">
       <AlertToasts />
+      <div style={{ position: "fixed", top: "6px", right: "150px", "z-index": 2147483002 }} data-component="aporia-window-bell"><AlertBell /></div>
       <AporiaSidebar
         directory={props.view.directory()}
         currentID={props.view.sessionID()}
@@ -107,33 +107,8 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
               onInput={(event) => aporiaPrefs.setSessionFilter(event.currentTarget.value)}
             />
           </label>
-          <AlertBell />
         </header>
         <div class="ap-chat-body">{props.children}</div>
-        <Show when={connectionEvents.list(props.view.sessionID()).length > 0}>
-          <div class="ap-system-cards" aria-live="polite">
-            <For each={connectionEvents.list(props.view.sessionID()).slice(-3)}>
-              {(event) => (
-                <div class="ap-system-card" classList={{ "ap-system-card-warn": !!event.error || !event.persisted }}>
-                  <span class="ap-system-card-icon">
-                    <Icon name={event.error ? "info" : "check"} size={14} />
-                  </span>
-                  <span class="ap-system-card-text">
-                    <strong>{event.app} connected</strong>
-                    <span class="ap-muted ap-small ap-ellipsis">
-                      {event.error
-                        ? `Active now, but not saved: ${event.error}`
-                        : event.persisted
-                          ? `Saved securely to ${event.persisted} as env references`
-                          : "Active for this run (not saved outside the desktop app)"}
-                    </span>
-                  </span>
-                  <span class="ap-muted ap-small">{new Date(event.at).toLocaleTimeString()}</span>
-                </div>
-              )}
-            </For>
-          </div>
-        </Show>
         <footer class="ap-context-bar" title="From real session usage reported by the server">
           <span class="ap-context-pill">
             <Icon name="gauge" size={12} />

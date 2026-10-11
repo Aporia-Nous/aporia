@@ -41,8 +41,10 @@ export function AlertBell() {
   const [open, setOpen] = createSignal(false)
   let root: HTMLDivElement | undefined
   const outside = (e: MouseEvent) => open() && root && !root.contains(e.target as Node) && setOpen(false)
+  const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false)
   document.addEventListener("mousedown", outside)
-  onCleanup(() => document.removeEventListener("mousedown", outside))
+  document.addEventListener("keydown", esc)
+  onCleanup(() => { document.removeEventListener("mousedown", outside); document.removeEventListener("keydown", esc) })
   return (
     <div ref={root} style={{ position: "relative" }} data-component="aporia-alert-bell">
       <button type="button" aria-label={`Alerts (${aporiaAlerts.unread()} unread)`} title="Alerts"
@@ -56,7 +58,7 @@ export function AlertBell() {
         </Show>
       </button>
       <Show when={open()}>
-        <div role="dialog" aria-label="Alerts" style={{ position: "absolute", right: 0, top: "32px", width: "340px", "max-height": "420px", overflow: "auto", background: "var(--background-base, #0f1a2e)", border: "1px solid var(--border-base, #2a3550)", "border-radius": "10px", "box-shadow": "0 10px 30px rgba(0,0,0,.35)", "z-index": 1000 }}>
+        <div role="dialog" aria-label="Alerts" style={{ position: "fixed", right: "16px", top: "40px", width: "340px", "max-height": "420px", overflow: "auto", background: "var(--background-base, #0f1a2e)", border: "1px solid var(--border-base, #2a3550)", "border-radius": "10px", "box-shadow": "0 10px 30px rgba(0,0,0,.35)", "z-index": 2147483001 }}>
           <div style={{ display: "flex", "justify-content": "space-between", padding: "10px 12px", "border-bottom": "1px solid var(--border-base, #2a3550)" }}>
             <strong>Alerts</strong>
             <button type="button" onClick={() => aporiaAlerts.clear()} disabled={!aporiaAlerts.list().length} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", opacity: 0.8 }}>Clear all</button>
@@ -82,9 +84,9 @@ export function AlertBell() {
 export function AlertToasts() {
   const shown = () => toasts().map((id) => alerts().find((a) => a.id === id)).filter(Boolean) as Alert[]
   return (
-    <div aria-live="polite" style={{ position: "fixed", right: "16px", bottom: "16px", display: "flex", "flex-direction": "column", gap: "8px", "z-index": 2000 }}>
+    <div aria-live="polite" style={{ position: "fixed", right: "16px", top: "44px", "pointer-events": "none", display: "flex", "flex-direction": "column", gap: "8px", "z-index": 2147483000 }}>
       <For each={shown()}>{(a) => (
-        <div role="status" style={{ display: "flex", gap: "8px", "align-items": "flex-start", width: "320px", padding: "10px 12px", background: "var(--background-base, #0f1a2e)", border: "1px solid var(--border-base, #2a3550)", "border-left": `3px solid ${color(a.level)}`, "border-radius": "8px", "box-shadow": "0 8px 24px rgba(0,0,0,.3)" }}>
+        <div role="status" style={{ "pointer-events": "auto", display: "flex", gap: "8px", "align-items": "flex-start", width: "320px", padding: "10px 12px", background: "var(--background-base, #0f1a2e)", border: "1px solid var(--border-base, #2a3550)", "border-left": `3px solid ${color(a.level)}`, "border-radius": "8px", "box-shadow": "0 8px 24px rgba(0,0,0,.3)" }}>
           <div style={{ flex: 1 }}><div style={{ "font-weight": 600 }}>{a.title}</div><Show when={a.detail}><div style={{ "font-size": "12px", opacity: 0.8 }}>{a.detail}</div></Show></div>
           <X label="Dismiss notification" onClick={() => hideToast(a.id)} />
         </div>
