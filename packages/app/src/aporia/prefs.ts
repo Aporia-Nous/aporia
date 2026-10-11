@@ -44,6 +44,7 @@ export const aporiaPrefs = {
   claimThemeDefault() {
     if (read("aporia.theme.defaulted")) return false
     write("aporia.theme.defaulted", "1")
-    return !read("opencode-theme-id")
+    const current = read("opencode-theme-id")
+    return !current || current === "oc-2"
   },
 }

@@ -8,6 +8,7 @@ import { useNavigate } from "@solidjs/router"
 import { useData, useServer } from "@/runtime/server/current"
 import { useNotification } from "@/shell/notifications/notification"
 import { sessionHref } from "@/shell/routes/session"
+import type { SessionInfo, SessionMessageInfo } from "@opencode/client/promise"
 import type { SessionModel } from "@/session/model"
 import { aporiaPrefs } from "./prefs"
 import { contextTokens, formatTokens, tokenTotal } from "./session-stats"
@@ -19,8 +20,40 @@ import { EmptyState, Icon } from "./icons"
 import logo from "./logo.png"
 import "./aporia.css"
 
+/** What the frame needs; built from a live session or from a draft (new-session) screen. */
+export type AporiaView = {
+  directory: () => string
+  sessionID: () => string | undefined
+  info: () => SessionInfo | undefined
+  working: () => boolean
+  messages: () => SessionMessageInfo[]
+}
+
 export function AporiaSessionLayout(props: ParentProps<{ session: SessionModel }>) {
-  const [connectOpen, setConnectOpen] = createSignal(false)
+  const view: AporiaView = {
+    directory: () => props.session.workspace.directory(),
+    sessionID: () => props.session.identity.sessionID(),
+    info: () => props.session.data.info(),
+    working: () => props.session.data.working(),
+    messages: () => props.session.history.messages(),
+  }
+  return <AporiaFrame view={view}>{props.children}</AporiaFrame>
+}
+
+const noMessages: SessionMessageInfo[] = []
+
+export function AporiaDraftLayout(props: ParentProps<{ directory: string }>) {
+  const view: AporiaView = {
+    directory: () => props.directory,
+    sessionID: () => undefined,
+    info: () => undefined,
+    working: () => false,
+    messages: () => noMessages,
+  }
+  return <AporiaFrame view={view}>{props.children}</AporiaFrame>
+}
+
+function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connectOpen, setConnectOpen] = createSignal(false)
   const theme = useTheme()
   // First run of the Aporia layout: adopt the Aporia dark theme once, unless the user already picked a theme.
   onMount(() => {
@@ -28,17 +61,17 @@ export function AporiaSessionLayout(props: ParentProps<{ session: SessionModel }
     theme.setTheme("aporia")
     theme.setColorScheme("dark")
   })
-  const info = () => props.session.data.info()
+  const info = () => props.view.info()
   const agentName = () => info()?.agent ?? "build"
-  const messages = () => props.session.history.messages()
+  const messages = () => props.view.messages()
   const context = createMemo(() => contextTokens(messages()))
   const total = createMemo(() => tokenTotal(info()?.tokens))
 
   return (
     <div class="ap-root" data-component="aporia-layout">
       <AporiaSidebar
-        directory={props.session.workspace.directory()}
-        currentID={props.session.identity.sessionID()}
+        directory={props.view.directory()}
+        currentID={props.view.sessionID()}
         onConnect={() => setConnectOpen(true)}
       />
       <main class="ap-center">
@@ -50,8 +83,8 @@ export function AporiaSessionLayout(props: ParentProps<{ session: SessionModel }
           </div>
           <span
             class="ap-status-dot"
-            classList={{ "ap-busy": props.session.data.working() }}
-            title={props.session.data.working() ? "Working" : "Idle"}
+            classList={{ "ap-busy": props.view.working() }}
+            title={props.view.working() ? "Working" : "Idle"}
           />
           <label class="ap-search">
             <Icon name="search" size={14} />
@@ -64,9 +97,9 @@ export function AporiaSessionLayout(props: ParentProps<{ session: SessionModel }
           </label>
         </header>
         <div class="ap-chat-body">{props.children}</div>
-        <Show when={connectionEvents.list(props.session.identity.sessionID()).length > 0}>
+        <Show when={connectionEvents.list(props.view.sessionID()).length > 0}>
           <div class="ap-system-cards" aria-live="polite">
-            <For each={connectionEvents.list(props.session.identity.sessionID()).slice(-3)}>
+            <For each={connectionEvents.list(props.view.sessionID()).slice(-3)}>
               {(event) => (
                 <div class="ap-system-card" classList={{ "ap-system-card-warn": !!event.error || !event.persisted }}>
                   <span class="ap-system-card-icon">
@@ -99,11 +132,11 @@ export function AporiaSessionLayout(props: ParentProps<{ session: SessionModel }
           </Show>
         </footer>
       </main>
-      <AporiaRightPanel session={props.session} />
+      <AporiaRightPanel view={props.view} />
       <Show when={connectOpen()}>
         <ConnectAppsModal
-          directory={props.session.workspace.directory()}
-          sessionID={props.session.identity.sessionID()}
+          directory={props.view.directory()}
+          sessionID={props.view.sessionID()}
           onClose={() => setConnectOpen(false)} />
       </Show>
     </div>

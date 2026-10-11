@@ -13,6 +13,8 @@ import { SessionUIProvider } from "@/shell/routes/session-ui-provider"
 import NewSession from "@/new-session/screen"
 import { IncompatibleServerPanel } from "@/session/incompatible-server-panel"
 import { SessionPanelFrame, SessionRouteFrame } from "@/session/session-frame"
+import { AporiaDraftLayout } from "@/aporia/layout" // APORIA
+import { aporiaPrefs } from "@/aporia/prefs" // APORIA
 
 export function DraftRoute() {
   const [search] = useSearchParams<{ draftId?: string }>()
@@ -71,7 +73,12 @@ function ResolvedDraftContent(props: { draft: DraftTab }) {
         <LocationProvider directory={props.draft.directory}>
           <SessionUIProvider directory={props.draft.directory} server={props.draft.server}>
             <DraftProviders>
-              <NewSession draftId={props.draft.draftID} />
+              {/* APORIA: frame the new-session screen in the Aporia layout when enabled. */}
+              <Show when={aporiaPrefs.layoutEnabled()} fallback={<NewSession draftId={props.draft.draftID} />}>
+                <AporiaDraftLayout directory={props.draft.directory}>
+                  <NewSession draftId={props.draft.draftID} />
+                </AporiaDraftLayout>
+              </Show>
             </DraftProviders>
           </SessionUIProvider>
         </LocationProvider>
