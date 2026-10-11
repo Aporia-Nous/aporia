@@ -8,6 +8,7 @@ import { useData } from "@/runtime/server/current"
 import { useServerSDK } from "@/runtime/server/client"
 import { aporiaAlerts } from "./alerts"
 import { agentFor, bots, refreshBots, type Bot } from "./bots"
+import { createDispatchScheduler } from "./dispatch-queue"
 
 type Msg = { id: string; from: string; to?: string; room?: string; message: string; priority: boolean; kind: "message" | "reply" | "room" | "routine"; created: string; fromSession?: string; routine?: { id: string; name: string }; manual?: boolean }
 const routines = (input: unknown) => (globalThis as any).electron?.aporia?.routines?.(input)
@@ -15,7 +16,6 @@ type Room = { slug: string; name: string; members: string[]; sessions: Record<st
 const IDLE_DELAY_MS = 2 * 60_000 // non-priority messages wait this long (target idle) before they wake it
 const TURN_TIMEOUT_MS = 15 * 60_000
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
-let running = false
 
 export function BotDispatcher() {
   const sdk = useServerSDK()
@@ -112,22 +112,27 @@ export function BotDispatcher() {
     aporiaAlerts.push({ title: `Room ${room.name}: round finished`, level: "info" })
   }
 
-  async function tick() {
-    if (running || sdk.connection.status() !== "connected") return
-    running = true
-    try {
-      const pending = (await bots({ op: "inbox" })) as Msg[]
-      if (!pending.length) return
-      const list = (await bots({ op: "list" })) as Bot[]
-      const order = [...pending].sort((a, b) => Number(b.priority) - Number(a.priority))
-      for (const m of order) {
-        try { await deliver(m, list) } catch (err) {
-          await bots({ op: "inboxAck", id: m.id, result: { error: String((err as Error)?.message ?? err) } })
-          aporiaAlerts.push({ title: "Bot message failed", detail: `${m.from} → ${m.to ?? m.room}: ${String((err as Error)?.message ?? err)}`, level: "error" })
-        }
-      }
-    } catch { /* bridge missing or server not ready */ } finally { running = false }
-  }
-  onMount(() => { const t = setInterval(() => void tick(), 4000); onCleanup(() => clearInterval(t)) })
+  // Independent targets run concurrently; a target already in flight keeps its lock so the same bot
+  // or room round is never delivered twice at once. Messages for an in-flight target stay in the
+  // inbox (unacked) and are picked up on a later tick, preserving per-target queue order.
+  const scheduler = createDispatchScheduler<Msg, Bot[]>({
+    load: async () => {
+      try {
+        if (sdk.connection.status() !== "connected") return null
+        const messages = (await bots({ op: "inbox" })) as Msg[]
+        if (!messages.length) return null
+        const list = (await bots({ op: "list" })) as Bot[]
+        return { messages, context: list }
+      } catch { return null } // bridge missing or server not ready
+    },
+    target: (m) => (m.room ? `room:${m.room}` : `bot:${m.to}`),
+    priority: (m) => m.priority,
+    deliver: (m, list) => deliver(m, list),
+    onError: async (m, err) => {
+      await bots({ op: "inboxAck", id: m.id, result: { error: String((err as Error)?.message ?? err) } })
+      aporiaAlerts.push({ title: "Bot message failed", detail: `${m.from} → ${m.to ?? m.room}: ${String((err as Error)?.message ?? err)}`, level: "error" })
+    },
+  })
+  onMount(() => { const t = setInterval(() => { void scheduler.tick().catch(() => undefined) }, 4000); onCleanup(() => clearInterval(t)) })
   return null
 }
