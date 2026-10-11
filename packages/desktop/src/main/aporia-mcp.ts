@@ -16,7 +16,12 @@ const NAME = /^[a-z0-9][a-z0-9_-]{0,63}$/i
 
 type McpConfig =
   | { type: "local"; command: string[]; environment?: Record<string, string> }
-  | { type: "remote"; url: string; headers?: Record<string, string> }
+  | {
+      type: "remote"
+      url: string
+      headers?: Record<string, string>
+      oauth?: { client_id: string; client_secret?: string; redirect_uri?: string }
+    }
 
 export function globalConfigFile() {
   const base = process.env.XDG_CONFIG_HOME || path.join(homedir(), ".config")
@@ -52,12 +57,27 @@ export function validate(name: unknown, config: unknown): { name: string; config
     for (const value of Object.values(headers))
       if (typeof value !== "string" || !(ENV_REF.test(value) || BEARER_REF.test(value)))
         throw new Error("Header values must reference {env:NAME}")
+    let oauth: { client_id: string; client_secret?: string; redirect_uri?: string } | undefined
+    if (c.oauth !== undefined) {
+      const o = c.oauth as Record<string, unknown>
+      if (typeof o.client_id !== "string" || !ENV_REF.test(o.client_id)) throw new Error("oauth.client_id must be {env:NAME}")
+      if (o.client_secret !== undefined && (typeof o.client_secret !== "string" || !ENV_REF.test(o.client_secret)))
+        throw new Error("oauth.client_secret must be {env:NAME}")
+      if (o.redirect_uri !== undefined && (typeof o.redirect_uri !== "string" || !/^http:\/\/127\.0\.0\.1:\d+\/[a-z/]*$/.test(o.redirect_uri)))
+        throw new Error("oauth.redirect_uri must be a 127.0.0.1 loopback URL")
+      oauth = {
+        client_id: o.client_id,
+        ...(typeof o.client_secret === "string" ? { client_secret: o.client_secret } : {}),
+        ...(typeof o.redirect_uri === "string" ? { redirect_uri: o.redirect_uri } : {}),
+      }
+    }
     return {
       name,
       config: {
         type: "remote",
         url: c.url,
         ...(Object.keys(headers).length ? { headers: headers as Record<string, string> } : {}),
+        ...(oauth ? { oauth } : {}),
       },
     }
   }

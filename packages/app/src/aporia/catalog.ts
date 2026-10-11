@@ -1,4 +1,4 @@
-// APORIA: curated MCP catalog. Remote URLs verified 2026-10-11 (401 + OAuth discovery = sign-in in browser).
+// APORIA: curated MCP catalog. Remote URLs verified 2026-10-11 (Asana: v2 endpoint, /sse is shut down) (401 + OAuth discovery = sign-in in browser).
 // env lists hold variable NAMES; values typed in the app go to Windows user env vars, never opencode.json.
 export default {
   "categories": ["Recommended", "Productivity", "Code", "Communication", "Browser", "Data"],
@@ -7,7 +7,7 @@ export default {
     { "id": "notion", "name": "Notion", "category": "Productivity", "description": "Pages and databases (sign in)", "type": "remote", "url": "https://mcp.notion.com/mcp", "auth": "oauth", "env": [], "recommended": true },
     { "id": "linear", "name": "Linear", "category": "Productivity", "description": "Issues, projects and cycles (sign in)", "type": "remote", "url": "https://mcp.linear.app/mcp", "auth": "oauth", "env": [] },
     { "id": "atlassian", "name": "Atlassian", "category": "Productivity", "description": "Jira and Confluence (sign in)", "type": "remote", "url": "https://mcp.atlassian.com/v1/mcp", "auth": "oauth", "env": [] },
-    { "id": "asana", "name": "Asana", "category": "Productivity", "description": "Tasks and projects (sign in)", "type": "remote", "url": "https://mcp.asana.com/sse", "auth": "oauth", "env": [] },
+    { "id": "asana", "name": "Asana", "category": "Productivity", "description": "Tasks and projects (sign in; needs your Asana MCP app client)", "type": "remote", "url": "https://mcp.asana.com/v2/mcp", "auth": "oauth-client", "env": ["ASANA_CLIENT_ID", "ASANA_CLIENT_SECRET"], "redirect": "http://127.0.0.1:19876/callback" },
     { "id": "github", "name": "GitHub", "category": "Code", "description": "Repos, issues and PRs (personal access token)", "type": "remote", "url": "https://api.githubcopilot.com/mcp/", "auth": "key", "env": ["GITHUB_PERSONAL_ACCESS_TOKEN"], "recommended": true },
     { "id": "vercel", "name": "Vercel", "category": "Code", "description": "Projects, deployments and logs (sign in)", "type": "remote", "url": "https://mcp.vercel.com", "auth": "oauth", "env": [] },
     { "id": "sentry", "name": "Sentry", "category": "Code", "description": "Errors and performance issues (sign in)", "type": "remote", "url": "https://mcp.sentry.dev/mcp", "auth": "oauth", "env": [] },
