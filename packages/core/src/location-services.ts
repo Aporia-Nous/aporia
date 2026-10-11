@@ -9,6 +9,11 @@ export { LocationServiceMap } from "./location-service-map.js"
 
 export type LocationServices = Instance.Services
 
+const locationIdleTtl = () => {
+  const raw = Number(process.env.APORIA_LOCATION_IDLE_TTL_MIN ?? "30")
+  return Number.isFinite(raw) && raw > 0 ? Duration.minutes(raw) : Duration.infinity
+}
+
 export function buildLocationServiceMap(
   replacements: LayerNode.Replacements = [],
 ): Layer.Layer<LocationServiceMap.Service> {
@@ -53,7 +58,12 @@ export function buildLocationServiceMap(
         },
         // Retain healthy graphs. Boot failures, not local filesystem probes,
         // decide whether a location (including workspace placement) can retry.
-        { idleTimeToLive: Duration.infinity },
+        // APORIA: each location (directory/workspace) owns its own stdio MCP servers. With an infinite TTL,
+        // every folder a session ever touched kept 4-6 MCP processes alive until the server exited (52 node.exe
+        // observed on 2026-10-11). Evict idle locations so their scope closes and the spawner taskkills /T the
+        // MCP process trees. In-use locations are borrowed and never evicted. APORIA_LOCATION_IDLE_TTL_MIN=0
+        // restores the upstream behaviour.
+        { idleTimeToLive: locationIdleTtl() },
       )
       const map = {
         ...inner,
