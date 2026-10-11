@@ -15,3 +15,16 @@ export function AporiaLayoutSettingRow() {
     </SettingsRow>
   )
 }
+
+export function AporiaThemeSettingRow() {
+  return (
+    <SettingsRow
+      title="Aporia theme"
+      description="Keep the navy Aporia theme applied. Turn off to choose any other theme in Appearance."
+    >
+      <div data-action="settings-aporia-theme">
+        <Switch checked={aporiaPrefs.aporiaTheme()} onChange={(checked) => aporiaPrefs.setAporiaTheme(checked)} />
+      </div>
+    </SettingsRow>
+  )
+}

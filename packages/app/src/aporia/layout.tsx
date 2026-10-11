@@ -1,7 +1,7 @@
 // APORIA: three-column session layout. The center column is the stock OpenCode session view
 // (timeline, tool runs, permission/question prompts, composer, attachments), so all agent
 // behaviour stays upstream; this file only frames it.
-import { createMemo, createSignal, For, onMount, Show, type ParentProps } from "solid-js"
+import { createEffect, createMemo, createSignal, For, Show, type ParentProps } from "solid-js"
 import { useTheme } from "@opencode/ui/theme/context"
 import { normalizeAgentList } from "@/runtime/server/global-sync/utils"
 import { useNavigate } from "@solidjs/router"
@@ -55,11 +55,11 @@ export function AporiaDraftLayout(props: ParentProps<{ directory: string }>) {
 
 function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connectOpen, setConnectOpen] = createSignal(false)
   const theme = useTheme()
-  // First run of the Aporia layout: adopt the Aporia dark theme once, unless the user already picked a theme.
-  onMount(() => {
-    if (!aporiaPrefs.claimThemeDefault()) return
-    theme.setTheme("aporia")
-    theme.setColorScheme("dark")
+  // Sticky Aporia theme: re-applied whenever it drifts (imported settings, old app state), unless opted out.
+  createEffect(() => {
+    if (!aporiaPrefs.aporiaTheme()) return
+    if (theme.themeId() !== "aporia") theme.setTheme("aporia")
+    if (theme.colorScheme() !== "dark") theme.setColorScheme("dark")
   })
   const info = () => props.view.info()
   const agentName = () => info()?.agent ?? "build"
