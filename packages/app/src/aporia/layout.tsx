@@ -14,6 +14,7 @@ import { contextTokens, formatTokens, tokenTotal } from "./session-stats"
 import { AporiaRightPanel } from "./right-panel"
 import { ConnectAppsModal } from "./connect-apps"
 import { Avatar } from "./avatar"
+import { connectionEvents } from "./events"
 import { EmptyState, Icon } from "./icons"
 import logo from "./logo.png"
 import "./aporia.css"
@@ -63,6 +64,30 @@ export function AporiaSessionLayout(props: ParentProps<{ session: SessionModel }
           </label>
         </header>
         <div class="ap-chat-body">{props.children}</div>
+        <Show when={connectionEvents.list(props.session.identity.sessionID()).length > 0}>
+          <div class="ap-system-cards" aria-live="polite">
+            <For each={connectionEvents.list(props.session.identity.sessionID()).slice(-3)}>
+              {(event) => (
+                <div class="ap-system-card" classList={{ "ap-system-card-warn": !!event.error || !event.persisted }}>
+                  <span class="ap-system-card-icon">
+                    <Icon name={event.error ? "info" : "check"} size={14} />
+                  </span>
+                  <span class="ap-system-card-text">
+                    <strong>{event.app} connected</strong>
+                    <span class="ap-muted ap-small ap-ellipsis">
+                      {event.error
+                        ? `Active now, but not saved: ${event.error}`
+                        : event.persisted
+                          ? `Saved securely to ${event.persisted} as env references`
+                          : "Active for this run (not saved outside the desktop app)"}
+                    </span>
+                  </span>
+                  <span class="ap-muted ap-small">{new Date(event.at).toLocaleTimeString()}</span>
+                </div>
+              )}
+            </For>
+          </div>
+        </Show>
         <footer class="ap-context-bar" title="From real session usage reported by the server">
           <span class="ap-context-pill">
             <Icon name="gauge" size={12} />
@@ -76,7 +101,10 @@ export function AporiaSessionLayout(props: ParentProps<{ session: SessionModel }
       </main>
       <AporiaRightPanel session={props.session} />
       <Show when={connectOpen()}>
-        <ConnectAppsModal directory={props.session.workspace.directory()} onClose={() => setConnectOpen(false)} />
+        <ConnectAppsModal
+          directory={props.session.workspace.directory()}
+          sessionID={props.session.identity.sessionID()}
+          onClose={() => setConnectOpen(false)} />
       </Show>
     </div>
   )
