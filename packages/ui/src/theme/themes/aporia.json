@@ -1,0 +1,51 @@
+{
+  "$schema": "https://opencode.ai/desktop-theme.json",
+  "name": "Aporia",
+  "id": "aporia",
+  "light": {
+    "palette": {
+      "neutral": "#f4f7fb",
+      "ink": "#0a1020",
+      "primary": "#1d4ed8",
+      "accent": "#0f766e",
+      "success": "#15803d",
+      "warning": "#b45309",
+      "error": "#b91c1c",
+      "info": "#0369a1",
+      "diffAdd": "#bbf7d0",
+      "diffDelete": "#fecaca"
+    },
+    "overrides": {
+      "syntax-comment": "#5b6b82",
+      "syntax-keyword": "#1d4ed8",
+      "syntax-string": "#0f766e",
+      "syntax-primitive": "#0369a1",
+      "syntax-property": "#9a3412",
+      "syntax-type": "#0f766e",
+      "syntax-constant": "#b91c1c"
+    }
+  },
+  "dark": {
+    "palette": {
+      "neutral": "#0a1020",
+      "ink": "#e6edf7",
+      "primary": "#60a5fa",
+      "accent": "#2dd4bf",
+      "success": "#4ade80",
+      "warning": "#fbbf24",
+      "error": "#f87171",
+      "info": "#7dd3fc",
+      "diffAdd": "#2dd4bf",
+      "diffDelete": "#f87171"
+    },
+    "overrides": {
+      "syntax-comment": "#7b8aa3",
+      "syntax-keyword": "#60a5fa",
+      "syntax-string": "#2dd4bf",
+      "syntax-primitive": "#7dd3fc",
+      "syntax-property": "#fbbf24",
+      "syntax-type": "#5eead4",
+      "syntax-constant": "#f87171"
+    }
+  }
+}
