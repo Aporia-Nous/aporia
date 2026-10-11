@@ -325,3 +325,9 @@
 .ap-chats-label { display: flex; align-items: center; gap: var(--ap-s2); }
 .ap-sub-toggle { margin-left: auto; font: inherit; font-size: 10px; text-transform: none; letter-spacing: 0; color: var(--ap-muted); background: transparent; border: 1px solid var(--ap-line); border-radius: 999px; padding: 1px 8px; cursor: pointer; transition: all var(--ap-ease); }
 .ap-sub-toggle:hover, .ap-sub-toggle[aria-pressed="true"] { color: var(--ap-teal); border-color: rgb(45 212 191 / 0.4); }
+.ap-live { font-size: 11px; margin-top: 2px; }
+.ap-live-checking, .ap-live-connecting { color: var(--ap-blue); }
+.ap-live-signin { color: var(--ap-amber); }
+.ap-live-connected { color: var(--ap-ok); }
+.ap-live-failed { color: var(--ap-red); white-space: normal; }
+.ap-btn:disabled { opacity: .55; cursor: progress; }

@@ -3,6 +3,7 @@
 // resolves from the user's environment at startup.
 import { createMemo, createResource, createSignal, For, Show } from "solid-js"
 import { useServerSDK } from "@/runtime/server/client"
+import { usePlatform } from "@/runtime/platform/platform"
 import catalog from "./catalog"
 import { EmptyState, Icon, Skeleton } from "./icons"
 import { connectionEvents, persistMcp } from "./events"
@@ -16,8 +17,18 @@ type CatalogApp = {
   command?: string[]
   url?: string
   env: string[]
+  auth?: "oauth" | "key"
   recommended?: boolean
 }
+
+type Live = { state: "checking" | "connecting" | "signin" | "connected" | "failed"; detail?: string }
+type DesktopBridge = { setEnv?: (n: string, v: string) => Promise<unknown>; which?: (c: string) => Promise<{ found: boolean }> }
+const bridge = () => (globalThis as { electron?: { aporia?: DesktopBridge } }).electron?.aporia
+const INSTALL_HELP: Record<string, string> = {
+  npx: "Needs Node.js: install from nodejs.org (LTS), then reopen Aporia.",
+  uvx: "Needs uv: run  powershell -c \"irm https://astral.sh/uv/install.ps1 | iex\"  then reopen Aporia.",
+}
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 const apps = catalog.apps as unknown as CatalogApp[]
 
@@ -76,33 +87,105 @@ export function ConnectAppsModal(props: { directory: string; sessionID?: string;
       .filter((section) => section.items.length > 0),
   )
 
-  const save = async (app: CatalogApp, envNames: Record<string, string>) => {
+  const platform = usePlatform()
+  const [live, setLive] = createSignal<Record<string, Live>>({})
+  const mark = (id: string, value: Live) => setLive({ ...live(), [id]: value })
+  const location = () => ({ directory: props.directory })
+
+  const status = async (id: string) =>
+    (await sdk.api.mcp.list({ location: location() })).data.find((item) => item.name === id)?.status
+
+  /** Poll real server status until connected/failed or timeout. */
+  const watch = async (app: CatalogApp, signin: boolean) => {
+    const until = Date.now() + (signin ? 180_000 : 45_000)
+    while (Date.now() < until) {
+      const s = await status(app.id).catch(() => undefined)
+      if (s?.status === "connected") return mark(app.id, { state: "connected" })
+      if (s?.status === "failed") return mark(app.id, { state: "failed", detail: s.error })
+      if (s?.status === "needs_auth" && !signin) return mark(app.id, { state: "failed", detail: "Needs sign-in" })
+      await sleep(1500)
+    }
+    mark(app.id, { state: "failed", detail: signin ? "Sign-in not completed (timed out)" : "Timed out connecting" })
+  }
+
+  const startOAuth = async (app: CatalogApp) => {
+    const list = (await sdk.api.mcp.list({ location: location() })).data
+    const current = list.find((item) => item.name === app.id)
+    if (current?.status.status !== "needs_auth") return false
+    if (!current.integrationID) throw new Error("Server reports sign-in needed but offers no OAuth method")
+    const integration = await sdk.api.integration.get({ integrationID: current.integrationID, location: location() })
+    const method = integration.data?.methods.find((item) => item.type === "oauth" && !item.form?.length)
+    if (!method || method.type !== "oauth") throw new Error("No browser sign-in method available for this server")
+    const attempt = await sdk.api.integration.oauth.connect({
+      integrationID: current.integrationID,
+      methodID: method.id,
+      location: location(),
+    })
+    platform.openExternal(attempt.data.url)
+    return true
+  }
+
+  const save = async (app: CatalogApp, values: Record<string, string>) => {
     setError("")
+    setPending(undefined)
     try {
-      const config = buildMcpConfig(app, envNames)
-      await sdk.api.mcp.add({ server: app.id, location: { directory: props.directory }, config })
-      // Persist to the global opencode config so it survives restarts (desktop only).
+      if (app.type === "local" && app.command?.[0]) {
+        mark(app.id, { state: "checking", detail: `Looking for ${app.command[0]}` })
+        const found = await bridge()?.which?.(app.command[0]).catch(() => undefined)
+        if (found && !found.found)
+          return mark(app.id, {
+            state: "failed",
+            detail: `${app.command[0]} not found. ${INSTALL_HELP[app.command[0]] ?? "Install it and reopen Aporia."}`,
+          })
+      }
+      mark(app.id, { state: "connecting" })
+      // Keys: saved as Windows user env vars (never in opencode.json); used live for this run.
+      for (const [name, value] of Object.entries(values)) if (value) await bridge()?.setEnv?.(name, value)
+      const persisted = buildMcpConfig(app, {})
+      const runtime =
+        app.type === "remote"
+          ? app.env[0] && values[app.env[0]]
+            ? { ...persisted, headers: { Authorization: `Bearer ${values[app.env[0]]}` } }
+            : persisted
+          : { ...persisted, ...(app.env.length ? { environment: { ...values } } : {}) }
+      await sdk.api.mcp.add({ server: app.id, location: location(), config: runtime as typeof persisted })
       let saved: { file: string; backup?: string } | undefined
       let persistError: string | undefined
       try {
-        saved = await persistMcp(app.id, config)
+        saved = await persistMcp(app.id, persisted)
       } catch (err) {
         persistError = err instanceof Error ? err.message : String(err)
       }
+      await sdk.api.mcp.connect({ server: app.id, location: location() }).catch(() => undefined)
+      const signin = await startOAuth(app)
+      if (signin) mark(app.id, { state: "signin" })
+      await watch(app, signin)
       connectionEvents.add(props.sessionID, {
         app: app.name,
         at: Date.now(),
         persisted: saved?.file,
         backup: saved?.backup,
-        error: persistError,
+        error: live()[app.id]?.state === "failed" ? live()[app.id]?.detail : persistError,
       })
-      setNotice(saved ? `${app.name} connected and saved to ${saved.file}` : `${app.name} connected for this run.`)
-      setPending(undefined)
+      if (live()[app.id]?.state === "connected") setNotice(`${app.name} connected${saved ? " and saved" : ""}.`)
       await refetch()
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      mark(app.id, { state: "failed", detail: err instanceof Error ? err.message : String(err) })
     }
   }
+
+  const label = (value: Live | undefined) =>
+    !value
+      ? ""
+      : value.state === "checking"
+        ? value.detail ?? "Checking..."
+        : value.state === "connecting"
+          ? "Connecting..."
+          : value.state === "signin"
+            ? "Waiting for sign-in in your browser..."
+            : value.state === "connected"
+              ? "Connected"
+              : `Failed: ${value.detail ?? "unknown error"}`
 
   return (
     <div class="ap-overlay" role="dialog" aria-modal="true" aria-label="Connect apps" onClick={props.onClose}>
@@ -171,16 +254,24 @@ export function ConnectAppsModal(props: { directory: string; sessionID?: string;
                       <span class="ap-app-text">
                         <strong>{app.name}</strong>
                         <span class="ap-muted ap-small">{app.description}</span>
+                        <Show when={live()[app.id]}>
+                          {(value) => (
+                            <span class={`ap-live ap-live-${value().state}`} role="status">
+                              {label(value())}
+                            </span>
+                          )}
+                        </Show>
                       </span>
                       <Show
-                        when={added().has(app.id)}
+                        when={added().has(app.id) && live()[app.id]?.state !== "failed"}
                         fallback={
                           <button
                             type="button"
                             class="ap-btn"
+                            disabled={["checking", "connecting", "signin"].includes(live()[app.id]?.state ?? "")}
                             onClick={() => (app.env.length ? setPending(app) : save(app, {}))}
                           >
-                            Connect
+                            {live()[app.id]?.state === "failed" ? "Retry" : "Connect"}
                           </button>
                         }
                       >
@@ -200,22 +291,20 @@ export function ConnectAppsModal(props: { directory: string; sessionID?: string;
   )
 }
 
-function EnvForm(props: { app: CatalogApp; onCancel: () => void; onSave: (names: Record<string, string>) => void }) {
-  const [names, setNames] = createSignal<Record<string, string>>(
-    Object.fromEntries(props.app.env.map((key) => [key, key])),
-  )
+function EnvForm(props: { app: CatalogApp; onCancel: () => void; onSave: (values: Record<string, string>) => void }) {
+  const [values, setValues] = createSignal<Record<string, string>>({})
   return (
     <form
       class="ap-card"
       onSubmit={(event) => {
         event.preventDefault()
-        props.onSave(names())
+        props.onSave(values())
       }}
     >
       <strong>Connect {props.app.name}</strong>
       <span class="ap-muted ap-small">
-        Enter the NAME of the environment variable that holds each value, not the value itself. Aporia saves only a
-        reference like {"{env:NAME}"}; set the variable in Windows, then restart.
+        Paste your key. It is saved as a Windows user environment variable on this PC; opencode.json only gets a
+        reference like {"{env:NAME}"}. Leave blank to use a variable you already set.
       </span>
       <For each={props.app.env}>
         {(key) => (
@@ -223,10 +312,12 @@ function EnvForm(props: { app: CatalogApp; onCancel: () => void; onSave: (names:
             <span class="ap-small">{key}</span>
             <input
               class="ap-input"
-              value={names()[key]}
+              type="password"
+              value={values()[key] ?? ""}
               autocomplete="off"
               spellcheck={false}
-              onInput={(event) => setNames({ ...names(), [key]: event.currentTarget.value.replace(/[^A-Za-z0-9_]/g, "") })}
+              placeholder="Paste key"
+              onInput={(event) => setValues({ ...values(), [key]: event.currentTarget.value.trim() })}
             />
           </label>
         )}
@@ -236,7 +327,7 @@ function EnvForm(props: { app: CatalogApp; onCancel: () => void; onSave: (names:
           Cancel
         </button>
         <button type="submit" class="ap-btn">
-          Add
+          Save and connect
         </button>
       </div>
     </form>
