@@ -6,7 +6,21 @@ import { ephemeral } from "@opencode/schema/event"
 import type { Session } from "@opencode/schema/session"
 import { createHash } from "node:crypto"
 import { isDeepStrictEqual } from "node:util"
-import { Cause, Context, Effect, Exit, FiberSet, Latch, Layer, Schema, Scope, Semaphore, Stream, Types } from "effect"
+import {
+  Cause,
+  Context,
+  Effect,
+  Exit,
+  FiberSet,
+  Latch,
+  Layer,
+  Option,
+  Schema,
+  Scope,
+  Semaphore,
+  Stream,
+  Types,
+} from "effect"
 import { makeLocationNode } from "@opencode/util/effect/app-node"
 import { Credential } from "../credential.js"
 import { Bus } from "../bus.js"
@@ -18,6 +32,7 @@ import { Location } from "../location.js"
 import { waitForAbort } from "@opencode/util/process"
 import { State } from "../state.js"
 import type { McpClient } from "./client.js"
+import { McpShared } from "./shared.js"
 
 export const ServerName = Schema.String.pipe(Schema.brand("MCP.ServerName"))
 export type ServerName = typeof ServerName.Type
@@ -80,6 +95,8 @@ type ServerEntry = {
   status: Status
   readonly startup: Latch.Latch
   scope?: Scope.Closeable
+  // When the connection is hosted by the app-wide pool, this closes this server's lease on release.
+  release?: Effect.Effect<void>
   client?: McpClient.Connection
   tools?: ReadonlyArray<Tool>
   prompts?: ReadonlyArray<Prompt>
@@ -94,6 +111,14 @@ const GLOBAL_ELICITATION_SESSION_ID = "global"
 const URL_ELICITATION_FIELD_KEY = "elicitation"
 // Connections remain Location-scoped, but shared remote endpoints should not receive concurrent startup bursts.
 const endpointLoads = KeyedMutex.makeUnsafe<string>()
+
+// APORIA: host every configured MCP server once per app instead of once per bot location. Each bot is
+// its own Location, so location-scoped connections multiplied the same child process per bot. Default
+// on; APORIA_GLOBAL_MCP=0 restores the upstream per-location behavior.
+const sharesConnections = () => process.env.APORIA_GLOBAL_MCP !== "0"
+
+const connectionKey = (name: ServerName, config: Mcp.ServerConfig) =>
+  name + "\u0000" + createHash("sha1").update(JSON.stringify(config)).digest("hex")
 
 type Data = {
   servers: Map<ServerName, Types.DeepMutable<Mcp.ServerConfig>>
@@ -169,6 +194,22 @@ export const layer = (options?: Options) =>
       const locks = KeyedMutex.makeUnsafe<ServerName>()
       // Legacy era only: pending URL-mode elicitation forms, settled by notifications/elicitation/complete.
       const urlElicitations = new Map<string, Form.ID>()
+      // APORIA: the app-wide connection pool, present when the host wired the global node. When absent
+      // (unit tests building Mcp.layer directly) each location keeps its own connections.
+      const sharedPool = yield* Effect.serviceOption(McpShared.Service)
+      // A location going away (idle eviction, app shutdown) must release every lease it still holds so
+      // the pool can close connections no other location needs.
+      yield* Effect.addFinalizer(() =>
+        Effect.forEach(
+          entries.values(),
+          (entry) => {
+            const release = entry.release
+            entry.release = undefined
+            return release ?? Effect.void
+          },
+          { discard: true },
+        ).pipe(Effect.ignore),
+      )
 
       // Register every remote server as an OAuth integration so credentials live in the global store
       // rather than in committed config. Servers that connect anonymously simply never use the method.
@@ -430,44 +471,61 @@ export const layer = (options?: Options) =>
           // disabled/failed status for the duration of the connection attempt.
           entry.status = { status: "pending" }
           yield* bus.publish(McpEvent.StatusChanged, { server: name })
-          const scope = yield* Scope.fork(root)
-          entry.scope = scope
           const authProvider = yield* connectProvider(entry)
           const { McpClient } = yield* Effect.promise(() => import("./client.js"))
           // List tools as part of connect so a failure here marks the server failed rather than
           // leaving it connected with a silently empty tool list and no path to recover.
-          const load = McpClient.connect(
-            name,
-            entry.config,
-            location.directory,
-            authProvider,
-            elicitation,
-            options?.clientInfo,
-          ).pipe(
-            Effect.flatMap((connection) => connection.tools().pipe(Effect.map((tools) => ({ connection, tools })))),
-            // A stdio server is spawned on this location's execution plane, not the host's.
-            Effect.provideService(Environment.Service, environment),
-            Scope.provide(scope),
-          )
+          const load = (scope: Scope.Scope) =>
+            McpClient.connect(
+              name,
+              entry.config,
+              location.directory,
+              authProvider,
+              elicitation,
+              options?.clientInfo,
+            ).pipe(
+              Effect.flatMap((connection) => connection.tools().pipe(Effect.map((tools) => ({ connection, tools })))),
+              // A stdio server is spawned on this location's execution plane, not the host's.
+              Effect.provideService(Environment.Service, environment),
+              Scope.provide(scope),
+            )
+          const share = sharesConnections() && Option.isSome(sharedPool)
+          // The shared pool owns the connection scope and refcount; otherwise this location owns it.
+          const run = share
+            ? sharedPool!.value.acquire({ key: connectionKey(name, entry.config), build: load })
+            : Effect.gen(function* () {
+                const scope = yield* Scope.fork(root)
+                entry.scope = scope
+                const value = yield* load(scope)
+                return { value, release: Scope.close(scope, Exit.void) }
+              })
           const result = yield* (
-            entry.config.type === "remote" ? endpointLoads.withLock(entry.config.url)(load) : load
+            entry.config.type === "remote" ? endpointLoads.withLock(entry.config.url)(run) : run
           ).pipe(Effect.exit)
           if (Exit.isSuccess(result)) {
-            entry.client = result.value.connection
-            entry.tools = result.value.tools.map((tool) => toTool(name, entry, tool))
+            entry.release = result.value.release
+            entry.client = result.value.value.connection
+            entry.tools = result.value.value.tools.map((tool) => toTool(name, entry, tool))
             entry.prompts = []
             entry.status = { status: "connected" }
-            watch(name, entry, result.value.connection)
+            watch(name, entry, result.value.value.connection)
             yield* Effect.logInfo("mcp connected", { server: name, tools: entry.tools.length })
             // The tool registry reads on this event; a late-connecting server has no other way to appear.
             yield* bus.publish(McpEvent.ToolsChanged, { server: name })
             yield* bus.publish(McpEvent.ResourcesChanged, { server: name })
             yield* bus.publish(McpEvent.StatusChanged, { server: name })
-            whenLive(name, entry, result.value.connection)(refreshPrompts(name, entry, result.value.connection))
+            whenLive(
+              name,
+              entry,
+              result.value.value.connection,
+            )(refreshPrompts(name, entry, result.value.value.connection))
             return
           }
-          yield* Scope.close(scope, Exit.void)
-          entry.scope = undefined
+          if (entry.scope) {
+            const scope = entry.scope
+            entry.scope = undefined
+            yield* Scope.close(scope, Exit.void)
+          }
           const error = Cause.squash(result.cause)
           entry.status =
             error instanceof McpClient.NeedsAuthError
@@ -482,12 +540,15 @@ export const layer = (options?: Options) =>
 
       const stopServer = Effect.fnUntraced(function* (name: ServerName, entry: ServerEntry) {
         const scope = entry.scope
-        if (!scope) return
+        const release = entry.release
+        if (!scope && !release) return
         entry.scope = undefined
+        entry.release = undefined
         entry.client = undefined
         entry.tools = undefined
         entry.prompts = undefined
-        yield* Scope.close(scope, Exit.void)
+        if (release) yield* release
+        else yield* Scope.close(scope!, Exit.void)
         yield* bus.publish(McpEvent.ToolsChanged, { server: name })
         yield* bus.publish(McpEvent.ResourcesChanged, { server: name })
         yield* bus.publish(PromptsChanged, { server: name })
@@ -775,7 +836,7 @@ export function configured(options?: Options) {
   return makeLocationNode({
     service: Service,
     layer: layer(options),
-    deps: [Location.node, Environment.node, Bus.node, Form.node, Integration.node, Credential.node],
+    deps: [Location.node, Environment.node, Bus.node, Form.node, Integration.node, Credential.node, McpShared.node],
   })
 }
 
