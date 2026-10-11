@@ -351,3 +351,10 @@
 .ap-bot-mini { opacity: 0; background: none; border: 0; color: var(--ap-muted); cursor: pointer; padding: 4px 6px; border-radius: 6px; }
 .ap-bot:hover .ap-bot-mini { opacity: 1; }
 .ap-bot-mini:hover { background: var(--ap-hover); color: var(--ap-text); }
+
+.ap-react-bar { display: flex; gap: 6px; align-items: center; margin: 2px 0 6px; min-height: 20px; }
+.ap-react-pill { font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--ap-raised); border: 1px solid var(--ap-line-strong); }
+.ap-react-add { opacity: 0; transition: opacity 120ms; display: inline-flex; gap: 2px; }
+[data-message-id]:hover .ap-react-add { opacity: 1; }
+.ap-react-add button { background: none; border: 0; cursor: pointer; font-size: 14px; padding: 0 3px; border-radius: 6px; }
+.ap-react-add button:hover { background: var(--ap-hover); }

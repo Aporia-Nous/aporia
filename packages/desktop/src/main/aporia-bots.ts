@@ -60,6 +60,7 @@ function normalize(input: Partial<Bot>, prev?: Bot): Bot {
     sessions: input.sessions ?? prev?.sessions ?? [],
     created: prev?.created ?? new Date().toISOString(),
     seed: input.seed ?? prev?.seed,
+    ...((input as any).roleVersion ?? (prev as any)?.roleVersion ? { roleVersion: (input as any).roleVersion ?? (prev as any)?.roleVersion } : {}),
   }
 }
 
@@ -97,12 +98,21 @@ export function agentPrompt(bot: Bot) {
     bot.skills.length ? `Skills you should load when relevant: ${bot.skills.join(", ")}.` : "",
     `Your working folder is ${path.join(BOTS_DIR, bot.slug)}. Answer Ali right away; run long work as background subagents/jobs per WORKING-STYLE.md so you are never blocked.`,
     "Anything sent externally under Ali's name (email, text, post, call) needs his explicit OK unless Owner mode is on.",
+    `Reactions: you can react to Ali's latest message with the react tool (bot="${bot.slug}", one emoji) instead of replying to a quick thanks or acknowledgement; follow the reaction rules in VOICE.md.`,
     `Teammates: use send_to_bot (from="${bot.slug}") to ask another bot (list_bots shows them) or post to room:<slug>. It's async: keep working, the reply arrives as a new message. Messages starting with "📨 From" are from another bot; answer them directly (your final reply is sent back automatically, so don't call send_to_bot to reply). In a room turn, reply with PASS if you have nothing useful to add.`,
     `Memory tools (aporia-memory MCP): remember/forget/recall with bot="${bot.slug}". Below is a snapshot of memory at the time this prompt was built; use recall for anything older or more specific.`,
     read(RULES_FILE),
+    recentReactions(bot.slug),
     "## SHARED MEMORY (USER.md, facts about Ali)\n" + cap(read(USER_MEMORY), 12000),
     `## YOUR MEMORY (${bot.slug}/MEMORY.md)\n` + cap(read(path.join(BOTS_DIR, bot.slug, "MEMORY.md")), 12000),
   ].filter(Boolean).join("\n\n")
+}
+
+function recentReactions(slug: string) {
+  const f = path.join(BOTS_DIR, slug, "reactions.jsonl"); if (!existsSync(f)) return ""
+  const ali = read(f).trim().split("\n").filter(Boolean).map((l) => { try { return JSON.parse(l) } catch { return undefined } }).filter((r) => r?.by === "ali").slice(-10)
+  if (!ali.length) return ""
+  return "## Ali's recent reactions to your messages (newest last)\n" + ali.map((r) => `- ${r.at.slice(0, 16)} ${r.emoji} on: "${String(r.excerpt ?? "").slice(0, 120)}"`).join("\n")
 }
 
 export function writeAgent(bot: Bot) {
@@ -117,7 +127,7 @@ export const regenerateAll = () => listBots().forEach((b) => { try { writeAgent(
 // ---- inbox (bot-to-bot) and rooms --------------------------------------------------------
 export const INBOX = path.join(APORIA_HOME, "inbox")
 export const ROOMS = path.join(APORIA_HOME, "rooms")
-export type InboxMsg = { id: string; from: string; to?: string; room?: string; message: string; priority: boolean; kind: "message" | "reply" | "room"; created: string; replyTo?: string; fromSession?: string }
+export type InboxMsg = { id: string; from: string; to?: string; room?: string; message: string; priority: boolean; kind: "message" | "reply" | "room" | "routine"; routine?: { id: string; name: string }; manual?: boolean; created: string; replyTo?: string; fromSession?: string }
 export type Room = { slug: string; name: string; members: string[]; sessions: Record<string, string>; created: string }
 const roomFile = (slug: string) => path.join(ROOMS, slug, "room.json")
 export function inboxPending(): InboxMsg[] {
@@ -165,7 +175,13 @@ function roleFromTeammate(file: string) {
   const body = text.split(/Role text \(verbatim\):/i)[1] ?? text.replace(/^#.*$/m, "")
   return body.trim()
 }
-const firstLine = (s: string) => (s.split(/(?<=\.)\s|\n/)[0] ?? "").slice(0, 160)
+// First sentence, cut at a word boundary (never mid-word) with an ellipsis when it's long.
+export const firstLine = (s: string, max = 220) => {
+  const first = (s.trim().split(/(?<=[.!?])\s|\n/)[0] ?? "").trim()
+  if (first.length <= max) return first
+  const cut = first.slice(0, max); const sp = cut.lastIndexOf(" ")
+  return (sp > max * 0.6 ? cut.slice(0, sp) : cut).replace(/[,;:\s]+$/, "") + "…"
+}
 
 export function seedBots() {
   const marker = path.join(BOTS_DIR, ".seeded")
@@ -223,12 +239,24 @@ function watchMemory() {
   let t: NodeJS.Timeout | undefined
   const kick = () => { clearTimeout(t); t = setTimeout(regenerateAll, 500) }
   for (const dir of [path.dirname(USER_MEMORY), BOTS_DIR, HANDOFF]) {
-    try { mkdirSync(dir, { recursive: true }); watch(dir, { recursive: true }, (_e, f) => { if (f && /\.(md|json)$/i.test(String(f)) && !String(f).includes(".bak")) kick() }) } catch {}
+    try { mkdirSync(dir, { recursive: true }); watch(dir, { recursive: true }, (_e, f) => { if (f && (/\.(md|json)$/i.test(String(f)) || /reactions\.jsonl$/i.test(String(f))) && !/\.bak|routines-state|inbox/.test(String(f))) kick() }) } catch {}
+  }
+}
+
+function migrateSeedRoles() {
+  // v2: seed descriptions used to be cut at 160 chars mid-word; rebuild them at a word boundary.
+  const team = path.join(APORIA_HOME, "workspace", "teammates")
+  for (const b of listBots()) {
+    if (!b.seed || (b as any).roleVersion >= 2 || b.slug === "grok" || b.slug === "seo-and-aeo-desk") continue
+    const file = path.join(team, b.name.replace(/ /g, "-") + ".md")
+    if (!existsSync(file)) continue
+    saveBot({ ...b, role: `${firstLine(roleFromTeammate(file))} ${RULES_NOTE}`, roleVersion: 2 } as any)
   }
 }
 
 export function startBots() {
   try { seedBots() } catch (e) { console.error("aporia bots seed", e) }
+  try { migrateSeedRoles() } catch (e) { console.error("aporia bots migrate", e) }
   try { ensureMemoryMcp() } catch (e) { console.error("aporia memory mcp", e) }
   regenerateAll(); watchMemory()
 }

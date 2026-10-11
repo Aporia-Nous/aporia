@@ -9,7 +9,8 @@ import { useServerSDK } from "@/runtime/server/client"
 import { aporiaAlerts } from "./alerts"
 import { agentFor, bots, refreshBots, type Bot } from "./bots"
 
-type Msg = { id: string; from: string; to?: string; room?: string; message: string; priority: boolean; kind: "message" | "reply" | "room"; created: string; fromSession?: string }
+type Msg = { id: string; from: string; to?: string; room?: string; message: string; priority: boolean; kind: "message" | "reply" | "room" | "routine"; created: string; fromSession?: string; routine?: { id: string; name: string }; manual?: boolean }
+const routines = (input: unknown) => (globalThis as any).electron?.aporia?.routines?.(input)
 type Room = { slug: string; name: string; members: string[]; sessions: Record<string, string> }
 const IDLE_DELAY_MS = 2 * 60_000 // non-priority messages wait this long (target idle) before they wake it
 const TURN_TIMEOUT_MS = 15 * 60_000
@@ -72,6 +73,13 @@ export function BotDispatcher() {
     const sessionID = await botSession(target)
     if (!m.priority && (busy(sessionID) || Date.now() - Date.parse(m.created) < IDLE_DELAY_MS)) return // wait
     await bots({ op: "inboxAck", id: m.id, result: { sessionID, state: "delivered" } })
+    if (m.kind === "routine") {
+      try {
+        const out = await turn(sessionID, `⏰ Routine "${m.routine?.name}"${m.manual ? " (run now by Ali)" : ""}:\n\n${m.message}`, { kind: "routine", routine: m.routine?.id, msg: m.id })
+        await routines({ op: "result", slug: target.slug, routine: m.routine?.id, name: m.routine?.name, sessionID, excerpt: out })
+      } catch (err) { await routines({ op: "result", slug: target.slug, routine: m.routine?.id, name: m.routine?.name, sessionID, error: String((err as Error)?.message ?? err) }) }
+      return
+    }
     const label = m.kind === "reply" ? `📬 Reply from ${name(m.from)}` : `📨 From ${name(m.from)} (bot message${m.priority ? ", priority" : ""})`
     const reply = await turn(sessionID, `${label}:\n\n${m.message}`, { kind: m.kind, from: m.from, msg: m.id })
     if (m.kind === "message" && list.some((b) => b.slug === m.from)) {

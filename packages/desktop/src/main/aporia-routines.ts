@@ -1,0 +1,159 @@
+// APORIA: per-bot routines (cron, America/Chicago), builder (DeepSeek drafts a bot), templates, reactions.
+// The scheduler runs in the main process every 30s, so routines fire while the window is minimized; a due routine
+// is dropped into the bot inbox (kind "routine") and the in-app dispatcher runs the turn and records the result.
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
+import path from "node:path"
+import { BrowserWindow, dialog, ipcMain } from "electron"
+import { BOTS_DIR, getBot, inboxPost, listBots, saveBot, slugify, type Bot, type Routine } from "./aporia-bots"
+import { resolveVault } from "./aporia-vault-store"
+
+const TZ = "America/Chicago"
+// ---- cron (5 fields: min hour dom mon dow; *, */n, a-b, a,b) -------------------------------
+function field(spec: string, min: number, max: number): Set<number> {
+  const out = new Set<number>()
+  for (const part of spec.split(",")) {
+    const [range = "*", stepS] = part.split("/")
+    const step = stepS ? Number(stepS) : 1
+    let a = min, b = max
+    if (range !== "*") {
+      const [x, y] = range.split("-")
+      a = Number(x); b = y !== undefined ? Number(y) : stepS ? max : a
+    }
+    if (!Number.isFinite(a) || !Number.isFinite(b) || !Number.isFinite(step) || step < 1) throw new Error(`bad cron field "${spec}"`)
+    for (let v = a; v <= b; v += step) if (v >= min && v <= max) out.add(v)
+  }
+  return out
+}
+export function parseCron(cron: string) {
+  const f = cron.trim().split(/\s+/) as [string, string, string, string, string]; if (f.length !== 5) throw new Error("cron needs 5 fields: min hour day month weekday")
+  const dow = field(f[4], 0, 7); if (dow.has(7)) dow.add(0)
+  return { min: field(f[0], 0, 59), hour: field(f[1], 0, 23), dom: field(f[2], 1, 31), mon: field(f[3], 1, 12), dow, domStar: f[2] === "*", dowStar: f[4] === "*" }
+}
+function chicago(d: Date) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: TZ, hour12: false, year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", weekday: "short" }).formatToParts(d).map((x) => [x.type, x.value]))
+  const wd = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(p.weekday)
+  return { min: Number(p.minute), hour: Number(p.hour) % 24, dom: Number(p.day), mon: Number(p.month), dow: wd }
+}
+export function cronMatches(cron: string, d: Date) {
+  const c = parseCron(cron); const t = chicago(d)
+  const dayOk = c.domStar || c.dowStar ? c.dom.has(t.dom) && c.dow.has(t.dow) : c.dom.has(t.dom) || c.dow.has(t.dow)
+  return c.min.has(t.min) && c.hour.has(t.hour) && c.mon.has(t.mon) && dayOk
+}
+export function nextRun(cron: string, from = new Date()) {
+  const d = new Date(Math.ceil(from.getTime() / 60000) * 60000)
+  for (let i = 0; i < 60 * 24 * 366; i++, d.setTime(d.getTime() + 60000)) if (cronMatches(cron, d)) return d.toISOString()
+  return undefined
+}
+
+// ---- routine state / history ---------------------------------------------------------------
+const stateFile = (slug: string) => path.join(BOTS_DIR, slug, "routines-state.json")
+const historyFile = (slug: string) => path.join(BOTS_DIR, slug, "routines-history.jsonl")
+const readJson = (f: string, d: any) => { try { return JSON.parse(readFileSync(f, "utf8")) } catch { return d } }
+export function history(slug: string, limit = 100) {
+  if (!existsSync(historyFile(slug))) return []
+  return readFileSync(historyFile(slug), "utf8").trim().split("\n").filter(Boolean).slice(-limit).map((l) => JSON.parse(l)).reverse()
+}
+function record(slug: string, e: Record<string, unknown>) { mkdirSync(path.join(BOTS_DIR, slug), { recursive: true }); appendFileSync(historyFile(slug), JSON.stringify({ at: new Date().toISOString(), ...e }) + "\n") }
+export function fire(bot: Bot, r: Routine, manual: boolean) {
+  const msg = inboxPost({ from: "routine", to: bot.slug, message: r.prompt, priority: true, kind: "routine" as any, routine: { id: r.id, name: r.name }, manual } as any)
+  record(bot.slug, { routine: r.id, name: r.name, event: "fired", manual, msg: msg.id })
+  return msg
+}
+function tick() {
+  const now = new Date(); const minuteKey = now.toISOString().slice(0, 16)
+  for (const bot of listBots()) {
+    const st = readJson(stateFile(bot.slug), {})
+    let changed = false
+    for (const r of bot.routines ?? []) {
+      if (!r.enabled) continue
+      try { if (!cronMatches(r.cron, now) || st[r.id] === minuteKey) continue } catch { continue }
+      st[r.id] = minuteKey; changed = true; fire(bot, r, false)
+    }
+    if (changed) writeFileSync(stateFile(bot.slug), JSON.stringify(st))
+  }
+}
+
+// ---- builder (DeepSeek drafts a bot) -------------------------------------------------------
+async function deepseekKey() {
+  if (process.env.DEEPSEEK_API_KEY) return process.env.DEEPSEEK_API_KEY
+  return (await resolveVault(["DEEPSEEK_API_KEY"])).get("DEEPSEEK_API_KEY")
+}
+export async function draftBot(description: string) {
+  const key = await deepseekKey(); if (!key) throw new Error("DEEPSEEK_API_KEY isn't in the vault or environment")
+  const system = `You design AI teammate bots for Ali Dillard (Aporia Nous, AI phone/text agents and automations for local businesses). Given a plain-words job description, return ONLY JSON: {"name": short title-case name, "avatar": one emoji, "role": one sentence (<=200 chars), "instructions": detailed second-person instructions (goals, steps, rules, what needs Ali's OK before anything is sent externally), "skills": [skill folder names if obvious, else []], "tools": [suggested tools/connectors e.g. "gmail","google-drive","web-search","browser","votel"], "routines": [{"name":..., "cron": 5-field cron in America/Chicago, "prompt": what to do each run}] }. Routines are suggestions; keep 0-3.`
+  let lastErr = ""
+  for (const model of ["deepseek-flash", "deepseek-chat"]) {
+    const res = await fetch("https://api.deepseek.com/chat/completions", {
+      method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
+      body: JSON.stringify({ model, temperature: 0.4, response_format: { type: "json_object" }, messages: [{ role: "system", content: system }, { role: "user", content: description }] }),
+    })
+    if (!res.ok) { lastErr = `DeepSeek ${res.status}: ${(await res.text()).slice(0, 160)}`; if (res.status === 400 || res.status === 404) continue; throw new Error(lastErr) }
+    const j: any = await res.json()
+    const d = JSON.parse(j.choices?.[0]?.message?.content ?? "{}")
+    return {
+      name: String(d.name ?? ""), avatar: String(d.avatar ?? ""), role: String(d.role ?? ""), instructions: String(d.instructions ?? ""),
+      skills: Array.isArray(d.skills) ? d.skills.map(String) : [], tools: Array.isArray(d.tools) ? d.tools.map(String) : [],
+      routines: (Array.isArray(d.routines) ? d.routines : []).map((r: any, i: number) => ({ id: `r${Date.now()}${i}`, name: String(r.name ?? "Routine"), cron: String(r.cron ?? "0 9 * * 1-5"), prompt: String(r.prompt ?? ""), enabled: false })),
+      model: "deepseek/deepseek-flash", folder: "Teammates", draftedWith: model,
+    }
+  }
+  throw new Error(lastErr || "DeepSeek draft failed")
+}
+
+// ---- templates -----------------------------------------------------------------------------
+export function toTemplate(bot: Bot) {
+  // Shareable: NO chats, sessions, memory, or secrets.
+  return { format: "aporia-bot", version: 1, exportedAt: new Date().toISOString(), name: bot.name, avatar: bot.avatar, role: bot.role, instructions: bot.instructions, model: bot.model, skills: bot.skills, tools: bot.tools, mcps: bot.mcps, voice: bot.voice, routines: (bot.routines ?? []).map(({ name, cron, prompt }) => ({ name, cron, prompt })) }
+}
+export function fromTemplate(t: any) {
+  if (t?.format !== "aporia-bot") throw new Error("Not an .aporia-bot.json template")
+  let name = String(t.name || "Imported bot"); let n = 2
+  while (getBot(slugify(name))) name = `${String(t.name)} ${n++}`
+  return saveBot({ name, avatar: t.avatar, role: String(t.role ?? ""), instructions: String(t.instructions ?? ""), model: String(t.model || "deepseek/deepseek-flash"), skills: t.skills ?? [], tools: t.tools ?? [], mcps: t.mcps ?? [], voice: t.voice, folder: "Imported",
+    routines: (t.routines ?? []).map((r: any, i: number) => ({ id: `r${Date.now()}${i}`, name: String(r.name), cron: String(r.cron), prompt: String(r.prompt), enabled: false })) })
+}
+
+// ---- reactions -----------------------------------------------------------------------------
+const reactFile = (slug: string) => path.join(BOTS_DIR, slug, "reactions.jsonl")
+export function reactions(slug: string) {
+  if (!existsSync(reactFile(slug))) return []
+  return readFileSync(reactFile(slug), "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l))
+}
+export function addReaction(slug: string, r: { by: "ali" | "bot"; emoji: string; messageID?: string; sessionID?: string; excerpt?: string }) {
+  mkdirSync(path.join(BOTS_DIR, slug), { recursive: true })
+  const e = { at: new Date().toISOString(), ...r, emoji: String(r.emoji).slice(0, 8) }
+  appendFileSync(reactFile(slug), JSON.stringify(e) + "\n"); return e
+}
+
+export function registerAporiaRoutinesHandler() {
+  setInterval(() => { try { tick() } catch (e) { console.error("aporia routines", e) } }, 30_000)
+  ipcMain.handle("aporia:routines", async (event, input: any) => {
+    const slug = String(input?.slug ?? "")
+    switch (input?.op) {
+      case "history": return history(slug)
+      case "next": try { return nextRun(String(input.cron)) ?? null } catch (e) { return { error: (e as Error).message } }
+      case "runNow": {
+        const bot = getBot(slug); const r = bot?.routines.find((x) => x.id === input.id); if (!bot || !r) throw new Error("No such routine")
+        return fire(bot, r, true)
+      }
+      case "result": record(slug, { routine: input.routine, name: input.name, event: input.error ? "failed" : "done", sessionID: input.sessionID, excerpt: String(input.excerpt ?? "").slice(0, 400), error: input.error }); return true
+      case "draft": return draftBot(String(input.description ?? ""))
+      case "export": {
+        const bot = getBot(slug); if (!bot) throw new Error("No such bot")
+        const win = BrowserWindow.fromWebContents(event.sender) ?? undefined
+        const target = input.path ?? (await dialog.showSaveDialog(win!, { defaultPath: `${bot.slug}.aporia-bot.json`, filters: [{ name: "Aporia bot", extensions: ["json"] }] })).filePath
+        if (!target) return null
+        writeFileSync(target, JSON.stringify(toTemplate(bot), null, 2)); return target
+      }
+      case "import": {
+        let file = input.path
+        if (!file) { const win = BrowserWindow.fromWebContents(event.sender) ?? undefined; const r = await dialog.showOpenDialog(win!, { filters: [{ name: "Aporia bot", extensions: ["json"] }], properties: ["openFile"] }); file = r.filePaths[0] }
+        if (!file) return null
+        return fromTemplate(JSON.parse(readFileSync(file, "utf8")))
+      }
+      case "reactions": return reactions(slug)
+      case "react": return addReaction(slug, input.reaction)
+    }
+    throw new Error("Unknown routines op")
+  })
+}

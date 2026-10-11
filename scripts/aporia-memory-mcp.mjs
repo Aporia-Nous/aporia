@@ -72,6 +72,13 @@ function sendToBot({ from, target, message, priority }) {
   writeFileSync(path.join(dir, id + ".json"), JSON.stringify(msg, null, 2))
   return `Queued for ${t}${priority ? " (priority: it wakes now)" : " (delivered when it is idle, within a few minutes)"}. The reply comes back to you as a new message; don't wait for it.`
 }
+function react({ bot, emoji }) {
+  if (!/^[a-z0-9-]{1,48}$/.test(bot || "")) throw new Error("bot must be your bot slug")
+  const e = String(emoji || "").trim(); if (!e || e.length > 8) throw new Error("one emoji")
+  const f = path.join(ROOT, "bots", bot, "reactions.jsonl"); mkdirSync(path.dirname(f), { recursive: true })
+  appendFileSync(f, JSON.stringify({ at: new Date().toISOString(), by: "bot", emoji: e }) + "\n")
+  return `Reacted ${e} to Ali's latest message. Don't also reply unless an answer is needed.`
+}
 const scopeProp = { type: "string", enum: ["user", "bot"], description: "user = shared facts about Ali (USER.md); bot = your own job memory (MEMORY.md)" }
 const botProp = { type: "string", description: "Your bot slug (from your instructions), e.g. rep-recruiter" }
 const TOOLS = [
@@ -79,6 +86,7 @@ const TOOLS = [
   { name: "forget", description: "Remove facts containing the given text (use when Ali corrects something, then remember the new fact).", inputSchema: { type: "object", properties: { scope: scopeProp, bot: botProp, match: { type: "string" } }, required: ["scope", "match"] }, run: forget },
   { name: "recall", description: "Search shared and your own memory. Empty query lists everything.", inputSchema: { type: "object", properties: { query: { type: "string" }, bot: botProp, limit: { type: "number" } } }, run: recall },
   { name: "send_to_bot", description: "Send an async message to another Aporia bot (or room:<slug>). Returns immediately; the reply arrives later as a new message in your chat.", inputSchema: { type: "object", properties: { from: { type: "string", description: "Your own bot slug" }, target: { type: "string", description: "Target bot slug or room:<slug>" }, message: { type: "string" }, priority: { type: "boolean", description: "true wakes the target now; false waits until it is idle" } }, required: ["from", "target", "message"] }, run: sendToBot },
+  { name: "react", description: "Put one emoji reaction on Ali's latest message in your chat (instead of a reply to thanks/acknowledgements). Max one per message.", inputSchema: { type: "object", properties: { bot: botProp, emoji: { type: "string" } }, required: ["bot", "emoji"] }, run: react },
   { name: "list_bots", description: "List Aporia teammate bots (slug: name - role).", inputSchema: { type: "object", properties: {} }, run: listBots },
 ]
 const send = (m) => process.stdout.write(JSON.stringify(m) + "\n")

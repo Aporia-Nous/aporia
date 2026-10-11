@@ -12,6 +12,7 @@ import { registerAporiaVaultHandler } from "./aporia-vault"
 import { registerAporiaAccountsHandler } from "./aporia-accounts"
 import { registerAporiaN8nHandler } from "./aporia-n8n" // APORIA
 import { registerAporiaBotsHandler } from "./aporia-bots" // APORIA
+import { registerAporiaRoutinesHandler } from "./aporia-routines" // APORIA
 import { applyStagedUpdateOnLaunch, registerAporiaUpdateHandler } from "./aporia-update" // APORIA
 import { createEarlyWindow } from "./windows/early"
 import { rendererAssetsServed } from "./windows/protocol"
@@ -48,6 +49,7 @@ if (acquireApplicationLock()) {
     registerAporiaVotelHandler() // APORIA
     registerAporiaOwnerHandler() // APORIA
     try { registerAporiaBotsHandler() } catch (e) { console.error("aporia bots", e) } // APORIA
+    try { registerAporiaRoutinesHandler() } catch (e) { console.error("aporia routines", e) } // APORIA
     createEarlyWindow()
     marks.window = Date.now()
     startSidecarProbe()
