@@ -3,7 +3,13 @@ import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
 
-mock.module("electron", () => ({ ipcMain: { handle() {} } }))
+mock.module("electron", () => ({
+  ipcMain: { handle() {} },
+  BrowserWindow: { fromWebContents: () => undefined },
+  dialog: { showSaveDialog: async () => ({ filePath: undefined }), showOpenDialog: async () => ({ filePaths: [] }) },
+  app: { getPath: () => process.env.APORIA_HOME ?? "", on() {}, once() {} },
+}))
+mock.module("./aporia-log", () => ({ aporiaLog: { error() {}, info() {}, warn() {} } }))
 const { persistMcp, validate } = await import("./aporia-mcp")
 
 describe("aporia mcp persist", () => {

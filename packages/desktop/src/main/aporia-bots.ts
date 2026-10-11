@@ -3,12 +3,13 @@
 // system prompt = bot instructions + MEMORY-AND-TOOLS rules + a snapshot of shared USER.md and its own MEMORY.md.
 // Agent files are regenerated whenever a bot or a memory file changes; the engine hot-reloads agent files.
 // The aporia-memory MCP (scripts/aporia-memory-mcp.mjs, stdio, headless) gives bots remember/forget/recall.
-import { appendFileSync, copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, watch, writeFileSync } from "node:fs"
+import { appendFileSync, copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, watch, writeFileSync, type FSWatcher } from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { ipcMain } from "electron"
+import { app, ipcMain } from "electron"
 import { parse } from "jsonc-parser"
 import { globalConfigFile, persistMcp } from "./aporia-mcp"
+import { aporiaLog } from "./aporia-log"
 
 export type Routine = { id: string; name: string; cron: string; prompt: string; enabled: boolean }
 export type Bot = {
@@ -17,7 +18,7 @@ export type Bot = {
   folder?: string; routines: Routine[]; sessions: string[]; created: string; seed?: boolean
 }
 
-export const APORIA_HOME = path.join(os.homedir(), "Aporia")
+export const APORIA_HOME = process.env.APORIA_HOME || path.join(os.homedir(), "Aporia")
 export const BOTS_DIR = path.join(APORIA_HOME, "bots")
 export const USER_MEMORY = path.join(APORIA_HOME, "memory", "USER.md")
 const HANDOFF = path.join(APORIA_HOME, "handoff")
@@ -90,7 +91,14 @@ export function deleteBot(slug: string) {
 
 function frontmatterString(s: string) { return JSON.stringify(s.replace(/\s+/g, " ").slice(0, 300)) }
 
-export function agentPrompt(bot: Bot) {
+// The shared, per-pass inputs: read once and reused for every bot's prompt, instead of re-reading
+// USER.md and the rules file for each bot during a regeneration pass.
+export type SharedPrompt = { rules: string; user: string }
+export function sharedPrompt(): SharedPrompt {
+  return { rules: read(RULES_FILE), user: cap(read(USER_MEMORY), 12000) }
+}
+
+export function agentPrompt(bot: Bot, shared: SharedPrompt = sharedPrompt()) {
   return [
     `You are ${bot.name}, one of Ali Dillard's Aporia teammates (bot slug: ${bot.slug}).`,
     bot.role ? `ROLE: ${bot.role}` : "",
@@ -101,9 +109,9 @@ export function agentPrompt(bot: Bot) {
     `Reactions: you can react to Ali's latest message with the react tool (bot="${bot.slug}", one emoji) instead of replying to a quick thanks or acknowledgement; follow the reaction rules in VOICE.md.`,
     `Teammates: use send_to_bot (from="${bot.slug}") to ask another bot (list_bots shows them) or post to room:<slug>. It's async: keep working, the reply arrives as a new message. Messages starting with "📨 From" are from another bot; answer them directly (your final reply is sent back automatically, so don't call send_to_bot to reply). In a room turn, reply with PASS if you have nothing useful to add.`,
     `Memory tools (aporia-memory MCP): remember/forget/recall with bot="${bot.slug}". Below is a snapshot of memory at the time this prompt was built; use recall for anything older or more specific.`,
-    read(RULES_FILE),
+    shared.rules,
     recentReactions(bot.slug),
-    "## SHARED MEMORY (USER.md, facts about Ali)\n" + cap(read(USER_MEMORY), 12000),
+    "## SHARED MEMORY (USER.md, facts about Ali)\n" + shared.user,
     `## YOUR MEMORY (${bot.slug}/MEMORY.md)\n` + cap(read(path.join(BOTS_DIR, bot.slug, "MEMORY.md")), 12000),
   ].filter(Boolean).join("\n\n")
 }
@@ -115,14 +123,35 @@ function recentReactions(slug: string) {
   return "## Ali's recent reactions to your messages (newest last)\n" + ali.map((r) => `- ${r.at.slice(0, 16)} ${r.emoji} on: "${String(r.excerpt ?? "").slice(0, 120)}"`).join("\n")
 }
 
-export function writeAgent(bot: Bot) {
+export function writeAgent(bot: Bot, shared: SharedPrompt = sharedPrompt()) {
   mkdirSync(agentsDir(), { recursive: true })
   const fm = ["---", `description: ${frontmatterString(bot.role || bot.name)}`, "mode: primary", `model: ${bot.model}`, "---", ""].join("\n")
   const file = path.join(agentsDir(), `aporia-${bot.slug}.md`)
-  const next = fm + agentPrompt(bot) + "\n"
+  const next = fm + agentPrompt(bot, shared) + "\n"
   if (read(file) !== next) writeFileSync(file, next)
 }
-export const regenerateAll = () => listBots().forEach((b) => { try { writeAgent(b) } catch {} })
+
+const errorText = (error: unknown) => (error instanceof Error ? (error.stack ?? error.message) : String(error))
+
+/** Regenerate the agent files for just these bots, reading the shared USER.md / rules once for the pass. */
+export function regenerateBots(slugs: Iterable<string>): string[] {
+  const shared = sharedPrompt()
+  const bots = new Map(listBots().map((b) => [b.slug, b]))
+  const done: string[] = []
+  for (const slug of new Set(slugs)) {
+    const bot = bots.get(slug)
+    if (!bot) continue
+    try {
+      writeAgent(bot, shared)
+      done.push(slug)
+    } catch (error) {
+      aporiaLog.error(`aporia regenerate ${slug} failed`, errorText(error))
+    }
+  }
+  return done
+}
+
+export const regenerateAll = () => regenerateBots(listBots().map((b) => b.slug))
 
 // ---- inbox (bot-to-bot) and rooms --------------------------------------------------------
 export const INBOX = path.join(APORIA_HOME, "inbox")
@@ -224,7 +253,8 @@ export function seedBots() {
 export function ensureMemoryMcp() {
   const file = globalConfigFile()
   let current: any = {}
-  try { current = parse(read(file)) ?? {} } catch {}
+  try { current = parse(read(file)) ?? {} }
+  catch (error) { aporiaLog.error("aporia memory-mcp config parse failed; leaving it unchanged", errorText(error)) }
   const node = existsSync("C:\\Tools\\node22\\node.exe") ? "C:\\Tools\\node22\\node.exe" : "node"
   const want = { type: "local", command: [node, MEMORY_MCP], enabled: true }
   const have = current?.mcp?.["aporia-memory"]
@@ -233,14 +263,103 @@ export function ensureMemoryMcp() {
   return true
 }
 
+// ---- watchers (narrow: one non-recursive watch per bot dir + the shared memory/rules dirs) -----
+// Map a changed path to what must be regenerated: "*" for a shared file (USER.md / rules), a list of
+// slugs for a bot's own files, or [] for anything we do not care about.
+export function changeTargets(changedFile: string): string[] | "*" {
+  const file = changedFile.replace(/\\/g, "/")
+  if (/(?:^|\/)USER\.md$/i.test(file) || /MEMORY-AND-TOOLS\.md$/i.test(file)) return "*"
+  const bot = file.match(/(?:^|\/)bots\/([^/]+)\/(?:bot\.json|MEMORY\.md|reactions\.jsonl)$/i)
+  return bot ? [bot[1]] : []
+}
+
+export function regenerateChanged(changedFile: string): string[] {
+  const targets = changeTargets(changedFile)
+  if (targets === "*") return regenerateBots(listBots().map((b) => b.slug))
+  return regenerateBots(targets)
+}
+
 let watching = false
-function watchMemory() {
-  if (watching) return; watching = true
-  let t: NodeJS.Timeout | undefined
-  const kick = () => { clearTimeout(t); t = setTimeout(regenerateAll, 500) }
-  for (const dir of [path.dirname(USER_MEMORY), BOTS_DIR, HANDOFF]) {
-    try { mkdirSync(dir, { recursive: true }); watch(dir, { recursive: true }, (_e, f) => { if (f && (/\.(md|json)$/i.test(String(f)) || /reactions\.jsonl$/i.test(String(f))) && !/\.bak|routines-state|inbox/.test(String(f))) kick() }) } catch {}
+let watchers: FSWatcher[] = []
+const watchedBots = new Set<string>()
+let debounce: NodeJS.Timeout | undefined
+const pendingBots = new Set<string>()
+let pendingShared = false
+
+function kick() {
+  clearTimeout(debounce)
+  debounce = setTimeout(flush, 500)
+}
+
+function flush() {
+  const shared = pendingShared
+  const slugs = [...pendingBots]
+  pendingShared = false
+  pendingBots.clear()
+  try {
+    if (shared) regenerateAll()
+    else if (slugs.length) regenerateBots(slugs)
+  } catch (error) {
+    aporiaLog.error("aporia watcher regeneration failed", errorText(error))
   }
+}
+
+function addWatch(dir: string, onFile: (name: string) => void) {
+  try {
+    mkdirSync(dir, { recursive: true })
+    const watcher = watch(dir, { recursive: false }, (_event, name) => { if (name) onFile(String(name)) })
+    watcher.on("error", (error) => aporiaLog.error(`aporia watcher on ${dir} failed`, errorText(error)))
+    watchers.push(watcher)
+  } catch (error) {
+    aporiaLog.error(`aporia watcher setup for ${dir} failed`, errorText(error))
+  }
+}
+
+function watchBot(slug: string) {
+  if (watchedBots.has(slug)) return
+  watchedBots.add(slug)
+  addWatch(path.join(BOTS_DIR, slug), (name) => {
+    if (/^(bot\.json|MEMORY\.md)$/i.test(name) || /^reactions\.jsonl$/i.test(name)) {
+      pendingBots.add(slug)
+      kick()
+    }
+  })
+}
+
+function watchNewBots() {
+  for (const bot of listBots()) watchBot(bot.slug)
+}
+
+export function isWatching() {
+  return watching
+}
+
+export function closeWatchers() {
+  clearTimeout(debounce)
+  for (const watcher of watchers) {
+    try { watcher.close() }
+    catch (error) { aporiaLog.error("aporia watcher close failed", errorText(error)) }
+  }
+  watchers = []
+  watchedBots.clear()
+  pendingBots.clear()
+  pendingShared = false
+  watching = false
+}
+
+export function watchMemory(): () => void {
+  if (watching) return closeWatchers
+  watching = true
+  // Shared inputs -> regenerate every bot.
+  addWatch(path.dirname(USER_MEMORY), (name) => { if (name === "USER.md") { pendingShared = true; kick() } })
+  addWatch(path.dirname(RULES_FILE), (name) => { if (name === path.basename(RULES_FILE)) { pendingShared = true; kick() } })
+  // Each bot's own files -> regenerate only that bot.
+  watchNewBots()
+  // A new/removed bot dir -> (re)install its watch.
+  addWatch(BOTS_DIR, () => watchNewBots())
+  // Close the handles when the app quits.
+  app.once("will-quit", closeWatchers)
+  return closeWatchers
 }
 
 function migrateSeedRoles() {

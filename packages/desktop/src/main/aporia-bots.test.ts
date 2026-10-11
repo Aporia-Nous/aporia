@@ -14,7 +14,11 @@ mock.module("electron", () => ({
       if (channel === "aporia:bots") botsHandler = fn
     },
   },
+  BrowserWindow: { fromWebContents: () => undefined },
+  dialog: { showSaveDialog: async () => ({ filePath: undefined }), showOpenDialog: async () => ({ filePaths: [] }) },
+  app: { getPath: () => process.env.APORIA_HOME ?? "", on() {}, once() {} },
 }))
+mock.module("./aporia-log", () => ({ aporiaLog: { error() {}, info() {}, warn() {} } }))
 
 const { botsHealth, registerAporiaBotsHandler, startBots } = await import("./aporia-bots")
 
