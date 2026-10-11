@@ -166,10 +166,11 @@ function AporiaSidebar(props: { directory: string; currentID?: string; onConnect
   )
 
   const sdk = useServerSDK()
+  const [showSub, setShowSub] = createSignal(false)
   // Read-only: every root session the server knows, across all projects (not just opened ones).
   const [all] = createResource(
     () => sdk.connection.status() === "connected",
-    () => sdk.api.session.list({ limit: 1000, order: "desc", parentID: null }).then((r) => r.data),
+    () => sdk.api.session.list({ limit: 2000, order: "desc" }).then((r) => r.data),
     { initialValue: [] },
   )
   const sessions = createMemo(() => {
@@ -178,10 +179,10 @@ function AporiaSidebar(props: { directory: string; currentID?: string; onConnect
     for (const session of all.latest ?? []) merged.set(session.id, session)
     for (const session of data.session.list()) merged.set(session.id, session)
     return [...merged.values()]
-      .filter((session) => !session.parentID && !session.time.archived)
+      .filter((session) => (showSub() || !session.parentID) && !session.time.archived)
       .filter((session) => !filter || (session.title ?? "").toLowerCase().includes(filter))
       .toSorted((a, b) => b.time.updated - a.time.updated)
-      .slice(0, 600)
+      .slice(0, 2000)
   })
 
   return (
@@ -211,7 +212,18 @@ function AporiaSidebar(props: { directory: string; currentID?: string; onConnect
           )}
         </For>
       </div>
-      <div class="ap-section-label">Chats <span class="ap-count">{sessions().length}</span></div>
+      <div class="ap-section-label ap-chats-label">
+        Chats <span class="ap-count">{sessions().length}</span>
+        <button
+          type="button"
+          class="ap-sub-toggle"
+          aria-pressed={showSub()}
+          title="Include subagent runs (child sessions)"
+          onClick={() => setShowSub(!showSub())}
+        >
+          {showSub() ? "All runs" : "+ subagents"}
+        </button>
+      </div>
       <nav class="ap-session-list">
         <For each={sessions()} fallback={<EmptyState icon="message" title="No chats yet" hint="Start a session and it shows up here." />}>
           {(session) => (
