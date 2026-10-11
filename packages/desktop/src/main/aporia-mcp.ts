@@ -20,7 +20,7 @@ type McpConfig =
       type: "remote"
       url: string
       headers?: Record<string, string>
-      oauth?: { client_id: string; client_secret?: string; redirect_uri?: string }
+      oauth?: { clientId: string; clientSecret?: string; redirectUri?: string }
     }
 
 export function globalConfigFile() {
@@ -57,18 +57,18 @@ export function validate(name: unknown, config: unknown): { name: string; config
     for (const value of Object.values(headers))
       if (typeof value !== "string" || !(ENV_REF.test(value) || BEARER_REF.test(value)))
         throw new Error("Header values must reference {env:NAME}")
-    let oauth: { client_id: string; client_secret?: string; redirect_uri?: string } | undefined
+    let oauth: { clientId: string; clientSecret?: string; redirectUri?: string } | undefined
     if (c.oauth !== undefined) {
       const o = c.oauth as Record<string, unknown>
-      if (typeof o.client_id !== "string" || !ENV_REF.test(o.client_id)) throw new Error("oauth.client_id must be {env:NAME}")
-      if (o.client_secret !== undefined && (typeof o.client_secret !== "string" || !ENV_REF.test(o.client_secret)))
-        throw new Error("oauth.client_secret must be {env:NAME}")
-      if (o.redirect_uri !== undefined && (typeof o.redirect_uri !== "string" || !/^http:\/\/127\.0\.0\.1:\d+\/[a-z/]*$/.test(o.redirect_uri)))
-        throw new Error("oauth.redirect_uri must be a 127.0.0.1 loopback URL")
+      if (typeof o.clientId !== "string" || !ENV_REF.test(o.clientId)) throw new Error("oauth.clientId must be {env:NAME}")
+      if (o.clientSecret !== undefined && (typeof o.clientSecret !== "string" || !ENV_REF.test(o.clientSecret)))
+        throw new Error("oauth.clientSecret must be {env:NAME}")
+      if (o.redirectUri !== undefined && (typeof o.redirectUri !== "string" || !/^http:\/\/127\.0\.0\.1:\d+\/[a-z/]*$/.test(o.redirectUri)))
+        throw new Error("oauth.redirectUri must be a 127.0.0.1 loopback URL")
       oauth = {
-        client_id: o.client_id,
-        ...(typeof o.client_secret === "string" ? { client_secret: o.client_secret } : {}),
-        ...(typeof o.redirect_uri === "string" ? { redirect_uri: o.redirect_uri } : {}),
+        clientId: o.clientId,
+        ...(typeof o.clientSecret === "string" ? { clientSecret: o.clientSecret } : {}),
+        ...(typeof o.redirectUri === "string" ? { redirectUri: o.redirectUri } : {}),
       }
     }
     return {

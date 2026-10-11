@@ -43,10 +43,11 @@ export function buildMcpConfig(app: CatalogApp, envNames: Record<string, string>
     return {
       type: "remote" as const,
       url: app.url ?? "",
+      // File config (opencode.json) uses camelCase oauth keys.
       oauth: {
-        client_id: envReference(envNames[id!] || id!),
-        client_secret: envReference(envNames[secret!] || secret!),
-        ...(app.redirect ? { redirect_uri: app.redirect } : {}),
+        clientId: envReference(envNames[id!] || id!),
+        clientSecret: envReference(envNames[secret!] || secret!),
+        ...(app.redirect ? { redirectUri: app.redirect } : {}),
       },
     }
   }
@@ -159,10 +160,11 @@ export function ConnectAppsModal(props: { directory: string; sessionID?: string;
         app.auth === "oauth-client"
           ? {
               ...persisted,
+              // The live server API (mcp.add) takes the snake_case runtime shape.
               oauth: {
-                ...(persisted as { oauth: Record<string, string> }).oauth,
-                ...(values[app.env[0]!] ? { client_id: values[app.env[0]!] } : {}),
+                client_id: values[app.env[0]!] || "",
                 ...(values[app.env[1]!] ? { client_secret: values[app.env[1]!] } : {}),
+                ...(app.redirect ? { redirect_uri: app.redirect } : {}),
               },
             }
           : app.type === "remote"
@@ -170,7 +172,18 @@ export function ConnectAppsModal(props: { directory: string; sessionID?: string;
             ? { ...persisted, headers: { Authorization: `Bearer ${values[app.env[0]]}` } }
             : persisted
           : { ...persisted, ...(app.env.length ? { environment: { ...values } } : {}) }
-      await sdk.api.mcp.add({ server: app.id, location: location(), config: runtime as typeof persisted })
+      if (app.auth === "oauth-client" && !values[app.env[0]!]) {
+        await persistMcp(app.id, persisted)
+        return mark(app.id, {
+          state: "failed",
+          detail: "Saved with your existing env vars. Quit and reopen Aporia so its server loads them, then Connect again.",
+        })
+      }
+      await sdk.api.mcp.add({
+        server: app.id,
+        location: location(),
+        config: runtime as unknown as Parameters<typeof sdk.api.mcp.add>[0]["config"],
+      })
       let saved: { file: string; backup?: string } | undefined
       let persistError: string | undefined
       try {
