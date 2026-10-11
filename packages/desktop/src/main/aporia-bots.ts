@@ -254,21 +254,55 @@ function migrateSeedRoles() {
   }
 }
 
-export function startBots() {
-  try { seedBots() } catch (e) { console.error("aporia bots seed", e) }
-  try { migrateSeedRoles() } catch (e) { console.error("aporia bots migrate", e) }
-  try { ensureMemoryMcp() } catch (e) { console.error("aporia memory mcp", e) }
-  regenerateAll(); watchMemory()
+// ---- startup health -------------------------------------------------------
+export type BotsHealth = { readonly ok: boolean; readonly stage?: string; readonly error?: string; readonly at: string }
+
+export type BotsInitStep = readonly [stage: string, run: () => void]
+
+let health: BotsHealth = { ok: true, at: new Date().toISOString() }
+
+/** Last bots-init outcome, surfaced over `aporia:bots { op: "health" }` so the UI can warn on failure. */
+export const botsHealth = (): BotsHealth => health
+
+const errorMessage = (error: unknown) => (error instanceof Error ? error.message : String(error))
+
+const defaultInitSteps = (): BotsInitStep[] => [
+  ["seed", seedBots],
+  ["migrate", migrateSeedRoles],
+  ["memory-mcp", ensureMemoryMcp],
+  ["regenerate", () => { regenerateAll(); watchMemory() }],
+]
+
+export function startBots(steps: ReadonlyArray<BotsInitStep> = defaultInitSteps()) {
+  const failures: { readonly stage: string; readonly error: unknown }[] = []
+  for (const [stage, run] of steps) {
+    try {
+      run()
+    } catch (error) {
+      failures.push({ stage, error })
+    }
+  }
+  if (failures.length > 0) {
+    health = {
+      ok: false,
+      stage: failures.map((failure) => failure.stage).join(","),
+      error: failures.map((failure) => errorMessage(failure.error)).join("; "),
+      at: new Date().toISOString(),
+    }
+    throw new Error(`aporia bots init failed (${health.stage}): ${health.error}`)
+  }
+  health = { ok: true, at: new Date().toISOString() }
+  return health
 }
 
 export function registerAporiaBotsHandler() {
-  startBots()
   ipcMain.handle("aporia:bots", (_e, input: any) => {
     switch (input?.op) {
       case "list": return listBots()
       case "get": return getBot(String(input.slug))
       case "save": return saveBot(input.bot ?? {})
       case "delete": return deleteBot(String(input.slug))
+      case "health": return botsHealth()
       case "attachSession": {
         const bot = getBot(String(input.slug)); if (!bot) throw new Error("No such bot")
         if (!bot.sessions.includes(input.sessionID)) bot.sessions.unshift(String(input.sessionID))

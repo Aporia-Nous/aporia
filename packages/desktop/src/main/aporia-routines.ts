@@ -5,6 +5,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } fr
 import path from "node:path"
 import { BrowserWindow, dialog, ipcMain } from "electron"
 import { BOTS_DIR, getBot, inboxPost, listBots, saveBot, slugify, type Bot, type Routine } from "./aporia-bots"
+import { aporiaLog } from "./aporia-log"
 import { resolveVault } from "./aporia-vault-store"
 
 const TZ = "America/Chicago"
@@ -126,7 +127,7 @@ export function addReaction(slug: string, r: { by: "ali" | "bot"; emoji: string;
 }
 
 export function registerAporiaRoutinesHandler() {
-  setInterval(() => { try { tick() } catch (e) { console.error("aporia routines", e) } }, 30_000)
+  setInterval(() => { try { tick() } catch (e) { aporiaLog.error("aporia routines tick failed", e instanceof Error ? (e.stack ?? e.message) : String(e)) } }, 30_000)
   ipcMain.handle("aporia:routines", async (event, input: any) => {
     const slug = String(input?.slug ?? "")
     switch (input?.op) {

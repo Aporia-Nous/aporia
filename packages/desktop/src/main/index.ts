@@ -11,8 +11,10 @@ import { registerAporiaEnvHandler } from "./aporia-env"
 import { registerAporiaVaultHandler } from "./aporia-vault"
 import { registerAporiaAccountsHandler } from "./aporia-accounts"
 import { registerAporiaN8nHandler } from "./aporia-n8n" // APORIA
-import { registerAporiaBotsHandler } from "./aporia-bots" // APORIA
+import { registerAporiaBotsHandler, startBots } from "./aporia-bots" // APORIA
 import { registerAporiaRoutinesHandler } from "./aporia-routines" // APORIA
+import { aporiaLog } from "./aporia-log" // APORIA
+import { runAporiaStartup } from "./aporia-startup" // APORIA
 import { applyStagedUpdateOnLaunch, registerAporiaUpdateHandler } from "./aporia-update" // APORIA
 import { createEarlyWindow } from "./windows/early"
 import { rendererAssetsServed } from "./windows/protocol"
@@ -20,6 +22,10 @@ import { registerRendererScheme } from "./windows/scheme"
 
 // APORIA: keep the bundled server on its own DB copy so the stock OpenCode install is never migrated.
 process.env.OPENCODE_DB ??= "opencode-aporia.db"
+// APORIA: teammate Locations must release their scope when a bot goes idle (graceful, via
+// LocationActivity). Five minutes of no user-visible activity; APORIA_LOCATION_IDLE_TTL_MIN=0 disables
+// eviction. Set before the background server child spawns so it inherits the value.
+process.env.APORIA_LOCATION_IDLE_TTL_MIN ??= "5"
 // APORIA: a staged self-update is applied before any window opens (the updater swaps, relaunches, health-checks).
 let aporiaUpdating = false
 process.env.OPENCODE_DISABLE_CHANNEL_DB ??= "1"
@@ -48,9 +54,18 @@ if (acquireApplicationLock()) {
     registerAporiaAccountsHandler() // APORIA
     registerAporiaVotelHandler() // APORIA
     registerAporiaOwnerHandler() // APORIA
-    try { registerAporiaBotsHandler() } catch (e) { console.error("aporia bots", e) } // APORIA
-    try { registerAporiaRoutinesHandler() } catch (e) { console.error("aporia routines", e) } // APORIA
-    createEarlyWindow()
+    // Register Aporia's cheap IPC handlers now; run the expensive bots init only after the first
+    // window, so seeding/migration/config writes never delay the first paint. A failure is logged and
+    // surfaced through the bots health flag instead of being swallowed to console.error.
+    runAporiaStartup({
+      register: () => {
+        registerAporiaBotsHandler()
+        registerAporiaRoutinesHandler()
+      },
+      createWindow: createEarlyWindow,
+      start: startBots,
+      onError: (stage, error) => aporiaLog.error(`aporia startup ${stage} failed`, error.stack ?? error.message),
+    })
     marks.window = Date.now()
     startSidecarProbe()
 
