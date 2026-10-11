@@ -97,6 +97,8 @@ type ServerEntry = {
   scope?: Scope.Closeable
   // When the connection is hosted by the app-wide pool, this closes this server's lease on release.
   release?: Effect.Effect<void>
+  // When shared, the connection lives behind this handle so a pool rebuild updates it for every holder.
+  handle?: McpShared.Handle<{ connection: McpClient.Connection; tools: McpClient.Tool[] }>
   client?: McpClient.Connection
   tools?: ReadonlyArray<Tool>
   prompts?: ReadonlyArray<Prompt>
@@ -115,6 +117,11 @@ const endpointLoads = KeyedMutex.makeUnsafe<string>()
 // APORIA: host every configured MCP server once per app instead of once per bot location. Each bot is
 // its own Location, so location-scoped connections multiplied the same child process per bot. Default
 // on; APORIA_GLOBAL_MCP=0 restores the upstream per-location behavior.
+//
+// Accepted decision (controller ruling, 2026-10-11): share ALL servers, not just stateless ones. This
+// is a local-only app, the heavy offenders (playwright/chrome-devtools/gmail) are the point, and the
+// kill switch reverts. Cost: two bots using the same stateful server contend on one session/connection
+// (e.g. one browser). If that bites, classify per server with a `global` config flag.
 const sharesConnections = () => process.env.APORIA_GLOBAL_MCP !== "0"
 
 const connectionKey = (name: ServerName, config: Mcp.ServerConfig) =>
@@ -348,10 +355,19 @@ export const layer = (options?: Options) =>
         ...(entry.config.codemode === undefined ? {} : { codemode: entry.config.codemode }),
       })
 
+      // Shared connections live behind a handle that a pool rebuild updates in place; own connections
+      // are the entry's client. Every read must go through this so a rebuilt connection is observed.
+      const connectionOf = (entry: ServerEntry) => (entry.handle ? entry.handle.get().connection : entry.client)
+
+      const toolsOf = (name: ServerName, entry: ServerEntry): readonly Tool[] =>
+        entry.handle ? entry.handle.get().tools.map((tool) => toTool(name, entry, tool)) : (entry.tools ?? [])
+
       const refreshTools = (name: ServerName, entry: ServerEntry, connection: McpClient.Connection) =>
         connection.tools().pipe(
           Effect.map((tools) => {
-            entry.tools = tools.map((tool) => toTool(name, entry, tool))
+            // Shared holders read through the handle, so updating the shared value keeps them in sync.
+            if (entry.handle) entry.handle.get().tools = tools
+            else entry.tools = tools.map((tool) => toTool(name, entry, tool))
           }),
         )
 
@@ -364,24 +380,71 @@ export const layer = (options?: Options) =>
           Effect.andThen(bus.publish(PromptsChanged, { server: name })),
         )
 
+      // Builds a server's connection step: connect, list tools, and tie the transport to `scope`.
+      const openConnection = (name: ServerName, entry: ServerEntry) =>
+        Effect.gen(function* () {
+          const authProvider = yield* connectProvider(entry)
+          const { McpClient } = yield* Effect.promise(() => import("./client.js"))
+          return (scope: Scope.Scope) =>
+            McpClient.connect(
+              name,
+              entry.config,
+              location.directory,
+              authProvider,
+              elicitation,
+              options?.clientInfo,
+            ).pipe(
+              Effect.flatMap((connection) => connection.tools().pipe(Effect.map((tools) => ({ connection, tools })))),
+              // A stdio server is spawned on this location's execution plane, not the host's.
+              Effect.provideService(Environment.Service, environment),
+              Scope.provide(scope),
+            )
+        })
+
       // Runs a connection callback under the server lock, dropping it if the connection is no longer
       // the entry's live client, so late SDK callbacks cannot commit obsolete state.
       const whenLive =
         (name: ServerName, entry: ServerEntry, connection: McpClient.Connection) =>
         <E>(effect: Effect.Effect<void, E>) =>
           fork(
-            Effect.suspend(() => (entry.client === connection ? effect : Effect.void)).pipe(
+            Effect.suspend(() => (connectionOf(entry) === connection ? effect : Effect.void)).pipe(
               locks.withLock(name),
               Effect.ignore,
             ),
           )
 
       // Re-establishes a server whose HTTP session the server dropped, unless another path already
-      // replaced the connection while this one waited for the lock.
+      // replaced the connection while this one waited for the lock. Shared connections are rebuilt in
+      // place so every location holding the server observes the fresh connection.
       const recover = (name: ServerName, entry: ServerEntry, connection: McpClient.Connection) =>
         Effect.gen(function* () {
-          if (entry.client !== connection) return
+          if (connectionOf(entry) !== connection) return
           yield* Effect.logInfo("mcp session expired, reconnecting", { server: name })
+          if (entry.handle && Option.isSome(sharedPool) && sharesConnections()) {
+            const rebuilt = yield* Effect.gen(function* () {
+              const build = yield* openConnection(name, entry)
+              return yield* sharedPool.value.reconnect({
+                key: connectionKey(name, entry.config),
+                build,
+                matches: (value) => value.connection === connection,
+              })
+            }).pipe(Effect.exit)
+            if (Exit.isSuccess(rebuilt)) {
+              // Some: this caller rebuilt the connection. None: another location already replaced it.
+              if (Option.isSome(rebuilt.value)) {
+                entry.handle = rebuilt.value.value
+                entry.tools = undefined
+                entry.status = { status: "connected" }
+                const fresh = rebuilt.value.value.get().connection
+                watch(name, entry, fresh)
+                yield* bus.publish(McpEvent.ToolsChanged, { server: name })
+                yield* bus.publish(McpEvent.ResourcesChanged, { server: name })
+                yield* bus.publish(McpEvent.StatusChanged, { server: name })
+                whenLive(name, entry, fresh)(refreshPrompts(name, entry, fresh))
+              }
+              return
+            }
+          }
           yield* stopServer(name, entry)
           yield* startServer(name, entry)
         }).pipe(locks.withLock(name))
@@ -400,7 +463,10 @@ export const layer = (options?: Options) =>
             (error) => "_tag" in error && error._tag === "MCP.SessionExpiredError",
             (error) =>
               recover(name, entry, connection).pipe(
-                Effect.flatMap(() => (entry.client ? run(entry.client) : Effect.fail(error))),
+                Effect.flatMap(() => {
+                  const next = connectionOf(entry)
+                  return next ? run(next) : Effect.fail(error)
+                }),
               ),
           ),
         )
@@ -471,24 +537,9 @@ export const layer = (options?: Options) =>
           // disabled/failed status for the duration of the connection attempt.
           entry.status = { status: "pending" }
           yield* bus.publish(McpEvent.StatusChanged, { server: name })
-          const authProvider = yield* connectProvider(entry)
-          const { McpClient } = yield* Effect.promise(() => import("./client.js"))
           // List tools as part of connect so a failure here marks the server failed rather than
           // leaving it connected with a silently empty tool list and no path to recover.
-          const load = (scope: Scope.Scope) =>
-            McpClient.connect(
-              name,
-              entry.config,
-              location.directory,
-              authProvider,
-              elicitation,
-              options?.clientInfo,
-            ).pipe(
-              Effect.flatMap((connection) => connection.tools().pipe(Effect.map((tools) => ({ connection, tools })))),
-              // A stdio server is spawned on this location's execution plane, not the host's.
-              Effect.provideService(Environment.Service, environment),
-              Scope.provide(scope),
-            )
+          const load = yield* openConnection(name, entry)
           const share = sharesConnections() && Option.isSome(sharedPool)
           // The shared pool owns the connection scope and refcount; otherwise this location owns it.
           const run = share
@@ -497,28 +548,26 @@ export const layer = (options?: Options) =>
                 const scope = yield* Scope.fork(root)
                 entry.scope = scope
                 const value = yield* load(scope)
-                return { value, release: Scope.close(scope, Exit.void) }
+                return { get: () => value, release: Scope.close(scope, Exit.void) }
               })
           const result = yield* (
             entry.config.type === "remote" ? endpointLoads.withLock(entry.config.url)(run) : run
           ).pipe(Effect.exit)
           if (Exit.isSuccess(result)) {
-            entry.release = result.value.release
-            entry.client = result.value.value.connection
-            entry.tools = result.value.value.tools.map((tool) => toTool(name, entry, tool))
+            const acquired = result.value
+            entry.release = acquired.release
+            if (share) entry.handle = acquired
+            else entry.client = acquired.get().connection
+            entry.tools = acquired.get().tools.map((tool) => toTool(name, entry, tool))
             entry.prompts = []
             entry.status = { status: "connected" }
-            watch(name, entry, result.value.value.connection)
+            watch(name, entry, acquired.get().connection)
             yield* Effect.logInfo("mcp connected", { server: name, tools: entry.tools.length })
             // The tool registry reads on this event; a late-connecting server has no other way to appear.
             yield* bus.publish(McpEvent.ToolsChanged, { server: name })
             yield* bus.publish(McpEvent.ResourcesChanged, { server: name })
             yield* bus.publish(McpEvent.StatusChanged, { server: name })
-            whenLive(
-              name,
-              entry,
-              result.value.value.connection,
-            )(refreshPrompts(name, entry, result.value.value.connection))
+            whenLive(name, entry, acquired.get().connection)(refreshPrompts(name, entry, acquired.get().connection))
             return
           }
           if (entry.scope) {
@@ -527,6 +576,7 @@ export const layer = (options?: Options) =>
             yield* Scope.close(scope, Exit.void)
           }
           const error = Cause.squash(result.cause)
+          const { McpClient } = yield* Effect.promise(() => import("./client.js"))
           entry.status =
             error instanceof McpClient.NeedsAuthError
               ? { status: "needs_auth", error: error.message }
@@ -544,6 +594,7 @@ export const layer = (options?: Options) =>
         if (!scope && !release) return
         entry.scope = undefined
         entry.release = undefined
+        entry.handle = undefined
         entry.client = undefined
         entry.tools = undefined
         entry.prompts = undefined
@@ -723,20 +774,21 @@ export const layer = (options?: Options) =>
         }),
         // Reads report what is connected now; servers still starting contribute once they publish a change.
         tools: Effect.fn("MCP.tools")(function* () {
-          return Array.from(entries.values())
-            .flatMap((entry) => entry.tools ?? [])
+          return Array.from(entries)
+            .flatMap(([name, entry]) => toolsOf(name, entry))
             .toSorted((a, b) => a.server.localeCompare(b.server) || a.name.localeCompare(b.name))
         }),
         callTool: Effect.fn("MCP.callTool")(function* (input) {
           const target = yield* requireServer(input.server)
           yield* target.entry.startup.await
-          if (!target.entry.client)
+          const connection = connectionOf(target.entry)
+          if (!connection)
             return yield* new ToolCallError({
               server: target.name,
               tool: input.name,
               message: unavailable(target.name, target.entry.status),
             })
-          const result = yield* recovering(target.name, target.entry, target.entry.client, (connection) =>
+          const result = yield* recovering(target.name, target.entry, connection, (connection) =>
             connection.callTool({ name: input.name, args: input.args, sessionID: input.sessionID }),
           ).pipe(
             Effect.mapError(
@@ -753,7 +805,7 @@ export const layer = (options?: Options) =>
         instructions: Effect.fn("MCP.instructions")(function* () {
           return Array.from(entries)
             .flatMap(([server, entry]) => {
-              const instructions = entry.client?.instructions
+              const instructions = connectionOf(entry)?.instructions
               if (!instructions) return []
               return [{ server, instructions }]
             })
@@ -767,8 +819,9 @@ export const layer = (options?: Options) =>
         prompt: Effect.fn("MCP.prompt")(function* (input) {
           const target = yield* requireServer(input.server)
           yield* target.entry.startup.await
-          if (!target.entry.client) return undefined
-          const result = yield* recovering(target.name, target.entry, target.entry.client, (connection) =>
+          const connection = connectionOf(target.entry)
+          if (!connection) return undefined
+          const result = yield* recovering(target.name, target.entry, connection, (connection) =>
             connection.prompt({ name: input.name, args: input.args }),
           ).pipe(Effect.orElseSucceed(() => undefined))
           if (!result) return undefined
@@ -778,10 +831,12 @@ export const layer = (options?: Options) =>
           const empty = ResourceCatalog.make({ resources: [], templates: [] })
           const catalogs = yield* Effect.forEach(
             Array.from(entries),
-            ([name, entry]) =>
-              entry.client
-                ? loadCatalog(name, entry, entry.client).pipe(Effect.orElseSucceed(() => empty))
-                : Effect.succeed(empty),
+            ([name, entry]) => {
+              const connection = connectionOf(entry)
+              return connection
+                ? loadCatalog(name, entry, connection).pipe(Effect.orElseSucceed(() => empty))
+                : Effect.succeed(empty)
+            },
             { concurrency: "unbounded" },
           )
           return mergeCatalogs(catalogs)
@@ -789,14 +844,16 @@ export const layer = (options?: Options) =>
         resources: Effect.fn("MCP.resources")(function* (input) {
           const target = yield* requireServer(input.server)
           yield* target.entry.startup.await
-          if (!target.entry.client) return ResourceCatalog.make({ resources: [], templates: [] })
-          return mergeCatalogs([yield* loadCatalog(target.name, target.entry, target.entry.client)])
+          const connection = connectionOf(target.entry)
+          if (!connection) return ResourceCatalog.make({ resources: [], templates: [] })
+          return mergeCatalogs([yield* loadCatalog(target.name, target.entry, connection)])
         }),
         readResource: Effect.fn("MCP.readResource")(function* (input) {
           const target = yield* requireServer(input.server)
           yield* target.entry.startup.await
-          if (!target.entry.client) return undefined
-          const result = yield* recovering(target.name, target.entry, target.entry.client, (connection) =>
+          const connection = connectionOf(target.entry)
+          if (!connection) return undefined
+          const result = yield* recovering(target.name, target.entry, connection, (connection) =>
             connection.readResource({ uri: input.uri }),
           )
           if (!result) return undefined
