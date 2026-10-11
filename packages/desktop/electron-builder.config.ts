@@ -155,6 +155,11 @@ const getBase = (appId: string): Configuration => ({
     perMachine: false,
     installerIcon: `resources/icons/icon.ico`,
     installerHeaderIcon: `resources/icons/icon.ico`,
+    uninstallerIcon: `resources/icons/icon.ico`,
+    shortcutName: "Aporia",
+    uninstallDisplayName: "Aporia",
+    createDesktopShortcut: "always",
+    createStartMenuShortcut: true,
   },
   linux: {
     icon: `resources/icons`,
@@ -182,7 +187,7 @@ function getConfig() {
         appId,
         productName: "Aporia Dev",
         deb: { fpm: [metainfoFpm(appId)] },
-        rpm: { packageName: "opencode-dev", fpm: [metainfoFpm(appId)] },
+        rpm: { packageName: "aporia-dev", fpm: [metainfoFpm(appId)] },
       }
     }
 
@@ -192,13 +197,9 @@ function getConfig() {
         appId,
         productName: "Aporia Beta",
         protocols: { name: "Aporia Beta", schemes: ["aporia"] },
-        publish: {
-          provider: "generic",
-          url: "https://opencode.ai/update/api/beta/desktop/opencode/",
-          channel: "latest",
-        },
+        publish: null, // APORIA: no OpenCode update feed
         deb: { fpm: [metainfoFpm(appId)] },
-        rpm: { packageName: "opencode-beta", fpm: [metainfoFpm(appId)] },
+        rpm: { packageName: "aporia-beta", fpm: [metainfoFpm(appId)] },
       }
     }
 
@@ -208,13 +209,9 @@ function getConfig() {
         appId,
         productName: "Aporia",
         protocols: { name: "Aporia", schemes: ["aporia"] },
-        publish: {
-          provider: "generic",
-          url: "https://opencode.ai/update/api/latest/desktop/opencode/",
-          channel: "latest",
-        },
+        publish: null, // APORIA: no OpenCode update feed
         deb: { fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },
-        rpm: { packageName: "opencode", fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },
+        rpm: { packageName: "aporia", fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },
       }
     }
   }

@@ -10,6 +10,10 @@ import { createEarlyWindow } from "./windows/early"
 import { rendererAssetsServed } from "./windows/protocol"
 import { registerRendererScheme } from "./windows/scheme"
 
+// APORIA: keep the bundled server on its own DB copy so the stock OpenCode install is never migrated.
+process.env.OPENCODE_DB ??= "opencode-aporia.db"
+process.env.OPENCODE_DISABLE_CHANNEL_DB ??= "1"
+
 // This module stays small on purpose. Electron holds the ready event until the entry module has
 // finished, and the first window should be on screen before the rest of the main process — a few
 // hundred milliseconds of module evaluation and layers — loads. Configuration and the scheme must
