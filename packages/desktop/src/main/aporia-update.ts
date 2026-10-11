@@ -27,19 +27,43 @@ const script = () => {
 }
 function run(args: string[]) {
   // Detached + hidden so it outlives this process (needed for the swap) and never flashes a console.
+  // Output goes to updates\\spawn.log (an apply that dies before logging used to leave no trace), and the
+  // Electron-inherited env is cleaned so Windows PowerShell 5 doesn't load PowerShell 7 modules or run as node.
+  fs.mkdirSync(ROOT, { recursive: true })
+  const env = { ...process.env }
+  for (const k of ["PSModulePath", "ELECTRON_RUN_AS_NODE", "NODE_OPTIONS", "ELECTRON_NO_ATTACH_CONSOLE"]) delete env[k]
+  const log = fs.openSync(path.join(ROOT, "spawn.log"), "a")
+  fs.writeSync(log, `\n${new Date().toISOString()} spawn ${args.join(" ")} (from pid ${process.pid})\n`)
   const child = spawn("powershell.exe", ["-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-File", script(), ...args], {
     detached: true,
     windowsHide: true,
-    stdio: "ignore",
+    stdio: ["ignore", log, log],
+    env,
   })
   child.unref()
+  return child.pid
 }
+
+// Guard so a broken hand-off can never stop Aporia from opening: the launch-time apply is attempted once per staged
+// build; if that attempt didn't finish (staged still there, no live apply pid), the next launch opens normally.
+const ATTEMPT = path.join(ROOT, "apply-attempt.json")
+const alive = (pid?: number) => { if (!pid) return false; try { process.kill(pid, 0); return true } catch { return false } }
 
 /** Call at the very top of main: if a build is staged, hand off to the updater and quit before any window. */
 export function applyStagedUpdateOnLaunch(): boolean {
   if (process.platform !== "win32" || process.env.APORIA_SKIP_UPDATE === "1") return false
-  if (!fs.existsSync(path.join(ROOT, "staged", "Aporia.exe"))) return false
-  run(["apply", "-WaitForExit", String(process.pid)])
+  if (!fs.existsSync(path.join(ROOT, "staged", "Aporia.exe"))) { fs.rmSync(ATTEMPT, { force: true }); return false }
+  const staged = String(readState().staged?.commit ?? "")
+  let attempt: any = {}
+  try { attempt = JSON.parse(fs.readFileSync(ATTEMPT, "utf8")) } catch {}
+  if (attempt.commit === staged) {
+    // An apply for this build is still running: let it finish instead of starting a second one.
+    if (alive(attempt.updaterPid) && Date.now() - Date.parse(attempt.at) < 3 * 60_000) { app.exit(0); return true }
+    // It already failed once: open normally; the bell still offers "Restart now".
+    return false
+  }
+  const updaterPid = run(["apply", "-WaitForExit", String(process.pid)])
+  fs.writeFileSync(ATTEMPT, JSON.stringify({ commit: staged, at: new Date().toISOString(), updaterPid }))
   app.exit(0)
   return true
 }
@@ -56,8 +80,10 @@ export function registerAporiaUpdateHandler() {
         return { started: true }
       case "restart":
         // Ali clicked "Restart now". The renderer already waited for in-flight runs; sessions/chats are in the DB.
-        run(["apply", "-WaitForExit", String(process.pid)])
-        setTimeout(() => app.quit(), 300)
+        // -Restart -ByUser: Ali clicked, so apply even though this instance is still closing.
+        fs.rmSync(ATTEMPT, { force: true })
+        run(["apply", "-Restart", "-ByUser", "-WaitForExit", String(process.pid)])
+        setTimeout(() => app.exit(0), 500)
         return { restarting: true }
       case "busy":
         fs.mkdirSync(ROOT, { recursive: true })

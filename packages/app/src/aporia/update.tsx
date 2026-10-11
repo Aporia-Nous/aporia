@@ -39,6 +39,13 @@ export function UpdateWatcher() {
   const tick = async () => {
     const n = countBusy(); setBusy(n); await call({ action: "busy", busy: n })
     const s = await call({ action: "status" }); if (!s) return
+    // Drop stale update alerts: "Update ready" for a build that is no longer staged, and rollback/failure
+    // notices that were already seen once a newer build is installed.
+    for (const a of aporiaAlerts.list()) {
+      const t = String(a.title ?? "")
+      if (t.startsWith("Update ready") && !(s.staged?.commit && String(a.detail ?? "").includes(short(s.staged.commit)))) aporiaAlerts.dismiss(a.id)
+      if (/rolled back/i.test(t) && s.lastResult?.seen && Date.now() - Number(a.at ?? 0) > 30 * 60_000) aporiaAlerts.dismiss(a.id)
+    }
     const key = "aporia.update.notified"
     if (s.staged?.commit && localStorage.getItem(key) !== s.staged.commit) {
       localStorage.setItem(key, s.staged.commit)
