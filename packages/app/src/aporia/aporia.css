@@ -336,3 +336,6 @@
 .ap-prompt { display: flex; gap: var(--ap-s2); align-items: flex-start; text-align: left; width: 100%; padding: var(--ap-s2) var(--ap-s3); border-radius: var(--ap-r); border: 1px solid var(--ap-line); background: var(--ap-raised); color: var(--ap-text); font: inherit; font-size: 12px; cursor: pointer; transition: all var(--ap-ease); margin-bottom: var(--ap-s1); }
 .ap-prompt:hover { border-color: rgb(45 212 191 / 0.4); background: var(--ap-hover); }
 .ap-prompt:focus-visible { box-shadow: var(--ap-focus); outline: none; }
+.ap-activity { display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow: auto; min-width: 280px; font-size: 12px; }
+.ap-activity-row { display: grid; grid-template-columns: auto 1fr; gap: 8px; padding: 4px 8px; border-left: 2px solid #2dd4bf; background: rgb(255 255 255 / 0.03); border-radius: 6px; }
+.ap-activity-err { border-left-color: #f87171; }

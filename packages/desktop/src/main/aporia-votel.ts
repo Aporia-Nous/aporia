@@ -2,6 +2,7 @@
 // with VOTEL_API_KEY from the main-process env (never sent to the renderer). Only list_/get_ tools
 // without write verbs are callable here; anything that calls, spends, or publishes is refused.
 import { ipcMain } from "electron"
+import { logActivity, ownerState, spentToday } from "./aporia-owner"
 
 const URL_ = (process.env.VOTEL_API_URL || "https://app.votel.ai").replace(/\/$/, "") + "/mcp"
 const READ = /^(list|get|search|count)[_-]/i
@@ -40,18 +41,33 @@ async function ready() {
   await rpc("notifications/initialized").catch(() => undefined)
 }
 
-type Op = { op: "status" } | { op: "tools" } | { op: "call"; name: string }
+type Op = { op: "status" } | { op: "tools" } | { op: "call"; name: string; args?: Record<string, unknown> }
+const SPEND = /(call|dial|purchase|buy|charge|recharge|topup|top_up|number)/i
 
 export async function handleVotel(input: Op) {
-  if (input.op === "status") return { configured: !!key() }
+  const owner = ownerState()
+  if (input.op === "status") return { configured: !!key(), owner: owner.owner }
   await ready()
   const tools = ((await rpc("tools/list")).tools ?? []) as { name: string }[]
   const readable = tools.map((t) => t.name).filter((n) => READ.test(n) && !WRITE.test(n.replace(READ, "")))
-  if (input.op === "tools") return readable
-  if (!readable.includes(input.name)) throw new Error("Only read-only Votel tools are allowed here")
-  const result = await rpc("tools/call", { name: input.name, arguments: {} })
-  const text = (result.content ?? []).map((c: { text?: string }) => c.text ?? "").join("\n")
-  return text.slice(0, 20000)
+  const allowed = owner.owner ? tools.map((t) => t.name) : readable
+  if (input.op === "tools") return allowed
+  if (!allowed.includes(input.name)) throw new Error("Only read-only Votel tools are allowed (Owner mode is off)")
+  const write = !readable.includes(input.name)
+  const amount = typeof input.args?.amount === "number" ? input.args.amount : undefined
+  if (write && owner.spendCap && SPEND.test(input.name) && spentToday() + (amount ?? 0) > owner.spendCap) {
+    logActivity({ kind: "votel", detail: `Blocked ${input.name}: daily spend cap $${owner.spendCap} reached`, ok: false })
+    throw new Error(`Daily spend cap of $${owner.spendCap} reached`)
+  }
+  try {
+    const result = await rpc("tools/call", { name: input.name, arguments: input.args ?? {} })
+    const text = (result.content ?? []).map((c: { text?: string }) => c.text ?? "").join("\n")
+    if (write) logActivity({ kind: "votel", detail: `${input.name} ${JSON.stringify(input.args ?? {}).slice(0, 200)}`, ok: !result.isError, amount })
+    return text.slice(0, 20000)
+  } catch (err) {
+    if (write) logActivity({ kind: "votel", detail: `${input.name} failed: ${err instanceof Error ? err.message : String(err)}`, ok: false })
+    throw err
+  }
 }
 
 export function registerAporiaVotelHandler() {
