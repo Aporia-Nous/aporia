@@ -9,6 +9,15 @@ import { aporiaLog } from "./aporia-log"
 import { resolveVault } from "./aporia-vault-store"
 
 const TZ = "America/Chicago"
+const MINUTE_MS = 60_000
+const HOUR_MS = 3_600_000
+const DAY_MS = 86_400_000
+// ~4 years so any leap day (e.g. Feb 29) is always reachable; the old stepper capped at one year.
+const SEARCH_DAYS = 1465
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+// Hoisted: one formatter for the whole process instead of a fresh Intl.DateTimeFormat per match.
+const CHICAGO = new Intl.DateTimeFormat("en-US", { timeZone: TZ, hour12: false, year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", weekday: "short" })
+
 // ---- cron (5 fields: min hour dom mon dow; *, */n, a-b, a,b) -------------------------------
 function field(spec: string, min: number, max: number): Set<number> {
   const out = new Set<number>()
@@ -25,24 +34,59 @@ function field(spec: string, min: number, max: number): Set<number> {
   }
   return out
 }
-export function parseCron(cron: string) {
+export type Cron = { min: Set<number>; hour: Set<number>; dom: Set<number>; mon: Set<number>; dow: Set<number>; domStar: boolean; dowStar: boolean }
+export function parseCron(cron: string): Cron {
   const f = cron.trim().split(/\s+/) as [string, string, string, string, string]; if (f.length !== 5) throw new Error("cron needs 5 fields: min hour day month weekday")
   const dow = field(f[4], 0, 7); if (dow.has(7)) dow.add(0)
   return { min: field(f[0], 0, 59), hour: field(f[1], 0, 23), dom: field(f[2], 1, 31), mon: field(f[3], 1, 12), dow, domStar: f[2] === "*", dowStar: f[4] === "*" }
 }
-function chicago(d: Date) {
-  const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: TZ, hour12: false, year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", weekday: "short" }).formatToParts(d).map((x) => [x.type, x.value]))
-  const wd = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(p.weekday)
-  return { min: Number(p.minute), hour: Number(p.hour) % 24, dom: Number(p.day), mon: Number(p.month), dow: wd }
+type WallClock = { year: number; month: number; day: number; hour: number; minute: number; dow: number }
+// The wall-clock fields Chicago is showing at absolute instant `d` (one formatToParts call).
+function localParts(d: Date): WallClock {
+  const p = Object.fromEntries(CHICAGO.formatToParts(d).map((x) => [x.type, x.value]))
+  return { year: Number(p.year), month: Number(p.month), day: Number(p.day), hour: Number(p.hour) % 24, minute: Number(p.minute), dow: WEEKDAYS.indexOf(p.weekday as string) }
 }
 export function cronMatches(cron: string, d: Date) {
-  const c = parseCron(cron); const t = chicago(d)
-  const dayOk = c.domStar || c.dowStar ? c.dom.has(t.dom) && c.dow.has(t.dow) : c.dom.has(t.dom) || c.dow.has(t.dow)
-  return c.min.has(t.min) && c.hour.has(t.hour) && c.mon.has(t.mon) && dayOk
+  const c = parseCron(cron); const t = localParts(d)
+  const dayOk = c.domStar || c.dowStar ? c.dom.has(t.day) && c.dow.has(t.dow) : c.dom.has(t.day) || c.dow.has(t.dow)
+  return c.min.has(t.minute) && c.hour.has(t.hour) && c.mon.has(t.month) && dayOk
 }
-export function nextRun(cron: string, from = new Date()) {
-  const d = new Date(Math.ceil(from.getTime() / 60000) * 60000)
-  for (let i = 0; i < 60 * 24 * 366; i++, d.setTime(d.getTime() + 60000)) if (cronMatches(cron, d)) return d.toISOString()
+// Local wall clock -> every absolute instant that shows it: usually one, none in a spring-forward
+// gap, two in a fall-back overlap. Needed to resolve a cron date back to a real timestamp.
+function localInstants(wall: Omit<WallClock, "dow">): Date[] {
+  const asUtc = Date.UTC(wall.year, wall.month - 1, wall.day, wall.hour, wall.minute)
+  const atGuess = localParts(new Date(asUtc))
+  const offset = Date.UTC(atGuess.year, atGuess.month - 1, atGuess.day, atGuess.hour, atGuess.minute) - asUtc
+  const found = new Set<number>()
+  for (const candidate of [offset, offset + HOUR_MS, offset - HOUR_MS]) {
+    const ms = asUtc - candidate
+    const t = localParts(new Date(ms))
+    if (t.year === wall.year && t.month === wall.month && t.day === wall.day && t.hour === wall.hour && t.minute === wall.minute) found.add(ms)
+  }
+  return [...found].sort((a, b) => a - b).map((ms) => new Date(ms))
+}
+const dowMatches = (c: Cron, day: number, dow: number) =>
+  c.domStar || c.dowStar ? c.dom.has(day) && c.dow.has(dow) : c.dom.has(day) || c.dow.has(dow)
+// Parse the cron once, then advance day by day (calendar arithmetic) and only materialize the
+// candidate times on a day that matches. A no-near-match cron (Feb 29) skips ~500 days instead of
+// stepping ~527k minutes through the timezone formatter.
+export function nextRun(cron: string, from = new Date()): string | undefined {
+  const c = parseCron(cron)
+  const start = Math.ceil(from.getTime() / MINUTE_MS) * MINUTE_MS
+  const seed = localParts(new Date(start))
+  let dayMs = Date.UTC(seed.year, seed.month - 1, seed.day)
+  for (let i = 0; i < SEARCH_DAYS; i++, dayMs += DAY_MS) {
+    const day = new Date(dayMs)
+    const year = day.getUTCFullYear(), month = day.getUTCMonth() + 1, dom = day.getUTCDate()
+    if (!c.mon.has(month) || !dowMatches(c, dom, day.getUTCDay())) continue
+    let best: number | undefined
+    for (const hour of c.hour) for (const minute of c.min)
+      for (const instant of localInstants({ year, month, day: dom, hour, minute })) {
+        const ms = instant.getTime()
+        if (ms >= start && (best === undefined || ms < best)) best = ms
+      }
+    if (best !== undefined) return new Date(best).toISOString()
+  }
   return undefined
 }
 
