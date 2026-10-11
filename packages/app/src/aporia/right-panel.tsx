@@ -12,7 +12,7 @@ const TAB_ICONS: Record<Tab, IconName> = { details: "info", library: "library", 
 const VotelTab = lazy(() => import("./votel").then((m) => ({ default: m.VotelTab })))
 const AutomationsTab = lazy(() => import("./automations").then((m) => ({ default: m.AutomationsTab })))
 
-export function AporiaRightPanel(props: { view: AporiaView }) {
+export function AporiaRightPanel(props: { view: AporiaView; onClose?: () => void }) {
   const [tab, setTab] = createSignal<Tab>("details")
   const info = () => props.view.info()
   const files = createMemo(() => touchedFiles(props.view.messages()))
@@ -21,6 +21,7 @@ export function AporiaRightPanel(props: { view: AporiaView }) {
   return (
     <aside class="ap-right">
       <div class="ap-right-head">
+        <button type="button" class="ap-icon-btn ap-panel-collapse" title="Hide panel" aria-label="Hide right panel" onClick={() => props.onClose?.()}>»</button>
         <Avatar name={agentName()} size={44} />
         <strong>{agentName()}</strong>
         <span class="ap-muted">{props.view.working() ? "Working…" : "Ready"}</span>

@@ -37,3 +37,13 @@ logs/
 *.bun-build
 tsconfig.tsbuildinfo
 /artifacts/
+
+# --- Aporia local build artifacts (not for the repo) ---
+build-win*.ps1
+build*.log
+dev.log
+measure.ps1
+run-dev*.cmd
+run-dev*.vbs
+screen-*.png
+_engine_selftest.txt

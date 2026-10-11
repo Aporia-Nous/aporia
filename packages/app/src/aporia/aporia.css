@@ -54,7 +54,10 @@
   background: var(--ap-panel); backdrop-filter: blur(12px);
 }
 .ap-sidebar { border-right: 1px solid var(--ap-line); }
-.ap-right { border-left: 1px solid var(--ap-line); }
+.ap-right { border-left: 1px solid var(--ap-line); position: relative; }
+.ap-root.ap-right-collapsed .ap-right { display: none; }
+.ap-panel-toggle { font-size: 18px; line-height: 1; }
+.ap-panel-collapse { position: absolute; top: 8px; right: 8px; font-size: 18px; line-height: 1; }
 .ap-brand { display: flex; align-items: center; gap: var(--ap-s3); padding: var(--ap-s4) var(--ap-s4) var(--ap-s3); }
 .ap-brand img { border-radius: var(--ap-r-sm); box-shadow: 0 0 0 1px var(--ap-line-strong); }
 .ap-brand span { font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
@@ -62,7 +65,8 @@
   padding: var(--ap-s4) var(--ap-s4) var(--ap-s2);
   font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ap-muted);
 }
-.ap-agent-row { display: flex; flex-wrap: wrap; gap: var(--ap-s2); padding: 0 var(--ap-s4); }
+.ap-agent-row { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: var(--ap-s2); padding: 0 var(--ap-s4) var(--ap-s2); scrollbar-width: none; }
+.ap-agent-row::-webkit-scrollbar { height: 0; }
 .ap-chip {
   display: inline-flex; align-items: center; gap: var(--ap-s2); padding: 2px var(--ap-s3) 2px 2px;
   border-radius: 999px; background: var(--ap-raised); border: 1px solid var(--ap-line); font-weight: 550;

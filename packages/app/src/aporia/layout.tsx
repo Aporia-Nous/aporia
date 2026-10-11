@@ -36,6 +36,18 @@ function projectName(directory: string | undefined) {
   return directory.split(/[\\/]/).filter(Boolean).at(-1) ?? directory
 }
 
+/** Turn server placeholder titles like "New session - 2026-09-14T03:42:51.7Z" into a readable title. */
+function prettyTitle(title?: string) {
+  if (!title) return "Untitled"
+  const m = title.match(/^New session\s*-\s*(\d{4}-\d{2}-\d{2}T[\d:.]+Z?)$/)
+  if (m) {
+    const d = new Date(m[1])
+    if (!Number.isNaN(d.getTime()))
+      return `New session · ${d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`
+  }
+  return title
+}
+
 export type AporiaView = {
   directory: () => string
   sessionID: () => string | undefined
@@ -69,6 +81,8 @@ export function AporiaDraftLayout(props: ParentProps<{ directory: string }>) {
 }
 
 function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connectOpen, setConnectOpen] = createSignal(false)
+  const [rightOpen, setRightOpen] = createSignal(aporiaPrefs.rightPanelOpen())
+  const toggleRight = () => { const next = !rightOpen(); setRightOpen(next); aporiaPrefs.setRightPanelOpen(next) }
   const theme = useTheme()
   // Sticky Aporia theme: re-applied whenever it drifts (imported settings, old app state), unless opted out.
   createEffect(() => {
@@ -83,7 +97,7 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
   const total = createMemo(() => tokenTotal(info()?.tokens))
 
   return (
-    <div class="ap-root" data-component="aporia-layout">
+    <div class="ap-root" classList={{ "ap-right-collapsed": !rightOpen() }} data-component="aporia-layout">
       <AlertToasts />
       <UpdateWatcher />
       <BotDispatcher />
@@ -100,7 +114,7 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
           <Avatar name={agentName()} size={30} />
           <div class="ap-chat-title">
             <strong>{agentName()}</strong>
-            <span class="ap-muted ap-ellipsis">{info()?.title ?? (props.view.directory() ? "New session" : "Home")}</span>
+            <span class="ap-muted ap-ellipsis">{info()?.title ? prettyTitle(info()!.title) : (props.view.directory() ? "New session" : "Home")}</span>
           </div>
           <span
             class="ap-status-dot"
@@ -116,6 +130,9 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
               onInput={(event) => aporiaPrefs.setSessionFilter(event.currentTarget.value)}
             />
           </label>
+          <button type="button" class="ap-icon-btn ap-panel-toggle" title={rightOpen() ? "Hide panel" : "Show panel"} aria-label="Toggle right panel" onClick={toggleRight}>
+            {rightOpen() ? "»" : "«"}
+          </button>
         </header>
         <div class="ap-chat-body">{props.children}</div>
         <footer class="ap-context-bar" title="From real session usage reported by the server">
@@ -129,7 +146,7 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
           </Show>
         </footer>
       </main>
-      <AporiaRightPanel view={props.view} />
+      <Show when={rightOpen()}><AporiaRightPanel view={props.view} onClose={toggleRight} /></Show>
       <Show when={connectOpen()}>
         <ConnectAppsModal
           directory={props.view.directory()}
@@ -224,7 +241,7 @@ function AporiaSidebar(props: { directory: string; currentID?: string; currentAg
             >
               <Avatar name={session.agent ?? "build"} />
               <span class="ap-session-text">
-                <strong class="ap-ellipsis">{session.title ?? "Untitled"}</strong>
+                <strong class="ap-ellipsis">{prettyTitle(session.title)}</strong>
                 <span class="ap-muted ap-ellipsis">
                   {projectName(session.location.directory)} · {new Date(session.time.updated).toLocaleDateString()}
                 </span>
