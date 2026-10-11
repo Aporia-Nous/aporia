@@ -3,6 +3,7 @@
 export default {
   "categories": ["Recommended", "Productivity", "Code", "Communication", "Browser", "Data"],
   "apps": [
+    { "id": "votel", "name": "Votel", "category": "Communication", "description": "Votel CRM, calls, agents and inbox (official votel-mcp, API key)", "type": "local", "command": ["npx", "-y", "votel-mcp@2.0.1"], "auth": "key", "env": ["VOTEL_API_KEY"], "recommended": true, "featured": true },
     { "id": "notion", "name": "Notion", "category": "Productivity", "description": "Pages and databases (sign in)", "type": "remote", "url": "https://mcp.notion.com/mcp", "auth": "oauth", "env": [], "recommended": true },
     { "id": "linear", "name": "Linear", "category": "Productivity", "description": "Issues, projects and cycles (sign in)", "type": "remote", "url": "https://mcp.linear.app/mcp", "auth": "oauth", "env": [] },
     { "id": "atlassian", "name": "Atlassian", "category": "Productivity", "description": "Jira and Confluence (sign in)", "type": "remote", "url": "https://mcp.atlassian.com/v1/mcp", "auth": "oauth", "env": [] },

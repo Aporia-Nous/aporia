@@ -5,6 +5,8 @@ import { acquireApplicationLock, configureApplication } from "./lifecycle/config
 import { startSidecarProbe } from "./service/sidecar-probe"
 import { registerStorageSnapshotHandler } from "./storage/snapshot"
 import { registerAporiaMcpHandler } from "./aporia-mcp" // APORIA
+import { registerAporiaOwnerHandler } from "./aporia-owner"
+import { registerAporiaVotelHandler } from "./aporia-votel"
 import { registerAporiaEnvHandler } from "./aporia-env"
 import { registerAporiaN8nHandler } from "./aporia-n8n" // APORIA
 import { createEarlyWindow } from "./windows/early"
@@ -31,6 +33,8 @@ if (acquireApplicationLock()) {
     registerAporiaMcpHandler() // APORIA
     registerAporiaN8nHandler() // APORIA
     registerAporiaEnvHandler() // APORIA
+    registerAporiaVotelHandler() // APORIA
+    registerAporiaOwnerHandler() // APORIA
     createEarlyWindow()
     marks.window = Date.now()
     startSidecarProbe()

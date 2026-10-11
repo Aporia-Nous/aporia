@@ -2,7 +2,7 @@ import { Component, Show, createMemo, createResource } from "solid-js"
 import { createMediaQuery } from "@solid-primitives/media"
 import { Select } from "@opencode/ui/select"
 import { Switch } from "@opencode/ui/switch"
-import { AporiaLayoutSettingRow, AporiaThemeSettingRow } from "@/aporia/setting-row" // APORIA
+import { AporiaLayoutSettingRow, AporiaOwnerSettingRows, AporiaThemeSettingRow } from "@/aporia/setting-row" // APORIA
 import { TimelineDetailControl } from "@/settings/timeline-detail"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"
@@ -263,6 +263,7 @@ export const SettingsGeneral: Component = () => {
 
         <AporiaLayoutSettingRow /> {/* APORIA */}
         <AporiaThemeSettingRow /> {/* APORIA */}
+        <AporiaOwnerSettingRows /> {/* APORIA */}
         <TerminalPlacementSetting />
         <FollowUpBehaviorSetting />
 
