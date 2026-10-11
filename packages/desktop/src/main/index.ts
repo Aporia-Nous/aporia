@@ -11,12 +11,15 @@ import { registerAporiaEnvHandler } from "./aporia-env"
 import { registerAporiaVaultHandler } from "./aporia-vault"
 import { registerAporiaAccountsHandler } from "./aporia-accounts"
 import { registerAporiaN8nHandler } from "./aporia-n8n" // APORIA
+import { applyStagedUpdateOnLaunch, registerAporiaUpdateHandler } from "./aporia-update" // APORIA
 import { createEarlyWindow } from "./windows/early"
 import { rendererAssetsServed } from "./windows/protocol"
 import { registerRendererScheme } from "./windows/scheme"
 
 // APORIA: keep the bundled server on its own DB copy so the stock OpenCode install is never migrated.
 process.env.OPENCODE_DB ??= "opencode-aporia.db"
+// APORIA: a staged self-update is applied before any window opens (the updater swaps, relaunches, health-checks).
+let aporiaUpdating = false
 process.env.OPENCODE_DISABLE_CHANNEL_DB ??= "1"
 
 // This module stays small on purpose. Electron holds the ready event until the entry module has
@@ -26,6 +29,8 @@ process.env.OPENCODE_DISABLE_CHANNEL_DB ??= "1"
 configureApplication()
 
 if (acquireApplicationLock()) {
+  // Only the primary instance may hand off to the updater (a second launch must never stop the running app).
+  aporiaUpdating = applyStagedUpdateOnLaunch()
   registerRendererScheme()
   // Window first, then the bundle: starting the import before ready delays ready itself, because the
   // module graph evaluates on the same thread Chromium needs to finish initialising.
@@ -33,7 +38,9 @@ if (acquireApplicationLock()) {
     marks.ready = Date.now()
     registerStorageSnapshotHandler()
     registerAporiaMcpHandler() // APORIA
+    if (aporiaUpdating) return
     registerAporiaN8nHandler() // APORIA
+    registerAporiaUpdateHandler() // APORIA
     registerAporiaEnvHandler() // APORIA
     registerAporiaVaultHandler() // APORIA
     registerAporiaAccountsHandler() // APORIA

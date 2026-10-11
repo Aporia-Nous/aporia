@@ -665,6 +665,7 @@ export const dict = {
   "settings.guiExtensions.status.blocked": "Blocked",
   "settings.tab.about": "About",
   "settings.tab.vault": "Vault",
+  "settings.tab.updates": "Updates",
   "settings.about.version": "Version {{version}}",
   "settings.about.devVersion": "development",
   "settings.about.license": "Released under the MIT License",

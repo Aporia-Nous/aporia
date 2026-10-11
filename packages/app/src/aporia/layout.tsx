@@ -1,5 +1,6 @@
 // APORIA: three-column session layout. The center column is the stock OpenCode session view
 import { AlertBell, AlertToasts } from "./alerts"
+import { UpdateWatcher } from "./update"
 // (timeline, tool runs, permission/question prompts, composer, attachments), so all agent
 // behaviour stays upstream; this file only frames it.
 import { createEffect, createMemo, createResource, createSignal, For, lazy, Show, type ParentProps } from "solid-js"
@@ -80,6 +81,7 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
   return (
     <div class="ap-root" data-component="aporia-layout">
       <AlertToasts />
+      <UpdateWatcher />
       <div style={{ position: "fixed", top: "6px", right: "150px", "z-index": 2147483002 }} data-component="aporia-window-bell"><AlertBell /></div>
       <AporiaSidebar
         directory={props.view.directory()}

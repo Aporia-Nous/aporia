@@ -2,7 +2,9 @@
 // and a panel listing alerts with per-item dismiss and Clear all. Persisted in localStorage.
 import { createSignal, For, onCleanup, Show } from "solid-js"
 
-export type Alert = { id: string; title: string; detail?: string; level?: "info" | "success" | "warning" | "error"; at: number; read?: boolean }
+export type AlertAction = { label: string; action: string }
+export type Alert = { id: string; title: string; detail?: string; level?: "info" | "success" | "warning" | "error"; at: number; read?: boolean; sticky?: boolean; actions?: AlertAction[] }
+const handlers = new Map<string, () => void>()
 const KEY = "aporia.alerts"
 const load = (): Alert[] => {
   try { return JSON.parse(globalThis.localStorage?.getItem(KEY) ?? "[]") } catch { return [] }
@@ -22,12 +24,15 @@ export const aporiaAlerts = {
     const alert: Alert = { ...input, id: crypto.randomUUID(), at: Date.now() }
     setAlerts([...alerts(), alert])
     setToasts([...toasts(), alert.id])
-    setTimeout(() => hideToast(alert.id), 5000)
+    if (!alert.sticky) setTimeout(() => hideToast(alert.id), 5000)
     return alert.id
   },
   dismiss: (id: string) => { setAlerts(alerts().filter((a) => a.id !== id)); hideToast(id) },
   clear: () => { setAlerts([]); setToasts([]) },
   markRead: () => setAlerts(alerts().map((a) => ({ ...a, read: true }))),
+  /** Register a handler for alert action buttons (actions are stored by name so they survive reloads). */
+  on: (action: string, run: () => void) => { handlers.set(action, run) },
+  act: (id: string, action: string) => { aporiaAlerts.dismiss(id); handlers.get(action)?.() },
 }
 ;(globalThis as any).aporiaAlerts = aporiaAlerts
 
@@ -70,6 +75,7 @@ export function AlertBell() {
                   <div style={{ "font-weight": 600 }}>{a.title}</div>
                   <Show when={a.detail}><div style={{ opacity: 0.8, "font-size": "12px" }}>{a.detail}</div></Show>
                   <div style={{ opacity: 0.5, "font-size": "11px" }}>{new Date(a.at).toLocaleString()}</div>
+                  <Show when={a.actions?.length}><div style={{ display: "flex", gap: "6px", "margin-top": "6px" }}><For each={a.actions}>{(x) => <button type="button" data-action={x.action} onClick={() => aporiaAlerts.act(a.id, x.action)} style={{ padding: "3px 8px", "border-radius": "6px", border: "1px solid var(--border-base, #2a3550)", background: "transparent", color: "inherit", cursor: "pointer", "font-size": "12px" }}>{x.label}</button>}</For></div></Show>
                 </div>
                 <X label="Dismiss alert" onClick={() => aporiaAlerts.dismiss(a.id)} />
               </div>
@@ -87,7 +93,7 @@ export function AlertToasts() {
     <div aria-live="polite" style={{ position: "fixed", right: "16px", top: "44px", "pointer-events": "none", display: "flex", "flex-direction": "column", gap: "8px", "z-index": 2147483000 }}>
       <For each={shown()}>{(a) => (
         <div role="status" style={{ "pointer-events": "auto", display: "flex", gap: "8px", "align-items": "flex-start", width: "320px", padding: "10px 12px", background: "var(--background-base, #0f1a2e)", border: "1px solid var(--border-base, #2a3550)", "border-left": `3px solid ${color(a.level)}`, "border-radius": "8px", "box-shadow": "0 8px 24px rgba(0,0,0,.3)" }}>
-          <div style={{ flex: 1 }}><div style={{ "font-weight": 600 }}>{a.title}</div><Show when={a.detail}><div style={{ "font-size": "12px", opacity: 0.8 }}>{a.detail}</div></Show></div>
+          <div style={{ flex: 1 }}><div style={{ "font-weight": 600 }}>{a.title}</div><Show when={a.detail}><div style={{ "font-size": "12px", opacity: 0.8 }}>{a.detail}</div></Show><Show when={a.actions?.length}><div style={{ display: "flex", gap: "6px", "margin-top": "6px" }}><For each={a.actions}>{(x) => <button type="button" data-action={x.action} onClick={() => aporiaAlerts.act(a.id, x.action)} style={{ padding: "3px 8px", "border-radius": "6px", border: "1px solid var(--border-base, #2a3550)", background: "transparent", color: "inherit", cursor: "pointer", "font-size": "12px" }}>{x.label}</button>}</For></div></Show></div>
           <X label="Dismiss notification" onClick={() => hideToast(a.id)} />
         </div>
       )}</For>
