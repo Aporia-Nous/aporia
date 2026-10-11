@@ -1,4 +1,5 @@
 import { describe, expect, test, vi } from "bun:test"
+import { readFileSync } from "node:fs"
 import { Virtualizer } from "@tanstack/solid-virtual"
 import type { SessionInfo } from "@opencode/client/promise"
 import {
@@ -42,7 +43,7 @@ describe("sessionListOptions windowing bound", () => {
     const items = virtualizer.getVirtualItems()
 
     expect(items.length).toBeGreaterThan(0)
-    // 600px initial viewport / 52px rows = ~12 visible; overscan adds 2 x 12.
+    // 600px initial viewport / 56px rows = ~11 visible; overscan adds 2 x 12.
     expect(items.length).toBeLessThanOrEqual(60)
     expect(items.length).toBeLessThan(SESSION_LIST_LIMIT)
     expect(items[0]!.index).toBe(0)
@@ -61,6 +62,51 @@ describe("sessionListOptions windowing bound", () => {
     expect(virtualizer.getVirtualItems().length).toBeLessThanOrEqual(
       Math.ceil(600 / SESSION_ROW_HEIGHT) + SESSION_OVERSCAN * 2 + 4,
     )
+  })
+})
+
+// Rows must be measured, not pinned to the estimate: a wrong fixed height would overlap rows and
+// leave a dead click strip on the next row's top. These tests fail if the measurer is dropped or if
+// a measured height stops overriding the estimate.
+describe("row measurement", () => {
+  test("exposes the real-height measurer and a sane estimate", () => {
+    const options = sessionListOptions({ count: () => 3 })
+    expect(options.estimateSize()).toBe(SESSION_ROW_HEIGHT)
+    expect(typeof options.measureElement).toBe("function")
+  })
+
+  test("a measured row overrides the estimate and shifts later rows", () => {
+    const options = sessionListOptions({ count: () => 3 })
+    const virtualizer = new Virtualizer<HTMLDivElement, HTMLDivElement>({
+      ...options,
+      getScrollElement: () => null,
+      observeElementRect: () => {},
+      observeElementOffset: () => {},
+      scrollToFn: () => {},
+    })
+
+    expect(virtualizer.getTotalSize()).toBe(SESSION_ROW_HEIGHT * 3)
+
+    const element = document.createElement("div")
+    element.dataset.index = "1"
+    Object.defineProperty(element, "offsetHeight", { value: 96 })
+    virtualizer.resizeItem(1, options.measureElement(element))
+
+    // Row 1 is now 96px, and row 2 starts after it (no fixed-pitch overlap).
+    expect(virtualizer.getTotalSize()).toBe(SESSION_ROW_HEIGHT * 2 + 96)
+  })
+
+  test("a 0px read falls back to the estimate instead of collapsing the row", () => {
+    const options = sessionListOptions({ count: () => 1 })
+    const element = document.createElement("div")
+    Object.defineProperty(element, "offsetHeight", { value: 0 })
+    expect(options.measureElement(element)).toBe(SESSION_ROW_HEIGHT)
+  })
+
+  test("the sidebar wrapper attaches the measurer (source wiring guard)", () => {
+    const source = readFileSync(new URL("./layout.tsx", import.meta.url), "utf8")
+    expect(source).toContain("ref={virtualizer.measureElement}")
+    expect(source).toContain("data-index={item().index}")
   })
 })
 

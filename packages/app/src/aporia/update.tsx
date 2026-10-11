@@ -36,13 +36,14 @@ export function UpdateWatcher() {
       return list.filter((s: any) => data.session.status(s.id) === "running" || (data.session.pending?.list?.(s.id) ?? []).some((i: any) => i.type !== "synthetic")).length
     } catch { return 0 }
   }
-  let lastBusy: number | undefined
   const tick = async () => {
-    // Nothing to stage while the window is hidden; the next visible tick catches up.
-    if (document.hidden) return
     const n = countBusy(); setBusy(n)
-    // Only inform the main process when the count actually changed; it gates the idle restart.
-    if (n !== lastBusy) { lastBusy = n; await call({ action: "busy", busy: n }) }
+    // Heartbeat, not a change notification: scripts/aporia-update.ps1 treats busy.json as stale after
+    // 3 minutes, so this must be sent every tick (or "apply when idle" could restart mid-task). It is
+    // also sent while hidden, since routines run with the window minimized.
+    await call({ action: "busy", busy: n })
+    // The status round-trip only drives drop-stale/notify alerts; skip that UI work while hidden.
+    if (document.hidden) return
     const s = await call({ action: "status" }); if (!s) return
     // Drop stale update alerts: "Update ready" for a build that is no longer staged, and rollback/failure
     // notices that were already seen once a newer build is installed.

@@ -5,8 +5,12 @@ import type { SessionInfo } from "@opencode/client/promise"
 
 /** Base list cap: the server already returns at most this many. */
 export const SESSION_LIST_LIMIT = 2000
-/** 48px row (32px avatar + 2x8px padding) + 2px border + 2px gap, matching the old flex `gap: 2px`. */
-export const SESSION_ROW_HEIGHT = 52
+/**
+ * Estimate used before a row is measured. Two stacked 13px/12px text lines at the app line-height
+ * (1.45) are ~38px, plus 2x8px padding and 2x1px border ≈ 56px. This is only the first-paint
+ * estimate: the row wrapper attaches `virtualizer.measureElement`, so the real height always wins.
+ */
+export const SESSION_ROW_HEIGHT = 56
 export const SESSION_OVERSCAN = 12
 /** Filter commits are collapsed to one per window so typing does not rebuild the list per key. */
 export const SEARCH_DEBOUNCE_MS = 180
@@ -103,6 +107,9 @@ export function sessionListOptions(input: {
       return input.count()
     },
     estimateSize: () => SESSION_ROW_HEIGHT,
+    // Real measured height (falls back to the estimate before layout, so a 0px read can never
+    // collapse a row). The row wrapper wires this via `ref={virtualizer.measureElement}`.
+    measureElement: (element: HTMLElement) => element.offsetHeight || SESSION_ROW_HEIGHT,
     overscan: SESSION_OVERSCAN,
     initialRect: { width: SESSION_INITIAL_RECT.width, height: SESSION_INITIAL_RECT.height },
     getScrollElement: () => input.getScrollElement?.() ?? null,

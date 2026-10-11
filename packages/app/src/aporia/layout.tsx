@@ -274,6 +274,7 @@ function AporiaSidebar(props: { directory: string; currentID?: string; currentAg
                     <Show when={rowByID().get(String(key))}>
                       {(row) => (
                         <div
+                          ref={virtualizer.measureElement}
                           data-index={item().index}
                           style={{ position: "absolute", top: "0", "inset-inline-start": "0", width: "100%", transform: `translateY(${item().start}px)` }}
                         >

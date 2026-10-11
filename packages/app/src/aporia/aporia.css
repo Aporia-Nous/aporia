@@ -349,7 +349,7 @@
 /* APORIA teammates */
 .ap-bot-list { display: flex; flex-direction: column; gap: 2px; padding: 0 var(--ap-s2) var(--ap-s2); max-height: 38vh; overflow-y: auto; }
 .ap-bot-folder { background: none; border: 0; color: var(--ap-muted); text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; padding: 6px 6px 2px; cursor: pointer; }
-.ap-bot { display: flex; align-items: center; gap: 2px; padding: 0 !important; content-visibility: auto; contain-intrinsic-size: 40px; }
+.ap-bot { display: flex; align-items: center; gap: 2px; padding: 0 !important; }
 .ap-bot-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; background: none; border: 0; color: inherit; text-align: left; padding: 6px 8px; cursor: pointer; }
 .ap-bot-avatar { width: 28px; height: 28px; font-size: 14px; }
 .ap-bot-mini { opacity: 0; background: none; border: 0; color: var(--ap-muted); cursor: pointer; padding: 4px 6px; border-radius: 6px; }
