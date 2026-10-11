@@ -339,3 +339,5 @@
 .ap-activity { display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow: auto; min-width: 280px; font-size: 12px; }
 .ap-activity-row { display: grid; grid-template-columns: auto 1fr; gap: 8px; padding: 4px 8px; border-left: 2px solid #2dd4bf; background: rgb(255 255 255 / 0.03); border-radius: 6px; }
 .ap-activity-err { border-left-color: #f87171; }
+.ap-copy-row { display: flex; gap: var(--ap-s2); align-items: center; }
+.ap-code { flex: 1; font: 12px ui-monospace, Consolas, monospace; padding: 6px 8px; border-radius: var(--ap-r-sm); background: rgb(0 0 0 / 0.3); border: 1px solid var(--ap-line); user-select: all; overflow-x: auto; white-space: nowrap; }

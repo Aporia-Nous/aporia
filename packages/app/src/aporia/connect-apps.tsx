@@ -17,7 +17,8 @@ type CatalogApp = {
   command?: string[]
   url?: string
   env: string[]
-  auth?: "oauth" | "key"
+  auth?: "oauth" | "key" | "oauth-client"
+  redirect?: string
   recommended?: boolean
 }
 
@@ -37,6 +38,18 @@ export function envReference(name: string) {
 }
 
 export function buildMcpConfig(app: CatalogApp, envNames: Record<string, string>) {
+  if (app.type === "remote" && app.auth === "oauth-client") {
+    const [id, secret] = app.env
+    return {
+      type: "remote" as const,
+      url: app.url ?? "",
+      oauth: {
+        client_id: envReference(envNames[id!] || id!),
+        client_secret: envReference(envNames[secret!] || secret!),
+        ...(app.redirect ? { redirect_uri: app.redirect } : {}),
+      },
+    }
+  }
   if (app.type === "remote") {
     const header = app.env[0] ? envNames[app.env[0]] || app.env[0] : undefined
     return {
@@ -143,7 +156,16 @@ export function ConnectAppsModal(props: { directory: string; sessionID?: string;
       for (const [name, value] of Object.entries(values)) if (value) await bridge()?.setEnv?.(name, value)
       const persisted = buildMcpConfig(app, {})
       const runtime =
-        app.type === "remote"
+        app.auth === "oauth-client"
+          ? {
+              ...persisted,
+              oauth: {
+                ...(persisted as { oauth: Record<string, string> }).oauth,
+                ...(values[app.env[0]!] ? { client_id: values[app.env[0]!] } : {}),
+                ...(values[app.env[1]!] ? { client_secret: values[app.env[1]!] } : {}),
+              },
+            }
+          : app.type === "remote"
           ? app.env[0] && values[app.env[0]]
             ? { ...persisted, headers: { Authorization: `Bearer ${values[app.env[0]]}` } }
             : persisted
@@ -306,13 +328,26 @@ function EnvForm(props: { app: CatalogApp; onCancel: () => void; onSave: (values
         Paste your key. It is saved as a Windows user environment variable on this PC; opencode.json only gets a
         reference like {"{env:NAME}"}. Leave blank to use a variable you already set.
       </span>
+      <Show when={props.app.redirect}>
+        {(uri) => (
+          <div class="ap-env-row">
+            <span class="ap-small">Redirect URI (register this in the app's OAuth settings)</span>
+            <div class="ap-copy-row">
+              <code class="ap-code">{uri()}</code>
+              <button type="button" class="ap-btn ap-btn-ghost" onClick={() => navigator.clipboard.writeText(uri()).catch(() => undefined)}>
+                Copy
+              </button>
+            </div>
+          </div>
+        )}
+      </Show>
       <For each={props.app.env}>
         {(key) => (
           <label class="ap-env-row">
             <span class="ap-small">{key}</span>
             <input
               class="ap-input"
-              type="password"
+              type={/CLIENT_ID$/.test(key) ? "text" : "password"}
               value={values()[key] ?? ""}
               autocomplete="off"
               spellcheck={false}
