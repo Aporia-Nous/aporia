@@ -242,3 +242,11 @@
 .ap-system-card-icon { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 999px; background: rgb(45 212 191 / 0.14); color: var(--ap-teal); }
 .ap-system-card-warn .ap-system-card-icon { background: rgb(251 191 36 / 0.14); color: var(--ap-amber); }
 .ap-system-card-text { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+/* Wordmark (new-session screen; works with or without the layout). */
+.ap-wordmark { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 8px 0 4px; }
+.ap-wordmark img { border-radius: 14px; box-shadow: 0 0 0 1px rgb(148 163 209 / 0.24), 0 12px 32px rgb(99 102 241 / 0.25); }
+.ap-wordmark-text {
+  font-family: Inter, "Segoe UI Variable", "Segoe UI", system-ui, sans-serif; font-size: 40px; font-weight: 700; letter-spacing: -0.03em;
+  background: linear-gradient(120deg, #e6edf7 10%, #60a5fa 55%, #2dd4bf 95%); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.ap-wordmark-sub { font-size: 14px; color: #9aa8c2; }

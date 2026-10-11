@@ -1,6 +1,6 @@
 // APORIA: right panel with Details, Library and Computer tabs.
 import { createMemo, createSignal, For, Match, Show, Switch } from "solid-js"
-import type { SessionModel } from "@/session/model"
+import type { AporiaView } from "./layout"
 import { aporiaPrefs } from "./prefs"
 import { formatTokens, tokenTotal, touchedFiles } from "./session-stats"
 import { Avatar } from "./avatar"
@@ -10,10 +10,10 @@ type Tab = "details" | "library" | "computer"
 
 const TAB_ICONS: Record<Tab, IconName> = { details: "info", library: "library", computer: "monitor" }
 
-export function AporiaRightPanel(props: { session: SessionModel }) {
+export function AporiaRightPanel(props: { view: AporiaView }) {
   const [tab, setTab] = createSignal<Tab>("details")
-  const info = () => props.session.data.info()
-  const files = createMemo(() => touchedFiles(props.session.history.messages()))
+  const info = () => props.view.info()
+  const files = createMemo(() => touchedFiles(props.view.messages()))
   const agentName = () => info()?.agent ?? "build"
 
   return (
@@ -21,7 +21,7 @@ export function AporiaRightPanel(props: { session: SessionModel }) {
       <div class="ap-right-head">
         <Avatar name={agentName()} size={44} />
         <strong>{agentName()}</strong>
-        <span class="ap-muted">{props.session.data.working() ? "Working…" : "Ready"}</span>
+        <span class="ap-muted">{props.view.working() ? "Working…" : "Ready"}</span>
       </div>
       <div class="ap-tabs" role="tablist">
         <For each={["details", "library", "computer"] as Tab[]}>
@@ -50,7 +50,7 @@ export function AporiaRightPanel(props: { session: SessionModel }) {
               <dt>Agent</dt>
               <dd>{agentName()}</dd>
               <dt>Folder</dt>
-              <dd class="ap-break">{props.session.workspace.directory()}</dd>
+              <dd class="ap-break">{props.view.directory()}</dd>
               <dt>Created</dt>
               <dd>{info() ? new Date(info()!.time.created).toLocaleString() : ""}</dd>
               <dt>Tokens</dt>
