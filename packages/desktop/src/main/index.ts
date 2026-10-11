@@ -8,6 +8,8 @@ import { registerAporiaMcpHandler } from "./aporia-mcp" // APORIA
 import { registerAporiaOwnerHandler } from "./aporia-owner"
 import { registerAporiaVotelHandler } from "./aporia-votel"
 import { registerAporiaEnvHandler } from "./aporia-env"
+import { registerAporiaVaultHandler } from "./aporia-vault"
+import { registerAporiaAccountsHandler } from "./aporia-accounts"
 import { registerAporiaN8nHandler } from "./aporia-n8n" // APORIA
 import { createEarlyWindow } from "./windows/early"
 import { rendererAssetsServed } from "./windows/protocol"
@@ -33,6 +35,8 @@ if (acquireApplicationLock()) {
     registerAporiaMcpHandler() // APORIA
     registerAporiaN8nHandler() // APORIA
     registerAporiaEnvHandler() // APORIA
+    registerAporiaVaultHandler() // APORIA
+    registerAporiaAccountsHandler() // APORIA
     registerAporiaVotelHandler() // APORIA
     registerAporiaOwnerHandler() // APORIA
     createEarlyWindow()

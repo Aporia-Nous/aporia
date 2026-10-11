@@ -17,6 +17,9 @@ import { ConfigVariable } from "./config/variable.js"
 import { ConfigNormalize } from "./config/normalize.js"
 import { ConfigDiscovery } from "./config/discovery.js"
 import { ConfigWatch } from "./config/watch.js"
+// APORIA: lazy so non-Node runtimes never evaluate node:child_process.
+const refreshEnv = () => import("./config/aporia-env-refresh.js").then((m) => m.refreshEnv())
+const vaultStampAsync = () => import("./config/aporia-vault.js").then((m) => m.vaultStamp())
 import { WellKnown } from "./wellknown.js"
 
 export function latest<K extends keyof Info>(entries: readonly Entry[], key: K): Info[K] | undefined {
@@ -264,19 +267,38 @@ export const layer = (options?: Options) =>
 
       const reload = Effect.fn("Config.reload")(
         function* () {
+          // APORIA: pick up env vars / PATH saved since the server started (no restart needed).
+          const envChanged = yield* Effect.promise(() => refreshEnv().catch(() => false))
           const discovered = yield* ConfigDiscovery.discover(options)
           const next = yield* load(discovered)
           yield* reconcile(discovered)
           const compatibilityChanged =
             !isDeepStrictEqual(sources.claude, discovered.claude) ||
             !isDeepStrictEqual(sources.agents, discovered.agents)
-          if (isDeepStrictEqual(configs, next) && !compatibilityChanged) return
+          if (isDeepStrictEqual(configs, next) && !compatibilityChanged && !envChanged) return
           sources = discovered
           configs = next
           yield* bus.publish(Event.Updated, {})
         },
         (effect) => reloadLock.withPermit(effect),
       )
+
+      // APORIA: background poll for vault edits and new env vars/PATH entries (CLIs installed, keys saved).
+      // Cheap: a stat every 5s, a hidden `reg query` every 30s. Open sessions are untouched.
+      let lastVault = yield* Effect.promise(() => vaultStampAsync().catch(() => 0))
+      let tick = 0
+      yield* Effect.gen(function* () {
+        while (true) {
+          yield* Effect.sleep("5 seconds")
+          tick++
+          const stamp = yield* Effect.promise(() => vaultStampAsync().catch(() => 0))
+          const envChanged = tick % 6 === 0 ? yield* Effect.promise(() => refreshEnv().catch(() => false)) : false
+          if (stamp !== lastVault || envChanged) {
+            lastVault = stamp
+            yield* requestReload
+          }
+        }
+      }).pipe(Effect.forkScoped({ startImmediately: true }))
 
       // Subscribe eagerly so synchronous watch readiness isn't dropped.
       const pendingReloads = yield* PubSub.subscribe(reloads)

@@ -20,6 +20,7 @@ export const clientSettings: Entry<SettingsRootTab>[] = [
   { tab: "appearance", label: "settings.general.section.appearance" },
   { tab: "notifications", label: "settings.tab.notifications" },
   { tab: "shortcuts", label: "settings.shortcuts.title", keywords: "keybind keyboard hotkey" },
+  { tab: "vault", label: "settings.tab.vault", keywords: "vault password secret key token reload connections" },
   { tab: "about", label: "settings.tab.about", keywords: "version license credits" },
   { tab: "general", label: "settings.general.row.language.title", target: "settings-language" },
   {

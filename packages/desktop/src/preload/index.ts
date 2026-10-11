@@ -37,5 +37,7 @@ contextBridge.exposeInMainWorld("electron", {
     which: (command: string) => ipcRenderer.invoke("aporia:which", { command }),
     votel: (input: unknown) => ipcRenderer.invoke("aporia:votel", input),
     owner: (input: unknown) => ipcRenderer.invoke("aporia:owner", input),
+    vault: (input: unknown) => ipcRenderer.invoke("aporia:vault", input),
+    accounts: (input: unknown) => ipcRenderer.invoke("aporia:accounts", input),
   },
 })

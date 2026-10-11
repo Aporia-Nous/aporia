@@ -39,6 +39,7 @@ import { useWorkspacesPrefetch } from "./workspaces/queries"
 import { SettingsProjects } from "./workspaces/projects"
 import { SettingsExtensions } from "./providers/extensions"
 import { SettingsAbout } from "./about/about"
+import { SettingsVault } from "@/aporia/vault"
 import { SettingsServerDataScope } from "./server-scope"
 import { SettingsNavigation, type SettingsNavGroup } from "./navigation"
 import { SettingsProjectGeneral } from "./workspaces/project"
@@ -78,6 +79,8 @@ const experimentalTab = [
 const guiExtensionsTab = [
   { value: "gui-extensions", icon: pageIcons["gui-extensions"], label: "settings.guiExtensions.title" },
 ] as const
+
+const vaultTab = [{ value: "vault", icon: pageIcons.vault, label: "settings.tab.vault" }] as const
 
 const aboutTab = [{ value: "about", icon: pageIcons.about, label: "settings.tab.about" }] as const
 
@@ -323,6 +326,7 @@ function RootSettings() {
       ? [{ items: experimentalTab.map((item) => ({ ...item, label: language.t(item.label) })) }]
       : []),
     ...(guiExtensions ? [{ items: guiExtensionsTab.map((item) => ({ ...item, label: language.t(item.label) })) }] : []),
+    { items: vaultTab.map((item) => ({ ...item, label: language.t(item.label) })) },
     { items: aboutTab.map((item) => ({ ...item, label: language.t(item.label) })) },
   ])
 
@@ -378,6 +382,9 @@ function RootSettings() {
           </Suspense>
         </Tabs.Content>
       )}
+      <Tabs.Content value="vault" class="settings-panel">
+        <SettingsVault />
+      </Tabs.Content>
       <Tabs.Content value="about" class="settings-panel settings-about">
         <SettingsAbout active={surface.view().tab === "about"} />
       </Tabs.Content>
