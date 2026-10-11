@@ -6,9 +6,10 @@ import { formatTokens, tokenTotal, touchedFiles } from "./session-stats"
 import { Avatar } from "./avatar"
 import { EmptyState, Icon, type IconName } from "./icons"
 
-type Tab = "details" | "library" | "computer" | "automations"
+type Tab = "details" | "library" | "computer" | "automations" | "votel"
 
-const TAB_ICONS: Record<Tab, IconName> = { details: "info", library: "library", computer: "monitor", automations: "sparkles" }
+const TAB_ICONS: Record<Tab, IconName> = { details: "info", library: "library", computer: "monitor", automations: "sparkles", votel: "phone" }
+const VotelTab = lazy(() => import("./votel").then((m) => ({ default: m.VotelTab })))
 const AutomationsTab = lazy(() => import("./automations").then((m) => ({ default: m.AutomationsTab })))
 
 export function AporiaRightPanel(props: { view: AporiaView }) {
@@ -25,7 +26,7 @@ export function AporiaRightPanel(props: { view: AporiaView }) {
         <span class="ap-muted">{props.view.working() ? "Working…" : "Ready"}</span>
       </div>
       <div class="ap-tabs" role="tablist">
-        <For each={["details", "library", "computer", "automations"] as Tab[]}>
+        <For each={["details", "library", "computer", "automations", "votel"] as Tab[]}>
           {(value) => (
             <button
               type="button"
@@ -35,7 +36,7 @@ export function AporiaRightPanel(props: { view: AporiaView }) {
               onClick={() => setTab(value)}
             >
               <Icon name={TAB_ICONS[value]} size={14} />
-              <span class="ap-tab-label">{value === "automations" ? "Flows" : value[0]!.toUpperCase() + value.slice(1)}</span>
+              <span class="ap-tab-label">{value === "automations" ? "Flows" : value === "votel" ? "Votel" : value[0]!.toUpperCase() + value.slice(1)}</span>
             </button>
           )}
         </For>
@@ -72,6 +73,9 @@ export function AporiaRightPanel(props: { view: AporiaView }) {
                 )}
               </For>
             </ul>
+          </Match>
+          <Match when={tab() === "votel"}>
+            <VotelTab />
           </Match>
           <Match when={tab() === "automations"}>
             <AutomationsTab />

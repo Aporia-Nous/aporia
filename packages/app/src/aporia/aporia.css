@@ -331,3 +331,8 @@
 .ap-live-connected { color: var(--ap-ok); }
 .ap-live-failed { color: var(--ap-red); white-space: normal; }
 .ap-btn:disabled { opacity: .55; cursor: progress; }
+.ap-votel-card { gap: var(--ap-s1); }
+.ap-votel-pre { margin: 0; white-space: pre-wrap; font: 12px/1.5 inherit; color: var(--ap-muted); max-height: 160px; overflow: auto; }
+.ap-prompt { display: flex; gap: var(--ap-s2); align-items: flex-start; text-align: left; width: 100%; padding: var(--ap-s2) var(--ap-s3); border-radius: var(--ap-r); border: 1px solid var(--ap-line); background: var(--ap-raised); color: var(--ap-text); font: inherit; font-size: 12px; cursor: pointer; transition: all var(--ap-ease); margin-bottom: var(--ap-s1); }
+.ap-prompt:hover { border-color: rgb(45 212 191 / 0.4); background: var(--ap-hover); }
+.ap-prompt:focus-visible { box-shadow: var(--ap-focus); outline: none; }

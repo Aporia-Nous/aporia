@@ -35,5 +35,6 @@ contextBridge.exposeInMainWorld("electron", {
     n8n: (input: unknown) => ipcRenderer.invoke("aporia:n8n", input),
     setEnv: (name: string, value: string) => ipcRenderer.invoke("aporia:set-env", { name, value }),
     which: (command: string) => ipcRenderer.invoke("aporia:which", { command }),
+    votel: (input: unknown) => ipcRenderer.invoke("aporia:votel", input),
   },
 })
