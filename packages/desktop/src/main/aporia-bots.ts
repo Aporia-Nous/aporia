@@ -3,7 +3,7 @@
 // system prompt = bot instructions + MEMORY-AND-TOOLS rules + a snapshot of shared USER.md and its own MEMORY.md.
 // Agent files are regenerated whenever a bot or a memory file changes; the engine hot-reloads agent files.
 // The aporia-memory MCP (scripts/aporia-memory-mcp.mjs, stdio, headless) gives bots remember/forget/recall.
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, watch, writeFileSync } from "node:fs"
+import { appendFileSync, copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, watch, writeFileSync } from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { ipcMain } from "electron"
@@ -97,6 +97,7 @@ export function agentPrompt(bot: Bot) {
     bot.skills.length ? `Skills you should load when relevant: ${bot.skills.join(", ")}.` : "",
     `Your working folder is ${path.join(BOTS_DIR, bot.slug)}. Answer Ali right away; run long work as background subagents/jobs per WORKING-STYLE.md so you are never blocked.`,
     "Anything sent externally under Ali's name (email, text, post, call) needs his explicit OK unless Owner mode is on.",
+    `Teammates: use send_to_bot (from="${bot.slug}") to ask another bot (list_bots shows them) or post to room:<slug>. It's async: keep working, the reply arrives as a new message. Messages starting with "📨 From" are from another bot; answer them directly (your final reply is sent back automatically, so don't call send_to_bot to reply). In a room turn, reply with PASS if you have nothing useful to add.`,
     `Memory tools (aporia-memory MCP): remember/forget/recall with bot="${bot.slug}". Below is a snapshot of memory at the time this prompt was built; use recall for anything older or more specific.`,
     read(RULES_FILE),
     "## SHARED MEMORY (USER.md, facts about Ali)\n" + cap(read(USER_MEMORY), 12000),
@@ -112,6 +113,50 @@ export function writeAgent(bot: Bot) {
   if (read(file) !== next) writeFileSync(file, next)
 }
 export const regenerateAll = () => listBots().forEach((b) => { try { writeAgent(b) } catch {} })
+
+// ---- inbox (bot-to-bot) and rooms --------------------------------------------------------
+export const INBOX = path.join(APORIA_HOME, "inbox")
+export const ROOMS = path.join(APORIA_HOME, "rooms")
+export type InboxMsg = { id: string; from: string; to?: string; room?: string; message: string; priority: boolean; kind: "message" | "reply" | "room"; created: string; replyTo?: string; fromSession?: string }
+export type Room = { slug: string; name: string; members: string[]; sessions: Record<string, string>; created: string }
+const roomFile = (slug: string) => path.join(ROOMS, slug, "room.json")
+export function inboxPending(): InboxMsg[] {
+  if (!existsSync(INBOX)) return []
+  return readdirSync(INBOX).filter((f) => f.endsWith(".json")).sort()
+    .map((f) => { try { return JSON.parse(readFileSync(path.join(INBOX, f), "utf8")) } catch { return undefined } }).filter(Boolean)
+}
+export function inboxPost(m: Partial<InboxMsg>) {
+  mkdirSync(INBOX, { recursive: true })
+  const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  const msg = { id, priority: false, kind: "message", created: new Date().toISOString(), ...m } as InboxMsg
+  writeFileSync(path.join(INBOX, id + ".json"), JSON.stringify(msg, null, 2)); return msg
+}
+export function inboxAck(id: string, result: unknown) {
+  const f = path.join(INBOX, `${id}.json`); if (!existsSync(f)) return false
+  const done = path.join(INBOX, "done"); mkdirSync(done, { recursive: true })
+  const msg = JSON.parse(readFileSync(f, "utf8"))
+  writeFileSync(path.join(done, `${id}.json`), JSON.stringify({ ...msg, result, deliveredAt: new Date().toISOString() }, null, 2)); rmSync(f)
+  appendFileSync(path.join(APORIA_HOME, "bots", "messages.log.jsonl"), JSON.stringify({ at: new Date().toISOString(), ...msg, result }) + "\n")
+  return true
+}
+export function listRooms(): Room[] {
+  if (!existsSync(ROOMS)) return []
+  return readdirSync(ROOMS).filter((d) => existsSync(roomFile(d))).map((d) => JSON.parse(readFileSync(roomFile(d), "utf8")))
+}
+export function saveRoom(input: Partial<Room>): Room {
+  const prev = input.slug ? listRooms().find((r) => r.slug === input.slug) : undefined
+  const name = String(input.name ?? prev?.name ?? "").trim(); if (!name) throw new Error("Room needs a name")
+  const room: Room = { slug: prev?.slug ?? slugify(name), name, members: (input.members ?? prev?.members ?? []).filter((m) => !!getBot(m)), sessions: { ...(prev?.sessions ?? {}), ...(input.sessions ?? {}) }, created: prev?.created ?? new Date().toISOString() }
+  mkdirSync(path.dirname(roomFile(room.slug)), { recursive: true }); writeFileSync(roomFile(room.slug), JSON.stringify(room, null, 2)); return room
+}
+const transcript = (slug: string) => path.join(ROOMS, slug, "transcript.jsonl")
+export function roomAppend(slug: string, entry: { from: string; text: string }) {
+  mkdirSync(path.join(ROOMS, slug), { recursive: true })
+  const e = { at: new Date().toISOString(), ...entry }; appendFileSync(transcript(slug), JSON.stringify(e) + "\n"); return e
+}
+export function roomRead(slug: string, limit = 200) {
+  return read(transcript(slug)).trim().split("\n").filter(Boolean).slice(-limit).map((l) => JSON.parse(l))
+}
 
 // ---- seeding ------------------------------------------------------------------------------
 const RULES_NOTE = "Follows MEMORY-AND-TOOLS.md (memory, tool escalation, swapping rules)."
@@ -207,6 +252,17 @@ export function registerAporiaBotsHandler() {
         if (existsSync(f)) copyFileSync(f, f + ".bak")
         mkdirSync(path.dirname(f), { recursive: true }); writeFileSync(f, String(input.text)); return true
       }
+      case "inbox": return inboxPending()
+      case "inboxPost": return inboxPost(input.msg ?? {})
+      case "inboxAck": return inboxAck(String(input.id), input.result)
+      case "rooms": return listRooms()
+      case "roomSave": return saveRoom(input.room ?? {})
+      case "roomPost": {
+        const e = roomAppend(String(input.slug), { from: String(input.from ?? "Ali"), text: String(input.text) })
+        if (input.fanout !== false) inboxPost({ from: String(input.from ?? "ali"), room: String(input.slug), message: String(input.text), priority: true, kind: "room" })
+        return e
+      }
+      case "roomRead": return roomRead(String(input.slug))
       case "paths": return { home: APORIA_HOME, bots: BOTS_DIR, user: USER_MEMORY, agents: agentsDir() }
     }
     throw new Error("Unknown bots op")

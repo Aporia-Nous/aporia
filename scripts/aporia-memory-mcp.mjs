@@ -56,12 +56,29 @@ function listBots() {
     try { const b = JSON.parse(readFileSync(path.join(dir, d, "bot.json"), "utf8")); return `${d}: ${b.name} - ${b.role ?? ""}` } catch { return d }
   }).join("\n")
 }
+
+// ---- bot-to-bot messaging: drop into %APORIA_HOME%\inbox; the Aporia app delivers it and runs the target's turn.
+function sendToBot({ from, target, message, priority }) {
+  if (!message || !String(message).trim()) throw new Error("message is required")
+  const t = String(target || "").trim()
+  const isRoom = t.startsWith("room:")
+  const slug = isRoom ? t.slice(5) : t
+  if (!/^[a-z0-9-]{1,48}$/.test(slug)) throw new Error("target must be a bot slug (see list_bots) or room:<slug>")
+  if (!isRoom && !existsSync(path.join(ROOT, "bots", slug, "bot.json"))) throw new Error(`No bot ${slug}. Use list_bots.`)
+  if (isRoom && !existsSync(path.join(ROOT, "rooms", slug, "room.json"))) throw new Error(`No room ${slug}.`)
+  const dir = path.join(ROOT, "inbox"); mkdirSync(dir, { recursive: true })
+  const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  const msg = { id, from: String(from || "unknown"), to: isRoom ? undefined : slug, room: isRoom ? slug : undefined, message: String(message), priority: !!priority, kind: "message", created: new Date().toISOString() }
+  writeFileSync(path.join(dir, id + ".json"), JSON.stringify(msg, null, 2))
+  return `Queued for ${t}${priority ? " (priority: it wakes now)" : " (delivered when it is idle, within a few minutes)"}. The reply comes back to you as a new message; don't wait for it.`
+}
 const scopeProp = { type: "string", enum: ["user", "bot"], description: "user = shared facts about Ali (USER.md); bot = your own job memory (MEMORY.md)" }
 const botProp = { type: "string", description: "Your bot slug (from your instructions), e.g. rep-recruiter" }
 const TOOLS = [
   { name: "remember", description: "Save one self-contained lasting fact (dedupes, adds the date).", inputSchema: { type: "object", properties: { scope: scopeProp, bot: botProp, fact: { type: "string" } }, required: ["scope", "fact"] }, run: remember },
   { name: "forget", description: "Remove facts containing the given text (use when Ali corrects something, then remember the new fact).", inputSchema: { type: "object", properties: { scope: scopeProp, bot: botProp, match: { type: "string" } }, required: ["scope", "match"] }, run: forget },
   { name: "recall", description: "Search shared and your own memory. Empty query lists everything.", inputSchema: { type: "object", properties: { query: { type: "string" }, bot: botProp, limit: { type: "number" } } }, run: recall },
+  { name: "send_to_bot", description: "Send an async message to another Aporia bot (or room:<slug>). Returns immediately; the reply arrives later as a new message in your chat.", inputSchema: { type: "object", properties: { from: { type: "string", description: "Your own bot slug" }, target: { type: "string", description: "Target bot slug or room:<slug>" }, message: { type: "string" }, priority: { type: "boolean", description: "true wakes the target now; false waits until it is idle" } }, required: ["from", "target", "message"] }, run: sendToBot },
   { name: "list_bots", description: "List Aporia teammate bots (slug: name - role).", inputSchema: { type: "object", properties: {} }, run: listBots },
 ]
 const send = (m) => process.stdout.write(JSON.stringify(m) + "\n")

@@ -2,6 +2,8 @@
 import { AlertBell, AlertToasts } from "./alerts"
 import { UpdateWatcher } from "./update"
 import { TeammatesSection } from "./bots"
+import { BotDispatcher } from "./dispatch"
+import { RoomsSection } from "./rooms"
 // (timeline, tool runs, permission/question prompts, composer, attachments), so all agent
 // behaviour stays upstream; this file only frames it.
 import { createEffect, createMemo, createResource, createSignal, For, lazy, Show, type ParentProps } from "solid-js"
@@ -83,6 +85,7 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
     <div class="ap-root" data-component="aporia-layout">
       <AlertToasts />
       <UpdateWatcher />
+      <BotDispatcher />
       <div style={{ position: "fixed", top: "6px", right: "150px", "z-index": 2147483002 }} data-component="aporia-window-bell"><AlertBell /></div>
       <AporiaSidebar
         directory={props.view.directory()}
@@ -195,6 +198,7 @@ function AporiaSidebar(props: { directory: string; currentID?: string; currentAg
         </For>
       </div>
       <TeammatesSection sessions={sessions()} currentAgent={props.currentAgent} />
+      <RoomsSection />
       <div class="ap-section-label ap-chats-label">
         Chats <span class="ap-count">{sessions().length}</span>
         <button
