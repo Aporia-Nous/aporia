@@ -146,8 +146,19 @@ const getBase = (appId: string): Configuration => ({
     signtoolOptions: {
       sign: signWindows,
     },
-    target: ["nsis"],
+    target: ["nsis", "appx"],
     verifyUpdateCodeSignature: false,
+  },
+  // APORIA: MSIX (appx target). Sideload with a self-signed CN=Aporia Nous cert; see docs/aporia/MSIX.md.
+  appx: {
+    identityName: "com.aporianous.desktop",
+    publisher: "CN=Aporia Nous",
+    publisherDisplayName: "Aporia Nous",
+    applicationId: "Aporia",
+    displayName: "Aporia",
+    backgroundColor: "#0a1020",
+    showNameOnTiles: true,
+    languages: ["en-US"],
   },
   nsis: {
     include: path.join(packageDir, "resources", "windows", "installer.nsh"),
