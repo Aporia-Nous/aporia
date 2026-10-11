@@ -25,6 +25,9 @@ function write(key: string, value: string | undefined) {
 const [layoutEnabled, setLayoutEnabledSignal] = createSignal(read(LAYOUT_KEY) !== "off")
 const [computerUrl, setComputerUrlSignal] = createSignal(read(COMPUTER_KEY) ?? "")
 const [sessionFilter, setSessionFilter] = createSignal("")
+// Only an explicit "off" disables these; missing or imported values mean ON.
+const THEME_KEY = "aporia.theme.enabled"
+const [aporiaTheme, setAporiaThemeSignal] = createSignal(read(THEME_KEY) !== "off")
 
 export const aporiaPrefs = {
   layoutEnabled,
@@ -40,11 +43,11 @@ export const aporiaPrefs = {
   },
   sessionFilter,
   setSessionFilter,
-  /** True exactly once, and only when the user has never chosen a theme. */
-  claimThemeDefault() {
-    if (read("aporia.theme.defaulted")) return false
-    write("aporia.theme.defaulted", "1")
-    const current = read("opencode-theme-id")
-    return !current || current === "oc-2"
+  /** Aporia theme is sticky: enforced on every launch unless the user explicitly opts out. */
+  aporiaTheme,
+  setAporiaTheme(value: boolean) {
+    write(THEME_KEY, value ? "on" : "off")
+    setAporiaThemeSignal(value)
   },
+
 }
