@@ -66,7 +66,8 @@ function Do-Build {
     if (-not $Force -and $have -contains $h.commit) { Log "up to date ($($h.commit.Substring(0,10)))"; return }
     Log "building $($h.commit.Substring(0,10)) '$($h.subject)' on $($h.branch)"
     $exe = Join-Path $Src 'packages\desktop\dist\win-unpacked\Aporia.exe'; $t0 = Get-Date
-    powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $Src 'build-win6.ps1') *> (Join-Path $Root 'build.log')
+    $bl = Join-Path $Root 'build.log'; $bs = Join-Path $Src 'build-win6.ps1'
+    cmd /c "powershell -NoProfile -ExecutionPolicy Bypass -File `"$bs`" > `"$bl`" 2>&1"
     if (-not (Test-Path $exe) -or (Get-Item $exe).LastWriteTime -lt $t0) { Log "BUILD FAILED, see build.log"; Set-Prop $s 'lastBuild' @{ ok = $false; at = (Get-Date).ToString('o'); commit = $h.commit }; Save-State $s; exit 2 }
     Mirror (Split-Path $exe) (Join-Path $Root 'staged')
     Copy-Item $PSCommandPath (Join-Path $Root 'aporia-update.ps1') -Force
