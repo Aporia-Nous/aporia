@@ -34,7 +34,7 @@ function RoomModal(props: { room?: Room; onClose: () => void }) {
   const [members, setMembers] = createSignal<string[]>(props.room?.members ?? [])
   const [text, setText] = createSignal("")
   const [log, { refetch }] = createResource(() => room()?.slug, (slug) => bots({ op: "roomRead", slug }) as Promise<{ at: string; from: string; text: string }[]>)
-  const t = setInterval(() => void refetch(), 3000); onCleanup(() => clearInterval(t))
+  const t = setInterval(() => { if (!document.hidden) void refetch() }, 3000); onCleanup(() => clearInterval(t))
   const field = { width: "100%", "box-sizing": "border-box", background: "transparent", color: "inherit", border: "1px solid var(--ap-line-strong)", "border-radius": "8px", padding: "6px 8px", font: "inherit" } as const
   const save = async () => setRoom(await bots({ op: "roomSave", room: { slug: room()?.slug, name: name(), members: members() } }))
   const post = async () => { if (!text().trim() || !room()) return; await bots({ op: "roomPost", slug: room()!.slug, from: "Ali", text: text() }); setText(""); void refetch() }

@@ -31,7 +31,12 @@ export function TeammatesSection(props: { sessions: SessionInfo[]; currentAgent?
   const [collapsed, setCollapsed] = createSignal<Record<string, boolean>>(JSON.parse(localStorage.getItem("aporia.bots.collapsed") ?? "{}"))
   const groups = createMemo(() => {
     const g = new Map<string, Bot[]>()
-    for (const b of list() ?? []) g.set(b.folder || "Teammates", [...(g.get(b.folder || "Teammates") ?? []), b])
+    for (const b of list() ?? []) {
+      const key = b.folder || "Teammates"
+      const bucket = g.get(key)
+      if (bucket) bucket.push(b)
+      else g.set(key, [b])
+    }
     return [...g.entries()].sort(([a], [b]) => (a === "Main" ? -1 : b === "Main" ? 1 : a.localeCompare(b)))
   })
   const toggle = (k: string) => { const n = { ...collapsed(), [k]: !collapsed()[k] }; setCollapsed(n); localStorage.setItem("aporia.bots.collapsed", JSON.stringify(n)) }

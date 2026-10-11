@@ -39,6 +39,12 @@ export function SettingsVault() {
     .filter((e) => cat() === "All" || e.category === cat())
     .filter((e) => !query() || `${e.name} ${e.username ?? ""} ${e.url ?? ""} ${e.notes ?? ""}`.toLowerCase().includes(query().toLowerCase()))
     .sort((a, b) => a.name.localeCompare(b.name)))
+  // Per-category counts computed once when entries change, not refiltered per category button per render.
+  const counts = createMemo(() => {
+    const map: Record<string, number> = {}
+    for (const e of (data()?.entries ?? []) as Meta[]) map[e.category] = (map[e.category] ?? 0) + 1
+    return map
+  })
   const call = async (input: unknown) => { setError(""); try { return await bridge()!(input) } catch (e) { setError(String((e as Error).message ?? e)) } }
   const reveal = async (id: string) => {
     if (revealed()[id]) { const { [id]: _, ...rest } = revealed(); return setRevealed(rest) }
@@ -59,7 +65,7 @@ export function SettingsVault() {
         <input placeholder="Search vault" value={query()} onInput={(e) => setQuery(e.currentTarget.value)} style={{ ...box, flex: 1 }} />
         <For each={["All", ...((data()?.categories ?? []) as string[])]}>{(c) => (
           <button type="button" style={{ ...btn, background: cat() === c ? "var(--surface-raised-base, #1d2a44)" : "transparent" }} onClick={() => setCat(c)}>
-            {c} ({c === "All" ? data()?.entries.length ?? 0 : (data()?.entries ?? []).filter((e: Meta) => e.category === c).length})
+            {c} ({c === "All" ? data()?.entries.length ?? 0 : counts()[c] ?? 0})
           </button>
         )}</For>
       </div>

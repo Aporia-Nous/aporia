@@ -4,9 +4,9 @@
 import { createEffect, onCleanup } from "solid-js"
 import { useServerSDK } from "@/runtime/server/client"
 import { routines } from "./bots"
+import { reactionSignature, type Reaction } from "./reactions-util"
 
 const CHOICES = ["👍", "❤️", "🎉", "😂", "✅"]
-type Reaction = { at: string; by: "ali" | "bot"; emoji: string; messageID?: string; excerpt?: string }
 
 export function ReactionsLayer(props: { sessionID?: string; agent?: string }) {
   const sdk = useServerSDK()
@@ -16,11 +16,24 @@ export function ReactionsLayer(props: { sessionID?: string; agent?: string }) {
     if (!sessionID || !agent?.startsWith("aporia-")) return
     const slug = agent.slice("aporia-".length)
     let stop = false
+    let lastSignature: string | undefined
     const paint = async () => {
-      if (stop) return
+      // Skip the whole cycle when the window is hidden (nothing is visible to repaint).
+      if (stop || document.hidden) return
       const [list, page] = await Promise.all([routines({ op: "reactions", slug }) as Promise<Reaction[]>, api.message.list({ sessionID, limit: 100, order: "asc" }).catch(() => undefined)])
       const msgs: any[] = (page?.data ?? page?.items ?? page ?? []) as any[]
       const users = msgs.filter((m) => m.type === "user")
+      const rows = Array.from(document.querySelectorAll<HTMLElement>("[data-message-id]"))
+      // Include whether each visible row already owns a bar: the timeline virtualizer remounts rows,
+      // so an id set that is unchanged can still need a fresh bar on a new DOM node.
+      const visible = rows
+        .filter((row) => users.some((u) => u.id === row.dataset.messageId))
+        .map((row) => `${row.dataset.messageId}${row.querySelector(":scope > .ap-react-bar") ? "+" : "-"}`)
+      // Idle early-out: if neither the reactions nor the visible turn ids (and bar presence) changed,
+      // the bars are already correct — skip the map build and the per-row innerHTML sweep.
+      const signature = reactionSignature(list, visible)
+      if (signature === lastSignature) return
+      lastSignature = signature
       const byMsg = new Map<string, string[]>()
       for (const r of list ?? []) {
         let id = r.messageID
@@ -28,7 +41,7 @@ export function ReactionsLayer(props: { sessionID?: string; agent?: string }) {
         if (!id) continue
         byMsg.set(id, [...(byMsg.get(id) ?? []), `${r.by === "ali" ? "You" : "Bot"} ${r.emoji}`])
       }
-      for (const row of Array.from(document.querySelectorAll<HTMLElement>("[data-message-id]"))) {
+      for (const row of rows) {
         const id = row.dataset.messageId!; if (!users.some((u) => u.id === id)) continue
         let bar = row.querySelector<HTMLElement>(":scope > .ap-react-bar")
         if (!bar) {

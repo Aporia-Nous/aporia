@@ -1,6 +1,6 @@
 // APORIA: alerts. Bell in the top bar with unread badge, dismissable toasts (X, auto-hide 5s),
 // and a panel listing alerts with per-item dismiss and Clear all. Persisted in localStorage.
-import { createSignal, For, onCleanup, Show } from "solid-js"
+import { createMemo, createSignal, For, onCleanup, Show } from "solid-js"
 
 export type AlertAction = { label: string; action: string }
 export type Alert = { id: string; title: string; detail?: string; level?: "info" | "success" | "warning" | "error"; at: number; read?: boolean; sticky?: boolean; actions?: AlertAction[] }
@@ -9,21 +9,27 @@ const KEY = "aporia.alerts"
 const load = (): Alert[] => {
   try { return JSON.parse(globalThis.localStorage?.getItem(KEY) ?? "[]") } catch { return [] }
 }
-const [alerts, setAlertsRaw] = createSignal<Alert[]>(load())
-const [toasts, setToasts] = createSignal<string[]>([])
+const initial = load()
+const [alerts, setAlertsRaw] = createSignal<Alert[]>(initial)
+// Kept as a signal so the badge reads an O(1) value instead of filtering the list ~3x per render.
+const [unread, setUnread] = createSignal(initial.filter((a) => !a.read).length)
+// Toasts hold the Alert objects directly so rendering needs no id -> Alert lookup.
+const [toasts, setToasts] = createSignal<Alert[]>([])
 const setAlerts = (next: Alert[]) => {
-  setAlertsRaw(next.slice(-100))
-  try { globalThis.localStorage?.setItem(KEY, JSON.stringify(next.slice(-100))) } catch {}
+  const kept = next.slice(-100)
+  setAlertsRaw(kept)
+  setUnread(kept.filter((a) => !a.read).length)
+  try { globalThis.localStorage?.setItem(KEY, JSON.stringify(kept)) } catch {}
 }
-const hideToast = (id: string) => setToasts(toasts().filter((t) => t !== id))
+const hideToast = (id: string) => setToasts(toasts().filter((t) => t.id !== id))
 
 export const aporiaAlerts = {
   list: alerts,
-  unread: () => alerts().filter((a) => !a.read).length,
+  unread,
   push(input: Omit<Alert, "id" | "at">) {
     const alert: Alert = { ...input, id: crypto.randomUUID(), at: Date.now() }
     setAlerts([...alerts(), alert])
-    setToasts([...toasts(), alert.id])
+    setToasts([...toasts(), alert])
     if (!alert.sticky) setTimeout(() => hideToast(alert.id), 5000)
     return alert.id
   },
@@ -44,6 +50,8 @@ const X = (p: { onClick: () => void; label: string }) => (
 
 export function AlertBell() {
   const [open, setOpen] = createSignal(false)
+  // Newest-first list computed once per alert change, not per render.
+  const list = createMemo(() => [...aporiaAlerts.list()].reverse())
   let root: HTMLDivElement | undefined
   const outside = (e: MouseEvent) => open() && root && !root.contains(e.target as Node) && setOpen(false)
   const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false)
@@ -69,7 +77,7 @@ export function AlertBell() {
             <button type="button" onClick={() => aporiaAlerts.clear()} disabled={!aporiaAlerts.list().length} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", opacity: 0.8 }}>Clear all</button>
           </div>
           <Show when={aporiaAlerts.list().length} fallback={<div style={{ padding: "16px", opacity: 0.7 }}>No alerts</div>}>
-            <For each={[...aporiaAlerts.list()].reverse()}>{(a) => (
+            <For each={list()}>{(a) => (
               <div style={{ display: "flex", gap: "8px", padding: "10px 12px", "border-left": `3px solid ${color(a.level)}`, "border-bottom": "1px solid var(--border-base, #2a3550)" }}>
                 <div style={{ flex: 1, "min-width": 0 }}>
                   <div style={{ "font-weight": 600 }}>{a.title}</div>
@@ -88,7 +96,7 @@ export function AlertBell() {
 }
 
 export function AlertToasts() {
-  const shown = () => toasts().map((id) => alerts().find((a) => a.id === id)).filter(Boolean) as Alert[]
+  const shown = toasts
   return (
     <div aria-live="polite" style={{ position: "fixed", right: "16px", top: "44px", "pointer-events": "none", display: "flex", "flex-direction": "column", gap: "8px", "z-index": 2147483000 }}>
       <For each={shown()}>{(a) => (

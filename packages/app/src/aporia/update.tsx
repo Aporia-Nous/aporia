@@ -36,8 +36,13 @@ export function UpdateWatcher() {
       return list.filter((s: any) => data.session.status(s.id) === "running" || (data.session.pending?.list?.(s.id) ?? []).some((i: any) => i.type !== "synthetic")).length
     } catch { return 0 }
   }
+  let lastBusy: number | undefined
   const tick = async () => {
-    const n = countBusy(); setBusy(n); await call({ action: "busy", busy: n })
+    // Nothing to stage while the window is hidden; the next visible tick catches up.
+    if (document.hidden) return
+    const n = countBusy(); setBusy(n)
+    // Only inform the main process when the count actually changed; it gates the idle restart.
+    if (n !== lastBusy) { lastBusy = n; await call({ action: "busy", busy: n }) }
     const s = await call({ action: "status" }); if (!s) return
     // Drop stale update alerts: "Update ready" for a build that is no longer staged, and rollback/failure
     // notices that were already seen once a newer build is installed.
@@ -59,14 +64,15 @@ export function UpdateWatcher() {
       else if (s.lastResult.ok) aporiaAlerts.push({ title: "Aporia updated", detail: `Now on ${short(s.lastResult.commit)}; started in ${s.lastResult.loadSeconds}s.`, level: "success" })
     }
   }
-  onMount(() => { void tick(); const t = setInterval(() => void tick(), 15_000); onCleanup(() => clearInterval(t)) })
+  // 30s: staged-update detection does not need 15s granularity, and each tick does real IPC.
+  onMount(() => { void tick(); const t = setInterval(() => void tick(), 30_000); onCleanup(() => clearInterval(t)) })
   return null
 }
 
 /** Settings > Updates */
 export function SettingsUpdate() {
   const [s, { refetch }] = createResource(async () => (await call({ action: "status" })) ?? {})
-  const t = setInterval(() => void refetch(), 5000); onCleanup(() => clearInterval(t))
+  const t = setInterval(() => { if (!document.hidden) void refetch() }, 5000); onCleanup(() => clearInterval(t))
   return (
     <div style={{ display: "flex", "flex-direction": "column", gap: "14px", padding: "8px 2px" }} data-component="aporia-settings-update">
       <h2 style={{ margin: 0 }}>Updates</h2>

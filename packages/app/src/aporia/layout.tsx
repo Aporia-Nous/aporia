@@ -7,7 +7,8 @@ import { RoomsSection } from "./rooms"
 import { ReactionsLayer } from "./reactions"
 // (timeline, tool runs, permission/question prompts, composer, attachments), so all agent
 // behaviour stays upstream; this file only frames it.
-import { createEffect, createMemo, createResource, createSignal, For, lazy, Show, type ParentProps } from "solid-js"
+import { createEffect, createMemo, createResource, createSignal, For, lazy, onCleanup, Show, type ParentProps } from "solid-js"
+import { createVirtualizer } from "@tanstack/solid-virtual"
 import { useTheme } from "@opencode/ui/theme/context"
 import { normalizeAgentList } from "@/runtime/server/global-sync/utils"
 import { useNavigate } from "@solidjs/router"
@@ -24,29 +25,20 @@ import { contextTokens, formatTokens, tokenTotal } from "./session-stats"
 import { AporiaRightPanel } from "./right-panel"
 import { Avatar } from "./avatar"
 import { EmptyState, Icon } from "./icons"
+import {
+  debouncedFilter,
+  filterSessionRows,
+  mergeSessions,
+  prettyTitle,
+  sessionListOptions,
+  toSessionRows,
+  type SessionRow,
+} from "./session-list"
 import logo from "./logo.png"
 
 // Loaded on first open so the catalog and modal stay out of the startup bundle.
 const ConnectAppsModal = lazy(() => import("./connect-apps").then((m) => ({ default: m.ConnectAppsModal })))
 import "./aporia.css"
-
-/** What the frame needs; built from a live session or from a draft (new-session) screen. */
-function projectName(directory: string | undefined) {
-  if (!directory) return "Global"
-  return directory.split(/[\\/]/).filter(Boolean).at(-1) ?? directory
-}
-
-/** Turn server placeholder titles like "New session - 2026-09-14T03:42:51.7Z" into a readable title. */
-function prettyTitle(title?: string) {
-  if (!title) return "Untitled"
-  const m = title.match(/^New session\s*-\s*(\d{4}-\d{2}-\d{2}T[\d:.]+Z?)$/)
-  if (m) {
-    const d = new Date(m[1])
-    if (!Number.isNaN(d.getTime()))
-      return `New session · ${d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}`
-  }
-  return title
-}
 
 export type AporiaView = {
   directory: () => string
@@ -90,6 +82,11 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
     if (theme.themeId() !== "aporia") theme.setTheme("aporia")
     if (theme.colorScheme() !== "dark") theme.setColorScheme("dark")
   })
+  // Search input: keystrokes update the field immediately, but the filter commit (which the sidebar's
+  // list memo depends on) is debounced so a burst of typing triggers at most one list rebuild.
+  const [query, setQuery] = createSignal(aporiaPrefs.sessionFilter())
+  const commitFilter = debouncedFilter(aporiaPrefs.setSessionFilter)
+  onCleanup(commitFilter.clear)
   const info = () => props.view.info()
   const agentName = () => info()?.agent ?? "build"
   const messages = () => props.view.messages()
@@ -125,9 +122,12 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
             <Icon name="search" size={14} />
             <input
               aria-label="Search sessions"
-            placeholder="Search sessions"
-            value={aporiaPrefs.sessionFilter()}
-              onInput={(event) => aporiaPrefs.setSessionFilter(event.currentTarget.value)}
+              placeholder="Search sessions"
+              value={query()}
+              onInput={(event) => {
+                setQuery(event.currentTarget.value)
+                commitFilter(event.currentTarget.value)
+              }}
             />
           </label>
           <button type="button" class="ap-icon-btn ap-panel-toggle" title={rightOpen() ? "Hide panel" : "Show panel"} aria-label="Toggle right panel" onClick={toggleRight}>
@@ -157,6 +157,28 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
   )
 }
 
+/** One chat row. Extracted so per-row work (title/date already precomputed) runs when the row's own
+ *  reactive values change, not on every frame render. */
+function AporiaSessionRow(props: { row: SessionRow; selected: boolean; unseen: number; onSelect: () => void }) {
+  return (
+    <button
+      type="button"
+      class="ap-session"
+      classList={{ "ap-selected": props.selected }}
+      onClick={props.onSelect}
+    >
+      <Avatar name={props.row.session.agent ?? "build"} />
+      <span class="ap-session-text">
+        <strong class="ap-ellipsis">{props.row.title}</strong>
+        <span class="ap-muted ap-ellipsis">{props.row.meta}</span>
+      </span>
+      <Show when={props.unseen > 0}>
+        <span class="ap-unread" />
+      </Show>
+    </button>
+  )
+}
+
 function AporiaSidebar(props: { directory: string; currentID?: string; currentAgent?: string; onConnect: () => void }) {
   const data = useData()
   const server = useServer()
@@ -177,17 +199,26 @@ function AporiaSidebar(props: { directory: string; currentID?: string; currentAg
     () => sdk.api.session.list({ limit: 2000, order: "desc" }).then((r) => r.data),
     { initialValue: [] },
   )
-  const sessions = createMemo(() => {
-    const filter = aporiaPrefs.sessionFilter().toLowerCase()
-    const merged = new Map<string, SessionInfo>()
-    for (const session of all.latest ?? []) merged.set(session.id, session)
-    for (const session of data.session.list()) merged.set(session.id, session)
-    return [...merged.values()]
-      .filter((session) => (showSub() || !session.parentID) && !session.time.archived)
-      .filter((session) => !filter || (session.title ?? "").toLowerCase().includes(filter))
-      .toSorted((a, b) => b.time.updated - a.time.updated)
-      .slice(0, 2000)
-  })
+  // Base list: merge + filter + sort + precompute row strings. Rebuilt only when the data or the
+  // "include subagents" toggle changes, never on a search keystroke (the sort allocates the whole list).
+  const baseRows = createMemo(() => toSessionRows(mergeSessions(all.latest, data.session.list(), showSub())))
+  // Depends only on the debounced filter pref (see AporiaFrame), so a keystroke burst filters once.
+  const rows = createMemo(() => filterSessionRows(baseRows(), aporiaPrefs.sessionFilter()))
+
+  // Virtualize the list: only the visible window (≈ viewport / 52px + overscan) is mounted, so a
+  // 2000-session store mounts ~36 rows, not 2000. Mirrors the timeline virtualizer.
+  let navRef: HTMLElement | undefined
+  const virtualizer = createVirtualizer<HTMLElement, HTMLElement>(
+    sessionListOptions({
+      count: () => rows().length,
+      getScrollElement: () => navRef ?? null,
+      getItemKey: (index) => rows()[index]?.id ?? index,
+    }),
+  )
+  const virtualItems = createMemo(() => virtualizer.getVirtualItems())
+  const virtualKeys = createMemo(() => virtualItems().map((item) => item.key))
+  const itemByKey = createMemo(() => new Map(virtualItems().map((item) => [item.key, item] as const)))
+  const rowByID = createMemo(() => new Map(rows().map((row) => [row.id, row] as const)))
 
   return (
     <aside class="ap-sidebar">
@@ -216,10 +247,10 @@ function AporiaSidebar(props: { directory: string; currentID?: string; currentAg
           )}
         </For>
       </div>
-      <TeammatesSection sessions={sessions()} currentAgent={props.currentAgent} />
+      <TeammatesSection sessions={rows().map((row) => row.session)} currentAgent={props.currentAgent} />
       <RoomsSection />
       <div class="ap-section-label ap-chats-label">
-        Chats <span class="ap-count">{sessions().length}</span>
+        Chats <span class="ap-count">{rows().length}</span>
         <button
           type="button"
           class="ap-sub-toggle"
@@ -230,28 +261,37 @@ function AporiaSidebar(props: { directory: string; currentID?: string; currentAg
           {showSub() ? "All runs" : "+ subagents"}
         </button>
       </div>
-      <nav class="ap-session-list">
-        <For each={sessions()} fallback={<EmptyState icon="message" title="No chats yet" hint="Start a session and it shows up here." />}>
-          {(session) => (
-            <button
-              type="button"
-              class="ap-session"
-              classList={{ "ap-selected": session.id === props.currentID }}
-              onClick={() => navigate(sessionHref(server.key, session.id))}
-            >
-              <Avatar name={session.agent ?? "build"} />
-              <span class="ap-session-text">
-                <strong class="ap-ellipsis">{prettyTitle(session.title)}</strong>
-                <span class="ap-muted ap-ellipsis">
-                  {projectName(session.location.directory)} · {new Date(session.time.updated).toLocaleDateString()}
-                </span>
-              </span>
-              <Show when={notification.session.unseenCount(session.id) > 0}>
-                <span class="ap-unread" />
-              </Show>
-            </button>
-          )}
-        </For>
+      <nav class="ap-session-list" ref={navRef}>
+        <Show
+          when={rows().length}
+          fallback={<EmptyState icon="message" title="No chats yet" hint="Start a session and it shows up here." />}
+        >
+          <div style={{ position: "relative", width: "100%", height: `${virtualizer.getTotalSize()}px` }}>
+            <For each={virtualKeys()}>
+              {(key) => (
+                <Show when={itemByKey().get(key)}>
+                  {(item) => (
+                    <Show when={rowByID().get(String(key))}>
+                      {(row) => (
+                        <div
+                          data-index={item().index}
+                          style={{ position: "absolute", top: "0", "inset-inline-start": "0", width: "100%", transform: `translateY(${item().start}px)` }}
+                        >
+                          <AporiaSessionRow
+                            row={row()}
+                            selected={row().id === props.currentID}
+                            unseen={notification.session.unseenCount(row().id)}
+                            onSelect={() => navigate(sessionHref(server.key, row().id))}
+                          />
+                        </div>
+                      )}
+                    </Show>
+                  )}
+                </Show>
+              )}
+            </For>
+          </div>
+        </Show>
       </nav>
       <div class="ap-sidebar-footer">
         <button type="button" class="ap-connect-button" onClick={props.onConnect}>
