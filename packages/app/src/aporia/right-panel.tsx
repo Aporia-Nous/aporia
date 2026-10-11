@@ -4,8 +4,11 @@ import type { SessionModel } from "@/session/model"
 import { aporiaPrefs } from "./prefs"
 import { formatTokens, tokenTotal, touchedFiles } from "./session-stats"
 import { Avatar } from "./avatar"
+import { EmptyState, Icon, type IconName } from "./icons"
 
 type Tab = "details" | "library" | "computer"
+
+const TAB_ICONS: Record<Tab, IconName> = { details: "info", library: "library", computer: "monitor" }
 
 export function AporiaRightPanel(props: { session: SessionModel }) {
   const [tab, setTab] = createSignal<Tab>("details")
@@ -30,6 +33,7 @@ export function AporiaRightPanel(props: { session: SessionModel }) {
               classList={{ "ap-tab": true, "ap-tab-active": tab() === value }}
               onClick={() => setTab(value)}
             >
+              <Icon name={TAB_ICONS[value]} size={14} />
               {value[0]!.toUpperCase() + value.slice(1)}
             </button>
           )}
@@ -57,10 +61,10 @@ export function AporiaRightPanel(props: { session: SessionModel }) {
           </Match>
           <Match when={tab() === "library"}>
             <ul class="ap-files">
-              <For each={files()} fallback={<li class="ap-muted">No files created or edited yet</li>}>
+              <For each={files()} fallback={<EmptyState icon="folder" title="No files yet" hint="Files the agent creates or edits appear here." />}>
                 {(file) => (
                   <li title={file.path}>
-                    <span class="ap-file-icon">▤</span>
+                    <Icon name="file" size={14} class="ap-file-icon" />
                     <span class="ap-ellipsis">{file.path}</span>
                     <span class="ap-muted ap-small">{file.via}</span>
                   </li>
@@ -85,7 +89,9 @@ function ComputerTab() {
         when={aporiaPrefs.computerUrl()}
         fallback={
           <div class="ap-computer-empty">
-            <span class="ap-status-dot" />
+            <span class="ap-empty-icon">
+              <Icon name="monitor" size={20} />
+            </span>
             <strong>Not connected</strong>
             <span class="ap-muted ap-small">Paste the noVNC URL of the agent's computer to see it live here.</span>
           </div>

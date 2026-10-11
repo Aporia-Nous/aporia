@@ -1,7 +1,9 @@
 // APORIA: three-column session layout. The center column is the stock OpenCode session view
 // (timeline, tool runs, permission/question prompts, composer, attachments), so all agent
 // behaviour stays upstream; this file only frames it.
-import { createMemo, createSignal, For, Show, type ParentProps } from "solid-js"
+import { createMemo, createSignal, For, onMount, Show, type ParentProps } from "solid-js"
+import { useTheme } from "@opencode/ui/theme/context"
+import { normalizeAgentList } from "@/runtime/server/global-sync/utils"
 import { useNavigate } from "@solidjs/router"
 import { useData, useServer } from "@/runtime/server/current"
 import { useNotification } from "@/shell/notifications/notification"
@@ -12,11 +14,19 @@ import { contextTokens, formatTokens, tokenTotal } from "./session-stats"
 import { AporiaRightPanel } from "./right-panel"
 import { ConnectAppsModal } from "./connect-apps"
 import { Avatar } from "./avatar"
+import { EmptyState, Icon } from "./icons"
 import logo from "./logo.png"
 import "./aporia.css"
 
 export function AporiaSessionLayout(props: ParentProps<{ session: SessionModel }>) {
   const [connectOpen, setConnectOpen] = createSignal(false)
+  const theme = useTheme()
+  // First run of the Aporia layout: adopt the Aporia dark theme once, unless the user already picked a theme.
+  onMount(() => {
+    if (!aporiaPrefs.claimThemeDefault()) return
+    theme.setTheme("aporia")
+    theme.setColorScheme("dark")
+  })
   const info = () => props.session.data.info()
   const agentName = () => info()?.agent ?? "build"
   const messages = () => props.session.history.messages()
@@ -42,16 +52,20 @@ export function AporiaSessionLayout(props: ParentProps<{ session: SessionModel }
             classList={{ "ap-busy": props.session.data.working() }}
             title={props.session.data.working() ? "Working" : "Idle"}
           />
-          <input
-            class="ap-search"
+          <label class="ap-search">
+            <Icon name="search" size={14} />
+            <input
+              aria-label="Search sessions"
             placeholder="Search sessions"
             value={aporiaPrefs.sessionFilter()}
-            onInput={(event) => aporiaPrefs.setSessionFilter(event.currentTarget.value)}
-          />
+              onInput={(event) => aporiaPrefs.setSessionFilter(event.currentTarget.value)}
+            />
+          </label>
         </header>
         <div class="ap-chat-body">{props.children}</div>
         <footer class="ap-context-bar" title="From real session usage reported by the server">
-          <span>
+          <span class="ap-context-pill">
+            <Icon name="gauge" size={12} />
             Context <strong>{formatTokens(context())}</strong> tokens
           </span>
           <span class="ap-muted">Session total {formatTokens(total())}</span>
@@ -75,9 +89,7 @@ function AporiaSidebar(props: { directory: string; currentID?: string; onConnect
   const notification = useNotification()
 
   const agents = createMemo(() =>
-    (data.location.agent.list({ directory: props.directory }) ?? [])
-      .map((agent) => ("id" in agent ? { name: String(agent.id), mode: agent.mode, hidden: false } : agent))
-      .filter((agent) => agent.mode !== "subagent" && !agent.hidden),
+    normalizeAgentList(data.location.agent.list({ directory: props.directory }) ?? []).filter((agent) => agent.mode !== "subagent" && !agent.hidden),
   )
 
   const sessions = createMemo(() => {
@@ -101,7 +113,7 @@ function AporiaSidebar(props: { directory: string; currentID?: string; onConnect
         <For each={agents()}>
           {(agent) => (
             <span class="ap-chip" title={agent.name}>
-              <Avatar name={agent.name} size={20} />
+              <span class="ap-chip-dot" />
               {agent.name}
             </span>
           )}
@@ -109,7 +121,7 @@ function AporiaSidebar(props: { directory: string; currentID?: string; onConnect
       </div>
       <div class="ap-section-label">Chats</div>
       <nav class="ap-session-list">
-        <For each={sessions()} fallback={<div class="ap-muted ap-pad">No sessions yet</div>}>
+        <For each={sessions()} fallback={<EmptyState icon="message" title="No chats yet" hint="Start a session and it shows up here." />}>
           {(session) => (
             <button
               type="button"
@@ -132,7 +144,8 @@ function AporiaSidebar(props: { directory: string; currentID?: string; onConnect
         </For>
       </nav>
       <button type="button" class="ap-connect-button" onClick={props.onConnect}>
-        + Connect apps
+        <Icon name="plug" size={16} />
+        Connect apps
       </button>
     </aside>
   )

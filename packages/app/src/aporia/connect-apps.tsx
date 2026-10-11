@@ -4,6 +4,7 @@
 import { createMemo, createResource, createSignal, For, Show } from "solid-js"
 import { useServerSDK } from "@/runtime/server/client"
 import catalog from "./catalog"
+import { EmptyState, Icon, Skeleton } from "./icons"
 
 type CatalogApp = {
   id: string
@@ -66,7 +67,9 @@ export function ConnectAppsModal(props: { directory: string; onClose: () => void
       .map((category) => ({
         category,
         items: filtered().filter((app) =>
-          category === "Recommended" ? app.recommended || app.category === category : app.category === category,
+          category === "Recommended"
+            ? app.recommended || app.category === category
+            : app.category === category && (!app.recommended || !!query()),
         ),
       }))
       .filter((section) => section.items.length > 0),
@@ -94,23 +97,36 @@ export function ConnectAppsModal(props: { directory: string; onClose: () => void
         <div class="ap-modal-head">
           <strong>Connect apps</strong>
           <button type="button" class="ap-icon-btn" aria-label="Close" onClick={props.onClose}>
-            ×
+            <Icon name="x" size={16} />
           </button>
         </div>
-        <input
-          class="ap-input"
-          placeholder="Search apps"
-          value={query()}
-          onInput={(event) => setQuery(event.currentTarget.value)}
-          autofocus
-        />
+        <label class="ap-search ap-search-wide">
+          <Icon name="search" size={14} />
+          <input
+            aria-label="Search apps"
+            placeholder="Search apps"
+            value={query()}
+            onInput={(event) => setQuery(event.currentTarget.value)}
+            autofocus
+          />
+        </label>
         <Show when={notice()}>
-          <div class="ap-card ap-card-ok">✓ {notice()}</div>
+          <div class="ap-card ap-card-ok" role="status">
+            <Icon name="check" size={14} /> {notice()}
+          </div>
         </Show>
         <Show when={error()}>
-          <div class="ap-card ap-card-err">{error()}</div>
+          <div class="ap-card ap-card-err" role="alert">
+            {error()}
+          </div>
         </Show>
         <div class="ap-modal-scroll">
+          <Show when={servers.loading && (servers.latest ?? []).length === 0}>
+            <Skeleton rows={3} />
+          </Show>
+          <Show when={sections().length === 0}>
+            <EmptyState icon="search" title="No apps match" hint="Try another name or category." />
+          </Show>
           <Show when={pending()}>
             {(app) => <EnvForm app={app()} onCancel={() => setPending(undefined)} onSave={(names) => save(app(), names)} />}
           </Show>
@@ -124,7 +140,9 @@ export function ConnectAppsModal(props: { directory: string; onClose: () => void
                     <strong>{server.name}</strong>
                     <span class="ap-muted ap-small">{server.status.status}</span>
                   </span>
-                  <span class="ap-added">✓ Added</span>
+                  <span class="ap-added">
+                          <Icon name="check" size={14} /> Added
+                        </span>
                 </div>
               )}
             </For>
@@ -153,7 +171,9 @@ export function ConnectAppsModal(props: { directory: string; onClose: () => void
                           </button>
                         }
                       >
-                        <span class="ap-added">✓ Added</span>
+                        <span class="ap-added">
+                          <Icon name="check" size={14} /> Added
+                        </span>
                       </Show>
                     </div>
                   )}

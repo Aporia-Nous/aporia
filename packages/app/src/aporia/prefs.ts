@@ -40,4 +40,10 @@ export const aporiaPrefs = {
   },
   sessionFilter,
   setSessionFilter,
+  /** True exactly once, and only when the user has never chosen a theme. */
+  claimThemeDefault() {
+    if (read("aporia.theme.defaulted")) return false
+    write("aporia.theme.defaulted", "1")
+    return !read("opencode-theme-id")
+  },
 }
