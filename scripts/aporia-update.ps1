@@ -16,7 +16,7 @@ param(
   [switch]$Force, [switch]$Restart, [switch]$ByUser, [switch]$Hidden,
   [int]$WaitForExit = 0, [int]$HealthSeconds = 30
 )
-$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Continue'  # native tools (taskkill, bun) write to stderr; real failures throw explicitly
 $Src = if ($env:APORIA_SOURCE) { $env:APORIA_SOURCE } else { 'C:\Tools\aporia' }
 $Root = Join-Path $env:LOCALAPPDATA 'Aporia\updates'
 $Install = Join-Path $env:LOCALAPPDATA 'Programs\@opencodedesktop'
@@ -42,7 +42,7 @@ function Test-Health([datetime]$since) {
   $t = Get-Date
   while (((Get-Date) - $t).TotalSeconds -lt $HealthSeconds) {
     if ((Test-Path $ServiceF) -and (Get-Item $ServiceF).LastWriteTime -gt $since) {
-      try { $j = Get-Content $ServiceF -Raw | ConvertFrom-Json; $r = Invoke-WebRequest "$($j.url)/health" -UseBasicParsing -TimeoutSec 3; if ($r.StatusCode -eq 200) { return [math]::Round(((Get-Date) - $t).TotalSeconds, 1) } } catch {}
+      try { $j = Get-Content $ServiceF -Raw | ConvertFrom-Json; $sp = Get-CimInstance Win32_Process -Filter "ProcessId=$($j.pid)"; $pp = if ($sp) { Get-CimInstance Win32_Process -Filter "ProcessId=$($sp.ParentProcessId)" }; if (-not $pp -or $pp.ExecutablePath -notlike "$Install\*") { throw "service.json not from this Aporia" }; $r = Invoke-WebRequest "$($j.url)/health" -UseBasicParsing -TimeoutSec 3; if ($r.StatusCode -eq 200) { return [math]::Round(((Get-Date) - $t).TotalSeconds, 1) } } catch {}
     }
     Start-Sleep -Milliseconds 500
   }
