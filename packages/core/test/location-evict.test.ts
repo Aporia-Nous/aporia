@@ -1,5 +1,5 @@
 import type { FileSystem } from "@opencode/core/filesystem"
-import { describe, expect } from "bun:test"
+import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 import { Context, Deferred, Duration, Effect, Fiber, Layer, LayerMap, RcMap, Schema } from "effect"
 import { TestClock } from "effect/testing"
 import { AppNodeBuilder } from "@opencode/core/effect/app-node-builder"
@@ -9,7 +9,7 @@ import { Bus } from "@opencode/core/bus"
 import { Database } from "@opencode/core/database/database"
 import { Form } from "@opencode/core/form"
 import { Location } from "@opencode/core/location"
-import { LocationActivity } from "@opencode/core/location-activity"
+import { LocationActivity, aporiaIdleTimeToLive } from "@opencode/core/location-activity"
 import { LocationServiceMap, type LocationServices } from "@opencode/core/location-services"
 import { Project } from "@opencode/core/project"
 import { ProjectTable } from "@opencode/core/project/sql"
@@ -112,6 +112,37 @@ const it = testEffect(
   ),
 )
 
+// A second harness whose LocationActivity uses the layer defaults, so the TTL comes from the
+// environment exactly as it does in the desktop app (no explicit `timeToLive`).
+const itEnvTtl = testEffect(
+  AppNodeBuilder.build(
+    LayerNode.group([
+      Database.node,
+      Bus.node,
+      SessionStore.node,
+      LocationServiceMap.node,
+      SessionExecution.node,
+      LocationActivity.node,
+    ]),
+    [
+      LocationServiceMap.node.replace(
+        makeGlobalNode({
+          service: LocationServiceMap.Service,
+          layer: locations,
+          deps: [Bus.node],
+        }),
+      ),
+      LocationActivity.node.replace(
+        makeGlobalNode({
+          service: LocationActivity.Service,
+          layer: LocationActivity.layer(),
+          deps: [Bus.node, LocationServiceMap.node, SessionExecution.node, SessionStore.node],
+        }),
+      ),
+    ],
+  ),
+)
+
 // The Aporia app sets a short TTL through the environment; this pins the touch policy it activates.
 const withAporiaTtl = <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
   Effect.gen(function* () {
@@ -154,6 +185,26 @@ const seed = (ref: Location.Ref, sessionIDs: ReadonlyArray<Session.ID>) =>
       .run()
       .pipe(Effect.orDie)
   })
+
+describe("aporiaIdleTimeToLive (env -> TTL derivation)", () => {
+  test("unset falls back to the upstream default (not a value)", () => {
+    expect(aporiaIdleTimeToLive(undefined)).toBeUndefined()
+  })
+
+  test("a positive number of minutes becomes a real TTL", () => {
+    expect(Duration.toMillis(aporiaIdleTimeToLive("5")!)).toBe(5 * 60_000)
+  })
+
+  test("0 (and negative) is the explicit off switch", () => {
+    expect(aporiaIdleTimeToLive("0")).toBe(Duration.infinity)
+    expect(aporiaIdleTimeToLive("-3")).toBe(Duration.infinity)
+  })
+
+  test("garbage never silently disables eviction", () => {
+    expect(aporiaIdleTimeToLive("abc")).toBeUndefined()
+    expect(aporiaIdleTimeToLive("Infinity")).toBeUndefined()
+  })
+})
 
 describe("Location eviction (Aporia)", () => {
   it.effect("releases an idle location's scope once the TTL passes", () =>
@@ -266,4 +317,51 @@ describe("Location eviction (Aporia)", () => {
     }).pipe(withAporiaTtl),
     30_000,
   )
+})
+
+// These exercise the production lever: `LocationActivity.layer()` with no explicit TTL, reading
+// APORIA_LOCATION_IDLE_TTL_MIN exactly as the desktop app's server child does.
+describe("idle TTL from APORIA_LOCATION_IDLE_TTL_MIN", () => {
+  const original = process.env.APORIA_LOCATION_IDLE_TTL_MIN
+  afterEach(() => {
+    if (original === undefined) delete process.env.APORIA_LOCATION_IDLE_TTL_MIN
+    else process.env.APORIA_LOCATION_IDLE_TTL_MIN = original
+  })
+
+  describe("with a 5-minute TTL", () => {
+    beforeEach(() => {
+      process.env.APORIA_LOCATION_IDLE_TTL_MIN = "5"
+    })
+
+    itEnvTtl.effect("evicts an idle location after the TTL", () =>
+      Effect.gen(function* () {
+        const map = yield* LocationServiceMap.Service
+        const ref = canonical("/env-idle")
+        yield* map.contextEffect(ref).pipe(Effect.scoped)
+        expect(Array.from(yield* RcMap.keys(map.rcMap))).toEqual([ref])
+
+        yield* TestClock.adjust("1 minute")
+        yield* TestClock.adjust("6 minutes")
+        expect(Array.from(yield* RcMap.keys(map.rcMap))).toEqual([])
+      }),
+    )
+  })
+
+  describe("with eviction disabled (0)", () => {
+    beforeEach(() => {
+      process.env.APORIA_LOCATION_IDLE_TTL_MIN = "0"
+    })
+
+    itEnvTtl.effect("keeps the location indefinitely", () =>
+      Effect.gen(function* () {
+        const map = yield* LocationServiceMap.Service
+        const ref = canonical("/env-forever")
+        yield* map.contextEffect(ref).pipe(Effect.scoped)
+
+        yield* TestClock.adjust("1 minute")
+        yield* TestClock.adjust("600 minutes")
+        expect(Array.from(yield* RcMap.keys(map.rcMap))).toEqual([ref])
+      }),
+    )
+  })
 })

@@ -1,4 +1,4 @@
-import { describe, expect, mock, test } from "bun:test"
+import { beforeEach, describe, expect, mock, test } from "bun:test"
 
 // `aporia-bots` registers Electron IPC handlers on import; the module only needs `ipcMain.handle`.
 // SAFETY: this mirrors Electron's untyped ipcMain handler signature; the test only reads the capture.
@@ -19,6 +19,10 @@ mock.module("electron", () => ({
 const { botsHealth, registerAporiaBotsHandler, startBots } = await import("./aporia-bots")
 
 describe("aporia bots health", () => {
+  // `startBots([])` runs no steps and only normalizes the module-global health flag, so each test is
+  // independent of what a prior test left behind (no filesystem work).
+  beforeEach(() => startBots([]))
+
   test("starts healthy and reports the failing stage instead of swallowing it", () => {
     expect(botsHealth().ok).toBe(true)
 

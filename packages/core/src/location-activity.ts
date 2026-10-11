@@ -15,12 +15,14 @@ const isSessionEvent = Schema.is(SessionEvent.Durable)
 // is its own Location. An idle bot must release its Location scope, so the desktop app sets a short
 // idle TTL through APORIA_LOCATION_IDLE_TTL_MIN (0 disables eviction). When the variable is unset —
 // plain OpenCode, and the core tests — the upstream 60-minute TTL and touch-on-every-durable-event
-// behaviour is preserved exactly.
-const aporiaIdleTimeToLive = (): Duration.Input | undefined => {
-  const raw = process.env.APORIA_LOCATION_IDLE_TTL_MIN
+// behaviour is preserved exactly. Exported so the env -> TTL derivation is unit-tested directly.
+export const aporiaIdleTimeToLive = (raw: string | undefined): Duration.Input | undefined => {
   if (raw === undefined) return undefined
   const minutes = Number(raw)
-  return Number.isFinite(minutes) && minutes > 0 ? Duration.minutes(minutes) : Duration.infinity
+  // A bad parse must never silently disable eviction: fall back to the upstream default.
+  if (!Number.isFinite(minutes)) return undefined
+  // 0 (or negative) is the explicit off switch.
+  return minutes > 0 ? Duration.minutes(minutes) : Duration.infinity
 }
 
 // Read-only bookkeeping and background state, never evidence that a person is using the session.
@@ -54,7 +56,9 @@ export function layer(options: { readonly timeToLive?: Duration.Input; readonly 
       const locations = yield* LocationServiceMap.Service
       const execution = yield* SessionExecution.Service
       const sessions = yield* SessionStore.Service
-      const timeToLive = Duration.toMillis(options.timeToLive ?? aporiaIdleTimeToLive() ?? "60 minutes")
+      const timeToLive = Duration.toMillis(
+        options.timeToLive ?? aporiaIdleTimeToLive(process.env.APORIA_LOCATION_IDLE_TTL_MIN) ?? "60 minutes",
+      )
       const entries = new Map<string, { readonly ref: Location.Ref; expiresAt: number }>()
       const key = (ref: Location.Ref) => `${LocationServiceMap.canonical(ref).directory}\0${ref.workspaceID ?? ""}`
       const touch = (ref: Location.Ref) =>

@@ -22,10 +22,12 @@ import { registerRendererScheme } from "./windows/scheme"
 
 // APORIA: keep the bundled server on its own DB copy so the stock OpenCode install is never migrated.
 process.env.OPENCODE_DB ??= "opencode-aporia.db"
+
 // APORIA: teammate Locations must release their scope when a bot goes idle (graceful, via
 // LocationActivity). Five minutes of no user-visible activity; APORIA_LOCATION_IDLE_TTL_MIN=0 disables
 // eviction. Set before the background server child spawns so it inherits the value.
 process.env.APORIA_LOCATION_IDLE_TTL_MIN ??= "5"
+
 // APORIA: a staged self-update is applied before any window opens (the updater swaps, relaunches, health-checks).
 let aporiaUpdating = false
 process.env.OPENCODE_DISABLE_CHANNEL_DB ??= "1"
@@ -55,13 +57,14 @@ if (acquireApplicationLock()) {
     registerAporiaVotelHandler() // APORIA
     registerAporiaOwnerHandler() // APORIA
     // Register Aporia's cheap IPC handlers now; run the expensive bots init only after the first
-    // window, so seeding/migration/config writes never delay the first paint. A failure is logged and
-    // surfaced through the bots health flag instead of being swallowed to console.error.
+    // window, so seeding/migration/config writes never delay the first paint. Each handler registers
+    // independently, and a failure is logged and surfaced through the bots health flag instead of
+    // being swallowed to console.error.
     runAporiaStartup({
-      register: () => {
-        registerAporiaBotsHandler()
-        registerAporiaRoutinesHandler()
-      },
+      register: [
+        ["bots", registerAporiaBotsHandler],
+        ["routines", registerAporiaRoutinesHandler],
+      ],
       createWindow: createEarlyWindow,
       start: startBots,
       onError: (stage, error) => aporiaLog.error(`aporia startup ${stage} failed`, error.stack ?? error.message),
