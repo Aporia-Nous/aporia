@@ -4,9 +4,9 @@
   "version": "2.0.26",
   "type": "module",
   "license": "MIT",
-  "homepage": "https://opencode.ai",
+  "homepage": "https://github.com/aporianous/aporia",
   "author": {
-    "name": "OpenCode",
+    "name": "Aporia",
     "email": "hello@opencode.ai"
   },
   "scripts": {
