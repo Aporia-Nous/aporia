@@ -32,5 +32,6 @@ contextBridge.exposeInMainWorld("electron", {
   // APORIA: persist a Connect-apps MCP server into the global opencode config ({env:NAME} refs only).
   aporia: {
     persistMcp: (name: string, config: unknown) => ipcRenderer.invoke("aporia:mcp-persist", { name, config }),
+    n8n: (input: unknown) => ipcRenderer.invoke("aporia:n8n", input),
   },
 })
