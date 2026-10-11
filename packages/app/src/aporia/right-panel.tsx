@@ -1,14 +1,15 @@
 // APORIA: right panel with Details, Library and Computer tabs.
-import { createMemo, createSignal, For, Match, Show, Switch } from "solid-js"
+import { createMemo, createSignal, For, lazy, Match, Show, Switch } from "solid-js"
 import type { AporiaView } from "./layout"
 import { aporiaPrefs } from "./prefs"
 import { formatTokens, tokenTotal, touchedFiles } from "./session-stats"
 import { Avatar } from "./avatar"
 import { EmptyState, Icon, type IconName } from "./icons"
 
-type Tab = "details" | "library" | "computer"
+type Tab = "details" | "library" | "computer" | "automations"
 
-const TAB_ICONS: Record<Tab, IconName> = { details: "info", library: "library", computer: "monitor" }
+const TAB_ICONS: Record<Tab, IconName> = { details: "info", library: "library", computer: "monitor", automations: "sparkles" }
+const AutomationsTab = lazy(() => import("./automations").then((m) => ({ default: m.AutomationsTab })))
 
 export function AporiaRightPanel(props: { view: AporiaView }) {
   const [tab, setTab] = createSignal<Tab>("details")
@@ -24,7 +25,7 @@ export function AporiaRightPanel(props: { view: AporiaView }) {
         <span class="ap-muted">{props.view.working() ? "Working…" : "Ready"}</span>
       </div>
       <div class="ap-tabs" role="tablist">
-        <For each={["details", "library", "computer"] as Tab[]}>
+        <For each={["details", "library", "computer", "automations"] as Tab[]}>
           {(value) => (
             <button
               type="button"
@@ -34,7 +35,7 @@ export function AporiaRightPanel(props: { view: AporiaView }) {
               onClick={() => setTab(value)}
             >
               <Icon name={TAB_ICONS[value]} size={14} />
-              {value[0]!.toUpperCase() + value.slice(1)}
+              <span class="ap-tab-label">{value === "automations" ? "Flows" : value[0]!.toUpperCase() + value.slice(1)}</span>
             </button>
           )}
         </For>
@@ -71,6 +72,9 @@ export function AporiaRightPanel(props: { view: AporiaView }) {
                 )}
               </For>
             </ul>
+          </Match>
+          <Match when={tab() === "automations"}>
+            <AutomationsTab />
           </Match>
           <Match when={tab() === "computer"}>
             <ComputerTab />

@@ -1,4 +1,5 @@
 import { createEffect, createMemo, createResource, Match, Show, Switch, untrack } from "solid-js"
+import { aporiaPrefs } from "@/aporia/prefs" // APORIA
 import { createStore, unwrap } from "solid-js/store"
 import { Dynamic, Portal } from "solid-js/web"
 import { useLocation, useNavigate } from "@solidjs/router"
@@ -681,7 +682,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                   <Show
                     when={props.verticalTabs}
                     fallback={
-                      <>
+                      <Show when={!aporiaPrefs.layoutEnabled()}>{/* APORIA: tab strip replaced by the Aporia rail */}
                         <TitlebarTabStrip
                           tabs={tabsStore}
                           currentTab={currentTab()}
@@ -705,7 +706,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                             </>
                           }
                         />
-                      </>
+                      </Show>
                     }
                   >
                     {(vertical) => (
