@@ -442,14 +442,22 @@
 .settings-screen [data-slot="settings-row-description"] { color: #9aa8c2; }
 
 /* APORIA: right-click context menu for chats. */
-.ap-ctx-overlay { position: fixed; inset: 0; z-index: 60; }
+.ap-ctx-overlay { position: fixed; inset: 0; z-index: 60; animation: ap-fade 120ms ease-out; }
 .ap-ctxmenu {
-  position: fixed; min-width: 176px; padding: var(--ap-s1);
+  position: fixed; min-width: 184px; padding: var(--ap-s1);
   border-radius: var(--ap-r-lg); border: 1px solid var(--ap-line-strong);
   background: #0f1730; box-shadow: var(--ap-shadow);
   display: flex; flex-direction: column; gap: 2px;
+  transform-origin: top left; animation: ap-menu-in 130ms cubic-bezier(0.2, 0, 0, 1);
 }
-.ap-ctxmenu button { text-align: left; padding: 8px 10px; border-radius: var(--ap-r-sm); border: 0; background: none; color: var(--ap-text); font: inherit; cursor: pointer; }
+@keyframes ap-menu-in { from { opacity: 0; transform: translateY(-4px) scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes ap-menu-out { to { opacity: 0; transform: translateY(-4px) scale(0.97); } }
+.ap-ctxmenu.ap-ctx-closing { animation: ap-menu-out 110ms ease-in forwards; }
+.ap-ctxmenu button { text-align: left; padding: 8px 10px; border-radius: var(--ap-r-sm); border: 0; background: none; color: var(--ap-text); font: inherit; cursor: pointer; transition: background 120ms ease, color 120ms ease; }
 .ap-ctxmenu button:hover { background: var(--ap-hover); }
-.ap-ctxmenu .ap-ctx-danger { color: var(--ap-red); }
-.ap-ctxmenu .ap-ctx-danger:hover { background: rgb(248 113 113 / 0.12); }
+.ap-ctxmenu .ap-ctx-danger {
+  margin-top: 4px; padding-top: 10px; border-top: 1px solid var(--ap-line);
+  border-radius: 0 0 var(--ap-r-sm) var(--ap-r-sm);
+  color: #f87171; font-weight: 600;
+}
+.ap-ctxmenu .ap-ctx-danger:hover { background: rgb(248 113 113 / 0.16); color: #fecaca; }

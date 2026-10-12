@@ -228,6 +228,12 @@ function AporiaSidebar(props: { directory: string; currentID?: string; currentAg
   const [deleteRow, setDeleteRow] = createSignal<SessionRow | undefined>()
   const [name, setName] = createSignal("")
 
+  const closeMenu = () => {
+    const el = document.querySelector(".ap-ctxmenu") as HTMLElement | null
+    if (!el) { setMenu(undefined); return }
+    el.classList.add("ap-ctx-closing")
+    setTimeout(() => setMenu(undefined), 110)
+  }
   const openMenu = (event: MouseEvent, row: SessionRow) => {
     event.preventDefault()
     setMenu({ x: event.clientX, y: event.clientY, row })
@@ -244,7 +250,7 @@ function AporiaSidebar(props: { directory: string; currentID?: string; currentAg
     if (row) await (data.session as any).remove?.(row.id)?.catch?.(() => {})
   }
   const doArchive = async (row: SessionRow) => {
-    setMenu(undefined)
+    closeMenu()
     await (data.session as any).archive?.(row.id)?.catch?.(() => {})
   }
 
@@ -322,11 +328,11 @@ function AporiaSidebar(props: { directory: string; currentID?: string; currentAg
       <Portal>
       <Show when={menu()}>
         {(m) => (
-          <div class="ap-ctx-overlay" onClick={() => setMenu(undefined)} onContextMenu={(event) => { event.preventDefault(); setMenu(undefined) }}>
+          <div class="ap-ctx-overlay" onClick={() => closeMenu()} onContextMenu={(event) => { event.preventDefault(); closeMenu() }}>
             <div class="ap-ctxmenu" style={{ left: `${m().x}px`, top: `${m().y}px` }} onClick={(event) => event.stopPropagation()}>
-              <button type="button" onClick={() => { setName(m().row.title); setRenameRow(m().row); setMenu(undefined) }}>Rename</button>
+              <button type="button" onClick={() => { setName(m().row.title); setRenameRow(m().row); closeMenu() }}>Rename</button>
               <button type="button" onClick={() => void doArchive(m().row)}>Archive</button>
-              <button type="button" class="ap-ctx-danger" onClick={() => { setDeleteRow(m().row); setMenu(undefined) }}>Delete</button>
+              <button type="button" class="ap-ctx-danger" onClick={() => { setDeleteRow(m().row); closeMenu() }}>Delete</button>
             </div>
           </div>
         )}
