@@ -369,6 +369,9 @@
 .ap-react-add button { background: none; border: 0; cursor: pointer; font-size: 14px; padding: 0 3px; border-radius: 6px; }
 .ap-react-add button:hover { background: var(--ap-hover); }
 
+/* APORIA: shell commands auto-background; hide the manual "Move to background" affordance. */
+[data-component="session-background-hint"] { display: none !important; }
+
 /* APORIA: restyle the stock Settings surface to match the Aporetic look (so it doesn't read as opencode). */
 .settings-screen {
   /* Remap the v2 semantic tokens to the Aporetic navy palette (scoped: only Settings is affected). */
