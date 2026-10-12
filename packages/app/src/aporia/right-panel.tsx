@@ -1,16 +1,16 @@
 // APORIA: right panel with Details, Library and Computer tabs.
-import { createMemo, createSignal, For, lazy, Match, onMount, Show, Switch } from "solid-js"
+import { createEffect, createMemo, createSignal, For, lazy, Match, onMount, Show, Switch } from "solid-js"
 import type { AporiaView } from "./layout"
 import { aporiaPrefs } from "./prefs"
 import { formatTokens, tokenTotal, touchedFiles } from "./session-stats"
 import { Avatar } from "./avatar"
 import { EmptyState, Icon, type IconName } from "./icons"
 import { agentFor, bots } from "./bots"
+import { speak, listenOnce, stopRecording } from "./dictation"
 
-type Tab = "details" | "library" | "browser" | "automations" | "votel"
+type Tab = "details" | "library" | "browser" | "automations" | "call"
 
-const TAB_ICONS: Record<Tab, IconName> = { details: "info", library: "library", browser: "monitor", automations: "sparkles", votel: "phone" }
-const VotelTab = lazy(() => import("./votel").then((m) => ({ default: m.VotelTab })))
+const TAB_ICONS: Record<Tab, IconName> = { details: "info", library: "library", browser: "monitor", automations: "sparkles", call: "phone" }
 const AutomationsTab = lazy(() => import("./automations").then((m) => ({ default: m.AutomationsTab })))
 
 export function AporiaRightPanel(props: { view: AporiaView; onClose?: () => void }) {
@@ -78,7 +78,7 @@ export function AporiaRightPanel(props: { view: AporiaView; onClose?: () => void
         <span class="ap-muted">{props.view.working() ? "Working…" : "Ready"}</span>
       </div>
       <div class="ap-tabs" role="tablist">
-        <For each={["details", "library", "browser", "automations", "votel"] as Tab[]}>
+        <For each={["details", "library", "browser", "automations", "call"] as Tab[]}>
           {(value) => (
             <button
               type="button"
@@ -88,7 +88,7 @@ export function AporiaRightPanel(props: { view: AporiaView; onClose?: () => void
               onClick={() => setTab(value)}
             >
               <Icon name={TAB_ICONS[value]} size={14} />
-              <span class="ap-tab-label">{value === "automations" ? "Flows" : value === "votel" ? "Votel" : value === "browser" ? "Browser" : value[0]!.toUpperCase() + value.slice(1)}</span>
+              <span class="ap-tab-label">{value === "automations" ? "Flows" : value === "call" ? "Call" : value === "browser" ? "Browser" : value[0]!.toUpperCase() + value.slice(1)}</span>
             </button>
           )}
         </For>
@@ -140,8 +140,8 @@ export function AporiaRightPanel(props: { view: AporiaView; onClose?: () => void
               </For>
             </ul>
           </Match>
-          <Match when={tab() === "votel"}>
-            <VotelTab />
+          <Match when={tab() === "call"}>
+            <CallTab view={props.view} />
           </Match>
           <Match when={tab() === "automations"}>
             <AutomationsTab />
@@ -190,6 +190,81 @@ function BrowserTab() {
         />
       </Show>
       <span class="ap-muted ap-small">Shows the page live. Sites that block embedding won't render here — the agent-desktop mirror handles those.</span>
+    </div>
+  )
+}
+
+function CallTab(props: { view: AporiaView }) {
+  const [on, setOn] = createSignal(false)
+  const [status, setStatus] = createSignal<"idle" | "listening" | "thinking" | "speaking">("idle")
+  const [log, setLog] = createSignal<{ who: string; text: string }[]>([])
+  const [error, setError] = createSignal("")
+  let spoken = ""
+
+  const lastReply = () => {
+    const msgs = (props.view.messages?.() ?? []) as any[]
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const m = msgs[i]
+      if (m?.role !== "assistant") continue
+      const parts = m.parts ?? m.content
+      if (Array.isArray(parts)) {
+        const text = parts.filter((p: any) => p?.type === "text").map((p: any) => p.text ?? "").join("\n").trim()
+        if (text) return text
+      } else if (typeof parts === "string" && parts.trim()) return parts.trim()
+    }
+    return ""
+  }
+
+  const listen = () => {
+    if (!on()) return
+    setStatus("listening")
+    void listenOnce((text) => {
+      setLog((l) => [...l, { who: "You", text }])
+      setStatus("thinking")
+    }).catch((e) => { setError(String(e)); setStatus("idle") })
+  }
+
+  createEffect(() => {
+    if (!on()) return
+    const text = lastReply()
+    if (!text || text === spoken) return
+    spoken = text
+    setLog((l) => [...l, { who: "Agent", text }])
+    setStatus("speaking")
+    void speak(text)
+      .then(() => { if (on()) listen() })
+      .catch((e) => { setError(e instanceof Error ? e.message : String(e)); setStatus("idle") })
+  })
+
+  const toggle = () => {
+    if (on()) { setOn(false); stopRecording(); setStatus("idle"); return }
+    setError("")
+    setOn(true)
+    spoken = lastReply()
+    listen()
+  }
+
+  return (
+    <div class="ap-computer">
+      <div class="ap-card" style={{ "align-items": "center", "text-align": "center", gap: "10px", padding: "18px" }}>
+        <span class="ap-empty-icon"><Icon name="phone" size={20} /></span>
+        <strong>
+          {on() ? (status() === "listening" ? "Listening…" : status() === "speaking" ? "Agent speaking…" : status() === "thinking" ? "Thinking…" : "On call") : "Talk to this agent"}
+        </strong>
+        <span class="ap-muted ap-small">
+          {on() ? "Speak, then pause — the agent answers out loud." : "Hands-free voice. You talk, the agent replies out loud. Works with any model."}
+        </span>
+        <button type="button" class="ap-btn" style={on() ? { background: "#f87171", color: "#0a1020" } : undefined} onClick={toggle}>
+          {on() ? "Hang up" : "Call"}
+        </button>
+        <span class="ap-muted ap-small">Local engines: Kokoro out, Whisper in. First call downloads the models once.</span>
+      </div>
+      <Show when={error()}><div class="ap-card ap-card-err" role="alert">{error()}</div></Show>
+      <div class="ap-activity">
+        <For each={log()}>{(entry) => (
+          <div class="ap-activity-row"><strong>{entry.who}</strong><span>{entry.text}</span></div>
+        )}</For>
+      </div>
     </div>
   )
 }

@@ -98,7 +98,7 @@ export function AlertBell() {
 export function AlertToasts() {
   const shown = toasts
   return (
-    <div aria-live="polite" style={{ position: "fixed", right: "16px", top: "44px", "pointer-events": "none", display: "flex", "flex-direction": "column", gap: "8px", "z-index": 2147483000 }}>
+    <div aria-live="polite" style={{ position: "fixed", right: "16px", top: "44px", "pointer-events": "none", display: "flex", "flex-direction": "column", gap: "8px", "z-index": 2147483600 }}>
       <For each={shown()}>{(a) => (
         <div role="status" style={{ "pointer-events": "auto", display: "flex", gap: "8px", "align-items": "flex-start", width: "320px", padding: "10px 12px", background: "var(--background-base, #0f1a2e)", border: "1px solid var(--border-base, #2a3550)", "border-left": `3px solid ${color(a.level)}`, "border-radius": "8px", "box-shadow": "0 8px 24px rgba(0,0,0,.3)" }}>
           <div style={{ flex: 1 }}><div style={{ "font-weight": 600 }}>{a.title}</div><Show when={a.detail}><div style={{ "font-size": "12px", opacity: 0.8 }}>{a.detail}</div></Show><Show when={a.actions?.length}><div style={{ display: "flex", gap: "6px", "margin-top": "6px" }}><For each={a.actions}>{(x) => <button type="button" data-action={x.action} onClick={() => aporiaAlerts.act(a.id, x.action)} style={{ padding: "3px 8px", "border-radius": "6px", border: "1px solid var(--border-base, #2a3550)", background: "transparent", color: "inherit", cursor: "pointer", "font-size": "12px" }}>{x.label}</button>}</For></div></Show></div>

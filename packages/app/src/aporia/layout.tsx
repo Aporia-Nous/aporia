@@ -111,7 +111,7 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
 
   return (
     <div class="ap-root" classList={{ "ap-right-collapsed": !rightOpen(), "ap-rail-collapsed": !railOpen() }} data-component="aporia-layout">
-      <AlertToasts />
+      <Portal><AlertToasts /></Portal>
       <UpdateWatcher />
       <BotDispatcher />
       <ReactionsLayer sessionID={props.view.sessionID()} agent={info()?.agent} />
