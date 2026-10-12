@@ -17,7 +17,14 @@ export const APORIA_VOICES: Record<string, { id: string; label: string; hint: st
 }
 const DEFAULT_VOICE = "nova"
 
-type Model = { generate: (text: string, opts: { voice: string }) => Promise<{ toWav: () => Uint8Array | ArrayBuffer }> }
+type Model = {
+  generate: (text: string, opts: { voice: string }) => Promise<{
+    toWav?: () => Uint8Array | ArrayBuffer | undefined
+    toBlob?: () => Promise<Blob>
+    audio?: Float32Array
+    sampling_rate?: number
+  }>
+}
 let modelPromise: Promise<Model> | undefined
 
 async function loadModel(): Promise<Model> {
@@ -39,9 +46,37 @@ export async function synthesize(text: string, voice?: string): Promise<{ wav: s
   const v = APORIA_VOICES[key] || APORIA_VOICES[DEFAULT_VOICE]
   const tts = await loadModel()
   const audio = await tts.generate(clean.slice(0, 5000), { voice: v.id })
-  const wav = audio.toWav()
-  const bytes = wav instanceof Uint8Array ? wav : new Uint8Array(wav as ArrayBuffer)
+
+  // kokoro-js RawAudio: prefer toBlob() (reliable); fall back to toWav()/raw PCM.
+  let bytes: Uint8Array | undefined
+  if (typeof audio.toBlob === "function") {
+    const blob = await audio.toBlob()
+    bytes = new Uint8Array(await blob.arrayBuffer())
+  }
+  if ((!bytes || bytes.length === 0) && typeof audio.toWav === "function") {
+    const wav = audio.toWav()
+    if (wav) bytes = wav instanceof Uint8Array ? wav : new Uint8Array(wav as ArrayBuffer)
+  }
+  if ((!bytes || bytes.length === 0) && audio.audio) bytes = encodeWav(audio.audio, audio.sampling_rate ?? 24000)
+  if (!bytes || bytes.length === 0) throw new Error("TTS produced no audio")
+
   return { wav: Buffer.from(bytes).toString("base64"), voice: key }
+}
+
+/** Minimal 16-bit PCM mono WAV encoder (fallback when the library returns raw PCM). */
+function encodeWav(samples: Float32Array, rate: number): Uint8Array {
+  const buf = new ArrayBuffer(44 + samples.length * 2)
+  const view = new DataView(buf)
+  const str = (off: number, s: string) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)) }
+  str(0, "RIFF"); view.setUint32(4, 36 + samples.length * 2, true); str(8, "WAVE")
+  str(12, "fmt "); view.setUint32(16, 16, true); view.setUint16(20, 1, true); view.setUint16(22, 1, true)
+  view.setUint32(24, rate, true); view.setUint32(28, rate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true)
+  str(36, "data"); view.setUint32(40, samples.length * 2, true)
+  for (let i = 0; i < samples.length; i++) {
+    const s = Math.max(-1, Math.min(1, samples[i]))
+    view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true)
+  }
+  return new Uint8Array(buf)
 }
 
 export function registerAporiaTtsHandler() {
