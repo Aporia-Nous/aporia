@@ -163,13 +163,14 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
 
 /** One chat row. Extracted so per-row work (title/date already precomputed) runs when the row's own
  *  reactive values change, not on every frame render. */
-function AporiaSessionRow(props: { row: SessionRow; selected: boolean; unseen: number; onSelect: () => void }) {
+function AporiaSessionRow(props: { row: SessionRow; selected: boolean; unseen: number; onSelect: () => void; onContextMenu?: (event: MouseEvent) => void }) {
   return (
     <button
       type="button"
       class="ap-session"
       classList={{ "ap-selected": props.selected }}
       onClick={props.onSelect}
+      onContextMenu={props.onContextMenu}
     >
       <Avatar name={props.row.session.agent ?? "build"} />
       <span class="ap-session-text">
@@ -221,6 +222,31 @@ function AporiaSidebar(props: { directory: string; currentID?: string; currentAg
   const itemByKey = createMemo(() => new Map(virtualItems().map((item) => [item.key, item] as const)))
   const rowByID = createMemo(() => new Map(rows().map((row) => [row.id, row] as const)))
 
+  const [menu, setMenu] = createSignal<{ x: number; y: number; row: SessionRow } | undefined>()
+  const [renameRow, setRenameRow] = createSignal<SessionRow | undefined>()
+  const [deleteRow, setDeleteRow] = createSignal<SessionRow | undefined>()
+  const [name, setName] = createSignal("")
+
+  const openMenu = (event: MouseEvent, row: SessionRow) => {
+    event.preventDefault()
+    setMenu({ x: event.clientX, y: event.clientY, row })
+  }
+  const doRename = async () => {
+    const row = renameRow()
+    const title = name().trim()
+    setRenameRow(undefined)
+    if (row && title && title !== row.title) await (data.session as any).update?.({ sessionID: row.id, title })?.catch?.(() => {})
+  }
+  const doDelete = async () => {
+    const row = deleteRow()
+    setDeleteRow(undefined)
+    if (row) await (data.session as any).remove?.(row.id)?.catch?.(() => {})
+  }
+  const doArchive = async (row: SessionRow) => {
+    setMenu(undefined)
+    await (data.session as any).archive?.(row.id)?.catch?.(() => {})
+  }
+
   return (
     <aside class="ap-sidebar">
       <div class="ap-brand">
@@ -271,6 +297,7 @@ function AporiaSidebar(props: { directory: string; currentID?: string; currentAg
                             selected={row().id === props.currentID}
                             unseen={notification.session.unseenCount(row().id)}
                             onSelect={() => navigate(sessionHref(server.key, row().id))}
+                            onContextMenu={(event) => openMenu(event, row())}
                           />
                         </div>
                       )}
@@ -291,6 +318,41 @@ function AporiaSidebar(props: { directory: string; currentID?: string; currentAg
           <Icon name="settings" size={18} />
         </button>
       </div>
+      <Show when={menu()}>
+        {(m) => (
+          <div class="ap-ctx-overlay" onClick={() => setMenu(undefined)} onContextMenu={(event) => { event.preventDefault(); setMenu(undefined) }}>
+            <div class="ap-ctxmenu" style={{ left: `${m().x}px`, top: `${m().y}px` }} onClick={(event) => event.stopPropagation()}>
+              <button type="button" onClick={() => { setName(m().row.title); setRenameRow(m().row); setMenu(undefined) }}>Rename</button>
+              <button type="button" onClick={() => void doArchive(m().row)}>Archive</button>
+              <button type="button" class="ap-ctx-danger" onClick={() => { setDeleteRow(m().row); setMenu(undefined) }}>Delete</button>
+            </div>
+          </div>
+        )}
+      </Show>
+      <Show when={renameRow()}>
+        <div class="ap-overlay" onClick={() => setRenameRow(undefined)}>
+          <div class="ap-modal" onClick={(event) => event.stopPropagation()}>
+            <div class="ap-modal-head"><strong>Rename chat</strong></div>
+            <input class="ap-input" value={name()} autofocus onInput={(event) => setName(event.currentTarget.value)} onKeyDown={(event) => { if (event.key === "Enter") void doRename() }} />
+            <div class="ap-row-end">
+              <button type="button" class="ap-btn ap-btn-ghost" onClick={() => setRenameRow(undefined)}>Cancel</button>
+              <button type="button" class="ap-btn" onClick={() => void doRename()}>Save</button>
+            </div>
+          </div>
+        </div>
+      </Show>
+      <Show when={deleteRow()}>
+        <div class="ap-overlay" onClick={() => setDeleteRow(undefined)}>
+          <div class="ap-modal" onClick={(event) => event.stopPropagation()}>
+            <div class="ap-modal-head"><strong>Delete chat</strong></div>
+            <p class="ap-muted">Delete "{deleteRow()!.title}"? This can't be undone.</p>
+            <div class="ap-row-end">
+              <button type="button" class="ap-btn ap-btn-ghost" onClick={() => setDeleteRow(undefined)}>Cancel</button>
+              <button type="button" class="ap-btn" onClick={() => void doDelete()}>Delete</button>
+            </div>
+          </div>
+        </div>
+      </Show>
     </aside>
   )
 }

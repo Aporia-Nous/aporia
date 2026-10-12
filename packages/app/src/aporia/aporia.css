@@ -440,3 +440,16 @@
 }
 .settings-screen [data-slot="settings-row-title"] { font-weight: 600; color: #e6edf7; }
 .settings-screen [data-slot="settings-row-description"] { color: #9aa8c2; }
+
+/* APORIA: right-click context menu for chats. */
+.ap-ctx-overlay { position: fixed; inset: 0; z-index: 60; }
+.ap-ctxmenu {
+  position: fixed; min-width: 176px; padding: var(--ap-s1);
+  border-radius: var(--ap-r-lg); border: 1px solid var(--ap-line-strong);
+  background: #0f1730; box-shadow: var(--ap-shadow);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.ap-ctxmenu button { text-align: left; padding: 8px 10px; border-radius: var(--ap-r-sm); border: 0; background: none; color: var(--ap-text); font: inherit; cursor: pointer; }
+.ap-ctxmenu button:hover { background: var(--ap-hover); }
+.ap-ctxmenu .ap-ctx-danger { color: var(--ap-red); }
+.ap-ctxmenu .ap-ctx-danger:hover { background: rgb(248 113 113 / 0.12); }
