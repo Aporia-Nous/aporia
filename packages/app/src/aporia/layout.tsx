@@ -9,6 +9,7 @@ import { ReactionsLayer } from "./reactions"
 // behaviour stays upstream; this file only frames it.
 import { createEffect, createMemo, createResource, createSignal, For, lazy, onCleanup, Show, type ParentProps } from "solid-js"
 import { Portal } from "solid-js/web"
+import { MicButton } from "./dictation"
 import { createVirtualizer } from "@tanstack/solid-virtual"
 import { useTheme } from "@opencode/ui/theme/context"
 import { useNavigate } from "@solidjs/router"
@@ -123,6 +124,7 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
             title={props.view.working() ? "Working" : "Idle"}
           />
           <AlertBell />
+          <MicButton />
           <label class="ap-search">
             <Icon name="search" size={14} />
             <input
