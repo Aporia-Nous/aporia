@@ -430,3 +430,13 @@
   font-size: 11px; font-weight: 600; color: #7b8aa3;
 }
 .settings-screen .settings-panel { border-radius: 14px; }
+/* Settings content: convert stock rows into the Aporetic card language. */
+.settings-screen [data-component="settings-row"] {
+  border-radius: 14px;
+  border: 1px solid rgb(148 163 209 / 0.14);
+  border-left: 3px solid rgb(96 165 250 / 0.55);
+  background: linear-gradient(180deg, #141d3a, #121a36);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.22);
+}
+.settings-screen [data-slot="settings-row-title"] { font-weight: 600; color: #e6edf7; }
+.settings-screen [data-slot="settings-row-description"] { color: #9aa8c2; }
