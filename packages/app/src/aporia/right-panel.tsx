@@ -5,6 +5,7 @@ import { aporiaPrefs } from "./prefs"
 import { formatTokens, tokenTotal, touchedFiles } from "./session-stats"
 import { Avatar } from "./avatar"
 import { EmptyState, Icon, type IconName } from "./icons"
+import { agentFor, bots } from "./bots"
 
 type Tab = "details" | "library" | "computer" | "automations" | "votel"
 
@@ -46,9 +47,16 @@ export function AporiaRightPanel(props: { view: AporiaView; onClose?: () => void
     const text = lastAssistantText()
     const bridge = (globalThis as any).electron?.aporia
     if (!text || !bridge?.tts) return
+    // Per-bot voice wins: if this session's teammate has its own voice, use it; else the picked default.
+    const teammateVoice = (() => {
+      try {
+        const bot = bots().find((b) => agentFor(b) === agentName())
+        return bot?.voice || undefined
+      } catch { return undefined }
+    })()
     setSpeaking(true)
     try {
-      const { wav } = await bridge.tts({ text, voice: voice() })
+      const { wav } = await bridge.tts({ text, voice: teammateVoice || voice() })
       const bytes = Uint8Array.from(atob(wav), (c) => c.charCodeAt(0))
       const url = URL.createObjectURL(new Blob([bytes], { type: "audio/wav" }))
       const audio = new Audio(url)
