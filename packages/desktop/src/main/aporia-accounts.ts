@@ -39,7 +39,7 @@ function edit(file: string, keyPath: (string | number)[], value: unknown) {
 }
 
 async function writeInstructions(accounts: Accounts) {
-  const lines = ["# Connector accounts (managed by Aporia)", ""]
+  const lines = ["# Connector accounts (managed by Aporetic)", ""]
   for (const [appName, info] of Object.entries(accounts)) {
     const names = Object.keys(info.labels)
     if (names.length < 2) continue

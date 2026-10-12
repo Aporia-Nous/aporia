@@ -682,7 +682,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                   <Show
                     when={props.verticalTabs}
                     fallback={
-                      <Show when={!aporiaPrefs.layoutEnabled()}>{/* APORIA: tab strip replaced by the Aporia rail */}
+                      <Show when={!aporiaPrefs.layoutEnabled()}>{/* APORIA: tab strip replaced by the Aporetic rail */}
                         <TitlebarTabStrip
                           tabs={tabsStore}
                           currentTab={currentTab()}

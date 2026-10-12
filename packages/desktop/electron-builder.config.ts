@@ -138,7 +138,7 @@ const getBase = (appId: string): Configuration => ({
     target: ["dmg", "zip"],
   },
   protocols: {
-    name: "Aporia",
+    name: "Aporetic",
     schemes: ["aporia"],
   },
   win: {
@@ -155,7 +155,7 @@ const getBase = (appId: string): Configuration => ({
     publisher: "CN=Aporia Nous",
     publisherDisplayName: "Aporia Nous",
     applicationId: "Aporia",
-    displayName: "Aporia",
+    displayName: "Aporetic",
     backgroundColor: "#0a1020",
     showNameOnTiles: true,
     languages: ["en-US"],
@@ -167,8 +167,8 @@ const getBase = (appId: string): Configuration => ({
     installerIcon: `resources/icons/icon.ico`,
     installerHeaderIcon: `resources/icons/icon.ico`,
     uninstallerIcon: `resources/icons/icon.ico`,
-    shortcutName: "Aporia",
-    uninstallDisplayName: "Aporia",
+    shortcutName: "Aporetic",
+    uninstallDisplayName: "Aporetic",
     createDesktopShortcut: "always",
     createStartMenuShortcut: true,
   },

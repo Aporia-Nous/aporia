@@ -1,6 +1,6 @@
-// APORIA: startup sequencing for Aporia's main-process subsystems.
+// APORIA: startup sequencing for Aporetic's main-process subsystems.
 //
-// Aporia's IPC handlers are cheap to register, so they go up before the first window paints. The
+// Aporetic's IPC handlers are cheap to register, so they go up before the first window paints. The
 // expensive bots init (seed + migrate + memory-MCP config write + regenerate every agent file +
 // install the memory watchers) must NOT sit on the ready -> window critical path, so it is deferred
 // to a later tick. A failure in either half is reported through `onError` instead of being swallowed
@@ -15,7 +15,7 @@ export interface AporiaStartupOptions {
   readonly register: ReadonlyArray<readonly [name: string, run: () => void]>
   /** Creates the first window. Runs after register and before start. */
   readonly createWindow: () => void
-  /** Expensive Aporia init. Deferred so the window is on screen before it runs. */
+  /** Expensive Aporetic init. Deferred so the window is on screen before it runs. */
   readonly start: () => void
   /** Records/logs a failure from any half (`register:<name>` or `start`). Must not throw. */
   readonly onError: (stage: string, error: Error) => void

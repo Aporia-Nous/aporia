@@ -16,14 +16,14 @@ export function AporiaHomeHeader() {
     <header class="ap-home-header">
       <img src={logo} alt="" width={32} height={32} />
       <div class="ap-home-header-text">
-        <strong>Aporia</strong>
+        <strong>Aporetic</strong>
         <span>Your projects and chats</span>
       </div>
     </header>
   )
 }
 
-/** Route component for "/": stock Home, framed by the Aporia layout around the local server. */
+/** Route component for "/": stock Home, framed by the Aporetic layout around the local server. */
 export function AporiaHomeRoute() {
   const global = useGlobal()
   const conn = createMemo(() => {
@@ -43,7 +43,7 @@ export function AporiaHomeRoute() {
   )
 }
 
-/** Aporia home center: brand, one-click new session, and the (unchanged) project/server manager on demand. */
+/** Aporetic home center: brand, one-click new session, and the (unchanged) project/server manager on demand. */
 function AporiaWelcome() {
   const command = useCommand()
   const [manage, setManage] = createSignal(false)
@@ -54,7 +54,7 @@ function AporiaWelcome() {
         fallback={
           <div class="ap-welcome-hero">
             <img src={logo} alt="" width={64} height={64} />
-            <h1>Aporia</h1>
+            <h1>Aporetic</h1>
             <p>Pick a chat on the left, or start something new.</p>
             <div class="ap-welcome-actions">
               <button type="button" class="ap-btn ap-btn-lg" onClick={() => command.trigger("tab.new")}>

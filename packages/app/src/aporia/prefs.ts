@@ -1,4 +1,4 @@
-// APORIA: local UI preferences for the Aporia layout. Stored in localStorage; never holds secrets.
+// APORIA: local UI preferences for the Aporetic layout. Stored in localStorage; never holds secrets.
 import { createSignal } from "solid-js"
 
 const LAYOUT_KEY = "aporia.layout.enabled"
@@ -50,7 +50,7 @@ export const aporiaPrefs = {
     write(RIGHT_KEY, value ? "on" : "off")
     setRightPanelOpenSignal(value)
   },
-  /** Aporia theme is sticky: enforced on every launch unless the user explicitly opts out. */
+  /** Aporetic theme is sticky: enforced on every launch unless the user explicitly opts out. */
   aporiaTheme,
   setAporiaTheme(value: boolean) {
     write(THEME_KEY, value ? "on" : "off")

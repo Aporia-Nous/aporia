@@ -9,9 +9,9 @@ export const CHANNEL: Channel = raw === "local" || raw === "dev" || raw === "bet
 export const VERSION = app.isPackaged ? app.getVersion() : (process.env.OPENCODE_VERSION ?? app.getVersion())
 
 const appNames: Record<string, string> = {
-  dev: "Aporia Dev",
-  beta: "Aporia Beta",
-  prod: "Aporia",
+  dev: "Aporetic Dev",
+  beta: "Aporetic Beta",
+  prod: "Aporetic",
 }
 
 const appIDs: Record<string, string> = {
@@ -21,6 +21,6 @@ const appIDs: Record<string, string> = {
 }
 
 // Local renderer/server mode keeps the dev application identity.
-export const APP_NAME = app.isPackaged ? appNames[CHANNEL] : "Aporia Dev"
+export const APP_NAME = app.isPackaged ? appNames[CHANNEL] : "Aporetic Dev"
 
 export const APP_ID = app.isPackaged ? appIDs[CHANNEL] : "com.aporianous.desktop.dev"

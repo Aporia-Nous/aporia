@@ -7,7 +7,7 @@ type Bridge = { aporia?: { n8n?: (input: unknown) => Promise<unknown> } }
 
 const n8n = (input: unknown) => {
   const fn = (globalThis as { electron?: Bridge }).electron?.aporia?.n8n
-  return fn ? fn(input) : Promise.reject(new Error("Automations need the Aporia desktop app"))
+  return fn ? fn(input) : Promise.reject(new Error("Automations need the Aporetic desktop app"))
 }
 
 export function AutomationsTab() {

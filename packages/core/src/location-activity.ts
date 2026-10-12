@@ -11,7 +11,7 @@ import { makeGlobalNode } from "@opencode/util/effect/app-node"
 
 const isSessionEvent = Schema.is(SessionEvent.Durable)
 
-// APORIA: Aporia runs one long-lived server shared by the window and every teammate bot, and each bot
+// APORIA: Aporetic runs one long-lived server shared by the window and every teammate bot, and each bot
 // is its own Location. An idle bot must release its Location scope, so the desktop app sets a short
 // idle TTL through APORIA_LOCATION_IDLE_TTL_MIN (0 disables eviction). When the variable is unset —
 // plain OpenCode, and the core tests — the upstream 60-minute TTL and touch-on-every-durable-event

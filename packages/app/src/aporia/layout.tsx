@@ -76,7 +76,7 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
   const [rightOpen, setRightOpen] = createSignal(aporiaPrefs.rightPanelOpen())
   const toggleRight = () => { const next = !rightOpen(); setRightOpen(next); aporiaPrefs.setRightPanelOpen(next) }
   const theme = useTheme()
-  // Sticky Aporia theme: re-applied whenever it drifts (imported settings, old app state), unless opted out.
+  // Sticky Aporetic theme: re-applied whenever it drifts (imported settings, old app state), unless opted out.
   createEffect(() => {
     if (!aporiaPrefs.aporiaTheme()) return
     if (theme.themeId() !== "aporia") theme.setTheme("aporia")
@@ -224,7 +224,7 @@ function AporiaSidebar(props: { directory: string; currentID?: string; currentAg
     <aside class="ap-sidebar">
       <div class="ap-brand">
         <img src={logo} alt="" width={28} height={28} />
-        <span>Aporia</span>
+        <span>Aporetic</span>
       </div>
       <div class="ap-rail-actions">
         <button type="button" class="ap-btn ap-rail-new" onClick={() => command.trigger("tab.new")}>

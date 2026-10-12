@@ -26,7 +26,7 @@ const xml = `<?xml version="1.0" encoding="UTF-8"?>
 
   <description>
     <p>
-      OpenCode is an open source agent that helps you write and run code with any AI model.
+      Aporetic by Aporia Nous is an AI coding agent that helps you write and run code with any AI model.
     </p>
   </description>
 

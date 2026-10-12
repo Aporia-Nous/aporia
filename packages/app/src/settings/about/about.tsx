@@ -90,7 +90,7 @@ export function SettingsAbout(props: { active: boolean }) {
         </p>
         <p>{language.t("settings.about.license")}</p>
         {/* APORIA */}
-        <p>Aporia, based on OpenCode (MIT)</p>
+        <p>Aporetic, based on OpenCode (MIT)</p>
       </div>
 
       <AnimatedWordmark active={props.active} />

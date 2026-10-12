@@ -44,7 +44,7 @@ function run(args: string[]) {
   return child.pid
 }
 
-// Guard so a broken hand-off can never stop Aporia from opening: the launch-time apply is attempted once per staged
+// Guard so a broken hand-off can never stop Aporetic from opening: the launch-time apply is attempted once per staged
 // build; if that attempt didn't finish (staged still there, no live apply pid), the next launch opens normally.
 const ATTEMPT = path.join(ROOT, "apply-attempt.json")
 const alive = (pid?: number) => { if (!pid) return false; try { process.kill(pid, 0); return true } catch { return false } }

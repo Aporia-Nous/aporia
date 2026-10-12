@@ -14,12 +14,12 @@ export type Bot = {
   routines: { id: string; name: string; cron: string; prompt: string; enabled: boolean }[]; sessions: string[]
 }
 const bridge = () => (globalThis as any).electron?.aporia?.bots as undefined | ((i: unknown) => Promise<any>)
-export const bots = (input: unknown) => (bridge() ? bridge()!(input) : Promise.reject(new Error("Teammates need the Aporia desktop app")))
+export const bots = (input: unknown) => (bridge() ? bridge()!(input) : Promise.reject(new Error("Teammates need the Aporetic desktop app")))
 const [version, setVersion] = createSignal(0)
 export const refreshBots = () => setVersion(version() + 1)
 export const agentFor = (slug: string) => `aporia-${slug}`
 const rbridge = () => (globalThis as any).electron?.aporia?.routines as undefined | ((i: unknown) => Promise<any>)
-export const routines = (input: unknown) => (rbridge() ? rbridge()!(input) : Promise.reject(new Error("Needs the Aporia desktop app")))
+export const routines = (input: unknown) => (rbridge() ? rbridge()!(input) : Promise.reject(new Error("Needs the Aporetic desktop app")))
 
 export function TeammatesSection(props: { sessions: SessionInfo[]; currentAgent?: string }) {
   const data = useData()
@@ -187,7 +187,7 @@ function RoutinesTab(props: { bot: Partial<Bot>; onChange: (r: Bot["routines"]) 
   const check = async (id: string, cron: string) => { const n = await routines({ op: "next", cron }); setNext({ ...next(), [id]: typeof n === "string" ? `next: ${new Date(n).toLocaleString("en-US", { timeZone: "America/Chicago" })} CT` : n?.error ?? "never" }) }
   return (
     <div style={{ display: "flex", "flex-direction": "column", gap: "8px" }} data-component="aporia-routines">
-      <span class="ap-muted ap-small">Cron times are America/Chicago. Routines fire even when the window is minimized (Aporia must be running). Save the bot after editing.</span>
+      <span class="ap-muted ap-small">Cron times are America/Chicago. Routines fire even when the window is minimized (Aporetic must be running). Save the bot after editing.</span>
       <For each={list()}>{(r, i) => (
         <div class="ap-card" data-routine={r.id}>
           <label style={{ display: "flex", gap: "6px", "align-items": "center" }}><input type="checkbox" checked={r.enabled} onChange={(e) => upd(i(), "enabled", e.currentTarget.checked)} /> Enabled</label>

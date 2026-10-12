@@ -186,13 +186,13 @@ export function registerAporiaRoutinesHandler() {
       case "export": {
         const bot = getBot(slug); if (!bot) throw new Error("No such bot")
         const win = BrowserWindow.fromWebContents(event.sender) ?? undefined
-        const target = input.path ?? (await dialog.showSaveDialog(win!, { defaultPath: `${bot.slug}.aporia-bot.json`, filters: [{ name: "Aporia bot", extensions: ["json"] }] })).filePath
+        const target = input.path ?? (await dialog.showSaveDialog(win!, { defaultPath: `${bot.slug}.aporia-bot.json`, filters: [{ name: "Aporetic bot", extensions: ["json"] }] })).filePath
         if (!target) return null
         writeFileSync(target, JSON.stringify(toTemplate(bot), null, 2)); return target
       }
       case "import": {
         let file = input.path
-        if (!file) { const win = BrowserWindow.fromWebContents(event.sender) ?? undefined; const r = await dialog.showOpenDialog(win!, { filters: [{ name: "Aporia bot", extensions: ["json"] }], properties: ["openFile"] }); file = r.filePaths[0] }
+        if (!file) { const win = BrowserWindow.fromWebContents(event.sender) ?? undefined; const r = await dialog.showOpenDialog(win!, { filters: [{ name: "Aporetic bot", extensions: ["json"] }], properties: ["openFile"] }); file = r.filePaths[0] }
         if (!file) return null
         return fromTemplate(JSON.parse(readFileSync(file, "utf8")))
       }

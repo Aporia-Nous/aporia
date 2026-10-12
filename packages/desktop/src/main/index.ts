@@ -56,7 +56,7 @@ if (acquireApplicationLock()) {
     registerAporiaAccountsHandler() // APORIA
     registerAporiaVotelHandler() // APORIA
     registerAporiaOwnerHandler() // APORIA
-    // Register Aporia's cheap IPC handlers now; run the expensive bots init only after the first
+    // Register Aporetic's cheap IPC handlers now; run the expensive bots init only after the first
     // window, so seeding/migration/config writes never delay the first paint. Each handler registers
     // independently, and a failure is logged and surfaced through the bots health flag instead of
     // being swallowed to console.error.

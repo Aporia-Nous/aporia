@@ -60,7 +60,7 @@ export function SettingsVault() {
         <div><h2 style={{ margin: 0 }}>Vault</h2><div style={{ opacity: 0.7, "font-size": "12px" }}>Encrypted on this PC with Windows DPAPI. Use <code>{"{vault:NAME}"}</code> in configs; it is resolved in memory, never written in plain text.</div></div>
         <div style={{ display: "flex", gap: "8px" }}><ReloadConnectionsButton /><button type="button" style={btn} onClick={() => setEditing({ category: cat() === "All" ? "Aporia Nous" : cat(), kind: "api-key" })}>Add</button></div>
       </div>
-      <Show when={!bridge()}><div style={{ opacity: 0.7 }}>The vault is available in the Aporia desktop app.</div></Show>
+      <Show when={!bridge()}><div style={{ opacity: 0.7 }}>The vault is available in the Aporetic desktop app.</div></Show>
       <div style={{ display: "flex", gap: "8px" }}>
         <input placeholder="Search vault" value={query()} onInput={(e) => setQuery(e.currentTarget.value)} style={{ ...box, flex: 1 }} />
         <For each={["All", ...((data()?.categories ?? []) as string[])]}>{(c) => (

@@ -1,4 +1,4 @@
-// APORIA: self-update UI. Settings > Updates ("Update Aporia", apply-when-idle toggle) and a watcher that
+// APORIA: self-update UI. Settings > Updates ("Update Aporetic", apply-when-idle toggle) and a watcher that
 // raises the "Update ready, restart to apply" bell alert, waits for in-flight agent runs before a restart,
 // and reports the result (or an automatic rollback) after the swap. Builds/swaps run in scripts/aporia-update.ps1.
 import { createResource, createSignal, onCleanup, onMount, Show } from "solid-js"
@@ -24,9 +24,9 @@ export async function restartForUpdate() {
   await call({ action: "restart" })
 }
 aporiaAlerts.on("update:restart", () => void restartForUpdate())
-aporiaAlerts.on("update:later", () => aporiaAlerts.push({ title: "Update postponed", detail: "It installs automatically the next time Aporia starts.", level: "info" }))
+aporiaAlerts.on("update:later", () => aporiaAlerts.push({ title: "Update postponed", detail: "It installs automatically the next time Aporetic starts.", level: "info" }))
 
-/** Mounted once in the Aporia layout. */
+/** Mounted once in the Aporetic layout. */
 export function UpdateWatcher() {
   let data: any
   try { data = useData() } catch { data = undefined }
@@ -62,7 +62,7 @@ export function UpdateWatcher() {
     if (s.lastResult && !s.lastResult.seen) {
       await call({ action: "seen" })
       if (s.lastResult.rolledBack) aporiaAlerts.push({ title: s.lastResult.manual ? "Rolled back to the previous build" : "Update failed its health check, rolled back", detail: `Build ${short(s.lastResult.commit)} didn't come up within 30s, so the previous build was restored. Nothing was lost. Log: %LOCALAPPDATA%\\Aporia\\updates\\update.log`, level: "error", sticky: true })
-      else if (s.lastResult.ok) aporiaAlerts.push({ title: "Aporia updated", detail: `Now on ${short(s.lastResult.commit)}; started in ${s.lastResult.loadSeconds}s.`, level: "success" })
+      else if (s.lastResult.ok) aporiaAlerts.push({ title: "Aporetic updated", detail: `Now on ${short(s.lastResult.commit)}; started in ${s.lastResult.loadSeconds}s.`, level: "success" })
     }
   }
   // 30s: staged-update detection does not need 15s granularity, and each tick does real IPC.
@@ -77,7 +77,7 @@ export function SettingsUpdate() {
   return (
     <div style={{ display: "flex", "flex-direction": "column", gap: "14px", padding: "8px 2px" }} data-component="aporia-settings-update">
       <h2 style={{ margin: 0 }}>Updates</h2>
-      <div style={{ opacity: 0.8 }}>Aporia updates from its local source (C:\Tools\aporia). Builds run in the background at low priority; the previous build is kept for rollback.</div>
+      <div style={{ opacity: 0.8 }}>Aporetic updates from its local source (C:\Tools\aporia). Builds run in the background at low priority; the previous build is kept for rollback.</div>
       <div>Installed: <code>{short(s()?.installed?.commit)}</code> · App version {s()?.version}</div>
       <Show when={s()?.staged} fallback={<div>No update staged.</div>}>
         <div>Staged: <code>{short(s()?.staged?.commit)}</code> {s()?.staged?.subject}</div>
@@ -85,7 +85,7 @@ export function SettingsUpdate() {
       <div style={{ display: "flex", gap: "8px", "flex-wrap": "wrap" }}>
         <button type="button" style={btn} data-action="aporia-update-build" disabled={s()?.buildRunning}
           onClick={async () => { await call({ action: "build" }); aporiaAlerts.push({ title: "Building update", detail: "Runs in the background; you'll get an alert when it's ready.", level: "info" }); void refetch() }}>
-          {s()?.buildRunning ? "Building…" : "Update Aporia"}
+          {s()?.buildRunning ? "Building…" : "Update Aporetic"}
         </button>
         <Show when={s()?.staged}>
           <button type="button" style={btn} data-action="aporia-update-restart" onClick={() => void restartForUpdate()}>{waiting() ? `Waiting for ${busy()} run(s)…` : "Restart now"}</button>
