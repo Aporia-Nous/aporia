@@ -79,3 +79,26 @@ export function createContextStore(dir: string): ContextStore {
     },
   }
 }
+
+export type ContextInput =
+  | { op: "all" }
+  | { op: "add"; entry: EntryInput }
+  | { op: "query"; q: { topic?: string; tag?: string; text?: string } }
+
+export type ContextResult = { entries?: Entry[]; entry?: Entry }
+
+/** Pure op dispatcher, extracted so it is testable without Electron. */
+export function handleContext(store: ContextStore, input: ContextInput): ContextResult {
+  switch (input?.op) {
+    case "all":
+      return { entries: store.all() }
+    case "add":
+      if (!input.entry?.source?.ref) throw new Error("context add requires an entry with a source")
+      return { entry: store.add(input.entry) }
+    case "query":
+      return { entries: store.query(input.q ?? {}) }
+    default:
+      throw new Error(`Unknown context op: ${String((input as { op?: string })?.op)}`)
+  }
+}
+

@@ -12,6 +12,7 @@ import { registerAporiaVaultHandler } from "./aporia-vault"
 import { registerAporiaAccountsHandler } from "./aporia-accounts"
 import { registerAporiaN8nHandler } from "./aporia-n8n" // APORIA
 import { registerAporiaBotsHandler, startBots } from "./aporia-bots" // APORIA
+import { registerAporiaContextHandler } from "./aporia-context-ipc" // APORIA
 import { registerAporiaRoutinesHandler } from "./aporia-routines" // APORIA
 import { registerAporiaTtsHandler } from "./aporia-tts" // APORIA
 import { registerAporiaSttHandler } from "./aporia-stt" // APORIA
@@ -68,6 +69,7 @@ if (acquireApplicationLock()) {
         ["routines", registerAporiaRoutinesHandler],
         ["tts", registerAporiaTtsHandler],
         ["stt", registerAporiaSttHandler],
+        ["context", registerAporiaContextHandler],
       ],
       createWindow: createEarlyWindow,
       start: startBots,

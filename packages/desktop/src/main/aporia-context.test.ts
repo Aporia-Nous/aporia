@@ -2,7 +2,7 @@ import { test, expect } from "bun:test"
 import { mkdtempSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { createContextStore, entryId } from "./aporia-context"
+import { createContextStore, entryId, handleContext } from "./aporia-context"
 
 test("add + all round-trips an entry with its source", () => {
   const dir = mkdtempSync(join(tmpdir(), "ctx-"))
@@ -46,3 +46,17 @@ test("reopening the store sees persisted entries", () => {
   createContextStore(dir).add({ topic: "t", tags: [], text: "x", source: { kind: "session", ref: "r" } })
   expect(createContextStore(dir).all()).toHaveLength(1)
 })
+
+test("handleContext dispatches all/add/query and throws on an unknown op", () => {
+  const dir = mkdtempSync(join(tmpdir(), "ctx-"))
+  const store = createContextStore(dir)
+  expect((handleContext(store, { op: "all" }) as any).entries).toHaveLength(0)
+  const added = handleContext(store, {
+    op: "add",
+    entry: { topic: "t", tags: [], text: "x", source: { kind: "session", ref: "r" } },
+  }) as any
+  expect(added.entry.source.ref).toBe("r")
+  expect((handleContext(store, { op: "query", q: { topic: "t" } }) as any).entries).toHaveLength(1)
+  expect(() => handleContext(store, { op: "nope" })).toThrow()
+})
+
