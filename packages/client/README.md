@@ -1,6 +1,6 @@
 # @opencode/client
 
-Private generation target for clients derived directly from OpenCode's authoritative Effect `HttpApi`.
+Private generation target for clients derived directly from Aporetic's authoritative Effect `HttpApi`.
 
 ## Entrypoints
 

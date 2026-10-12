@@ -1,6 +1,6 @@
 # @opencode/sdk
 
-In-process OpenCode host for Promise and Effect applications. The SDK executes Server's assembled HTTP router in memory, opening no listener and adding no network hop.
+In-process Aporetic host for Promise and Effect applications. The SDK executes Server's assembled HTTP router in memory, opening no listener and adding no network hop.
 
 ```ts
 import { OpenCode } from "@opencode/sdk"

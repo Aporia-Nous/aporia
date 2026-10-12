@@ -1,8 +1,8 @@
-# OpenCode V2 Effect Plugin API
+# Aporetic V2 Effect Plugin API
 
 The Effect plugin API grants plugins two in-process capabilities:
 
-- `hook` installs behavior at an OpenCode extension point.
+- `hook` installs behavior at an Aporetic extension point.
 - `reload` reruns every transform hook for a stateful domain.
 
 ## Defining A Plugin

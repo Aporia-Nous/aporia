@@ -1,6 +1,6 @@
-# OpenCode Desktop
+# Aporetic Desktop
 
-The OpenCode Desktop app, built with Electron.
+The Aporetic Desktop app, built with Electron.
 
 ## Development
 
@@ -55,7 +55,7 @@ bun run bench:startup -- --profile-main --profile-renderer --trace # CPU profile
 bun run bench:startup -- --seed "%APPDATA%\ai.opencode.desktop.dev"   # restore tabs and drafts from an existing profile
 ```
 
-The app runs in an isolated home (`%TEMP%\opencode-bench-startup`): its own `%APPDATA%`, XDG directories, OpenCode
+The app runs in an isolated home (`%TEMP%\opencode-bench-startup`): its own `%APPDATA%`, XDG directories, Aporetic
 database, config and service registration, with the developer's `OPENCODE_*` and `OTEL_*` environment stripped
 (an inherited OTLP endpoint alone adds a network round trip to every CLI exit). It never attaches to or restarts the
 developer's live service, and only ever kills the process tree it spawned. `--service cold` stops the service before

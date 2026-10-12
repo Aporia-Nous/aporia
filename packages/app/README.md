@@ -108,7 +108,7 @@ opencode pair --url https://opencode.example.com
 ```
 
 This replaces the addresses in the printed links and QR code.
-The proxy URL must reach the OpenCode API, not just the frontend. For separate frontend and API processes,
+The proxy URL must reach the Aporetic API, not just the frontend. For separate frontend and API processes,
 route `/api` to the service while preserving the `/api` prefix. No machine-specific app or CLI build is required.
 
 When an HTTPS page fails to connect to a non-loopback HTTP server, the connection forms show a specific
