@@ -33,3 +33,10 @@ export function planImport(sessions: SessionLike[], store: ContextStore): Import
   }
   return { planned, skipped }
 }
+
+/** Plan and write an import in one step. Read-only w.r.t. the source sessions. */
+export function handleImport(store: ContextStore, sessions: SessionLike[]): { added: number; skipped: number } {
+  const { planned, skipped } = planImport(sessions, store)
+  for (const entry of planned) store.add(entry)
+  return { added: planned.length, skipped }
+}

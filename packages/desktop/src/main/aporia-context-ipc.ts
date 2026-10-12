@@ -4,6 +4,7 @@ import { ipcMain } from "electron"
 import { join } from "node:path"
 import { aporiaLog } from "./aporia-log"
 import { createContextStore, handleContext, type ContextInput } from "./aporia-context"
+import { handleImport, type SessionLike } from "./aporia-context-import"
 
 export const AporiaContextChannel = "aporia:context"
 
@@ -15,5 +16,11 @@ export function registerAporiaContextHandler() {
     return
   }
   const store = createContextStore(join(home, "context"))
-  ipcMain.handle(AporiaContextChannel, (_event, input: ContextInput) => handleContext(store, input))
+  ipcMain.handle(AporiaContextChannel, (_event, input: ContextInput | { op: "import"; sessions?: SessionLike[] }) => {
+    if (input?.op === "import") {
+      const result = handleImport(store, input.sessions ?? [])
+      return { ...result, entries: store.all() }
+    }
+    return handleContext(store, input as ContextInput)
+  })
 }

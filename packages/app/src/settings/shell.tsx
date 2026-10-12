@@ -40,6 +40,7 @@ import { SettingsProjects } from "./workspaces/projects"
 import { SettingsExtensions } from "./providers/extensions"
 import { SettingsAbout } from "./about/about"
 import { SettingsVault } from "@/aporia/vault"
+import { SettingsContext } from "@/aporia/context"
 import { SettingsUpdate } from "@/aporia/update"
 import { SettingsServerDataScope } from "./server-scope"
 import { SettingsNavigation, type SettingsNavGroup } from "./navigation"
@@ -82,6 +83,7 @@ const guiExtensionsTab = [
 ] as const
 
 const vaultTab = [{ value: "vault", icon: pageIcons.vault, label: "settings.tab.vault" }, { value: "updates", icon: pageIcons.updates, label: "settings.tab.updates" }] as const
+const contextTab = [{ value: "context", icon: pageIcons.vault, label: "Context" }] as const
 
 const aboutTab = [{ value: "about", icon: pageIcons.about, label: "settings.tab.about" }] as const
 
@@ -328,6 +330,7 @@ function RootSettings() {
       : []),
     ...(guiExtensions ? [{ items: guiExtensionsTab.map((item) => ({ ...item, label: language.t(item.label) })) }] : []),
     { items: vaultTab.map((item) => ({ ...item, label: language.t(item.label) })) },
+    { items: contextTab.map((item) => ({ ...item, label: item.label })) },
     { items: aboutTab.map((item) => ({ ...item, label: language.t(item.label) })) },
   ])
 
@@ -385,6 +388,9 @@ function RootSettings() {
       )}
       <Tabs.Content value="vault" class="settings-panel">
         <SettingsVault />
+      </Tabs.Content>
+      <Tabs.Content value="context" class="settings-panel">
+        <SettingsContext />
       </Tabs.Content>
       <Tabs.Content value="updates" class="settings-panel">
         <SettingsUpdate />
