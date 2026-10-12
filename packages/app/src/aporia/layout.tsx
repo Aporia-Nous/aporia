@@ -10,7 +10,7 @@ import { ReactionsLayer } from "./reactions"
 import { createEffect, createMemo, createResource, createSignal, For, lazy, onCleanup, Show, type ParentProps } from "solid-js"
 import { Portal } from "solid-js/web"
 import { ComposerMic, insertIntoComposer, sendPrompt } from "./dictation"
-import { call, setCallSender, setCallSession, speakReply } from "./call"
+import { call, endAgentTurn, sayReply, setCallSender, setCallSession, splitSpeakable } from "./call"
 import { createVirtualizer } from "@tanstack/solid-virtual"
 import { useTheme } from "@opencode/ui/theme/context"
 import { useNavigate } from "@solidjs/router"
@@ -125,7 +125,7 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
       <Portal><AlertToasts /></Portal>
       <ComposerMic />
       {/* Headless voice-call loop: speaks each new agent reply while a call is active. */}
-      <VoiceCallHost sessionID={props.view.sessionID()} lastReply={() => lastAssistantText()} />
+      <VoiceCallHost sessionID={props.view.sessionID()} lastReply={() => lastAssistantText()} working={() => props.view.working()} />
       <UpdateWatcher />
       <BotDispatcher />
       <ReactionsLayer sessionID={props.view.sessionID()} agent={info()?.agent} />
@@ -395,8 +395,9 @@ function AporiaSidebar(props: { directory: string; currentID?: string; currentAg
 }
 
 /** Headless: keeps the voice-call loop alive regardless of which panel is open.
- *  When a call is active, each new agent reply is spoken with the local TTS. */
-function VoiceCallHost(props: { sessionID?: string; lastReply: () => string }) {
+ *  While a call is active, the agent's reply is spoken sentence-by-sentence as it forms,
+ *  and the mic is handed back as soon as the agent stops working. */
+function VoiceCallHost(props: { sessionID?: string; lastReply: () => string; working: () => boolean }) {
   const sdk = useServerSDK()
   // Spoken turns go to the agent through the synthetic (hidden) channel so they never
   // appear as chat prompts — only the agent's replies show. Falls back to the composer.
@@ -414,17 +415,38 @@ function VoiceCallHost(props: { sessionID?: string; lastReply: () => string }) {
     if (insertIntoComposer(text)) sendPrompt()
   })
   ;(globalThis as any).__aporiaLastReply = props.lastReply
-  let spoken = ""
+
+  let prevText = ""
+  let spokenChars = 0
+
+  const flushTail = () => {
+    const text = props.lastReply() ?? ""
+    const tail = text.slice(spokenChars)
+    if (tail.trim()) { sayReply(tail); spokenChars = text.length }
+  }
+
+  // Stream the reply: speak each complete sentence as it appears.
   createEffect(() => {
     setCallSession(props.sessionID)
+    const text = props.lastReply() ?? ""
     const st = call.state()
-    const text = props.lastReply()
-    if (st === "connecting") { spoken = text; return }
-    if (st !== "listening" && st !== "thinking" && st !== "speaking") return
-    if (!text || text === spoken) return
-    spoken = text
-    void speakReply(text)
+    if (!call.active || st === "connecting") { prevText = text; spokenChars = text.length; return }
+    if (!text.startsWith(prevText)) { prevText = text; spokenChars = 0 } else { prevText = text }
+    if (spokenChars < text.length) {
+      const { say } = splitSpeakable(text.slice(spokenChars))
+      if (say) { sayReply(say); spokenChars += say.length }
+    }
   })
+
+  // Turn end: the agent stopped working — flush the tail and hand the mic back.
+  let sawWorking = false
+  const timer = setInterval(() => {
+    if (!call.active) { sawWorking = false; return }
+    if (props.working()) { sawWorking = true; return }
+    if (sawWorking) { sawWorking = false; flushTail(); endAgentTurn() }
+  }, 700)
+  onCleanup(() => clearInterval(timer))
+
   createEffect(() => {
     const message = call.error()
     if (message) aporiaAlerts.push({ title: "Voice failed", detail: message, level: "error" })

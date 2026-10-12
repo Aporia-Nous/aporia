@@ -38,6 +38,8 @@ const SILENCE_MS = 750 // this long below threshold = you stopped
 const MAX_UTTER_MS = 20000 // hard cap on a single spoken turn
 const PREROLL_BLOCKS = 6 // keep ~0.5s before speech so the first word isn't clipped
 const MIN_UTTER_SAMPLES = 1600 // < 0.1s of audio: ignore
+const BARGE_RMS = 0.045 // louder than normal speech: user is interrupting
+const BARGE_MS = 350 // sustained this long = a real barge-in, not a cough
 
 let stream: MediaStream | undefined
 let ctx: AudioContext | undefined
@@ -57,6 +59,13 @@ let utterMs = 0
 let blockMs = 0
 let utter: Float32Array[] = []
 let preroll: Float32Array[] = []
+
+// Streaming speech: the agent's reply is spoken sentence-by-sentence as it forms.
+let speechQueue: string[] = []
+let pumping = false
+let turnDone = false
+let abortSpeech: (() => void) | undefined
+let bargeMs = 0
 
 const NOISE = /^(you|thank you\.?|thanks?( for watching| for watching\.)?\.?|\[blank_audio\]|\(silence\)|\s*[.,!?]*\s*)$/i
 
@@ -94,7 +103,21 @@ function onAudio(event: AudioProcessingEvent) {
   const rms = Math.sqrt(sum / input.length)
   setLevel(Math.min(1, rms * 7))
 
-  if (!wantListening || busy || muted()) return
+  if (!wantListening || muted()) return
+
+  // Barge-in: while the agent is thinking or speaking, sustained loud speech interrupts it
+  // so the user can take the turn back immediately (like a real call).
+  if (busy) {
+    if (state() === "thinking" || state() === "speaking") {
+      if (rms > BARGE_RMS) bargeMs += blockMs
+      else bargeMs = 0
+      if (bargeMs > BARGE_MS) {
+        bargeMs = 0
+        interrupt()
+      }
+    }
+    return
+  }
 
   const block = new Float32Array(input)
   if (!capturing) {
@@ -142,9 +165,11 @@ async function finishTurn(chunks: Float32Array[]) {
       try { await navigator.clipboard.writeText(text) } catch { /* ignore */ }
       return resumeListening()
     }
-    // Stay in "thinking" until the reply arrives and speak() runs.
-    // Safety net: if no reply lands, resume listening so the call never stalls.
-    setTimeout(() => { if (busy && state() === "thinking") resumeListening() }, 60000)
+    // Stay in "thinking" until the agent's reply starts streaming. Safety net so a silent
+    // or tool-only turn still hands the mic back instead of stalling the call.
+    setTimeout(() => {
+      if (wantListening && busy && state() === "thinking" && speechQueue.length === 0 && !pumping) endAgentTurn()
+    }, 45000)
   } catch (e) {
     setError(e instanceof Error ? e.message : String(e))
     resumeListening()
@@ -157,30 +182,86 @@ function resumeListening() {
   capturing = false
   utter = []
   preroll = []
+  bargeMs = 0
   setState("listening")
 }
 
-async function speak(text: string, voice?: string) {
-  const clean = String(text ?? "").trim()
-  if (!clean) return resumeListening()
-  busy = true
-  setState("speaking")
-  setLines((l) => [...l, { who: "agent", text: clean, at: Date.now() }])
-  try {
-    const res = await (globalThis as any).electron?.aporia?.tts?.({ text: clean, voice })
-    const bytes = Uint8Array.from(atob(res?.wav ?? ""), (c) => c.charCodeAt(0))
-    const url = URL.createObjectURL(new Blob([bytes], { type: "audio/wav" }))
-    await new Promise<void>((resolve, reject) => {
-      const audio = new Audio(url)
-      speakingEl = audio
-      audio.onended = () => { URL.revokeObjectURL(url); speakingEl = undefined; resolve() }
-      audio.onerror = () => { URL.revokeObjectURL(url); speakingEl = undefined; reject(new Error("audio playback failed")) }
-      audio.play().then(undefined, (e) => { URL.revokeObjectURL(url); speakingEl = undefined; reject(e) })
-    })
-  } catch (e) {
-    setError(e instanceof Error ? e.message : String(e))
+/** Split text into speakable chunks: complete sentences now, the trailing fragment kept back. */
+function splitSpeakable(text: string): { say: string; rest: string } {
+  const boundary = /([.!?…]|\n)\s+/g
+  let last = 0
+  let m: RegExpExecArray | null
+  while ((m = boundary.exec(text))) last = m.index + m[0].length
+  if (last === 0) {
+    // No sentence end yet; speak long fragments so long replies aren't silent.
+    if (text.length > 180) return { say: text.slice(0, 180), rest: text.slice(180) }
+    return { say: "", rest: text }
   }
-  resumeListening()
+  return { say: text.slice(0, last), rest: text.slice(last) }
+}
+
+function playTts(text: string, voice?: string): Promise<void> {
+  return new Promise<void>((resolve) => {
+    void (async () => {
+      try {
+        const res = await (globalThis as any).electron?.aporia?.tts?.({ text, voice })
+        const bytes = Uint8Array.from(atob(res?.wav ?? ""), (c) => c.charCodeAt(0))
+        const url = URL.createObjectURL(new Blob([bytes], { type: "audio/wav" }))
+        const audio = new Audio(url)
+        speakingEl = audio
+        abortSpeech = () => { try { audio.pause() } catch { /* ignore */ } URL.revokeObjectURL(url); speakingEl = undefined; resolve() }
+        audio.onended = () => { URL.revokeObjectURL(url); speakingEl = undefined; abortSpeech = undefined; resolve() }
+        audio.onerror = () => { URL.revokeObjectURL(url); speakingEl = undefined; abortSpeech = undefined; resolve() }
+        await audio.play()
+      } catch {
+        resolve()
+      }
+    })()
+  })
+}
+
+async function pumpSpeech() {
+  if (pumping) return
+  pumping = true
+  try {
+    while (speechQueue.length && wantListening) {
+      const chunk = speechQueue.shift()!
+      setState("speaking")
+      try { await playTts(chunk, voiceGetter?.()) } catch { /* ignore */ }
+    }
+  } finally {
+    pumping = false
+    if (wantListening && turnDone && speechQueue.length === 0) {
+      turnDone = false
+      resumeListening()
+    }
+  }
+}
+
+/** Queue a piece of the agent's reply to be spoken (streamed sentence by sentence). */
+export function sayReply(text: string) {
+  const clean = String(text ?? "").replace(/\s+/g, " ").trim()
+  if (clean) speechQueue.push(clean)
+  void pumpSpeech()
+}
+
+/** The agent's turn has finished (no more text coming): flush and hand the mic back. */
+export function endAgentTurn() {
+  turnDone = true
+  if (!pumping && speechQueue.length === 0) {
+    turnDone = false
+    resumeListening()
+  }
+}
+
+/** Barge-in: user spoke over the agent — stop talking and listen immediately. */
+function interrupt() {
+  speechQueue = []
+  turnDone = false
+  try { abortSpeech?.() } catch { /* ignore */ }
+  abortSpeech = undefined
+  if (wantListening) resumeListening()
+  else { busy = false; setState("idle") }
 }
 
 async function start() {
@@ -189,6 +270,10 @@ async function start() {
   setError("")
   setLines([])
   persisted = false
+  speechQueue = []
+  turnDone = false
+  pumping = false
+  bargeMs = 0
   setState("connecting")
   try {
     stream = await navigator.mediaDevices.getUserMedia({
@@ -232,6 +317,11 @@ function hangup() {
   stream = ctx = proc = sink = undefined
   try { speakingEl?.pause() } catch { /* ignore */ }
   speakingEl = undefined
+  try { abortSpeech?.() } catch { /* ignore */ }
+  abortSpeech = undefined
+  speechQueue = []
+  turnDone = false
+  pumping = false
   persistCall()
   setState("idle")
   setLevel(0)
@@ -288,9 +378,7 @@ export function voiceFor() { return voiceGetter?.() }
 /** Route spoken turns through a hidden channel (no visible chat prompt). */
 export function setCallSender(fn: (text: string) => void | Promise<void>) { sendHandler = fn }
 
-export function speakReply(text: string, voice?: string) {
-  return speak(text, voice ?? voiceGetter?.())
-}
+export { splitSpeakable }
 
 // Composer phone icon / anywhere can drive the call without importing this module's internals.
 if (typeof window !== "undefined") {
@@ -310,5 +398,6 @@ export function openCallUi() { setCallUiRequest((n) => n + 1) }
   start: () => startVoiceCall(),
   hangup: () => hangup(),
   send: (t: string) => sendHandler?.(t),
-  speak: (t: string) => speak(t),
+  say: (t: string) => sayReply(t),
+  endTurn: () => endAgentTurn(),
 }
