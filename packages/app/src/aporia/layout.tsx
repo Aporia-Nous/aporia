@@ -18,6 +18,7 @@ import { useData, useServer } from "@/runtime/server/current"
 import { useServerSDK } from "@/runtime/server/client"
 import { useNotification } from "@/shell/notifications/notification"
 import { sessionHref } from "@/shell/routes/session"
+import { Session } from "@opencode/schema/session"
 import { useSettingsDialog } from "@/settings/command"
 import { useCommand } from "@/shell/commands/command"
 import type { SessionInfo, SessionMessageInfo } from "@opencode/client/promise"
@@ -415,16 +416,16 @@ function VoiceCallHost(props: { directory: string; agent?: string; sessionID?: s
     const saved = (() => { try { return localStorage.getItem(storeKey()) || undefined } catch { return undefined } })()
     if (saved && (data.session.list() ?? []).some((s: any) => s.id === saved)) { callSessionID = saved; return saved }
     try {
-      const res: any = await (sdk.api as any).session.create({
-        id: {
-          title: "Voice call",
-          agent: props.agent,
-          ...(props.directory ? { location: { directory: props.directory } } : {}),
-        },
+      const id = Session.ID.create()
+      const created: any = (data.session as any).create({
+        id,
+        agent: props.agent,
+        ...(props.directory ? { location: { directory: props.directory } } : {}),
       })
-      const id = res?.data?.id ?? res?.id
-      if (id) { callSessionID = id; try { localStorage.setItem(storeKey(), id) } catch { /* ignore */ } }
-      return callSessionID
+      if (created?.request) await created.request
+      callSessionID = id
+      try { localStorage.setItem(storeKey(), id) } catch { /* ignore */ }
+      return id
     } catch {
       return undefined
     }
