@@ -219,6 +219,14 @@ function meterHeight(i: number) {
 function CallTab(props: { view: AporiaView }) {
   const [showLive, setShowLive] = createSignal(false)
   const [openSaved, setOpenSaved] = createSignal<number | null>(null)
+  const [voice, setVoice] = createSignal((typeof localStorage !== "undefined" && localStorage.getItem("aporia.tts.voice")) || "nova")
+  const [voices, setVoices] = createSignal<{ key: string; label: string; hint: string }[]>([])
+  onMount(async () => {
+    try {
+      const bridge = (globalThis as any).electron?.aporia
+      if (bridge?.ttsVoices) setVoices(await bridge.ttsVoices())
+    } catch { /* ignore */ }
+  })
 
   const st = () => call.state()
   const agentName = () => props.view.info()?.agent ?? "build"
@@ -245,6 +253,21 @@ function CallTab(props: { view: AporiaView }) {
             {(_, i) => <span class="ap-call-bar" style={{ height: `${meterHeight(i())}%` }} />}
           </For>
         </div>
+
+        <label class="ap-call-voice">
+          <span class="ap-muted ap-small">Voice</span>
+          <select
+            value={voice()}
+            onChange={(event) => {
+              setVoice(event.currentTarget.value)
+              try { localStorage.setItem("aporia.tts.voice", event.currentTarget.value) } catch { /* ignore */ }
+            }}
+          >
+            <For each={voices().length ? voices() : [{ key: "nova", label: "Nova", hint: "" }]}>
+              {(v) => <option value={v.key} title={v.hint}>{v.label}</option>}
+            </For>
+          </select>
+        </label>
 
         <div class="ap-call-actions">
           <Show when={call.active} fallback={

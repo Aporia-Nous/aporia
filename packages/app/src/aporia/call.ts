@@ -46,7 +46,10 @@ let ctx: AudioContext | undefined
 let proc: ScriptProcessorNode | undefined
 let sink: GainNode | undefined
 let speakingEl: HTMLAudioElement | undefined
-let voiceGetter: (() => string | undefined) | undefined
+// Voice used for the call: the one picked in Details/Call, else the engine default.
+let voiceGetter: (() => string | undefined) | undefined = () => {
+  try { return localStorage.getItem("aporia.tts.voice") || undefined } catch { return undefined }
+}
 // How a transcribed turn is sent. When set, the words go to the agent WITHOUT
 // appearing as a chat prompt (the app's synthetic-input channel).
 let sendHandler: ((text: string) => void | Promise<void>) | undefined

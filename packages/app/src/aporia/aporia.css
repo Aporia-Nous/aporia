@@ -528,3 +528,5 @@ button[title*="Move to background"] { display: none !important; }
 .ap-call-saved-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; background: none; border: 0; color: var(--ap-text); font: inherit; font-size: 12px; cursor: pointer; }
 .ap-call-saved-head:hover { background: var(--ap-hover); }
 .ap-call-saved-item .ap-call-transcript { border: 0; border-top: 1px solid var(--ap-line); border-radius: 0; }
+.ap-call-voice { display: flex; align-items: center; gap: 8px; }
+.ap-call-voice select { max-width: 170px; }
