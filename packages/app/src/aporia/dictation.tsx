@@ -170,7 +170,7 @@ export function ComposerMic() {
         void startRecording(() => { recording = false; mic.innerHTML = MIC_SVG }, false).catch(() => { recording = false; mic.innerHTML = MIC_SVG })
       }
 
-      parent.insertBefore(call, send ?? null)
+      parent.insertBefore(callBtn, send ?? null)
       parent.insertBefore(mic, send ?? null)
     }
     inject()
