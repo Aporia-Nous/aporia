@@ -10,7 +10,6 @@ import { ReactionsLayer } from "./reactions"
 import { createEffect, createMemo, createResource, createSignal, For, lazy, onCleanup, Show, type ParentProps } from "solid-js"
 import { createVirtualizer } from "@tanstack/solid-virtual"
 import { useTheme } from "@opencode/ui/theme/context"
-import { normalizeAgentList } from "@/runtime/server/global-sync/utils"
 import { useNavigate } from "@solidjs/router"
 import { useData, useServer } from "@/runtime/server/current"
 import { useServerSDK } from "@/runtime/server/client"
@@ -75,6 +74,8 @@ export function AporiaDraftLayout(props: ParentProps<{ directory: string }>) {
 function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connectOpen, setConnectOpen] = createSignal(false)
   const [rightOpen, setRightOpen] = createSignal(aporiaPrefs.rightPanelOpen())
   const toggleRight = () => { const next = !rightOpen(); setRightOpen(next); aporiaPrefs.setRightPanelOpen(next) }
+  const [railOpen, setRailOpen] = createSignal(aporiaPrefs.leftRailOpen())
+  const toggleRail = () => { const next = !railOpen(); setRailOpen(next); aporiaPrefs.setLeftRailOpen(next) }
   const theme = useTheme()
   // Sticky Aporetic theme: re-applied whenever it drifts (imported settings, old app state), unless opted out.
   createEffect(() => {
@@ -94,7 +95,7 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
   const total = createMemo(() => tokenTotal(info()?.tokens))
 
   return (
-    <div class="ap-root" classList={{ "ap-right-collapsed": !rightOpen() }} data-component="aporia-layout">
+    <div class="ap-root" classList={{ "ap-right-collapsed": !rightOpen(), "ap-rail-collapsed": !railOpen() }} data-component="aporia-layout">
       <AlertToasts />
       <UpdateWatcher />
       <BotDispatcher />
@@ -108,6 +109,9 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
       />
       <main class="ap-center">
         <header class="ap-chat-header">
+          <button type="button" class="ap-icon-btn ap-rail-toggle" title={railOpen() ? "Hide sidebar" : "Show sidebar"} aria-label="Toggle sidebar" onClick={toggleRail}>
+            {railOpen() ? "«" : "»"}
+          </button>
           <Avatar name={agentName()} size={30} />
           <div class="ap-chat-title">
             <strong>{agentName()}</strong>
@@ -187,9 +191,6 @@ function AporiaSidebar(props: { directory: string; currentID?: string; currentAg
   const openSettings = useSettingsDialog()
   const command = useCommand()
 
-  const agents = createMemo(() =>
-    normalizeAgentList((props.directory ? data.location.agent.list({ directory: props.directory }) : undefined) ?? []).filter((agent) => agent.mode !== "subagent" && !agent.hidden),
-  )
 
   const sdk = useServerSDK()
   const [showSub, setShowSub] = createSignal(false)
@@ -233,19 +234,6 @@ function AporiaSidebar(props: { directory: string; currentID?: string; currentAg
         <button type="button" class="ap-icon-btn" title="Home" aria-label="Home" onClick={() => navigate("/")}>
           <Icon name="folder" size={16} />
         </button>
-      </div>
-      <Show when={agents().length > 0}>
-        <div class="ap-section-label">Agents</div>
-      </Show>
-      <div class="ap-agent-row">
-        <For each={agents()}>
-          {(agent) => (
-            <span class="ap-chip" title={agent.name}>
-              <span class="ap-chip-dot" />
-              {agent.name}
-            </span>
-          )}
-        </For>
       </div>
       <TeammatesSection sessions={rows().map((row) => row.session)} currentAgent={props.currentAgent} />
       <RoomsSection />

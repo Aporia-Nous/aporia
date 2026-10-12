@@ -68,7 +68,9 @@ export function TeammatesSection(props: { sessions: SessionInfo[]; currentAgent?
         <For each={groups()}>
           {([folder, items]) => (
             <>
-              <button type="button" class="ap-bot-folder" onClick={() => toggle(folder)}>{collapsed()[folder] ? "▸" : "▾"} {folder}</button>
+              <Show when={folder !== "Teammates"}>
+                <button type="button" class="ap-bot-folder" onClick={() => toggle(folder)}>{collapsed()[folder] ? "▸" : "▾"} {folder}</button>
+              </Show>
               <Show when={!collapsed()[folder]}>
                 <For each={items}>
                   {(bot) => (

@@ -27,6 +27,8 @@ const [computerUrl, setComputerUrlSignal] = createSignal(read(COMPUTER_KEY) ?? "
 const [sessionFilter, setSessionFilter] = createSignal("")
 const RIGHT_KEY = "aporia.right.open"
 const [rightPanelOpen, setRightPanelOpenSignal] = createSignal(read(RIGHT_KEY) !== "off")
+const LEFT_KEY = "aporia.left.open"
+const [leftRailOpen, setLeftRailOpenSignal] = createSignal(read(LEFT_KEY) !== "off")
 // Only an explicit "off" disables these; missing or imported values mean ON.
 const THEME_KEY = "aporia.theme.enabled"
 const [aporiaTheme, setAporiaThemeSignal] = createSignal(read(THEME_KEY) !== "off")
@@ -49,6 +51,11 @@ export const aporiaPrefs = {
   setRightPanelOpen(value: boolean) {
     write(RIGHT_KEY, value ? "on" : "off")
     setRightPanelOpenSignal(value)
+  },
+  leftRailOpen,
+  setLeftRailOpen(value: boolean) {
+    write(LEFT_KEY, value ? "on" : "off")
+    setLeftRailOpenSignal(value)
   },
   /** Aporetic theme is sticky: enforced on every launch unless the user explicitly opts out. */
   aporiaTheme,

@@ -535,13 +535,15 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                   "ps-3.5": windows(),
                 }}
               >
-                <Show when={!mobile() && (!props.verticalTabs || windows())}>
-                  <ChannelIndicator horizontal />
+                <Show when={!aporiaPrefs.layoutEnabled()}>
+                  <Show when={!mobile() && (!props.verticalTabs || windows())}>
+                    <ChannelIndicator horizontal />
+                  </Show>
+                  <Show when={windows() || linux()}>
+                    <WindowsAppMenu command={command} platform={platform} />
+                  </Show>
+                  <Show when={!mobile() && !props.verticalTabs}>{homeButton()}</Show>
                 </Show>
-                <Show when={windows() || linux()}>
-                  <WindowsAppMenu command={command} platform={platform} />
-                </Show>
-                <Show when={!mobile() && !props.verticalTabs}>{homeButton()}</Show>
 
                 <Show
                   when={!mobile()}
