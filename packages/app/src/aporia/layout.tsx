@@ -9,7 +9,7 @@ import { ReactionsLayer } from "./reactions"
 // behaviour stays upstream; this file only frames it.
 import { createEffect, createMemo, createResource, createSignal, For, lazy, onCleanup, Show, type ParentProps } from "solid-js"
 import { Portal } from "solid-js/web"
-import { ComposerMic, insertIntoComposer, sendPrompt } from "./dictation"
+import { ComposerMic } from "./dictation"
 import { call, endAgentTurn, sayReply, setCallSender, setCallSession } from "./call"
 import { createVirtualizer } from "@tanstack/solid-virtual"
 import { useTheme } from "@opencode/ui/theme/context"
@@ -131,7 +131,7 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
       <Portal><AlertToasts /></Portal>
       <ComposerMic />
       {/* Headless voice-call loop: speaks each new agent reply while a call is active. */}
-      <VoiceCallHost sessionID={props.view.sessionID()} lastReply={() => lastAssistantText()} working={() => props.view.working()} />
+      <VoiceCallHost directory={props.view.directory()} agent={info()?.agent} sessionID={props.view.sessionID()} />
       <UpdateWatcher />
       <BotDispatcher />
       <ReactionsLayer sessionID={props.view.sessionID()} agent={info()?.agent} />
@@ -400,48 +400,88 @@ function AporiaSidebar(props: { directory: string; currentID?: string; currentAg
   )
 }
 
-/** Headless: keeps the voice-call loop alive regardless of which panel is open.
- *  While a call is active, the agent's reply is spoken sentence-by-sentence as it forms,
- *  and the mic is handed back as soon as the agent stops working. */
-function VoiceCallHost(props: { sessionID?: string; lastReply: () => string; working: () => boolean }) {
+/** Headless: runs the voice call in its OWN session so the working chat only shows real work.
+ *  Only the agent's finished reply is spoken; never the thinking/tool steps. */
+function VoiceCallHost(props: { directory: string; agent?: string; sessionID?: string }) {
   const sdk = useServerSDK()
-  // Spoken turns go to the agent through the synthetic (hidden) channel so they never
-  // appear as chat prompts — only the agent's replies show. Falls back to the composer.
+  const data = useData()
+  let callSessionID: string | undefined
+  let lastSpoken = ""
+
+  const storeKey = () => `aporia.call.session.${props.agent ?? "build"}:${props.directory}`
+
+  const ensureSession = async (): Promise<string | undefined> => {
+    if (callSessionID) return callSessionID
+    const saved = (() => { try { return localStorage.getItem(storeKey()) || undefined } catch { return undefined } })()
+    if (saved && (data.session.list() ?? []).some((s: any) => s.id === saved)) { callSessionID = saved; return saved }
+    try {
+      const res: any = await (sdk.api as any).session.create({
+        id: {
+          title: "Voice call",
+          agent: props.agent,
+          ...(props.directory ? { location: { directory: props.directory } } : {}),
+        },
+      })
+      const id = res?.data?.id ?? res?.id
+      if (id) { callSessionID = id; try { localStorage.setItem(storeKey(), id) } catch { /* ignore */ } }
+      return callSessionID
+    } catch {
+      return undefined
+    }
+  }
+
+  const callMessages = () => (callSessionID ? (data.session.message.list(callSessionID) ?? []) : [])
+  const isWorking = () => (callSessionID ? String((data.session as any).status?.(callSessionID) ?? "") === "running" : false)
+  const lastAssistant = (): string => {
+    const msgs = [...callMessages()] as any[]
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const m = msgs[i]
+      if ((m?.type ?? m?.role) !== "assistant") continue
+      const parts = m.content ?? m.parts
+      if (Array.isArray(parts)) {
+        const text = parts
+          .filter((p: any) => (p?.type === "text" || p?.type === "assistant.text") && !p?.synthetic)
+          .map((p: any) => p.text ?? "")
+          .join("\n")
+          .trim()
+        if (text) return text
+      }
+    }
+    return ""
+  }
+
+  // Spoken turns go to the call's own session — never the working chat.
   setCallSender(async (text) => {
-    const sessionID = props.sessionID
+    const id = await ensureSession()
+    if (!id) throw new Error("Could not open a call session")
     const synthetic = (sdk.api as any)?.session?.synthetic
-    if (!sessionID || typeof synthetic !== "function") throw new Error("Voice needs an open session")
-    // Live voice call: shape the turn for speech so the agent answers fast and briefly
-    // instead of running a long tool-heavy coding job. Sent on the hidden channel only —
-    // the call's words must never appear in the working chat.
+    if (typeof synthetic !== "function") throw new Error("Voice channel unavailable")
     await synthetic({
-      sessionID,
+      sessionID: id,
       text: `This is a live voice call. The user just said: "${text}". Reply in one or two short spoken sentences. Do not run tools or use markdown.`,
       resume: true,
     })
-  })
-  ;(globalThis as any).__aporiaLastReply = props.lastReply
-
-  // Speak ONLY the agent's finished response — never the thinking/tool/shell steps.
-  let lastSpoken = ""
-  const speakFinal = () => {
-    const text = (props.lastReply() ?? "").trim()
-    if (!text || text === lastSpoken) return
-    lastSpoken = text
-    sayReply(text)
-  }
-  createEffect(() => {
-    setCallSession(props.sessionID)
-    if (!call.active) lastSpoken = (props.lastReply() ?? "").trim()
+    void (data.session as any).message?.sync?.(id)
   })
 
-  // Turn end: the agent stopped working — speak its final answer and hand the mic back.
+  createEffect(() => setCallSession(props.sessionID))
+
+  // Turn end: the call session stopped working — speak its final answer, hand the mic back.
   let sawWorking = false
   const timer = setInterval(() => {
-    if (!call.active) { sawWorking = false; return }
-    if (props.working()) { sawWorking = true; return }
-    if (sawWorking) { sawWorking = false; speakFinal(); endAgentTurn() }
-  }, 700)
+    if (!call.active || !callSessionID) { sawWorking = false; return }
+    if (isWorking()) {
+      sawWorking = true
+      void (data.session as any).message?.sync?.(callSessionID)
+      return
+    }
+    if (sawWorking) {
+      sawWorking = false
+      const text = lastAssistant()
+      if (text && text !== lastSpoken) { lastSpoken = text; sayReply(text) }
+      endAgentTurn()
+    }
+  }, 800)
   onCleanup(() => clearInterval(timer))
 
   createEffect(() => {
