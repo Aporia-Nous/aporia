@@ -1,10 +1,11 @@
 // APORIA: right panel with Details, Library and Computer tabs.
-import { createMemo, createSignal, For, lazy, Match, Show, Switch } from "solid-js"
+import { createMemo, createSignal, For, lazy, Match, onMount, Show, Switch } from "solid-js"
 import type { AporiaView } from "./layout"
 import { aporiaPrefs } from "./prefs"
 import { formatTokens, tokenTotal, touchedFiles } from "./session-stats"
 import { Avatar } from "./avatar"
 import { EmptyState, Icon, type IconName } from "./icons"
+import { agentFor, bots } from "./bots"
 
 type Tab = "details" | "library" | "browser" | "automations" | "votel"
 
@@ -18,10 +19,60 @@ export function AporiaRightPanel(props: { view: AporiaView; onClose?: () => void
   const files = createMemo(() => touchedFiles(props.view.messages()))
   const agentName = () => info()?.agent ?? "build"
 
+  // APORIA voice: read the latest reply aloud with a local, offline engine (faces shown as Aporia voices).
+  const [speaking, setSpeaking] = createSignal(false)
+  const [voice, setVoice] = createSignal((typeof localStorage !== "undefined" && localStorage.getItem("aporia.tts.voice")) || "nova")
+  const [voices, setVoices] = createSignal<{ key: string; label: string; hint: string }[]>([])
+  onMount(async () => {
+    try {
+      const bridge = (globalThis as any).electron?.aporia
+      if (bridge?.ttsVoices) setVoices(await bridge.ttsVoices())
+    } catch {}
+  })
+  const lastAssistantText = () => {
+    const msgs = (props.view.messages?.() ?? []) as any[]
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const m = msgs[i]
+      if (m?.role !== "assistant") continue
+      const parts = m.parts ?? m.content
+      if (Array.isArray(parts)) {
+        const text = parts.filter((p: any) => p?.type === "text").map((p: any) => p.text ?? "").join("\n").trim()
+        if (text) return text
+      }
+      if (typeof parts === "string" && parts.trim()) return parts.trim()
+    }
+    return ""
+  }
+  async function readAloud() {
+    const text = lastAssistantText()
+    const bridge = (globalThis as any).electron?.aporia
+    if (!text || !bridge?.tts) return
+    // Per-bot voice wins: if this session's teammate has its own voice, use it; else the picked default.
+    const teammateVoice = (() => {
+      try {
+        const bot = bots().find((b) => agentFor(b) === agentName())
+        return bot?.voice || undefined
+      } catch { return undefined }
+    })()
+    setSpeaking(true)
+    try {
+      const { wav } = await bridge.tts({ text, voice: teammateVoice || voice() })
+      const bytes = Uint8Array.from(atob(wav), (c) => c.charCodeAt(0))
+      const url = URL.createObjectURL(new Blob([bytes], { type: "audio/wav" }))
+      const audio = new Audio(url)
+      audio.onended = () => { setSpeaking(false); URL.revokeObjectURL(url) }
+      await audio.play()
+    } catch (error) {
+      setSpeaking(false)
+      console.error("aporia tts", error)
+    }
+  }
+
   return (
     <aside class="ap-right">
       <div class="ap-right-head">
         <button type="button" class="ap-icon-btn ap-panel-collapse" title="Hide panel" aria-label="Hide right panel" onClick={() => props.onClose?.()}>»</button>
+        <button type="button" class="ap-icon-btn" title={speaking() ? "Speaking…" : "Read the last reply aloud"} aria-label="Read aloud" disabled={speaking()} onClick={readAloud}>{speaking() ? "…" : "🔊"}</button>
         <Avatar name={agentName()} size={44} />
         <strong>{agentName()}</strong>
         <span class="ap-muted">{props.view.working() ? "Working…" : "Ready"}</span>
@@ -60,6 +111,20 @@ export function AporiaRightPanel(props: { view: AporiaView; onClose?: () => void
               <dd>{formatTokens(tokenTotal(info()?.tokens))}</dd>
               <dt>Files touched</dt>
               <dd>{files().length}</dd>
+              <dt>Voice</dt>
+              <dd>
+                <select
+                  value={voice()}
+                  onChange={(event) => {
+                    setVoice(event.currentTarget.value)
+                    try { localStorage.setItem("aporia.tts.voice", event.currentTarget.value) } catch {}
+                  }}
+                >
+                  <For each={voices().length ? voices() : [{ key: "nova", label: "Nova", hint: "" }]}>
+                    {(v) => <option value={v.key} title={v.hint}>{v.label}</option>}
+                  </For>
+                </select>
+              </dd>
             </dl>
           </Match>
           <Match when={tab() === "library"}>
