@@ -459,7 +459,7 @@ function VoiceCallHost(props: { directory: string; agent?: string; sessionID?: s
     if (typeof synthetic !== "function") throw new Error("Voice channel unavailable")
     await synthetic({
       sessionID: id,
-      text: `This is a live voice call. The user just said: "${text}". Reply in one or two short spoken sentences. Do not run tools or use markdown.`,
+      text: `This is a live voice call. The user just said: "${text}". Do what they ask, using tools as needed, then reply in one or two short spoken sentences.`,
       resume: true,
     })
     void (data.session as any).message?.sync?.(id)
