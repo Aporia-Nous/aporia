@@ -406,7 +406,13 @@ function VoiceCallHost(props: { sessionID?: string; lastReply: () => string; wor
     const synthetic = (sdk.api as any)?.session?.synthetic
     if (sessionID && typeof synthetic === "function") {
       try {
-        await synthetic({ sessionID, text, resume: true })
+        // Live voice call: shape the turn for speech so the agent answers fast and briefly
+        // instead of running a long tool-heavy coding job.
+        await synthetic({
+          sessionID,
+          text: `This is a live voice call. The user just said: "${text}". Reply in one or two short spoken sentences. Do not run tools or use markdown.`,
+          resume: true,
+        })
         return
       } catch {
         // fall through to the composer so the turn still reaches the agent
