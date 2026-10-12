@@ -47,17 +47,23 @@ async function decodeToPcm(blob: Blob): Promise<Float32Array> {
 }
 
 export function insertIntoComposer(text: string): boolean {
-  const el = document.querySelector<HTMLTextAreaElement>('[data-component="composer"] textarea')
+  const el = document.querySelector<HTMLElement>('[data-component="composer-editor"]')
   if (!el) return false
-  el.value = el.value ? `${el.value} ${text}` : text
-  el.dispatchEvent(new InputEvent("input", { bubbles: true }))
   el.focus()
+  if (el.textContent && !/\s$/.test(el.textContent)) document.execCommand?.("insertText", false, " ")
+  const inserted = document.execCommand?.("insertText", false, text)
+  if (!inserted) {
+    el.textContent = el.textContent ? `${el.textContent} ${text}` : text
+  }
+  el.dispatchEvent(new InputEvent("input", { bubbles: true }))
+  el.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true }))
   return true
 }
 
 function submitComposer() {
-  const el = document.querySelector<HTMLTextAreaElement>('[data-component="composer"] textarea')
-  el?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }))
+  const form = document.querySelector<HTMLFormElement>('form[data-component="composer"]')
+  if (form) { form.requestSubmit(); return }
+  document.querySelector<HTMLButtonElement>('[data-action="composer-submit"]')?.click()
 }
 
 // ---- recording (shared by dictation + call mode) ----
