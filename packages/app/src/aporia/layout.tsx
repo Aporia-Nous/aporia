@@ -101,7 +101,6 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
       <UpdateWatcher />
       <BotDispatcher />
       <ReactionsLayer sessionID={props.view.sessionID()} agent={info()?.agent} />
-      <div style={{ position: "fixed", top: "6px", right: "150px", "z-index": 2147483002 }} data-component="aporia-window-bell"><AlertBell /></div>
       <AporiaSidebar
         directory={props.view.directory()}
         currentID={props.view.sessionID()}
@@ -123,6 +122,7 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
             classList={{ "ap-busy": props.view.working() }}
             title={props.view.working() ? "Working" : "Idle"}
           />
+          <AlertBell />
           <label class="ap-search">
             <Icon name="search" size={14} />
             <input
