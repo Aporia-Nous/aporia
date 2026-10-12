@@ -9,8 +9,8 @@ import { ReactionsLayer } from "./reactions"
 // behaviour stays upstream; this file only frames it.
 import { createEffect, createMemo, createResource, createSignal, For, lazy, onCleanup, Show, type ParentProps } from "solid-js"
 import { Portal } from "solid-js/web"
-import { ComposerMic } from "./dictation"
-import { call, setCallSession, speakReply } from "./call"
+import { ComposerMic, insertIntoComposer, sendPrompt } from "./dictation"
+import { call, setCallSender, setCallSession, speakReply } from "./call"
 import { createVirtualizer } from "@tanstack/solid-virtual"
 import { useTheme } from "@opencode/ui/theme/context"
 import { useNavigate } from "@solidjs/router"
@@ -397,6 +397,18 @@ function AporiaSidebar(props: { directory: string; currentID?: string; currentAg
 /** Headless: keeps the voice-call loop alive regardless of which panel is open.
  *  When a call is active, each new agent reply is spoken with the local TTS. */
 function VoiceCallHost(props: { sessionID?: string; lastReply: () => string }) {
+  const sdk = useServerSDK()
+  // Spoken turns go to the agent through the synthetic (hidden) channel so they never
+  // appear as chat prompts — only the agent's replies show. Falls back to the composer.
+  setCallSender((text) => {
+    const sessionID = props.sessionID
+    const synthetic = (sdk.api as any)?.session?.synthetic
+    if (!sessionID || typeof synthetic !== "function") {
+      if (insertIntoComposer(text)) sendPrompt()
+      return
+    }
+    return synthetic({ sessionID, text })
+  })
   let spoken = ""
   createEffect(() => {
     setCallSession(props.sessionID)

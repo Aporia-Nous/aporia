@@ -45,6 +45,9 @@ let proc: ScriptProcessorNode | undefined
 let sink: GainNode | undefined
 let speakingEl: HTMLAudioElement | undefined
 let voiceGetter: (() => string | undefined) | undefined
+// How a transcribed turn is sent. When set, the words go to the agent WITHOUT
+// appearing as a chat prompt (the app's synthetic-input channel).
+let sendHandler: ((text: string) => void | Promise<void>) | undefined
 
 let wantListening = false
 let busy = false // true while transcribing / thinking / speaking — don't capture
@@ -130,11 +133,15 @@ async function finishTurn(chunks: Float32Array[]) {
     const text = String(res?.text ?? "").trim()
     if (isNoise(text)) return resumeListening()
     setLines((l) => [...l, { who: "you", text, at: Date.now() }])
-    if (!insertIntoComposer(text)) {
+    if (sendHandler) {
+      // Hidden send: the agent sees the spoken words, the chat does not show them as a prompt.
+      await Promise.resolve(sendHandler(text)).catch(() => {})
+    } else if (insertIntoComposer(text)) {
+      sendPrompt()
+    } else {
       try { await navigator.clipboard.writeText(text) } catch { /* ignore */ }
       return resumeListening()
     }
-    sendPrompt()
     // Stay in "thinking" until the reply arrives and speak() runs.
     // Safety net: if no reply lands, resume listening so the call never stalls.
     setTimeout(() => { if (busy && state() === "thinking") resumeListening() }, 60000)
@@ -278,6 +285,8 @@ export function toggleCallMute() { toggleMute() }
 export function clearCallLog() { clear() }
 export function setVoiceGetter(fn: () => string | undefined) { voiceGetter = fn }
 export function voiceFor() { return voiceGetter?.() }
+/** Route spoken turns through a hidden channel (no visible chat prompt). */
+export function setCallSender(fn: (text: string) => void | Promise<void>) { sendHandler = fn }
 
 export function speakReply(text: string, voice?: string) {
   return speak(text, voice ?? voiceGetter?.())
