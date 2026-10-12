@@ -110,12 +110,18 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
     const msgs = (props.view.messages?.() ?? []) as any[]
     for (let i = msgs.length - 1; i >= 0; i--) {
       const m = msgs[i]
-      if (m?.role !== "assistant") continue
-      const parts = m.parts ?? m.content
+      const kind = m?.role ?? m?.type
+      if (kind !== "assistant") continue
+      const parts = m.content ?? m.parts
       if (Array.isArray(parts)) {
-        const text = parts.filter((p: any) => p?.type === "text").map((p: any) => p.text ?? "").join("\n").trim()
+        const text = parts
+          .filter((p: any) => (p?.type === "text" || p?.type === "assistant.text") && !p?.synthetic)
+          .map((p: any) => p.text ?? "")
+          .join("\n")
+          .trim()
         if (text) return text
       } else if (typeof parts === "string" && parts.trim()) return parts.trim()
+      if (typeof m.text === "string" && m.text.trim()) return m.text.trim()
     }
     return ""
   }
@@ -404,21 +410,15 @@ function VoiceCallHost(props: { sessionID?: string; lastReply: () => string; wor
   setCallSender(async (text) => {
     const sessionID = props.sessionID
     const synthetic = (sdk.api as any)?.session?.synthetic
-    if (sessionID && typeof synthetic === "function") {
-      try {
-        // Live voice call: shape the turn for speech so the agent answers fast and briefly
-        // instead of running a long tool-heavy coding job.
-        await synthetic({
-          sessionID,
-          text: `This is a live voice call. The user just said: "${text}". Reply in one or two short spoken sentences. Do not run tools or use markdown.`,
-          resume: true,
-        })
-        return
-      } catch {
-        // fall through to the composer so the turn still reaches the agent
-      }
-    }
-    if (insertIntoComposer(text)) sendPrompt()
+    if (!sessionID || typeof synthetic !== "function") throw new Error("Voice needs an open session")
+    // Live voice call: shape the turn for speech so the agent answers fast and briefly
+    // instead of running a long tool-heavy coding job. Sent on the hidden channel only —
+    // the call's words must never appear in the working chat.
+    await synthetic({
+      sessionID,
+      text: `This is a live voice call. The user just said: "${text}". Reply in one or two short spoken sentences. Do not run tools or use markdown.`,
+      resume: true,
+    })
   })
   ;(globalThis as any).__aporiaLastReply = props.lastReply
 

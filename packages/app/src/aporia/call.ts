@@ -158,7 +158,7 @@ async function finishTurn(chunks: Float32Array[]) {
     setLines((l) => [...l, { who: "you", text, at: Date.now() }])
     if (sendHandler) {
       // Hidden send: the agent sees the spoken words, the chat does not show them as a prompt.
-      await Promise.resolve(sendHandler(text)).catch(() => {})
+      await Promise.resolve(sendHandler(text)).catch((e) => setError(e instanceof Error ? e.message : String(e)))
     } else if (insertIntoComposer(text)) {
       sendPrompt()
     } else {

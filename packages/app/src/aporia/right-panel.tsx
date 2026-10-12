@@ -37,13 +37,19 @@ export function AporiaRightPanel(props: { view: AporiaView; onClose?: () => void
     const msgs = (props.view.messages?.() ?? []) as any[]
     for (let i = msgs.length - 1; i >= 0; i--) {
       const m = msgs[i]
-      if (m?.role !== "assistant") continue
-      const parts = m.parts ?? m.content
+      const kind = m?.role ?? m?.type
+      if (kind !== "assistant") continue
+      const parts = m.content ?? m.parts
       if (Array.isArray(parts)) {
-        const text = parts.filter((p: any) => p?.type === "text").map((p: any) => p.text ?? "").join("\n").trim()
+        const text = parts
+          .filter((p: any) => (p?.type === "text" || p?.type === "assistant.text") && !p?.synthetic)
+          .map((p: any) => p.text ?? "")
+          .join("\n")
+          .trim()
         if (text) return text
       }
       if (typeof parts === "string" && parts.trim()) return parts.trim()
+      if (typeof m.text === "string" && m.text.trim()) return m.text.trim()
     }
     return ""
   }
