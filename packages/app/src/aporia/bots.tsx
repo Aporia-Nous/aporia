@@ -1,6 +1,6 @@
 // APORIA: Teammates sidebar section + bot editor. Bots are stored by the desktop main process (aporia-bots.ts);
 // clicking a bot opens its newest chat (agent aporia-<slug>) or starts one in its own folder.
-import { createMemo, createResource, createSignal, For, Show } from "solid-js"
+import { createResource, createSignal, For, Show } from "solid-js"
 import { Portal } from "solid-js/web"
 import { useNavigate } from "@solidjs/router"
 import { Session } from "@opencode/schema/session"
@@ -29,18 +29,6 @@ export function TeammatesSection(props: { sessions: SessionInfo[]; currentAgent?
   const [list] = createResource(version, () => bots({ op: "list" }) as Promise<Bot[]>, { initialValue: [] })
   const [paths] = createResource(() => bots({ op: "paths" }) as Promise<{ bots: string }>)
   const [editing, setEditing] = createSignal<Partial<Bot> | undefined>()
-  const [collapsed, setCollapsed] = createSignal<Record<string, boolean>>(JSON.parse(localStorage.getItem("aporia.bots.collapsed") ?? "{}"))
-  const groups = createMemo(() => {
-    const g = new Map<string, Bot[]>()
-    for (const b of list() ?? []) {
-      const key = b.folder || "Teammates"
-      const bucket = g.get(key)
-      if (bucket) bucket.push(b)
-      else g.set(key, [b])
-    }
-    return [...g.entries()].sort(([a], [b]) => (a === "Main" ? -1 : b === "Main" ? 1 : a.localeCompare(b)))
-  })
-  const toggle = (k: string) => { const n = { ...collapsed(), [k]: !collapsed()[k] }; setCollapsed(n); localStorage.setItem("aporia.bots.collapsed", JSON.stringify(n)) }
 
   const open = async (bot: Bot, fresh = false) => {
     const agent = agentFor(bot.slug)
@@ -66,30 +54,19 @@ export function TeammatesSection(props: { sessions: SessionInfo[]; currentAgent?
         <button type="button" class="ap-sub-toggle" title="Import a .aporia-bot.json template" data-action="aporia-bot-import" onClick={async () => { try { const b = await routines({ op: "import" }); if (b) { refreshBots(); aporiaAlerts.push({ title: `Imported ${b.name}`, detail: "Its routines are off until you enable them.", level: "success" }) } } catch (err) { aporiaAlerts.push({ title: "Import failed", detail: String((err as Error)?.message ?? err), level: "error" }) } }}>Import</button>
       </div>
       <nav class="ap-bot-list">
-        <For each={groups()}>
-          {([folder, items]) => (
-            <>
-              <Show when={folder !== "Teammates"}>
-                <button type="button" class="ap-bot-folder" onClick={() => toggle(folder)}>{collapsed()[folder] ? "▸" : "▾"} {folder}</button>
-              </Show>
-              <Show when={!collapsed()[folder]}>
-                <For each={items}>
-                  {(bot) => (
-                    <div class="ap-session ap-bot" classList={{ "ap-selected": props.currentAgent === agentFor(bot.slug) }} data-bot={bot.slug}>
-                      <button type="button" class="ap-bot-main" onClick={() => void open(bot)} title={bot.role}>
-                        <span class="ap-avatar ap-bot-avatar">{bot.avatar || bot.name.slice(0, 2).toUpperCase()}</span>
-                        <span class="ap-session-text">
-                          <strong class="ap-ellipsis">{bot.name}</strong>
-                          <span class="ap-muted ap-ellipsis">{bot.role}</span>
-                        </span>
-                      </button>
-                      <button type="button" class="ap-bot-mini" title="New chat with this bot" onClick={() => void open(bot, true)}>＋</button>
-                      <button type="button" class="ap-bot-mini" title="Edit bot" onClick={() => setEditing({ ...bot })}>⋯</button>
-                    </div>
-                  )}
-                </For>
-              </Show>
-            </>
+        <For each={list() ?? []}>
+          {(bot) => (
+            <div class="ap-session ap-bot" classList={{ "ap-selected": props.currentAgent === agentFor(bot.slug) }} data-bot={bot.slug}>
+              <button type="button" class="ap-bot-main" onClick={() => void open(bot)} title={bot.role}>
+                <span class="ap-avatar ap-bot-avatar">{bot.avatar || bot.name.slice(0, 2).toUpperCase()}</span>
+                <span class="ap-session-text">
+                  <strong class="ap-ellipsis">{bot.name}</strong>
+                  <span class="ap-muted ap-ellipsis">{bot.role}</span>
+                </span>
+              </button>
+              <button type="button" class="ap-bot-mini" title="New chat with this bot" onClick={() => void open(bot, true)}>＋</button>
+              <button type="button" class="ap-bot-mini" title="Edit bot" onClick={() => setEditing({ ...bot })}>⋯</button>
+            </div>
           )}
         </For>
       </nav>
