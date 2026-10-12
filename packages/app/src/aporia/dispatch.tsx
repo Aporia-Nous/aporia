@@ -10,6 +10,7 @@ import { aporiaAlerts } from "./alerts"
 import { agentFor, bots, refreshBots, type Bot } from "./bots"
 import { createDispatchScheduler } from "./dispatch-queue"
 import { buildGroundedPrompt, verifyGrounded } from "./context-grounded"
+import { scopedEntries, isDuplicate } from "./context-scope"
 
 type Msg = { id: string; from: string; to?: string; room?: string; message: string; priority: boolean; kind: "message" | "reply" | "room" | "routine"; created: string; fromSession?: string; routine?: { id: string; name: string }; manual?: boolean }
 const routines = (input: unknown) => (globalThis as any).electron?.aporia?.routines?.(input)
@@ -50,16 +51,17 @@ export function BotDispatcher() {
   const busy = (sessionID: string) => { try { return data.session.status(sessionID) === "running" } catch { return false } }
 
   /** Prompt a session and return the final assistant text once the turn settles. */
-  async function turn(sessionID: string, text: string, metadata: Record<string, unknown>) {
+  async function turn(sessionID: string, text: string, metadata: Record<string, unknown>, scopes?: string[]) {
     const before = Date.now()
-    // Grounded answers (Phase 2): hand the bot only sourced entries and require a citation.
+    // Grounded answers: hand the bot only the entries in ITS scope and require a citation.
     let allowedIds: string[] = []
     let promptText = text
+    let entries: { id: string; topic: string; text: string }[] = []
     try {
       const context = (globalThis as any).electron?.aporia?.context
       const result = context ? await context({ op: "query", q: {} }) : undefined
-      const entries = (result?.entries ?? []) as { id: string; topic: string; text: string }[]
-      const grounded = buildGroundedPrompt(text, entries)
+      entries = (result?.entries ?? []) as { id: string; topic: string; text: string }[]
+      const grounded = buildGroundedPrompt(text, scopedEntries(entries, scopes))
       allowedIds = grounded.allowedIds
       promptText = grounded.prompt
     } catch {
@@ -75,11 +77,31 @@ export function BotDispatcher() {
       const done = last && last.time?.completed && last.finish !== "tool-calls" && !busy(sessionID)
       stable = done ? stable + 1 : 0
       if (stable >= 2) {
-        const reply = textOf(last) || "(no text reply)"
-        // Only flag when we actually had a store to ground against.
+        let reply = textOf(last) || "(no text reply)"
+        // Only judge grounding when we actually had a scoped store to ground against.
         if (allowedIds.length > 0) {
           const verdict = verifyGrounded(reply, allowedIds)
           if (!verdict.ok) return `${reply}\n\n⚠️ ungrounded (${verdict.reason})`
+          // One source of truth: store the grounded answer back unless it already exists.
+          try {
+            const context = (globalThis as any).electron?.aporia?.context
+            const topic = scopes?.[0] ?? "bots"
+            if (context) {
+              if (isDuplicate({ topic, text: reply }, entries)) reply = `${reply}\n\n(not stored: duplicate)`
+              else
+                await context({
+                  op: "add",
+                  entry: {
+                    topic,
+                    tags: [],
+                    text: reply,
+                    source: { kind: "session", ref: `${sessionID}:${last.id}`, sessionID, messageID: last.id },
+                  },
+                })
+            }
+          } catch {
+            // storing is best-effort; the reply still returns
+          }
         }
         return reply
       }
@@ -97,13 +119,13 @@ export function BotDispatcher() {
     await bots({ op: "inboxAck", id: m.id, result: { sessionID, state: "delivered" } })
     if (m.kind === "routine") {
       try {
-        const out = await turn(sessionID, `⏰ Routine "${m.routine?.name}"${m.manual ? " (run now by Ali)" : ""}:\n\n${m.message}`, { kind: "routine", routine: m.routine?.id, msg: m.id })
+        const out = await turn(sessionID, `⏰ Routine "${m.routine?.name}"${m.manual ? " (run now by Ali)" : ""}:\n\n${m.message}`, { kind: "routine", routine: m.routine?.id, msg: m.id }, target.scopes)
         await routines({ op: "result", slug: target.slug, routine: m.routine?.id, name: m.routine?.name, sessionID, excerpt: out })
       } catch (err) { await routines({ op: "result", slug: target.slug, routine: m.routine?.id, name: m.routine?.name, sessionID, error: String((err as Error)?.message ?? err) }) }
       return
     }
     const label = m.kind === "reply" ? `📬 Reply from ${name(m.from)}` : `📨 From ${name(m.from)} (bot message${m.priority ? ", priority" : ""})`
-    const reply = await turn(sessionID, `${label}:\n\n${m.message}`, { kind: m.kind, from: m.from, msg: m.id })
+    const reply = await turn(sessionID, `${label}:\n\n${m.message}`, { kind: m.kind, from: m.from, msg: m.id }, target.scopes)
     if (m.kind === "message" && list.some((b) => b.slug === m.from)) {
       await bots({ op: "inboxPost", msg: { from: target.slug, to: m.from, message: reply, priority: true, kind: "reply", replyTo: m.id } })
     }
@@ -128,7 +150,7 @@ export function BotDispatcher() {
       const log = (await bots({ op: "roomRead", slug: room.slug })) as { at: string; from: string; text: string }[]
       const mineIdx = log.map((e) => e.from).lastIndexOf(bot.name)
       const recent = log.slice(mineIdx + 1).slice(-20).map((e) => `${e.from}: ${e.text}`).join("\n\n")
-      const reply = await turn(sessionID, `🧑‍🤝‍🧑 Room "${room.name}" (members: ${room.members.map(name).join(", ")}). New posts since your last turn:\n\n${recent}\n\nYour reply goes to everyone in the room. Reply PASS to stay silent.`, { kind: "room", room: room.slug, msg: m.id })
+      const reply = await turn(sessionID, `🧑‍🤝‍🧑 Room "${room.name}" (members: ${room.members.map(name).join(", ")}). New posts since your last turn:\n\n${recent}\n\nYour reply goes to everyone in the room. Reply PASS to stay silent.`, { kind: "room", room: room.slug, msg: m.id }, bot.scopes)
       if (!/^\s*PASS\.?\s*$/i.test(reply)) await bots({ op: "roomPost", slug: room.slug, from: bot.name, text: reply, fanout: false })
     }
     aporiaAlerts.push({ title: `Room ${room.name}: round finished`, level: "info" })
