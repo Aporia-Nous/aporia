@@ -1,5 +1,5 @@
 // APORIA: three-column session layout. The center column is the stock OpenCode session view
-import { AlertBell, AlertToasts } from "./alerts"
+import { aporiaAlerts, AlertBell, AlertToasts } from "./alerts"
 import { UpdateWatcher } from "./update"
 import { TeammatesSection } from "./bots"
 import { BotDispatcher } from "./dispatch"
@@ -9,7 +9,7 @@ import { ReactionsLayer } from "./reactions"
 // behaviour stays upstream; this file only frames it.
 import { createEffect, createMemo, createResource, createSignal, For, lazy, onCleanup, Show, type ParentProps } from "solid-js"
 import { Portal } from "solid-js/web"
-import { MicButton } from "./dictation"
+import { MicButton, CallButton } from "./dictation"
 import { createVirtualizer } from "@tanstack/solid-virtual"
 import { useTheme } from "@opencode/ui/theme/context"
 import { useNavigate } from "@solidjs/router"
@@ -95,6 +95,19 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
   const messages = () => props.view.messages()
   const context = createMemo(() => contextTokens(messages()))
   const total = createMemo(() => tokenTotal(info()?.tokens))
+  const lastAssistantText = () => {
+    const msgs = (props.view.messages?.() ?? []) as any[]
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      const m = msgs[i]
+      if (m?.role !== "assistant") continue
+      const parts = m.parts ?? m.content
+      if (Array.isArray(parts)) {
+        const text = parts.filter((p: any) => p?.type === "text").map((p: any) => p.text ?? "").join("\n").trim()
+        if (text) return text
+      } else if (typeof parts === "string" && parts.trim()) return parts.trim()
+    }
+    return ""
+  }
 
   return (
     <div class="ap-root" classList={{ "ap-right-collapsed": !rightOpen(), "ap-rail-collapsed": !railOpen() }} data-component="aporia-layout">
@@ -125,6 +138,7 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
           />
           <AlertBell />
           <MicButton />
+          <CallButton lastReply={() => lastAssistantText()} onError={(message) => aporiaAlerts.push({ title: "Voice failed", detail: message, level: "error" })} />
           <label class="ap-search">
             <Icon name="search" size={14} />
             <input
