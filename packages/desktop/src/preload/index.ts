@@ -42,5 +42,7 @@ contextBridge.exposeInMainWorld("electron", {
     accounts: (input: unknown) => ipcRenderer.invoke("aporia:accounts", input),
     bots: (input: unknown) => ipcRenderer.invoke("aporia:bots", input),
     routines: (input: unknown) => ipcRenderer.invoke("aporia:routines", input),
+    tts: (input: unknown) => ipcRenderer.invoke("aporia:tts", input),
+    ttsVoices: () => ipcRenderer.invoke("aporia:tts-voices"),
   },
 })
