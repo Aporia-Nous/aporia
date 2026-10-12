@@ -13,7 +13,6 @@ import { usePlatform } from "@/runtime/platform/platform"
 import { useCommand } from "@/shell/commands/command"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useSettings } from "@/settings/model"
-import { WindowsAppMenu } from "./windows-menu"
 import { applyPath, backPath, forwardPath, type HistoryLocation } from "./history"
 import { TitlebarTabStrip } from "@/shell/titlebar/tab-strip"
 import { makeEventListener } from "@solid-primitives/event-listener"
@@ -535,15 +534,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                   "ps-3.5": windows(),
                 }}
               >
-                <Show when={!aporiaPrefs.layoutEnabled()}>
-                  <Show when={!mobile() && (!props.verticalTabs || windows())}>
-                    <ChannelIndicator horizontal />
-                  </Show>
-                  <Show when={windows() || linux()}>
-                    <WindowsAppMenu command={command} platform={platform} />
-                  </Show>
-                  <Show when={!mobile() && !props.verticalTabs}>{homeButton()}</Show>
-                </Show>
+                {/* APORIA: opencode's left chrome (channel logo / app menu / home) is intentionally removed — Aporetic never shows it. */}
 
                 <Show
                   when={!mobile()}

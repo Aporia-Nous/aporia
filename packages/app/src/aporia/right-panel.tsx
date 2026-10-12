@@ -6,9 +6,9 @@ import { formatTokens, tokenTotal, touchedFiles } from "./session-stats"
 import { Avatar } from "./avatar"
 import { EmptyState, Icon, type IconName } from "./icons"
 
-type Tab = "details" | "library" | "computer" | "automations" | "votel"
+type Tab = "details" | "library" | "browser" | "automations" | "votel"
 
-const TAB_ICONS: Record<Tab, IconName> = { details: "info", library: "library", computer: "monitor", automations: "sparkles", votel: "phone" }
+const TAB_ICONS: Record<Tab, IconName> = { details: "info", library: "library", browser: "monitor", automations: "sparkles", votel: "phone" }
 const VotelTab = lazy(() => import("./votel").then((m) => ({ default: m.VotelTab })))
 const AutomationsTab = lazy(() => import("./automations").then((m) => ({ default: m.AutomationsTab })))
 
@@ -27,7 +27,7 @@ export function AporiaRightPanel(props: { view: AporiaView; onClose?: () => void
         <span class="ap-muted">{props.view.working() ? "Working…" : "Ready"}</span>
       </div>
       <div class="ap-tabs" role="tablist">
-        <For each={["details", "library", "computer", "automations", "votel"] as Tab[]}>
+        <For each={["details", "library", "browser", "automations", "votel"] as Tab[]}>
           {(value) => (
             <button
               type="button"
@@ -37,7 +37,7 @@ export function AporiaRightPanel(props: { view: AporiaView; onClose?: () => void
               onClick={() => setTab(value)}
             >
               <Icon name={TAB_ICONS[value]} size={14} />
-              <span class="ap-tab-label">{value === "automations" ? "Flows" : value === "votel" ? "Votel" : value[0]!.toUpperCase() + value.slice(1)}</span>
+              <span class="ap-tab-label">{value === "automations" ? "Flows" : value === "votel" ? "Votel" : value === "browser" ? "Browser" : value[0]!.toUpperCase() + value.slice(1)}</span>
             </button>
           )}
         </For>
@@ -81,8 +81,8 @@ export function AporiaRightPanel(props: { view: AporiaView; onClose?: () => void
           <Match when={tab() === "automations"}>
             <AutomationsTab />
           </Match>
-          <Match when={tab() === "computer"}>
-            <ComputerTab />
+          <Match when={tab() === "browser"}>
+            <BrowserTab />
           </Match>
         </Switch>
       </div>
@@ -90,41 +90,41 @@ export function AporiaRightPanel(props: { view: AporiaView; onClose?: () => void
   )
 }
 
-function ComputerTab() {
-  const [draft, setDraft] = createSignal(aporiaPrefs.computerUrl())
+function BrowserTab() {
+  const [draft, setDraft] = createSignal(aporiaPrefs.browserUrl())
+  const [src, setSrc] = createSignal(aporiaPrefs.browserUrl())
+  const open = (value: string) => {
+    const url = value.trim()
+    if (!url) return
+    aporiaPrefs.setBrowserUrl(url)
+    setSrc(url)
+  }
   return (
     <div class="ap-computer">
+      <form class="ap-computer-form" onSubmit={(event) => { event.preventDefault(); open(draft()) }}>
+        <input class="ap-input" placeholder="https://example.com" value={draft()} onInput={(event) => setDraft(event.currentTarget.value)} />
+        <button type="submit" class="ap-btn">Go</button>
+      </form>
       <Show
-        when={aporiaPrefs.computerUrl()}
+        when={src()}
         fallback={
           <div class="ap-computer-empty">
             <span class="ap-empty-icon">
               <Icon name="monitor" size={20} />
             </span>
-            <strong>Not connected</strong>
-            <span class="ap-muted ap-small">Paste the noVNC URL of the agent's computer to see it live here.</span>
+            <strong>No page yet</strong>
+            <span class="ap-muted ap-small">Type a URL to view a page live inside Aporetic — no VM needed.</span>
           </div>
         }
       >
-        <iframe class="ap-computer-frame" src={aporiaPrefs.computerUrl()} title="Agent computer" />
-      </Show>
-      <form
-        class="ap-computer-form"
-        onSubmit={(event) => {
-          event.preventDefault()
-          aporiaPrefs.setComputerUrl(draft())
-        }}
-      >
-        <input
-          class="ap-input"
-          placeholder="https://…/vnc.html"
-          value={draft()}
-          onInput={(event) => setDraft(event.currentTarget.value)}
+        <iframe
+          class="ap-computer-frame"
+          src={src()}
+          title="Browser"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
         />
-        <button type="submit" class="ap-btn">
-          Save
-        </button>
-      </form>
+      </Show>
+      <span class="ap-muted ap-small">Shows the page live. Sites that block embedding won't render here — the agent-desktop mirror handles those.</span>
     </div>
   )
 }
