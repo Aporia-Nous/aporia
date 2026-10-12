@@ -8,6 +8,7 @@ import { ReactionsLayer } from "./reactions"
 // (timeline, tool runs, permission/question prompts, composer, attachments), so all agent
 // behaviour stays upstream; this file only frames it.
 import { createEffect, createMemo, createResource, createSignal, For, lazy, onCleanup, Show, type ParentProps } from "solid-js"
+import { Portal } from "solid-js/web"
 import { createVirtualizer } from "@tanstack/solid-virtual"
 import { useTheme } from "@opencode/ui/theme/context"
 import { useNavigate } from "@solidjs/router"
@@ -318,6 +319,7 @@ function AporiaSidebar(props: { directory: string; currentID?: string; currentAg
           <Icon name="settings" size={18} />
         </button>
       </div>
+      <Portal>
       <Show when={menu()}>
         {(m) => (
           <div class="ap-ctx-overlay" onClick={() => setMenu(undefined)} onContextMenu={(event) => { event.preventDefault(); setMenu(undefined) }}>
@@ -353,6 +355,7 @@ function AporiaSidebar(props: { directory: string; currentID?: string; currentAg
           </div>
         </div>
       </Show>
+      </Portal>
     </aside>
   )
 }

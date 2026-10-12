@@ -1,6 +1,7 @@
 // APORIA: Teammates sidebar section + bot editor. Bots are stored by the desktop main process (aporia-bots.ts);
 // clicking a bot opens its newest chat (agent aporia-<slug>) or starts one in its own folder.
 import { createMemo, createResource, createSignal, For, Show } from "solid-js"
+import { Portal } from "solid-js/web"
 import { useNavigate } from "@solidjs/router"
 import { Session } from "@opencode/schema/session"
 import type { SessionInfo } from "@opencode/client/promise"
@@ -122,7 +123,8 @@ function BotEditor(props: { bot: Partial<Bot>; onClose: () => void }) {
   }
   const field = { width: "100%", "box-sizing": "border-box", background: "transparent", color: "inherit", border: "1px solid var(--ap-line-strong)", "border-radius": "8px", padding: "6px 8px", font: "inherit" } as const
   return (
-    <div class="ap-overlay" role="dialog" aria-modal="true" aria-label="Bot" onClick={props.onClose}>
+    <Portal>
+      <div class="ap-overlay" role="dialog" aria-modal="true" aria-label="Bot" onClick={props.onClose}>
       <div class="ap-modal" onClick={(e) => e.stopPropagation()} data-component="aporia-bot-editor">
         <div class="ap-modal-head">
           <strong>{isNew ? "New bot" : b().name}</strong>
@@ -177,6 +179,7 @@ function BotEditor(props: { bot: Partial<Bot>; onClose: () => void }) {
         </div>
       </div>
     </div>
+    </Portal>
   )
 }
 

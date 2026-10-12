@@ -1,5 +1,6 @@
 // APORIA: group rooms. A room has several bots; Ali's posts reach all of them and they take turns (see dispatch.tsx).
 import { createResource, createSignal, For, onCleanup, Show } from "solid-js"
+import { Portal } from "solid-js/web"
 import { bots, type Bot } from "./bots"
 
 type Room = { slug: string; name: string; members: string[] }
@@ -39,6 +40,7 @@ function RoomModal(props: { room?: Room; onClose: () => void }) {
   const save = async () => setRoom(await bots({ op: "roomSave", room: { slug: room()?.slug, name: name(), members: members() } }))
   const post = async () => { if (!text().trim() || !room()) return; await bots({ op: "roomPost", slug: room()!.slug, from: "Ali", text: text() }); setText(""); void refetch() }
   return (
+    <Portal>
     <div class="ap-overlay" role="dialog" aria-modal="true" aria-label="Room" onClick={props.onClose}>
       <div class="ap-modal" onClick={(e) => e.stopPropagation()} data-component="aporia-room">
         <div class="ap-modal-head"><strong>{room()?.name ?? "New room"}</strong><button type="button" class="ap-icon-btn" aria-label="Close" onClick={props.onClose}>✕</button></div>
@@ -62,5 +64,6 @@ function RoomModal(props: { room?: Room; onClose: () => void }) {
         </Show>
       </div>
     </div>
+    </Portal>
   )
 }
