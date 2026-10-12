@@ -9,7 +9,7 @@ import { ReactionsLayer } from "./reactions"
 // behaviour stays upstream; this file only frames it.
 import { createEffect, createMemo, createResource, createSignal, For, lazy, onCleanup, Show, type ParentProps } from "solid-js"
 import { Portal } from "solid-js/web"
-import { MicButton, CallButton, ComposerMic } from "./dictation"
+import { CallButton, ComposerMic } from "./dictation"
 import { createVirtualizer } from "@tanstack/solid-virtual"
 import { useTheme } from "@opencode/ui/theme/context"
 import { useNavigate } from "@solidjs/router"
@@ -113,6 +113,10 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
     <div class="ap-root" classList={{ "ap-right-collapsed": !rightOpen(), "ap-rail-collapsed": !railOpen() }} data-component="aporia-layout">
       <Portal><AlertToasts /></Portal>
       <ComposerMic />
+      {/* Headless owner of the voice-call loop; the composer's call icon toggles it. */}
+      <div style={{ display: "none" }} aria-hidden="true">
+        <CallButton lastReply={() => lastAssistantText()} onError={(message) => aporiaAlerts.push({ title: "Voice failed", detail: message, level: "error" })} />
+      </div>
       <UpdateWatcher />
       <BotDispatcher />
       <ReactionsLayer sessionID={props.view.sessionID()} agent={info()?.agent} />
@@ -138,8 +142,6 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
             title={props.view.working() ? "Working" : "Idle"}
           />
           <AlertBell />
-          <MicButton />
-          <CallButton lastReply={() => lastAssistantText()} onError={(message) => aporiaAlerts.push({ title: "Voice failed", detail: message, level: "error" })} />
           <label class="ap-search">
             <Icon name="search" size={14} />
             <input
