@@ -19,7 +19,7 @@ export const dict = {
   "nav.home": "Startseite",
   "nav.openMenu": "Menü öffnen",
   "nav.getStartedFree": "Kostenlos starten",
-  "nav.logoAlt": "OpenCode",
+  "nav.logoAlt": "Aporetic",
 
   "nav.context.copyLogo": "Logo als SVG kopieren",
   "nav.context.copyWordmark": "Wortmarke als SVG kopieren",
@@ -41,14 +41,14 @@ export const dict = {
   "email.subscribe": "Anmelden",
   "email.success": "Fast geschafft, überprüfe deinen Posteingang und bestätige deine E-Mail-Adresse",
 
-  "notFound.title": "Nicht gefunden | OpenCode",
+  "notFound.title": "Nicht gefunden | Aporetic",
   "notFound.heading": "404 - Seite nicht gefunden",
   "notFound.home": "Startseite",
   "notFound.docs": "Dokumentation",
   "notFound.github": "GitHub",
   "notFound.discord": "Discord",
-  "notFound.logoLightAlt": "OpenCode Logo hell",
-  "notFound.logoDarkAlt": "OpenCode Logo dunkel",
+  "notFound.logoLightAlt": "Aporetic Logo hell",
+  "notFound.logoDarkAlt": "Aporetic Logo dunkel",
 
   "user.logout": "Abmelden",
 
@@ -86,25 +86,25 @@ export const dict = {
   "error.reloadAmountMin": "Aufladebetrag muss mindestens ${{amount}} betragen",
   "error.reloadTriggerMin": "Guthaben-Auslöser muss mindestens ${{amount}} betragen",
 
-  "app.meta.description": "OpenCode - Der Open-Source Coding-Agent.",
+  "app.meta.description": "Aporetic - Der Open-Source Coding-Agent.",
 
-  "home.title": "OpenCode | Der Open-Source AI-Coding-Agent",
+  "home.title": "Aporetic | Der Open-Source AI-Coding-Agent",
 
-  "temp.title": "OpenCode | Für das Terminal gebauter AI-Coding-Agent",
+  "temp.title": "Aporetic | Für das Terminal gebauter AI-Coding-Agent",
   "temp.hero.title": "Der für das Terminal gebaute AI-Coding-Agent",
-  "temp.zen": "OpenCode Zen",
+  "temp.zen": "Aporetic Zen",
   "temp.getStarted": "Loslegen",
   "temp.feature.native.title": "Native TUI",
   "temp.feature.native.body": "Eine reaktionsschnelle, native, thematisierbare Terminal-UI",
   "temp.feature.zen.beforeLink": "Eine",
   "temp.feature.zen.link": "kuratierte Liste von Modellen",
-  "temp.feature.zen.afterLink": "bereitgestellt von OpenCode",
+  "temp.feature.zen.afterLink": "bereitgestellt von Aporetic",
   "temp.feature.models.beforeLink": "Unterstützt 75+ LLM-Anbieter durch",
   "temp.feature.models.afterLink": ", einschließlich lokaler Modelle",
-  "temp.screenshot.caption": "OpenCode TUI mit dem Tokyonight-Theme",
-  "temp.screenshot.alt": "OpenCode TUI mit Tokyonight-Theme",
-  "temp.logoLightAlt": "OpenCode Logo hell",
-  "temp.logoDarkAlt": "OpenCode Logo dunkel",
+  "temp.screenshot.caption": "Aporetic TUI mit dem Tokyonight-Theme",
+  "temp.screenshot.alt": "Aporetic TUI mit Tokyonight-Theme",
+  "temp.logoLightAlt": "Aporetic Logo hell",
+  "temp.logoDarkAlt": "Aporetic Logo dunkel",
 
   "home.banner.badge": "Neu",
   "home.banner.text": "Neu: Tabs für Desktop.",
@@ -122,9 +122,9 @@ export const dict = {
 
   "home.install.ariaLabel": "Installationsoptionen",
 
-  "home.what.title": "Was ist OpenCode?",
+  "home.what.title": "Was ist Aporetic?",
   "home.what.body":
-    "OpenCode ist ein Open-Source-Agent, der dir hilft, Code in deinem Terminal, deiner IDE oder auf dem Desktop zu schreiben.",
+    "Aporetic ist ein Open-Source-Agent, der dir hilft, Code in deinem Terminal, deiner IDE oder auf dem Desktop zu schreiben.",
   "home.what.lsp.title": "LSP-fähig",
   "home.what.lsp.body": "Lädt automatisch die richtigen LSPs für das LLM",
   "home.what.multiSession.title": "Multi-Session",
@@ -143,43 +143,43 @@ export const dict = {
 
   "home.growth.title": "Der Open-Source AI-Coding-Agent",
   "home.growth.body":
-    "Mit über <strong>{{stars}}</strong> GitHub-Stars, <strong>{{contributors}}</strong> Contributors und über <strong>{{commits}}</strong> Commits wird OpenCode von über <strong>{{monthlyUsers}}</strong> Entwickler:innen jeden Monat genutzt und geschätzt.",
+    "Mit über <strong>{{stars}}</strong> GitHub-Stars, <strong>{{contributors}}</strong> Contributors und über <strong>{{commits}}</strong> Commits wird Aporetic von über <strong>{{monthlyUsers}}</strong> Entwickler:innen jeden Monat genutzt und geschätzt.",
   "home.growth.githubStars": "GitHub Stars",
   "home.growth.contributors": "Contributors",
   "home.growth.monthlyDevs": "Monatliche Devs",
 
   "home.privacy.title": "Built for privacy first",
   "home.privacy.body":
-    "OpenCode speichert keinen deiner Codes oder Kontextdaten, sodass es in datenschutzsensiblen Umgebungen arbeiten kann.",
+    "Aporetic speichert keinen deiner Codes oder Kontextdaten, sodass es in datenschutzsensiblen Umgebungen arbeiten kann.",
   "home.privacy.learnMore": "Erfahre mehr über",
   "home.privacy.link": "Datenschutz",
 
-  "home.faq.q1": "Was ist OpenCode?",
+  "home.faq.q1": "Was ist Aporetic?",
   "home.faq.a1":
-    "OpenCode ist ein Open-Source-Agent, der dir hilft, Code mit jedem KI-Modell zu schreiben und auszuführen. Er ist als Terminal-Interface, Desktop-App oder IDE-Erweiterung verfügbar.",
-  "home.faq.q2": "Wie nutze ich OpenCode?",
+    "Aporetic ist ein Open-Source-Agent, der dir hilft, Code mit jedem KI-Modell zu schreiben und auszuführen. Er ist als Terminal-Interface, Desktop-App oder IDE-Erweiterung verfügbar.",
+  "home.faq.q2": "Wie nutze ich Aporetic?",
   "home.faq.a2.before": "Der einfachste Weg zu starten ist, die",
   "home.faq.a2.link": "Einführung zu lesen",
-  "home.faq.q3": "Brauche ich zusätzliche AI-Abos, um OpenCode zu nutzen?",
+  "home.faq.q3": "Brauche ich zusätzliche AI-Abos, um Aporetic zu nutzen?",
   "home.faq.a3.p1":
-    "Nicht unbedingt, OpenCode kommt mit einer Reihe kostenloser Modelle, die du ohne Account nutzen kannst.",
+    "Nicht unbedingt, Aporetic kommt mit einer Reihe kostenloser Modelle, die du ohne Account nutzen kannst.",
   "home.faq.a3.p2.beforeZen": "Abgesehen davon kannst du jedes beliebige Coding-Modell nutzen, indem du einen",
   "home.faq.a3.p2.afterZen": " Account erstellst.",
   "home.faq.a3.p3":
-    "Während wir dazu raten, Zen zu nutzen, funktioniert OpenCode auch mit allen beliebten Anbietern wie OpenAI, Anthropic, xAI etc.",
+    "Während wir dazu raten, Zen zu nutzen, funktioniert Aporetic auch mit allen beliebten Anbietern wie OpenAI, Anthropic, xAI etc.",
   "home.faq.a3.p4.beforeLocal": "Du kannst sogar deine",
   "home.faq.a3.p4.localLink": "lokalen Modelle verbinden",
-  "home.faq.q4": "Kann ich meine bestehenden AI-Abos mit OpenCode nutzen?",
+  "home.faq.q4": "Kann ich meine bestehenden AI-Abos mit Aporetic nutzen?",
   "home.faq.a4.p1":
-    "Ja, OpenCode unterstützt Abos von allen großen Anbietern. Du kannst deine Claude Pro/Max, ChatGPT Plus/Pro oder GitHub Copilot Abos nutzen.",
-  "home.faq.q5": "Kann ich OpenCode nur im Terminal nutzen?",
-  "home.faq.a5.beforeDesktop": "Nicht mehr! OpenCode ist jetzt als App für",
+    "Ja, Aporetic unterstützt Abos von allen großen Anbietern. Du kannst deine Claude Pro/Max, ChatGPT Plus/Pro oder GitHub Copilot Abos nutzen.",
+  "home.faq.q5": "Kann ich Aporetic nur im Terminal nutzen?",
+  "home.faq.a5.beforeDesktop": "Nicht mehr! Aporetic ist jetzt als App für",
   "home.faq.a5.desktop": "Desktop",
   "home.faq.a5.and": "und",
   "home.faq.a5.web": "Web verfügbar",
-  "home.faq.q6": "Wie viel kostet OpenCode?",
+  "home.faq.q6": "Wie viel kostet Aporetic?",
   "home.faq.a6":
-    "OpenCode ist zu 100% kostenlos. Es enthält auch eine Reihe kostenloser Modelle. Zusätzliche Kosten können entstehen, wenn du andere Anbieter verbindest.",
+    "Aporetic ist zu 100% kostenlos. Es enthält auch eine Reihe kostenloser Modelle. Zusätzliche Kosten können entstehen, wenn du andere Anbieter verbindest.",
   "home.faq.q7": "Was ist mit Daten und Privatsphäre?",
   "home.faq.a7.p1":
     "Deine Daten und Informationen werden nur gespeichert, wenn du unsere kostenlosen Modelle nutzt oder teilbare Links erstellst.",
@@ -187,8 +187,8 @@ export const dict = {
   "home.faq.a7.p2.modelsLink": "unsere Modelle",
   "home.faq.a7.p2.and": "und",
   "home.faq.a7.p2.shareLink": "Share-Pages",
-  "home.faq.q8": "Ist OpenCode Open Source?",
-  "home.faq.a8.p1": "Ja, OpenCode ist vollständig Open Source. Der Quellcode ist öffentlich auf",
+  "home.faq.q8": "Ist Aporetic Open Source?",
+  "home.faq.a8.p1": "Ja, Aporetic ist vollständig Open Source. Der Quellcode ist öffentlich auf",
   "home.faq.a8.p2": "unter der",
   "home.faq.a8.mitLicense": "MIT Lizenz",
   "home.faq.a8.p3":
@@ -196,23 +196,23 @@ export const dict = {
 
   "home.zenCta.title": "Zugriff auf zuverlässige, optimierte Modelle für Coding-Agents",
   "home.zenCta.body":
-    "Zen gibt dir Zugriff auf ein handverlesenes Set an AI-Modellen, die OpenCode speziell für Coding-Agents getestet und bewertet hat. Keine Sorge wegen inkonsistenter Leistung und Qualität bei verschiedenen Anbietern – nutze validierte Modelle, die funktionieren.",
+    "Zen gibt dir Zugriff auf ein handverlesenes Set an AI-Modellen, die Aporetic speziell für Coding-Agents getestet und bewertet hat. Keine Sorge wegen inkonsistenter Leistung und Qualität bei verschiedenen Anbietern – nutze validierte Modelle, die funktionieren.",
   "home.zenCta.link": "Erfahre mehr über Zen",
 
-  "zen.title": "OpenCode Zen | Ein kuratiertes Set zuverlässiger, optimierter Modelle für Coding-Agents",
+  "zen.title": "Aporetic Zen | Ein kuratiertes Set zuverlässiger, optimierter Modelle für Coding-Agents",
   "zen.hero.title": "Zuverlässige, optimierte Modelle für Coding-Agents",
   "zen.hero.body":
-    "Zen gibt dir Zugriff auf ein kuratiertes Set an AI-Modellen, die OpenCode speziell für Coding-Agents getestet und bewertet hat. Keine Sorge wegen inkonsistenter Leistung und Qualität – nutze validierte Modelle, die funktionieren.",
+    "Zen gibt dir Zugriff auf ein kuratiertes Set an AI-Modellen, die Aporetic speziell für Coding-Agents getestet und bewertet hat. Keine Sorge wegen inkonsistenter Leistung und Qualität – nutze validierte Modelle, die funktionieren.",
 
-  "zen.faq.q1": "Was ist OpenCode Zen?",
+  "zen.faq.q1": "Was ist Aporetic Zen?",
   "zen.faq.a1":
-    "Zen ist ein kuratiertes Set an AI-Modellen, getestet und bewertet für Coding-Agents, erstellt vom Team hinter OpenCode.",
+    "Zen ist ein kuratiertes Set an AI-Modellen, getestet und bewertet für Coding-Agents, erstellt vom Team hinter Aporetic.",
   "zen.faq.q2": "Was macht Zen genauer?",
   "zen.faq.a2":
     "Zen bietet nur Modelle, die speziell für Coding-Agents getestet und bewertet wurden. Du würdest kein Buttermesser nehmen, um ein Steak zu schneiden – nutze keine schlechten Modelle zum Coden.",
   "zen.faq.q3": "Ist Zen günstiger?",
   "zen.faq.a3":
-    "Zen ist nicht gewinnorientiert. Zen gibt die Kosten der Modellanbieter an dich weiter. Je höher die Nutzung von Zen, desto besser kann OpenCode Preise verhandeln und diese an dich weitergeben.",
+    "Zen ist nicht gewinnorientiert. Zen gibt die Kosten der Modellanbieter an dich weiter. Je höher die Nutzung von Zen, desto besser kann Aporetic Preise verhandeln und diese an dich weitergeben.",
   "zen.faq.q4": "Wie viel kostet Zen?",
   "zen.faq.a4.p1.beforePricing": "Zen",
   "zen.faq.a4.p1.pricingLink": "berechnet pro Anfrage",
@@ -221,7 +221,7 @@ export const dict = {
     "Deine Gesamtkosten hängen von der Nutzung ab, und du kannst monatliche Ausgabenlimits in deinem",
   "zen.faq.a4.p2.accountLink": "Account festlegen",
   "zen.faq.a4.p3":
-    "Um die Kosten zu decken, fügt OpenCode nur eine kleine Bearbeitungsgebühr von $1.23 pro $20 Guthabenaufladung hinzu.",
+    "Um die Kosten zu decken, fügt Aporetic nur eine kleine Bearbeitungsgebühr von $1.23 pro $20 Guthabenaufladung hinzu.",
   "zen.faq.q5": "Was ist mit Daten und Privatsphäre?",
   "zen.faq.a5.beforeExceptions":
     "Alle Zen-Modelle werden in den USA gehostet. Anbieter folgen einer Zero-Retention-Policy und nutzen deine Daten nicht zum Trainieren von Modellen, mit den",
@@ -232,7 +232,7 @@ export const dict = {
   "zen.faq.a7": "Ja, du kannst die Abrechnung jederzeit deaktivieren und dein verbleibendes Guthaben nutzen.",
   "zen.faq.q8": "Kann ich Zen mit anderen Coding-Agents nutzen?",
   "zen.faq.a8":
-    "Während Zen großartig mit OpenCode funktioniert, kannst du Zen mit jedem Agent nutzen. Folge den Einrichtungsanweisungen in deinem bevorzugten Coding-Agent.",
+    "Während Zen großartig mit Aporetic funktioniert, kannst du Zen mit jedem Agent nutzen. Folge den Einrichtungsanweisungen in deinem bevorzugten Coding-Agent.",
   "zen.faq.q9": "Kann ich eine Rückerstattung erhalten?",
   "zen.faq.a9":
     "Du hast möglicherweise Anspruch auf eine Rückerstattung, wenn die Zahlung innerhalb der letzten 14 Tage erfolgt ist und du das Guthaben aus diesem Kauf nicht verwendet hast. {{contact}}, um eine Rückerstattung anzufordern.",
@@ -244,12 +244,12 @@ export const dict = {
   "zen.problem.title": "Welches Problem löst Zen?",
   "zen.problem.body":
     "Es gibt so viele Modelle, aber nur wenige funktionieren gut mit Coding-Agents. Die meisten Anbieter konfigurieren sie unterschiedlich, was zu variierenden Ergebnissen führt.",
-  "zen.problem.subtitle": "Wir beheben das für alle, nicht nur für OpenCode-Nutzer.",
+  "zen.problem.subtitle": "Wir beheben das für alle, nicht nur für Aporetic-Nutzer.",
   "zen.problem.item1": "Testen ausgewählter Modelle und Beratung mit deren Teams",
   "zen.problem.item2": "Zusammenarbeit mit Anbietern, um korrekte Bereitstellung zu sichern",
   "zen.problem.item3": "Benchmarking aller Modell-Anbieter-Kombinationen, die wir empfehlen",
   "zen.how.title": "Wie Zen funktioniert",
-  "zen.how.body": "Während wir dir raten, Zen mit OpenCode zu nutzen, kannst du Zen mit jedem Agent nutzen.",
+  "zen.how.body": "Während wir dir raten, Zen mit Aporetic zu nutzen, kannst du Zen mit jedem Agent nutzen.",
   "zen.how.step1.title": "Melde dich an und füge $20 Guthaben hinzu",
   "zen.how.step1.beforeLink": "folge den",
   "zen.how.step1.link": "Einrichtungsanweisungen",
@@ -264,7 +264,7 @@ export const dict = {
   "zen.privacy.exceptionsLink": "folgenden Ausnahmen",
 
   "go.promo.step5": "Step 5 Preview Free, ein neues Modell, ist für begrenzte Zeit kostenlos verfügbar.",
-  "go.title": "OpenCode Go | Kostengünstige Coding-Modelle für alle",
+  "go.title": "Aporetic Go | Kostengünstige Coding-Modelle für alle",
   "go.meta.description":
     "Go kostet $10/Monat, mit großzügigen Nutzungslimits und zuverlässigem Zugang zu führenden Coding-Modellen.",
   "go.hero.title": "Kostengünstige Coding-Modelle für alle",
@@ -308,7 +308,7 @@ export const dict = {
 
   "go.testimonials.brand.zen": "Zen",
   "go.testimonials.brand.go": "Go",
-  "go.testimonials.handle": "@OpenCode",
+  "go.testimonials.handle": "@Aporetic",
   "go.testimonials.dax.name": "Dax Raad",
   "go.testimonials.dax.title": "ex-CEO, Terminal Products",
   "go.testimonials.dax.quoteAfter": "hat mein Leben verändert, es ist wirklich ein No-Brainer.",
@@ -329,14 +329,14 @@ export const dict = {
   "go.testimonials.frank.quote": "Ich wünschte, ich wäre noch bei Nvidia.",
   "go.problem.title": "Welches Problem löst Go?",
   "go.problem.body":
-    "Wir konzentrieren uns darauf, die OpenCode-Erfahrung so vielen Menschen wie möglich zugänglich zu machen. OpenCode Go ist ein kostengünstiges Abonnement für $10/Monat. Es bietet großzügige Limits und zuverlässigen Zugang zu den leistungsfähigsten Open-Source-Modellen.",
+    "Wir konzentrieren uns darauf, die Aporetic-Erfahrung so vielen Menschen wie möglich zugänglich zu machen. Aporetic Go ist ein kostengünstiges Abonnement für $10/Monat. Es bietet großzügige Limits und zuverlässigen Zugang zu den leistungsfähigsten Open-Source-Modellen.",
   "go.problem.subtitle": " ",
   "go.problem.item1": "Kostengünstiges Abonnement",
   "go.problem.item2": "Großzügige Limits und zuverlässiger Zugang",
   "go.problem.item3": "Für so viele Programmierer wie möglich gebaut",
   "go.problem.item4": "Eine kuratierte, für Agentic Coding getestete Modellauswahl",
   "go.how.title": "Wie Go funktioniert",
-  "go.how.body": "Go kostet $10/Monat. Du kannst es mit OpenCode oder jedem Agenten nutzen.",
+  "go.how.body": "Go kostet $10/Monat. Du kannst es mit Aporetic oder jedem Agenten nutzen.",
   "go.how.step1.title": "Konto erstellen",
   "go.how.step1.beforeLink": "folge den",
   "go.how.step1.link": "Einrichtungsanweisungen",
@@ -352,7 +352,7 @@ export const dict = {
   "go.privacy.beforeExceptions":
     "Go-Modelle werden in den USA gehostet. Anbieter verfolgen eine Zero-Retention-Politik und nutzen deine Daten nicht für das Training von Modellen, mit den",
   "go.privacy.exceptionsLink": "folgenden Ausnahmen",
-  "go.faq.q1": "Was ist OpenCode Go?",
+  "go.faq.q1": "Was ist Aporetic Go?",
   "go.faq.a1":
     "Go ist ein kostengünstiges Abonnement, das dir zuverlässigen Zugang zu leistungsfähigen Open-Source-Modellen für Agentic Coding bietet.",
   "go.faq.q2": "Welche Modelle beinhaltet Go?",
@@ -432,13 +432,13 @@ export const dict = {
   "zen.api.error.trainingNotAllowed":
     "Dieses Modell erfasst Daten, die zur Verbesserung seiner Qualität verwendet werden, und erfordert deine ausdrückliche Zustimmung: {{consoleGoUrl}}",
   "zen.api.error.trialEnded":
-    "Die kostenlose Aktion für {{model}} ist beendet. Du kannst das Modell weiterhin nutzen, indem du OpenCode Go abonnierst - {{link}}",
+    "Die kostenlose Aktion für {{model}} ist beendet. Du kannst das Modell weiterhin nutzen, indem du Aporetic Go abonnierst - {{link}}",
 
-  "black.meta.title": "OpenCode Black | Zugriff auf die weltweit besten Coding-Modelle",
-  "black.meta.description": "Erhalte Zugriff auf Claude, GPT, Gemini und mehr mit OpenCode Black Abos.",
+  "black.meta.title": "Aporetic Black | Zugriff auf die weltweit besten Coding-Modelle",
+  "black.meta.description": "Erhalte Zugriff auf Claude, GPT, Gemini und mehr mit Aporetic Black Abos.",
   "black.hero.title": "Zugriff auf die weltweit besten Coding-Modelle",
   "black.hero.subtitle": "Einschließlich Claude, GPT, Gemini und mehr",
-  "black.title": "OpenCode Black | Preise",
+  "black.title": "Aporetic Black | Preise",
   "black.paused": "Die Anmeldung zum Black-Plan ist vorübergehend pausiert.",
   "black.plan.icon20": "Black 20 Plan",
   "black.plan.icon100": "Black 100 Plan",
@@ -457,10 +457,10 @@ export const dict = {
   "black.action.continue": "Weiter",
   "black.finePrint.beforeTerms": "Angezeigte Preise enthalten keine anfallenden Steuern",
   "black.finePrint.terms": "Nutzungsbedingungen",
-  "black.workspace.title": "OpenCode Black | Workspace wählen",
+  "black.workspace.title": "Aporetic Black | Workspace wählen",
   "black.workspace.selectPlan": "Wähle einen Workspace für diesen Plan",
   "black.workspace.name": "Workspace {{n}}",
-  "black.subscribe.title": "OpenCode Black abonnieren",
+  "black.subscribe.title": "Aporetic Black abonnieren",
   "black.subscribe.paymentMethod": "Zahlungsmethode",
   "black.subscribe.loadingPaymentForm": "Lade Zahlungsformular...",
   "black.subscribe.selectWorkspaceToContinue": "Wähle einen Workspace um fortzufahren",
@@ -472,9 +472,9 @@ export const dict = {
   "black.subscribe.processing": "Verarbeitung...",
   "black.subscribe.submit": "Abonnieren ${{plan}}",
   "black.subscribe.form.chargeNotice": "Du wirst erst belastet, wenn dein Abonnement aktiviert ist",
-  "black.subscribe.success.title": "Du bist auf der OpenCode Black Warteliste",
+  "black.subscribe.success.title": "Du bist auf der Aporetic Black Warteliste",
   "black.subscribe.success.subscriptionPlan": "Abo-Plan",
-  "black.subscribe.success.planName": "OpenCode Black {{plan}}",
+  "black.subscribe.success.planName": "Aporetic Black {{plan}}",
   "black.subscribe.success.amount": "Betrag",
   "black.subscribe.success.amountValue": "${{plan}} pro Monat",
   "black.subscribe.success.paymentMethod": "Zahlungsmethode",
@@ -503,15 +503,15 @@ export const dict = {
     "Zugriff auf Modelle, die für optimale Leistung konfiguriert sind – keine Downgrades oder Routing zu billigeren Anbietern.",
   "workspace.newUser.feature.lockin.title": "Kein Lock-in",
   "workspace.newUser.feature.lockin.body":
-    "Nutze Zen mit jedem Coding-Agent und nutze weiterhin andere Anbieter mit OpenCode, wann immer du willst.",
+    "Nutze Zen mit jedem Coding-Agent und nutze weiterhin andere Anbieter mit Aporetic, wann immer du willst.",
   "workspace.newUser.copyApiKey": "API Key kopieren",
   "workspace.newUser.copyKey": "Key kopieren",
   "workspace.newUser.copied": "Kopiert!",
   "workspace.newUser.step.enableBilling": "Abrechnung aktivieren",
   "workspace.newUser.step.login.before": "Führe",
-  "workspace.newUser.step.login.after": "aus und wähle OpenCode",
+  "workspace.newUser.step.login.after": "aus und wähle Aporetic",
   "workspace.newUser.step.pasteKey": "Füge deinen API Key ein",
-  "workspace.newUser.step.models.before": "Starte OpenCode und führe",
+  "workspace.newUser.step.models.before": "Starte Aporetic und führe",
   "workspace.newUser.step.models.after": "aus, um ein Modell zu wählen",
 
   "workspace.models.title": "Modelle",
@@ -557,10 +557,10 @@ export const dict = {
   "workspace.cost.subscriptionShort": "Abo",
 
   "workspace.keys.title": "API Keys",
-  "workspace.keys.subtitle": "Verwalte deine API Keys für den Zugriff auf OpenCode-Dienste.",
+  "workspace.keys.subtitle": "Verwalte deine API Keys für den Zugriff auf Aporetic-Dienste.",
   "workspace.keys.create": "API Key erstellen",
   "workspace.keys.placeholder": "Key-Namen eingeben",
-  "workspace.keys.empty": "Erstelle einen OpenCode Gateway API Key",
+  "workspace.keys.empty": "Erstelle einen Aporetic Gateway API Key",
   "workspace.keys.table.name": "Name",
   "workspace.keys.table.key": "Key",
   "workspace.keys.table.createdBy": "Erstellt von",
@@ -674,16 +674,16 @@ export const dict = {
   "workspace.black.time.minutes": "Minuten",
   "workspace.black.time.fewSeconds": "einige Sekunden",
   "workspace.black.subscription.title": "Abonnement",
-  "workspace.black.subscription.message": "Du hast OpenCode Black für ${{plan}} pro Monat abonniert.",
+  "workspace.black.subscription.message": "Du hast Aporetic Black für ${{plan}} pro Monat abonniert.",
   "workspace.black.subscription.ending":
-    "OpenCode Black endet mit deinem aktuellen Abrechnungszeitraum und wird nicht verlängert. Wir ziehen dich in die neue Konsole um.",
+    "Aporetic Black endet mit deinem aktuellen Abrechnungszeitraum und wird nicht verlängert. Wir ziehen dich in die neue Konsole um.",
   "workspace.black.subscription.rollingUsage": "5-Stunden-Nutzung",
   "workspace.black.subscription.weeklyUsage": "Wöchentliche Nutzung",
   "workspace.black.subscription.resetsIn": "Setzt zurück in",
   "workspace.black.subscription.useBalance": "Nutze dein verfügbares Guthaben, nachdem die Limits erreicht sind",
   "workspace.black.waitlist.title": "Warteliste",
-  "workspace.black.waitlist.joined": "Du bist auf der Warteliste für den ${{plan}} pro Monat OpenCode Black Plan.",
-  "workspace.black.waitlist.ready": "Wir sind bereit, dich in den ${{plan}} pro Monat OpenCode Black Plan aufzunehmen.",
+  "workspace.black.waitlist.joined": "Du bist auf der Warteliste für den ${{plan}} pro Monat Aporetic Black Plan.",
+  "workspace.black.waitlist.ready": "Wir sind bereit, dich in den ${{plan}} pro Monat Aporetic Black Plan aufzunehmen.",
   "workspace.black.waitlist.leave": "Warteliste verlassen",
   "workspace.black.waitlist.leaving": "Verlasse...",
   "workspace.black.waitlist.left": "Verlassen",
@@ -701,7 +701,7 @@ export const dict = {
   "workspace.lite.time.minute": "Minute",
   "workspace.lite.time.minutes": "Minuten",
   "workspace.lite.time.fewSeconds": "einige Sekunden",
-  "workspace.lite.subscription.message": "Du hast OpenCode Go abonniert.",
+  "workspace.lite.subscription.message": "Du hast Aporetic Go abonniert.",
   "workspace.lite.subscription.manage": "Abo verwalten",
   "workspace.lite.subscription.rollingUsage": "5-Stunden-Nutzung",
   "workspace.lite.subscription.rollingQuota": "5-Stunden-Kontingent",
@@ -717,17 +717,17 @@ export const dict = {
   "workspace.lite.subscription.total": "Gesamt",
   "workspace.lite.subscription.useBalance": "Nutze dein verfügbares Guthaben, nachdem die Nutzungslimits erreicht sind",
   "workspace.lite.subscription.selectProvider":
-    'Wähle "OpenCode Go" als Anbieter in deiner opencode-Konfiguration, um Go-Modelle zu verwenden.',
+    'Wähle "Aporetic Go" als Anbieter in deiner aporetic-Konfiguration, um Go-Modelle zu verwenden.',
   "workspace.lite.providers.title": "Anbieter",
   "workspace.lite.providers.description": "Steuere, welche Anbieter für das Routing verwendet werden.",
   "workspace.lite.providers.allowTraining": "Modelle zulassen, die mit Anfragedaten trainieren",
   "workspace.lite.providers.useChina": "In China gehostete Modelle aktivieren",
   "workspace.lite.black.message":
-    "Du hast derzeit OpenCode Black abonniert oder stehst auf der Warteliste. Bitte kündige zuerst, wenn du zu Go wechseln möchtest.",
+    "Du hast derzeit Aporetic Black abonniert oder stehst auf der Warteliste. Bitte kündige zuerst, wenn du zu Go wechseln möchtest.",
   "workspace.lite.other.message":
-    "Ein anderes Mitglied in diesem Workspace hat OpenCode Go bereits abonniert. Nur ein Mitglied pro Workspace kann abonnieren.",
+    "Ein anderes Mitglied in diesem Workspace hat Aporetic Go bereits abonniert. Nur ein Mitglied pro Workspace kann abonnieren.",
   "workspace.lite.promo.description":
-    "OpenCode Go kostet {{price}} und bietet zuverlässigen Zugang zu beliebten offenen Coding-Modellen mit großzügigen Nutzungslimits.",
+    "Aporetic Go kostet {{price}} und bietet zuverlässigen Zugang zu beliebten offenen Coding-Modellen mit großzügigen Nutzungslimits.",
   "workspace.lite.promo.price": "$10/Monat",
   "workspace.lite.promo.modelsTitle": "Was enthalten ist",
   "workspace.lite.promo.footer":
@@ -772,15 +772,15 @@ export const dict = {
     "Löse {{amount}} ein, um die aktuelle Nutzung dieses Workspace zu reduzieren.",
   "workspace.referral.apply.confirmAction": "Einlösen",
 
-  "download.title": "OpenCode | Download",
-  "download.meta.description": "Lade OpenCode für macOS, Windows und Linux herunter",
-  "download.hero.title": "OpenCode Desktop herunterladen",
+  "download.title": "Aporetic | Download",
+  "download.meta.description": "Lade Aporetic für macOS, Windows und Linux herunter",
+  "download.hero.title": "Aporetic Desktop herunterladen",
   "download.hero.subtitle": "In Beta verfügbar für macOS, Windows und Linux",
   "download.hero.button": "Download für {{os}}",
-  "download.section.terminal": "OpenCode Terminal",
-  "download.section.desktop": "OpenCode Desktop",
-  "download.section.extensions": "OpenCode Extensions",
-  "download.section.integrations": "OpenCode Integrationen",
+  "download.section.terminal": "Aporetic Terminal",
+  "download.section.desktop": "Aporetic Desktop",
+  "download.section.extensions": "Aporetic Extensions",
+  "download.section.integrations": "Aporetic Integrationen",
   "download.action.download": "Download",
   "download.action.install": "Installieren",
 
@@ -791,27 +791,27 @@ export const dict = {
   "download.platform.linuxRpm": "Linux (.rpm)",
 
   "download.faq.a3.beforeLocal":
-    "Nicht unbedingt, aber wahrscheinlich. Du brauchst ein AI-Abo, wenn du OpenCode mit einem bezahlten Anbieter verbinden willst, obwohl du mit",
+    "Nicht unbedingt, aber wahrscheinlich. Du brauchst ein AI-Abo, wenn du Aporetic mit einem bezahlten Anbieter verbinden willst, obwohl du mit",
   "download.faq.a3.localLink": "lokalen Modellen",
   "download.faq.a3.afterLocal.beforeZen": "kostenlos arbeiten kannst. Während wir Nutzern raten,",
   "download.faq.a3.afterZen":
-    " zu nutzen, funktioniert OpenCode mit allen populären Anbietern wie OpenAI, Anthropic, xAI etc.",
+    " zu nutzen, funktioniert Aporetic mit allen populären Anbietern wie OpenAI, Anthropic, xAI etc.",
 
-  "download.faq.a5.p1": "OpenCode ist 100% kostenlos.",
+  "download.faq.a5.p1": "Aporetic ist 100% kostenlos.",
   "download.faq.a5.p2.beforeZen":
-    "Zusätzliche Kosten entstehen durch dein Abo bei einem Modellanbieter. Während OpenCode mit jedem Modellanbieter funktioniert, empfehlen wir",
+    "Zusätzliche Kosten entstehen durch dein Abo bei einem Modellanbieter. Während Aporetic mit jedem Modellanbieter funktioniert, empfehlen wir",
   "download.faq.a5.p2.afterZen": " zu nutzen.",
 
   "download.faq.a6.p1":
-    "Deine Daten und Informationen werden nur gespeichert, wenn du teilbare Links in OpenCode erstellst.",
+    "Deine Daten und Informationen werden nur gespeichert, wenn du teilbare Links in Aporetic erstellst.",
   "download.faq.a6.p2.beforeShare": "Erfahre mehr über",
   "download.faq.a6.shareLink": "Share-Pages",
 
-  "enterprise.title": "OpenCode | Enterprise-Lösungen für Ihre Organisation",
-  "enterprise.meta.description": "Kontaktieren Sie OpenCode für Enterprise-Lösungen",
+  "enterprise.title": "Aporetic | Enterprise-Lösungen für Ihre Organisation",
+  "enterprise.meta.description": "Kontaktieren Sie Aporetic für Enterprise-Lösungen",
   "enterprise.hero.title": "Ihr Code gehört Ihnen",
   "enterprise.hero.body1":
-    "OpenCode arbeitet sicher innerhalb Ihrer Organisation, ohne dass Daten oder Kontext gespeichert werden und ohne Lizenzbeschränkungen oder Eigentumsansprüche. Starten Sie einen Testlauf mit Ihrem Team, dann rollen Sie es in Ihrer Organisation aus, indem Sie es in Ihr SSO und internes AI-Gateway integrieren.",
+    "Aporetic arbeitet sicher innerhalb Ihrer Organisation, ohne dass Daten oder Kontext gespeichert werden und ohne Lizenzbeschränkungen oder Eigentumsansprüche. Starten Sie einen Testlauf mit Ihrem Team, dann rollen Sie es in Ihrer Organisation aus, indem Sie es in Ihr SSO und internes AI-Gateway integrieren.",
   "enterprise.hero.body2": "Lassen Sie uns wissen, wie wir helfen können.",
   "enterprise.form.name.label": "Vollständiger Name",
   "enterprise.form.name.placeholder": "Jeff Bezos",
@@ -843,29 +843,29 @@ export const dict = {
   "enterprise.form.error.invalidInferenceSpend": "Wählen Sie einen gültigen Bereich für die Inferenzausgaben.",
   "enterprise.form.error.internalServer": "Interner Serverfehler.",
   "enterprise.faq.title": "FAQ",
-  "enterprise.faq.q1": "Was ist OpenCode Enterprise?",
+  "enterprise.faq.q1": "Was ist Aporetic Enterprise?",
   "enterprise.faq.a1":
-    "OpenCode Enterprise ist für Organisationen, die sicherstellen wollen, dass Code und Daten niemals ihre Infrastruktur verlassen. Dies geschieht durch eine zentrale Konfiguration, die in Ihr SSO und internes AI-Gateway integriert wird.",
-  "enterprise.faq.q2": "Wie starte ich mit OpenCode Enterprise?",
+    "Aporetic Enterprise ist für Organisationen, die sicherstellen wollen, dass Code und Daten niemals ihre Infrastruktur verlassen. Dies geschieht durch eine zentrale Konfiguration, die in Ihr SSO und internes AI-Gateway integriert wird.",
+  "enterprise.faq.q2": "Wie starte ich mit Aporetic Enterprise?",
   "enterprise.faq.a2":
-    "Starten Sie einfach mit einem internen Testlauf mit Ihrem Team. OpenCode speichert standardmäßig weder Code noch Kontextdaten, was den Einstieg erleichtert. Kontaktieren Sie uns dann, um Preise und Implementierungsoptionen zu besprechen.",
+    "Starten Sie einfach mit einem internen Testlauf mit Ihrem Team. Aporetic speichert standardmäßig weder Code noch Kontextdaten, was den Einstieg erleichtert. Kontaktieren Sie uns dann, um Preise und Implementierungsoptionen zu besprechen.",
   "enterprise.faq.q3": "Wie funktioniert das Enterprise-Pricing?",
   "enterprise.faq.a3":
     "Wir bieten eine Preisgestaltung pro Arbeitsplatz (Seat) an. Wenn Sie Ihr eigenes LLM-Gateway haben, berechnen wir keine Gebühren für genutzte Token. Für weitere Details kontaktieren Sie uns für ein individuelles Angebot basierend auf den Anforderungen Ihrer Organisation.",
-  "enterprise.faq.q4": "Sind meine Daten mit OpenCode Enterprise sicher?",
+  "enterprise.faq.q4": "Sind meine Daten mit Aporetic Enterprise sicher?",
   "enterprise.faq.a4":
-    "Ja. OpenCode speichert weder Ihren Code noch Kontextdaten. Alle Verarbeitungen finden lokal oder über direkte API-Aufrufe an Ihren AI-Anbieter statt. Mit zentraler Konfiguration und SSO-Integration bleiben Ihre Daten sicher innerhalb der Infrastruktur Ihrer Organisation.",
+    "Ja. Aporetic speichert weder Ihren Code noch Kontextdaten. Alle Verarbeitungen finden lokal oder über direkte API-Aufrufe an Ihren AI-Anbieter statt. Mit zentraler Konfiguration und SSO-Integration bleiben Ihre Daten sicher innerhalb der Infrastruktur Ihrer Organisation.",
 
-  "brand.title": "OpenCode | Marke",
-  "brand.meta.description": "OpenCode Markenrichtlinien",
+  "brand.title": "Aporetic | Marke",
+  "brand.meta.description": "Aporetic Markenrichtlinien",
   "brand.heading": "Markenrichtlinien",
-  "brand.subtitle": "Ressourcen und Assets, die dir helfen, mit der OpenCode-Marke zu arbeiten.",
+  "brand.subtitle": "Ressourcen und Assets, die dir helfen, mit der Aporetic-Marke zu arbeiten.",
   "brand.downloadAll": "Alle Assets herunterladen",
 
-  "changelog.title": "OpenCode | Changelog",
-  "changelog.meta.description": "OpenCode Release Notes und Changelog",
+  "changelog.title": "Aporetic | Changelog",
+  "changelog.meta.description": "Aporetic Release Notes und Changelog",
   "changelog.hero.title": "Changelog",
-  "changelog.hero.subtitle": "Neue Updates und Verbesserungen für OpenCode",
+  "changelog.hero.subtitle": "Neue Updates und Verbesserungen für Aporetic",
   "changelog.empty": "Keine Changelog-Einträge gefunden.",
   "changelog.viewJson": "JSON ansehen",
 
