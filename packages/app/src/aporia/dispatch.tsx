@@ -9,6 +9,7 @@ import { useServerSDK } from "@/runtime/server/client"
 import { aporiaAlerts } from "./alerts"
 import { agentFor, bots, refreshBots, type Bot } from "./bots"
 import { createDispatchScheduler } from "./dispatch-queue"
+import { buildGroundedPrompt, verifyGrounded } from "./context-grounded"
 
 type Msg = { id: string; from: string; to?: string; room?: string; message: string; priority: boolean; kind: "message" | "reply" | "room" | "routine"; created: string; fromSession?: string; routine?: { id: string; name: string }; manual?: boolean }
 const routines = (input: unknown) => (globalThis as any).electron?.aporia?.routines?.(input)
@@ -51,7 +52,20 @@ export function BotDispatcher() {
   /** Prompt a session and return the final assistant text once the turn settles. */
   async function turn(sessionID: string, text: string, metadata: Record<string, unknown>) {
     const before = Date.now()
-    await api.session.prompt({ sessionID, text, delivery: "queue", metadata: { aporia: metadata } })
+    // Grounded answers (Phase 2): hand the bot only sourced entries and require a citation.
+    let allowedIds: string[] = []
+    let promptText = text
+    try {
+      const context = (globalThis as any).electron?.aporia?.context
+      const result = context ? await context({ op: "query", q: {} }) : undefined
+      const entries = (result?.entries ?? []) as { id: string; topic: string; text: string }[]
+      const grounded = buildGroundedPrompt(text, entries)
+      allowedIds = grounded.allowedIds
+      promptText = grounded.prompt
+    } catch {
+      // no store yet — fall through and prompt as before
+    }
+    await api.session.prompt({ sessionID, text: promptText, delivery: "queue", metadata: { aporia: metadata } })
     const started = Date.now()
     let stable = 0
     while (Date.now() - started < TURN_TIMEOUT_MS) {
@@ -60,7 +74,15 @@ export function BotDispatcher() {
       const last = list.find((m: any) => m.type === "assistant" && (m.time?.created ?? 0) >= before - 1000)
       const done = last && last.time?.completed && last.finish !== "tool-calls" && !busy(sessionID)
       stable = done ? stable + 1 : 0
-      if (stable >= 2) return textOf(last) || "(no text reply)"
+      if (stable >= 2) {
+        const reply = textOf(last) || "(no text reply)"
+        // Only flag when we actually had a store to ground against.
+        if (allowedIds.length > 0) {
+          const verdict = verifyGrounded(reply, allowedIds)
+          if (!verdict.ok) return `${reply}\n\n⚠️ ungrounded (${verdict.reason})`
+        }
+        return reply
+      }
     }
     return "(timed out waiting for a reply)"
   }
