@@ -143,6 +143,10 @@ const getBase = (appId: string): Configuration => ({
   },
   win: {
     icon: `resources/icons/icon.ico`,
+    // Keep the packaged .exe named Aporia. The self-updater (scripts/aporia-update.ps1) and the
+    // Start-menu shortcut both target Aporia.exe; renaming the exe would break updates + the shortcut.
+    // Visible branding is Aporetic via productName/shortcutName/uninstallDisplayName/appx.displayName.
+    executableName: "Aporia",
     signtoolOptions: {
       sign: signWindows,
     },
