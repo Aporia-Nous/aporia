@@ -48,6 +48,8 @@ const X = (p: { onClick: () => void; label: string }) => (
   <button type="button" aria-label={p.label} onClick={p.onClick} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", "font-size": "16px", "line-height": "1", padding: "2px 4px" }}>×</button>
 )
 
+import { Portal } from "solid-js/web"
+
 export function AlertBell() {
   const [open, setOpen] = createSignal(false)
   // Newest-first list computed once per alert change, not per render.
@@ -71,7 +73,8 @@ export function AlertBell() {
         </Show>
       </button>
       <Show when={open()}>
-        <div role="dialog" aria-label="Alerts" style={{ position: "fixed", right: "16px", top: "40px", width: "340px", "max-height": "420px", overflow: "auto", background: "var(--background-base, #0f1a2e)", border: "1px solid var(--border-base, #2a3550)", "border-radius": "10px", "box-shadow": "0 10px 30px rgba(0,0,0,.35)", "z-index": 2147483001 }}>
+        <Portal>
+        <div role="dialog" aria-label="Alerts" style={{ position: "fixed", right: "16px", top: "48px", width: "340px", "max-height": "420px", overflow: "auto", background: "#0f1730", border: "1px solid #2a3550", "border-radius": "12px", "box-shadow": "0 10px 30px rgba(0,0,0,.4)", "z-index": 2147483600 }}>
           <div style={{ display: "flex", "justify-content": "space-between", padding: "10px 12px", "border-bottom": "1px solid var(--border-base, #2a3550)" }}>
             <strong>Alerts</strong>
             <button type="button" onClick={() => aporiaAlerts.clear()} disabled={!aporiaAlerts.list().length} style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", opacity: 0.8 }}>Clear all</button>
@@ -90,6 +93,7 @@ export function AlertBell() {
             )}</For>
           </Show>
         </div>
+        </Portal>
       </Show>
     </div>
   )
