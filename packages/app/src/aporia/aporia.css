@@ -484,6 +484,23 @@ button[title*="Move to background"] { display: none !important; }
 }
 .ap-ctxmenu .ap-ctx-danger:hover { background: rgb(248 113 113 / 0.16); color: #fecaca; }
 
+/* Native dropdowns (e.g. the Voice picker) render their option list with the OS theme
+   unless asked for dark — this is why the popup looked nothing like the app. */
+.ap-root select,
+.ap-details select {
+  color-scheme: dark;
+  background: var(--ap-card, #141a2b);
+  color: var(--ap-text);
+  border: 1px solid var(--ap-line);
+  border-radius: 8px;
+  padding: 5px 8px;
+}
+.ap-root select option,
+.ap-details select option {
+  background: var(--ap-card, #141a2b);
+  color: var(--ap-text, #e6e9f2);
+}
+
 /* ---- Voice call (hands-free) ---- */
 .ap-call { display: flex; flex-direction: column; gap: 12px; padding: 4px 2px; }
 .ap-call-stage { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 14px; border-radius: var(--ap-r-sm); background: linear-gradient(160deg, rgb(99 102 241 / 0.16), rgb(45 212 191 / 0.08)); border: 1px solid var(--ap-line); text-align: center; }
