@@ -4,11 +4,12 @@
 // vault-backed secrets ({vault:ASANA__CLIENT2__KEY}). Agents target an account by its tool prefix.
 // The active (default) account is recorded in accounts.json and written to an instructions file that
 // the global config loads, so agents use it unless told a label. The config watcher hot-reloads all of it.
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
+import { existsSync, readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { app, ipcMain } from "electron"
-import { applyEdits, modify, parse } from "jsonc-parser"
-import { globalConfigFile, persistMcp, validate } from "./aporia-mcp"
+import { parse } from "jsonc-parser"
+import { editConfig, globalConfigFile, updateGlobalConfig } from "./aporia-config"
+import { persistMcp, validate } from "./aporia-mcp"
 
 const SEP = "--"
 const LABEL = /^[a-z0-9][a-z0-9_]{0,30}$/
@@ -34,11 +35,10 @@ function allMcp() {
 const appOf = (name: string) => name.split(SEP)[0]
 
 function edit(file: string, keyPath: (string | number)[], value: unknown) {
-  const text = readFileSync(file, "utf8")
-  writeFileSync(file, applyEdits(text, modify(text, keyPath, value, { formattingOptions: { insertSpaces: true, tabSize: 2 } })), "utf8")
+  return updateGlobalConfig(file, editConfig(keyPath, value))
 }
 
-function writeInstructions(accounts: Accounts) {
+async function writeInstructions(accounts: Accounts) {
   const lines = ["# Connector accounts (managed by Aporia)", ""]
   for (const [appName, info] of Object.entries(accounts)) {
     const names = Object.keys(info.labels)
@@ -50,12 +50,12 @@ function writeInstructions(accounts: Accounts) {
   const file = globalConfigFile()
   const cfg = parse(readFileSync(file, "utf8"), [], { allowTrailingComma: true }) ?? {}
   const list: string[] = Array.isArray(cfg.instructions) ? cfg.instructions : []
-  if (!list.includes(instructionsFile())) edit(file, ["instructions"], [...list, instructionsFile()])
+  if (!list.includes(instructionsFile())) await edit(file, ["instructions"], [...list, instructionsFile()])
 }
 
-function save(accounts: Accounts) {
+async function save(accounts: Accounts) {
   writeFileSync(store(), JSON.stringify(accounts, null, 2))
-  writeInstructions(accounts)
+  await writeInstructions(accounts)
 }
 
 export function listAccounts() {
@@ -70,7 +70,7 @@ export function listAccounts() {
 }
 
 export function registerAporiaAccountsHandler() {
-  ipcMain.handle("aporia:accounts", (_event, input: { action?: string; app?: string; name?: string; label?: string }) => {
+  ipcMain.handle("aporia:accounts", async (_event, input: { action?: string; app?: string; name?: string; label?: string }) => {
     const accounts = readStore()
     const mcp = allMcp()
     const ensure = (a: string) => (accounts[a] ??= { active: a, labels: { [a]: "default" } })
@@ -89,16 +89,16 @@ export function registerAporiaAccountsHandler() {
           /CLIENT_ID|CLIENT_SECRET/.test(k) ? `{env:${k}}` : `{vault:${prefix}${k}}`,
         )
         const { config } = validate(name, JSON.parse(json))
-        const result = persistMcp(mcp[a].file, name, config)
+        const result = await persistMcp(mcp[a].file, name, config)
         ensure(a).labels[name] = label
-        save(accounts)
+        await save(accounts)
         return { name, backup: result.backup, vaultPrefix: prefix }
       }
       case "rename": {
         const name = String(input.name ?? ""), label = String(input.label ?? "").trim()
         if (!mcp[name] || !label || label.length > 40) throw new Error("Invalid rename")
         ensure(appOf(name)).labels[name] = label // display label only: keeps tokens and tool names stable
-        save(accounts)
+        await save(accounts)
         return { ok: true }
       }
       case "set-active": {
@@ -107,18 +107,18 @@ export function registerAporiaAccountsHandler() {
         const info = ensure(appOf(name))
         info.labels[name] ??= name.split(SEP)[1] ?? "default"
         info.active = name
-        save(accounts)
+        await save(accounts)
         return { ok: true }
       }
       case "remove": {
         // called after the renderer has disconnected (tokens revoked/cleared) via the server API
         const name = String(input.name ?? "")
         if (!mcp[name] || !name.includes(SEP)) throw new Error("Only extra accounts can be removed")
-        persistBackupAndDelete(mcp[name].file, name)
+        await persistBackupAndDelete(mcp[name].file, name)
         const info = ensure(appOf(name))
         delete info.labels[name]
         if (info.active === name) info.active = appOf(name)
-        save(accounts)
+        await save(accounts)
         return { ok: true }
       }
       default:
@@ -128,7 +128,6 @@ export function registerAporiaAccountsHandler() {
 }
 
 function persistBackupAndDelete(file: string, name: string) {
-  mkdirSync(path.dirname(file), { recursive: true })
-  writeFileSync(`${file}.aporia-bak-${new Date().toISOString().replace(/[:.]/g, "-")}`, readFileSync(file))
-  edit(file, ["mcp", name], undefined)
+  // One validated write: keeps a single `.bak` (the pre-delete contents) and prunes the old ones.
+  return updateGlobalConfig(file, editConfig(["mcp", name], undefined))
 }

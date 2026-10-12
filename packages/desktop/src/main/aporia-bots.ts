@@ -8,7 +8,7 @@ import os from "node:os"
 import path from "node:path"
 import { app, ipcMain } from "electron"
 import { parse } from "jsonc-parser"
-import { globalConfigFile, persistMcp } from "./aporia-mcp"
+import { globalConfigFile, persistMcpSync } from "./aporia-mcp"
 import { aporiaLog } from "./aporia-log"
 
 export type Routine = { id: string; name: string; cron: string; prompt: string; enabled: boolean }
@@ -259,7 +259,7 @@ export function ensureMemoryMcp() {
   const want = { type: "local", command: [node, MEMORY_MCP], enabled: true }
   const have = current?.mcp?.["aporia-memory"]
   if (have && JSON.stringify(have.command) === JSON.stringify(want.command)) return false
-  persistMcp(file, "aporia-memory", want as any) // writes a timestamped backup first
+  persistMcpSync(file, "aporia-memory", want as any) // validated write; keeps one backup
   return true
 }
 

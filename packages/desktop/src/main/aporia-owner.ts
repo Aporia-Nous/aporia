@@ -4,11 +4,10 @@
 //    (a backup is written first; turning Owner mode off removes the key again).
 // Every bridge action is appended to an activity log the UI shows. An optional daily spend cap
 // (USD, off unless set) blocks spend-type Votel calls through this bridge once reached.
-import { appendFileSync, copyFileSync, existsSync, readFileSync, writeFileSync } from "node:fs"
+import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { app, ipcMain } from "electron"
-import { applyEdits, modify } from "jsonc-parser"
-import { globalConfigFile } from "./aporia-mcp"
+import { editConfig, globalConfigFile, updateGlobalConfig } from "./aporia-config"
 import { aporiaLog } from "./aporia-log"
 
 export type OwnerState = { owner: boolean; spendCap?: number }
@@ -89,18 +88,15 @@ export function spentToday() {
   return loadSpend(todayKey()).total
 }
 
-function setEnginePermission(owner: boolean) {
-  const target = globalConfigFile()
-  const original = existsSync(target) ? readFileSync(target, "utf8") : "{}\n"
-  if (existsSync(target)) copyFileSync(target, `${target}.aporia-bak-${Date.now()}`)
-  const edits = modify(original, ["permission"], owner ? "allow" : undefined, {
-    formattingOptions: { insertSpaces: true, tabSize: 2 },
+async function setEnginePermission(owner: boolean) {
+  // Validated, serialized write: a malformed config is refused (not corrupted), one `.bak` kept.
+  await updateGlobalConfig(globalConfigFile(), editConfig(["permission"], owner ? "allow" : undefined), {
+    defaultText: "{}\n",
   })
-  writeFileSync(target, applyEdits(original, edits), "utf8")
 }
 
 export function registerAporiaOwnerHandler() {
-  ipcMain.handle("aporia:owner", (_event, input: { op: string; owner?: unknown; spendCap?: unknown }) => {
+  ipcMain.handle("aporia:owner", async (_event, input: { op: string; owner?: unknown; spendCap?: unknown }) => {
     if (input?.op === "get") return { ...ownerState(), spentToday: spentToday() }
     if (input?.op === "activity") return readActivity()
     if (input?.op === "set") {
@@ -115,7 +111,7 @@ export function registerAporiaOwnerHandler() {
               : undefined,
       }
       writeFileSync(file(), JSON.stringify(next, null, 2))
-      if (next.owner !== prev.owner) setEnginePermission(next.owner)
+      if (next.owner !== prev.owner) await setEnginePermission(next.owner)
       logActivity({
         kind: "settings",
         detail: `Owner mode ${next.owner ? "on" : "off"}; spend cap ${next.spendCap ? `$${next.spendCap}/day` : "off"}`,
