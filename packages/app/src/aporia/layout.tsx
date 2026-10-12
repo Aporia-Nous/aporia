@@ -413,6 +413,7 @@ function VoiceCallHost(props: { sessionID?: string; lastReply: () => string }) {
     }
     if (insertIntoComposer(text)) sendPrompt()
   })
+  ;(globalThis as any).__aporiaLastReply = props.lastReply
   let spoken = ""
   createEffect(() => {
     setCallSession(props.sessionID)
