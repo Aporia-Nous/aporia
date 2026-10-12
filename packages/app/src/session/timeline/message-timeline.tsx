@@ -42,25 +42,8 @@ type SessionBackground = {
 }
 
 export function BackgroundMoveHint(props: { keybind?: string[]; onMove?: () => void }) {
-  const language = useLanguage()
-  const command = useCommand()
-  const keys = () => props.keybind ?? command.keybindParts("session.background")
-  const keybind = () => props.keybind?.join("+") ?? command.keybind("session.background")
-
-  return (
-    <Button
-      data-component="session-background-hint"
-      type="button"
-      variant="ghost-faint"
-      size="small"
-      class="max-w-full"
-      aria-label={language.t("session.background.moveInline", { keybind: keybind() })}
-      onClick={() => props.onMove?.()}
-    >
-      <span class="min-w-0 truncate">{language.t("session.background.moveRunning")}</span>
-      <Keybind keys={keys()} variant="neutral" />
-    </Button>
-  )
+  void props
+  return null
 }
 
 type MessageTimelineProps = {

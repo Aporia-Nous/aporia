@@ -1,11 +1,19 @@
 // APORIA: local voice — push-to-talk dictation (Whisper) + speak (Kokoro) + call mode loop.
 import { createEffect, createSignal, onCleanup } from "solid-js"
+import { Icon } from "./icons"
 
 type Bridge = {
   stt?: (input: { pcm: number[] }) => Promise<{ text?: string }>
   tts?: (input: { text: string; voice?: string }) => Promise<{ wav: string }>
 }
 const bridge = () => (globalThis as any).electron?.aporia as Bridge | undefined
+
+const MIC_SVG =
+  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/><path d="M8 21h8"/></svg>'
+const STOP_SVG =
+  '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>'
+const PHONE_SVG =
+  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92Z"/></svg>'
 
 export async function speak(text: string, voice?: string): Promise<void> {
   const clean = (text || "").trim()
@@ -107,7 +115,7 @@ export function MicButton(props: { class?: string }) {
         void startRecording(() => setState("idle"), false).catch(() => setState("idle"))
       }}
     >
-      {state() === "rec" ? "⏹" : state() === "busy" ? "…" : "🎤"}
+      {state() === "rec" ? <span innerHTML={STOP_SVG} /> : <Icon name="mic" size={16} />}
     </button>
   )
 }
@@ -118,23 +126,36 @@ export function ComposerMic() {
     const inject = () => {
       const composer = document.querySelector<HTMLElement>('[data-component="composer"]')
       if (!composer || composer.querySelector("[data-aporia-mic]")) return
-      const btn = document.createElement("button")
-      btn.type = "button"
-      btn.setAttribute("data-aporia-mic", "")
-      btn.className = "ap-icon-btn ap-mic-inline"
-      btn.title = "Dictate"
-      btn.textContent = "🎤"
-      let recording = false
-      btn.onclick = () => {
-        if (recording) { stopRecording(); recording = false; btn.textContent = "🎤"; return }
-        recording = true
-        btn.textContent = "⏹"
-        void startRecording(() => { recording = false; btn.textContent = "🎤" }, false).catch(() => { recording = false; btn.textContent = "🎤" })
-      }
       const buttons = [...composer.querySelectorAll("button")]
       const send = buttons.find((b) => b.type === "submit") ?? buttons[buttons.length - 1]
-      if (send?.parentElement) send.parentElement.insertBefore(btn, send)
-      else composer.appendChild(btn)
+      const parent = send?.parentElement ?? composer
+
+      // Voice call — toggles the header Call, which owns the listen→speak loop.
+      const call = document.createElement("button")
+      call.type = "button"
+      call.setAttribute("data-aporia-call-inline", "")
+      call.className = "ap-icon-btn ap-mic-inline"
+      call.title = "Voice call"
+      call.innerHTML = PHONE_SVG
+      call.onclick = () => document.querySelector<HTMLButtonElement>("[data-aporia-call]")?.click()
+
+      // Dictation mic.
+      const mic = document.createElement("button")
+      mic.type = "button"
+      mic.setAttribute("data-aporia-mic", "")
+      mic.className = "ap-icon-btn ap-mic-inline"
+      mic.title = "Dictate"
+      mic.innerHTML = MIC_SVG
+      let recording = false
+      mic.onclick = () => {
+        if (recording) { stopRecording(); recording = false; mic.innerHTML = MIC_SVG; return }
+        recording = true
+        mic.innerHTML = STOP_SVG
+        void startRecording(() => { recording = false; mic.innerHTML = MIC_SVG }, false).catch(() => { recording = false; mic.innerHTML = MIC_SVG })
+      }
+
+      parent.insertBefore(call, send ?? null)
+      parent.insertBefore(mic, send ?? null)
     }
     inject()
     const observer = new MutationObserver(inject)
@@ -175,12 +196,13 @@ export function CallButton(props: { lastReply: () => string; onError?: (message:
     <button
       type="button"
       class="ap-icon-btn"
+      data-aporia-call=""
       title={on() ? "Hang up" : "Voice call"}
       aria-label="Voice call"
       style={on() ? { color: "#f87171" } : undefined}
       onClick={toggle}
     >
-      {on() ? "⏹" : "📞"}
+      {on() ? <span innerHTML={STOP_SVG} /> : <Icon name="phone" size={16} />}
     </button>
   )
 }
