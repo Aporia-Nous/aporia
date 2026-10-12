@@ -171,31 +171,32 @@ export function ComposerMic() {
   return null
 }
 export function CallButton(props: { lastReply: () => string; onError?: (message: string) => void }) {
-  const [on, setOn] = createSignal((typeof localStorage !== "undefined" && localStorage.getItem("aporia.call")) === "on")
+  const [on, setOn] = createSignal(false)
+  const [recording, setRecording] = createSignal(false)
   let spoken = ""
 
-  const listenAgain = () => {
+  const listen = () => {
     if (!on()) return
-    void startRecording(() => { /* reply effect will speak */ }, true).catch((e) => props.onError?.(String(e)))
+    setRecording(true)
+    void startRecording(() => setRecording(false), true).catch((e) => { setRecording(false); props.onError?.(String(e)) })
   }
 
   createEffect(() => {
     if (!on()) return
-    // Track the latest assistant reply; when it changes, speak it, then listen again.
     const text = props.lastReply()
     if (!text || text === spoken) return
     spoken = text
+    setRecording(false)
     void speak(text)
-      .then(() => listenAgain())
+      .then(() => { if (on()) listen() })
       .catch((e) => props.onError?.(e instanceof Error ? e.message : String(e)))
   })
 
+  // Push-to-talk: not on -> start (listen); recording -> stop+send; idle on -> listen again.
   const toggle = () => {
-    const next = !on()
-    setOn(next)
-    try { localStorage.setItem("aporia.call", next ? "on" : "off") } catch { /* ignore */ }
-    if (next) listenAgain()
-    else stopRecording()
+    if (!on()) { setOn(true); spoken = props.lastReply(); listen(); return }
+    if (recording()) { stopRecording(); setRecording(false); return }
+    listen()
   }
 
   return (
@@ -203,12 +204,12 @@ export function CallButton(props: { lastReply: () => string; onError?: (message:
       type="button"
       class="ap-icon-btn"
       data-aporia-call=""
-      title={on() ? "Hang up" : "Voice call"}
+      title={!on() ? "Start voice call" : recording() ? "Stop and send" : "Listening…"}
       aria-label="Voice call"
-      style={on() ? { color: "#f87171" } : undefined}
+      style={on() ? { color: recording() ? "#f87171" : "#2dd4bf" } : undefined}
       onClick={toggle}
     >
-      {on() ? <span innerHTML={STOP_SVG} /> : <Icon name="phone" size={16} />}
+      {on() && recording() ? <span innerHTML={STOP_SVG} /> : <Icon name="phone" size={16} />}
     </button>
   )
 }
