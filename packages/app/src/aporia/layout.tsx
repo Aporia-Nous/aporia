@@ -10,7 +10,7 @@ import { ReactionsLayer } from "./reactions"
 import { createEffect, createMemo, createResource, createSignal, For, lazy, onCleanup, Show, type ParentProps } from "solid-js"
 import { Portal } from "solid-js/web"
 import { ComposerMic, insertIntoComposer, sendPrompt } from "./dictation"
-import { call, endAgentTurn, sayReply, setCallSender, setCallSession, splitSpeakable } from "./call"
+import { call, endAgentTurn, sayReply, setCallSender, setCallSession } from "./call"
 import { createVirtualizer } from "@tanstack/solid-virtual"
 import { useTheme } from "@opencode/ui/theme/context"
 import { useNavigate } from "@solidjs/router"
@@ -422,34 +422,25 @@ function VoiceCallHost(props: { sessionID?: string; lastReply: () => string; wor
   })
   ;(globalThis as any).__aporiaLastReply = props.lastReply
 
-  let prevText = ""
-  let spokenChars = 0
-
-  const flushTail = () => {
-    const text = props.lastReply() ?? ""
-    const tail = text.slice(spokenChars)
-    if (tail.trim()) { sayReply(tail); spokenChars = text.length }
+  // Speak ONLY the agent's finished response — never the thinking/tool/shell steps.
+  let lastSpoken = ""
+  const speakFinal = () => {
+    const text = (props.lastReply() ?? "").trim()
+    if (!text || text === lastSpoken) return
+    lastSpoken = text
+    sayReply(text)
   }
-
-  // Stream the reply: speak each complete sentence as it appears.
   createEffect(() => {
     setCallSession(props.sessionID)
-    const text = props.lastReply() ?? ""
-    const st = call.state()
-    if (!call.active || st === "connecting") { prevText = text; spokenChars = text.length; return }
-    if (!text.startsWith(prevText)) { prevText = text; spokenChars = 0 } else { prevText = text }
-    if (spokenChars < text.length) {
-      const { say } = splitSpeakable(text.slice(spokenChars))
-      if (say) { sayReply(say); spokenChars += say.length }
-    }
+    if (!call.active) lastSpoken = (props.lastReply() ?? "").trim()
   })
 
-  // Turn end: the agent stopped working — flush the tail and hand the mic back.
+  // Turn end: the agent stopped working — speak its final answer and hand the mic back.
   let sawWorking = false
   const timer = setInterval(() => {
     if (!call.active) { sawWorking = false; return }
     if (props.working()) { sawWorking = true; return }
-    if (sawWorking) { sawWorking = false; flushTail(); endAgentTurn() }
+    if (sawWorking) { sawWorking = false; speakFinal(); endAgentTurn() }
   }, 700)
   onCleanup(() => clearInterval(timer))
 
