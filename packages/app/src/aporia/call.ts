@@ -299,3 +299,16 @@ if (typeof window !== "undefined") {
 }
 
 export function openCallUi() { setCallUiRequest((n) => n + 1) }
+
+// Dev diagnostics: inspect/drive the call from the DevTools console (no effect in normal use).
+;(globalThis as any).__aporiaCall = {
+  get state() { return state() },
+  get lines() { return lines() },
+  get error() { return error() },
+  get active() { return call.active },
+  get muted() { return muted() },
+  start: () => startVoiceCall(),
+  hangup: () => hangup(),
+  send: (t: string) => sendHandler?.(t),
+  speak: (t: string) => speak(t),
+}

@@ -400,14 +400,18 @@ function VoiceCallHost(props: { sessionID?: string; lastReply: () => string }) {
   const sdk = useServerSDK()
   // Spoken turns go to the agent through the synthetic (hidden) channel so they never
   // appear as chat prompts — only the agent's replies show. Falls back to the composer.
-  setCallSender((text) => {
+  setCallSender(async (text) => {
     const sessionID = props.sessionID
     const synthetic = (sdk.api as any)?.session?.synthetic
-    if (!sessionID || typeof synthetic !== "function") {
-      if (insertIntoComposer(text)) sendPrompt()
-      return
+    if (sessionID && typeof synthetic === "function") {
+      try {
+        await synthetic({ sessionID, text, resume: true })
+        return
+      } catch {
+        // fall through to the composer so the turn still reaches the agent
+      }
     }
-    return synthetic({ sessionID, text })
+    if (insertIntoComposer(text)) sendPrompt()
   })
   let spoken = ""
   createEffect(() => {
