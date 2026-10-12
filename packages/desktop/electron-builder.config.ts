@@ -196,9 +196,9 @@ function getConfig() {
       return {
         ...base,
         appId,
-        productName: "Aporia Dev",
+        productName: "Aporetic Dev",
         deb: { fpm: [metainfoFpm(appId)] },
-        rpm: { packageName: "aporia-dev", fpm: [metainfoFpm(appId)] },
+        rpm: { packageName: "aporetic-dev", fpm: [metainfoFpm(appId)] },
       }
     }
 
@@ -206,11 +206,11 @@ function getConfig() {
       return {
         ...base,
         appId,
-        productName: "Aporia Beta",
-        protocols: { name: "Aporia Beta", schemes: ["aporia"] },
+        productName: "Aporetic Beta",
+        protocols: { name: "Aporetic Beta", schemes: ["aporia"] },
         publish: null, // APORIA: no OpenCode update feed
         deb: { fpm: [metainfoFpm(appId)] },
-        rpm: { packageName: "aporia-beta", fpm: [metainfoFpm(appId)] },
+        rpm: { packageName: "aporetic-beta", fpm: [metainfoFpm(appId)] },
       }
     }
 
@@ -218,11 +218,11 @@ function getConfig() {
       return {
         ...base,
         appId,
-        productName: "Aporia",
-        protocols: { name: "Aporia", schemes: ["aporia"] },
+        productName: "Aporetic",
+        protocols: { name: "Aporetic", schemes: ["aporia"] },
         publish: null, // APORIA: no OpenCode update feed
         deb: { fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },
-        rpm: { packageName: "aporia", fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },
+        rpm: { packageName: "aporetic", fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },
       }
     }
   }
