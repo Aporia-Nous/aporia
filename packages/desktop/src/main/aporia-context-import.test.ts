@@ -61,3 +61,23 @@ test("handleImport a second time adds nothing", () => {
   expect(handleImport(s, sess).added).toBe(0)
 })
 
+test("skips a message with no id (never writes a fabricated source)", () => {
+  const s = createContextStore(mkdtempSync(join(tmpdir(), "ctx-")))
+  const { planned, skipped } = planImport(
+    [{ id: "ses_1", title: "T", messages: [{ id: "", role: "user", text: "hi" }] }],
+    s,
+  )
+  expect(planned).toHaveLength(0)
+  expect(skipped).toBe(1)
+})
+
+test("skips a message when the session has no id", () => {
+  const s = createContextStore(mkdtempSync(join(tmpdir(), "ctx-")))
+  const { planned, skipped } = planImport(
+    [{ id: "", title: "T", messages: [{ id: "m1", role: "user", text: "hi" }] }],
+    s,
+  )
+  expect(planned).toHaveLength(0)
+  expect(skipped).toBe(1)
+})
+

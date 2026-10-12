@@ -2,7 +2,7 @@ import { test, expect } from "bun:test"
 import { mkdtempSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { createContextStore, entryId, handleContext } from "./aporia-context"
+import { createContextStore, entryId, handleContext, contextDir } from "./aporia-context"
 
 test("add + all round-trips an entry with its source", () => {
   const dir = mkdtempSync(join(tmpdir(), "ctx-"))
@@ -59,4 +59,23 @@ test("handleContext dispatches all/add/query and throws on an unknown op", () =>
   expect((handleContext(store, { op: "query", q: { topic: "t" } }) as any).entries).toHaveLength(1)
   expect(() => handleContext(store, { op: "nope" })).toThrow()
 })
+
+test("add refuses an entry with no source ref", () => {
+  const s = createContextStore(mkdtempSync(join(tmpdir(), "ctx-")))
+  expect(() => s.add({ topic: "t", tags: [], text: "x", source: { kind: "session", ref: "" } })).toThrow()
+})
+
+test("add refuses a non-string text or non-array tags", () => {
+  const s = createContextStore(mkdtempSync(join(tmpdir(), "ctx-")))
+  expect(() => s.add({ topic: "t", tags: "nope" as any, text: "x", source: { kind: "session", ref: "r" } })).toThrow()
+  expect(() => s.add({ topic: "t", tags: [], text: 123 as any, source: { kind: "session", ref: "r" } })).toThrow()
+})
+
+test("contextDir is undefined without APORIA_HOME and joins otherwise", () => {
+  expect(contextDir(undefined)).toBeUndefined()
+  expect(contextDir("")).toBeUndefined()
+  expect(contextDir("C:\\home")).toBe(join("C:\\home", "context"))
+})
+
+
 

@@ -28,6 +28,12 @@ export type ContextStore = {
   has(id: string): boolean
 }
 
+/** Where the store lives. Returns undefined (store disabled) when APORIA_HOME is missing, so we never write to the CWD. */
+export function contextDir(home: string | undefined): string | undefined {
+  if (!home || !home.trim()) return undefined
+  return join(home, "context")
+}
+
 /** Stable id for an entry: same source+topic+text always yields the same id, so import is idempotent. */
 export function entryId(e: Omit<Entry, "id" | "created">): string {
   return createHash("sha256").update(`${e.source.ref}\n${e.topic}\n${e.text}`).digest("hex")
@@ -53,6 +59,12 @@ export function createContextStore(dir: string): ContextStore {
   }
   return {
     add(input) {
+      if (!input || typeof input.topic !== "string" || typeof input.text !== "string" || !Array.isArray(input.tags)) {
+        throw new Error("context entry requires a string topic, string text, and array tags")
+      }
+      if (!input.source || typeof input.source.ref !== "string" || !input.source.ref.trim()) {
+        throw new Error("context entry requires a non-empty source ref")
+      }
       const id = entryId(input)
       const existing = index.get(id)
       if (existing) return existing

@@ -15,7 +15,8 @@ export function planImport(sessions: SessionLike[], store: ContextStore): Import
     const topic = session.title?.trim() || "untitled"
     for (const message of session.messages ?? []) {
       const text = (message.text ?? "").trim()
-      if (!text) {
+      if (!text || !session?.id || !message?.id) {
+        // Never write an entry without a real source — skip and count it.
         skipped++
         continue
       }

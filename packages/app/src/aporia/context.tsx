@@ -14,8 +14,18 @@ export function SettingsContext() {
   const [entries, setEntries] = createSignal<Entry[]>([])
   const [busy, setBusy] = createSignal(false)
   const [query, setQuery] = createSignal("")
+  const [error, setError] = createSignal("")
 
-  const load = async () => { setEntries(((await bridge()?.({ op: "all" }))?.entries ?? []) as Entry[]) }
+  const load = async () => {
+    try {
+      const result = await bridge()?.({ op: "all" })
+      setEntries((result?.entries ?? []) as Entry[])
+      setError("")
+    } catch (e) {
+      // A missing handler (e.g. APORIA_HOME unset) must be visible, not a silent empty list.
+      setError(String((e as Error)?.message ?? e))
+    }
+  }
   onMount(() => { void load() })
 
   const topics = () =>
@@ -29,8 +39,10 @@ export function SettingsContext() {
     try {
       const sessions = (((await (sdk.api as any).session.list({ limit: 2000 }))?.data) ?? []) as any[]
       const payload: unknown[] = []
+      let truncated = 0
       for (const s of sessions) {
         const msgs = (((await (sdk.api as any).message.list({ sessionID: s.id, limit: 100, order: "asc" }))?.data) ?? []) as any[]
+        if (msgs.length >= 100) truncated++
         payload.push({
           id: s.id,
           title: s.title ?? "",
@@ -39,7 +51,11 @@ export function SettingsContext() {
       }
       const r = await bridge()!({ op: "import", sessions: payload })
       setEntries((r?.entries ?? []) as Entry[])
-      aporiaAlerts.push({ title: "Chats imported", detail: `${r?.added ?? 0} entries added, ${r?.skipped ?? 0} skipped.`, level: "success" })
+      aporiaAlerts.push({
+        title: "Chats imported",
+        detail: `${r?.added ?? 0} entries added, ${r?.skipped ?? 0} skipped${truncated ? `, ${truncated} long chats capped at 100 messages` : ""}.`,
+        level: "success",
+      })
     } catch (e) {
       aporiaAlerts.push({ title: "Import failed", detail: String((e as Error)?.message ?? e), level: "error" })
     } finally {
@@ -62,6 +78,9 @@ export function SettingsContext() {
       </div>
       <Show when={!bridge()}>
         <div style={{ opacity: 0.7 }}>The context store is available in the Aporetic desktop app.</div>
+      </Show>
+      <Show when={error()}>
+        <div style={{ color: "#e5484d" }}>Context store unavailable: {error()}</div>
       </Show>
       <div style={{ display: "flex", gap: "8px", "align-items": "center" }}>
         <input placeholder="Search topics" value={query()} onInput={(e) => setQuery(e.currentTarget.value)} style={{ ...box, flex: 1 }} />
