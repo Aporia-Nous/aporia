@@ -483,3 +483,31 @@ button[title*="Move to background"] { display: none !important; }
   color: #f87171; font-weight: 600;
 }
 .ap-ctxmenu .ap-ctx-danger:hover { background: rgb(248 113 113 / 0.16); color: #fecaca; }
+
+/* ---- Voice call (hands-free) ---- */
+.ap-call { display: flex; flex-direction: column; gap: 12px; padding: 4px 2px; }
+.ap-call-stage { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 14px; border-radius: var(--ap-r-sm); background: linear-gradient(160deg, rgb(99 102 241 / 0.16), rgb(45 212 191 / 0.08)); border: 1px solid var(--ap-line); text-align: center; }
+.ap-call-halo { display: grid; place-items: center; border-radius: 999px; padding: 6px; transition: box-shadow 300ms ease; }
+.ap-call-halo-live { animation: ap-call-pulse 2s ease-out infinite; }
+.ap-call-halo-speaking { box-shadow: 0 0 0 6px rgb(129 140 248 / 0.35); }
+@keyframes ap-call-pulse { 0% { box-shadow: 0 0 0 0 rgb(45 212 191 / 0.45); } 70% { box-shadow: 0 0 0 16px rgb(45 212 191 / 0); } 100% { box-shadow: 0 0 0 0 rgb(45 212 191 / 0); } }
+.ap-call-name { font-size: 15px; }
+.ap-call-status { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ap-muted); }
+.ap-call-meter { display: flex; align-items: flex-end; gap: 3px; height: 44px; margin: 4px 0; }
+.ap-call-bar { width: 3px; min-height: 2px; border-radius: 2px; background: linear-gradient(180deg, #2dd4bf, #6366f1); transition: height 90ms linear; }
+.ap-call-actions { display: flex; gap: 8px; margin-top: 4px; }
+.ap-call-btn { padding: 8px 16px; border-radius: 999px; border: 1px solid var(--ap-line); background: transparent; color: var(--ap-text); font: inherit; font-weight: 600; cursor: pointer; transition: background 120ms ease; }
+.ap-call-btn:hover { background: var(--ap-hover); }
+.ap-call-start { background: linear-gradient(180deg, #6366f1, #4f46e5); border-color: transparent; color: #fff; }
+.ap-call-hang { background: #f87171; border-color: transparent; color: #1a0f0f; }
+.ap-call-text-toggle { margin-top: 2px; background: none; border: 0; color: var(--ap-muted); font: inherit; font-size: 12px; text-decoration: underline; cursor: pointer; }
+.ap-call-transcript { display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow-y: auto; padding: 8px; border-radius: var(--ap-r-sm); background: rgb(0 0 0 / 0.18); border: 1px solid var(--ap-line); }
+.ap-call-line { display: flex; flex-direction: column; gap: 1px; font-size: 13px; line-height: 1.35; }
+.ap-call-who { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ap-muted); }
+.ap-call-you .ap-call-who { color: #2dd4bf; }
+.ap-call-saved { display: flex; flex-direction: column; gap: 6px; }
+.ap-call-saved-label { padding-left: 0; }
+.ap-call-saved-item { border: 1px solid var(--ap-line); border-radius: var(--ap-r-sm); overflow: hidden; }
+.ap-call-saved-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; background: none; border: 0; color: var(--ap-text); font: inherit; font-size: 12px; cursor: pointer; }
+.ap-call-saved-head:hover { background: var(--ap-hover); }
+.ap-call-saved-item .ap-call-transcript { border: 0; border-top: 1px solid var(--ap-line); border-radius: 0; }

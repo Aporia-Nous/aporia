@@ -9,7 +9,8 @@ import { ReactionsLayer } from "./reactions"
 // behaviour stays upstream; this file only frames it.
 import { createEffect, createMemo, createResource, createSignal, For, lazy, onCleanup, Show, type ParentProps } from "solid-js"
 import { Portal } from "solid-js/web"
-import { CallButton, ComposerMic } from "./dictation"
+import { ComposerMic } from "./dictation"
+import { call, setCallSession, speakReply } from "./call"
 import { createVirtualizer } from "@tanstack/solid-virtual"
 import { useTheme } from "@opencode/ui/theme/context"
 import { useNavigate } from "@solidjs/router"
@@ -78,6 +79,16 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
   const toggleRight = () => { const next = !rightOpen(); setRightOpen(next); aporiaPrefs.setRightPanelOpen(next) }
   const [railOpen, setRailOpen] = createSignal(aporiaPrefs.leftRailOpen())
   const toggleRail = () => { const next = !railOpen(); setRailOpen(next); aporiaPrefs.setLeftRailOpen(next) }
+  // The composer phone icon (or anything) can ask for the Call tab to be shown.
+  const [callTab, setCallTab] = createSignal(false)
+  let seenCallUi = call.uiRequest()
+  createEffect(() => {
+    const n = call.uiRequest()
+    if (n === seenCallUi) return
+    seenCallUi = n
+    setRightOpen(true)
+    setCallTab(true)
+  })
   const theme = useTheme()
   // Sticky Aporetic theme: re-applied whenever it drifts (imported settings, old app state), unless opted out.
   createEffect(() => {
@@ -113,10 +124,8 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
     <div class="ap-root" classList={{ "ap-right-collapsed": !rightOpen(), "ap-rail-collapsed": !railOpen() }} data-component="aporia-layout">
       <Portal><AlertToasts /></Portal>
       <ComposerMic />
-      {/* Headless owner of the voice-call loop; the composer's call icon toggles it. */}
-      <div style={{ display: "none" }} aria-hidden="true">
-        <CallButton lastReply={() => lastAssistantText()} onError={(message) => aporiaAlerts.push({ title: "Voice failed", detail: message, level: "error" })} />
-      </div>
+      {/* Headless voice-call loop: speaks each new agent reply while a call is active. */}
+      <VoiceCallHost sessionID={props.view.sessionID()} lastReply={() => lastAssistantText()} />
       <UpdateWatcher />
       <BotDispatcher />
       <ReactionsLayer sessionID={props.view.sessionID()} agent={info()?.agent} />
@@ -170,7 +179,7 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
           </Show>
         </footer>
       </main>
-      <Show when={rightOpen()}><AporiaRightPanel view={props.view} onClose={toggleRight} /></Show>
+      <Show when={rightOpen()}><AporiaRightPanel view={props.view} onClose={toggleRight} callTab={callTab()} onCallTabHandled={() => setCallTab(false)} /></Show>
       <Show when={connectOpen()}>
         <ConnectAppsModal
           directory={props.view.directory()}
@@ -383,6 +392,27 @@ function AporiaSidebar(props: { directory: string; currentID?: string; currentAg
       </Portal>
     </aside>
   )
+}
+
+/** Headless: keeps the voice-call loop alive regardless of which panel is open.
+ *  When a call is active, each new agent reply is spoken with the local TTS. */
+function VoiceCallHost(props: { sessionID?: string; lastReply: () => string }) {
+  let spoken = ""
+  createEffect(() => {
+    setCallSession(props.sessionID)
+    const st = call.state()
+    const text = props.lastReply()
+    if (st === "connecting") { spoken = text; return }
+    if (st !== "listening" && st !== "thinking" && st !== "speaking") return
+    if (!text || text === spoken) return
+    spoken = text
+    void speakReply(text)
+  })
+  createEffect(() => {
+    const message = call.error()
+    if (message) aporiaAlerts.push({ title: "Voice failed", detail: message, level: "error" })
+  })
+  return null
 }
 
 /** Home screen: same frame, no session selected. */

@@ -66,6 +66,11 @@ function submitComposer() {
   document.querySelector<HTMLButtonElement>('[data-action="composer-submit"]')?.click()
 }
 
+/** Send whatever is in the composer (used by voice call / dictation). */
+export function sendPrompt() {
+  submitComposer()
+}
+
 // ---- recording (shared by dictation + call mode) ----
 let active: { rec: MediaRecorder; stream: MediaStream; chunks: Blob[] } | undefined
 
@@ -136,14 +141,19 @@ export function ComposerMic() {
       const send = buttons.find((b) => b.type === "submit") ?? buttons[buttons.length - 1]
       const parent = send?.parentElement ?? composer
 
-      // Voice call — toggles the header Call, which owns the listen→speak loop.
-      const call = document.createElement("button")
-      call.type = "button"
-      call.setAttribute("data-aporia-call-inline", "")
-      call.className = "ap-icon-btn ap-mic-inline"
-      call.title = "Voice call"
-      call.innerHTML = PHONE_SVG
-      call.onclick = () => document.querySelector<HTMLButtonElement>("[data-aporia-call]")?.click()
+      // Voice call — starts the hands-free call engine (VAD loop) and opens the Call tab.
+      const callBtn = document.createElement("button")
+      callBtn.type = "button"
+      callBtn.setAttribute("data-aporia-call-inline", "")
+      callBtn.className = "ap-icon-btn ap-mic-inline"
+      callBtn.title = "Start voice call"
+      callBtn.innerHTML = PHONE_SVG
+      callBtn.onclick = () => {
+        const on = callBtn.classList.toggle("ap-call-on")
+        callBtn.title = on ? "Hang up" : "Start voice call"
+        callBtn.style.color = on ? "#2dd4bf" : ""
+        window.dispatchEvent(new CustomEvent(on ? "aporia:start-call" : "aporia:hangup-call"))
+      }
 
       // Dictation mic.
       const mic = document.createElement("button")
@@ -170,46 +180,6 @@ export function ComposerMic() {
   })
   return null
 }
-export function CallButton(props: { lastReply: () => string; onError?: (message: string) => void }) {
-  const [on, setOn] = createSignal(false)
-  const [recording, setRecording] = createSignal(false)
-  let spoken = ""
+// Voice-call UI lives in ./call.ts + the Call tab; the old push-to-talk CallButton was removed.
 
-  const listen = () => {
-    if (!on()) return
-    setRecording(true)
-    void startRecording(() => setRecording(false), true).catch((e) => { setRecording(false); props.onError?.(String(e)) })
-  }
 
-  createEffect(() => {
-    if (!on()) return
-    const text = props.lastReply()
-    if (!text || text === spoken) return
-    spoken = text
-    setRecording(false)
-    void speak(text)
-      .then(() => { if (on()) listen() })
-      .catch((e) => props.onError?.(e instanceof Error ? e.message : String(e)))
-  })
-
-  // Push-to-talk: not on -> start (listen); recording -> stop+send; idle on -> listen again.
-  const toggle = () => {
-    if (!on()) { setOn(true); spoken = props.lastReply(); listen(); return }
-    if (recording()) { stopRecording(); setRecording(false); return }
-    listen()
-  }
-
-  return (
-    <button
-      type="button"
-      class="ap-icon-btn"
-      data-aporia-call=""
-      title={!on() ? "Start voice call" : recording() ? "Stop and send" : "Listening…"}
-      aria-label="Voice call"
-      style={on() ? { color: recording() ? "#f87171" : "#2dd4bf" } : undefined}
-      onClick={toggle}
-    >
-      {on() && recording() ? <span innerHTML={STOP_SVG} /> : <Icon name="phone" size={16} />}
-    </button>
-  )
-}

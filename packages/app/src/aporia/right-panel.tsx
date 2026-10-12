@@ -6,15 +6,19 @@ import { formatTokens, tokenTotal, touchedFiles } from "./session-stats"
 import { Avatar } from "./avatar"
 import { EmptyState, Icon, type IconName } from "./icons"
 import { agentFor, bots } from "./bots"
-import { speak, listenOnce, stopRecording } from "./dictation"
+import { call, startVoiceCall, hangUpCall, toggleCallMute, loadCalls, callsVersion } from "./call"
 
 type Tab = "details" | "library" | "browser" | "automations" | "call"
 
 const TAB_ICONS: Record<Tab, IconName> = { details: "info", library: "library", browser: "monitor", automations: "sparkles", call: "phone" }
 const AutomationsTab = lazy(() => import("./automations").then((m) => ({ default: m.AutomationsTab })))
 
-export function AporiaRightPanel(props: { view: AporiaView; onClose?: () => void }) {
+export function AporiaRightPanel(props: { view: AporiaView; onClose?: () => void; callTab?: boolean; onCallTabHandled?: () => void }) {
   const [tab, setTab] = createSignal<Tab>("details")
+  // A voice call (composer phone icon) can request the Call tab.
+  createEffect(() => {
+    if (props.callTab) { setTab("call"); props.onCallTabHandled?.() }
+  })
   const info = () => props.view.info()
   const files = createMemo(() => touchedFiles(props.view.messages()))
   const agentName = () => info()?.agent ?? "build"
@@ -194,77 +198,110 @@ function BrowserTab() {
   )
 }
 
+function formatDuration(ms: number) {
+  const s = Math.max(0, Math.round(ms / 1000))
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`
+}
+
+/** Bar height for the call meter — driven by the live mic level. */
+function meterHeight(i: number) {
+  if (!call.active) return 8
+  const wobble = 0.35 + 0.65 * Math.abs(Math.sin(i * 0.7 + performance.now() / 240))
+  return Math.round(8 + call.level() * 92 * wobble)
+}
+
 function CallTab(props: { view: AporiaView }) {
-  const [on, setOn] = createSignal(false)
-  const [status, setStatus] = createSignal<"idle" | "listening" | "thinking" | "speaking">("idle")
-  const [log, setLog] = createSignal<{ who: string; text: string }[]>([])
-  const [error, setError] = createSignal("")
-  let spoken = ""
+  const [showLive, setShowLive] = createSignal(false)
+  const [openSaved, setOpenSaved] = createSignal<number | null>(null)
 
-  const lastReply = () => {
-    const msgs = (props.view.messages?.() ?? []) as any[]
-    for (let i = msgs.length - 1; i >= 0; i--) {
-      const m = msgs[i]
-      if (m?.role !== "assistant") continue
-      const parts = m.parts ?? m.content
-      if (Array.isArray(parts)) {
-        const text = parts.filter((p: any) => p?.type === "text").map((p: any) => p.text ?? "").join("\n").trim()
-        if (text) return text
-      } else if (typeof parts === "string" && parts.trim()) return parts.trim()
-    }
-    return ""
-  }
+  const st = () => call.state()
+  const agentName = () => props.view.info()?.agent ?? "build"
+  const statusText = () =>
+    st() === "connecting" ? "Connecting…" :
+    st() === "listening" ? "Listening…" :
+    st() === "thinking" ? "Thinking…" :
+    st() === "speaking" ? "Speaking…" :
+    st() === "error" ? "Call failed" : "Tap to call"
 
-  const listen = () => {
-    if (!on()) return
-    setStatus("listening")
-    void listenOnce((text) => {
-      setLog((l) => [...l, { who: "You", text }])
-      setStatus("thinking")
-    }).catch((e) => { setError(String(e)); setStatus("idle") })
-  }
-
-  createEffect(() => {
-    if (!on()) return
-    const text = lastReply()
-    if (!text || text === spoken) return
-    spoken = text
-    setLog((l) => [...l, { who: "Agent", text }])
-    setStatus("speaking")
-    void speak(text)
-      .then(() => { if (on()) listen() })
-      .catch((e) => { setError(e instanceof Error ? e.message : String(e)); setStatus("idle") })
-  })
-
-  const toggle = () => {
-    if (on()) { setOn(false); stopRecording(); setStatus("idle"); return }
-    setError("")
-    setOn(true)
-    spoken = lastReply()
-    listen()
-  }
+  const saved = () => { callsVersion(); return loadCalls(props.view.sessionID()).slice().reverse() }
 
   return (
-    <div class="ap-computer">
-      <div class="ap-card" style={{ "align-items": "center", "text-align": "center", gap: "10px", padding: "18px" }}>
-        <span class="ap-empty-icon"><Icon name="phone" size={20} /></span>
-        <strong>
-          {on() ? (status() === "listening" ? "Listening…" : status() === "speaking" ? "Agent speaking…" : status() === "thinking" ? "Thinking…" : "On call") : "Talk to this agent"}
-        </strong>
-        <span class="ap-muted ap-small">
-          {on() ? "Speak, then pause — the agent answers out loud." : "Hands-free voice. You talk, the agent replies out loud. Works with any model."}
-        </span>
-        <button type="button" class="ap-btn" style={on() ? { background: "#f87171", color: "#0a1020" } : undefined} onClick={toggle}>
-          {on() ? "Hang up" : "Call"}
+    <div class="ap-call">
+      <div class="ap-call-stage">
+        <div class="ap-call-halo" classList={{ "ap-call-halo-live": call.active, "ap-call-halo-speaking": st() === "speaking" }}>
+          <Avatar name={agentName()} size={76} />
+        </div>
+        <strong class="ap-call-name">{agentName()}</strong>
+        <span class="ap-call-status">{statusText()}</span>
+
+        <div class="ap-call-meter" aria-hidden="true">
+          <For each={Array.from({ length: 27 })}>
+            {(_, i) => <span class="ap-call-bar" style={{ height: `${meterHeight(i())}%` }} />}
+          </For>
+        </div>
+
+        <div class="ap-call-actions">
+          <Show when={call.active} fallback={
+            <button type="button" class="ap-call-btn ap-call-start" onClick={() => startVoiceCall()}>Start call</button>
+          }>
+            <button type="button" class="ap-call-btn" title={call.muted() ? "Unmute" : "Mute"} aria-label="Mute" onClick={() => toggleCallMute()}>
+              {call.muted() ? "Unmute" : "Mute"}
+            </button>
+            <button type="button" class="ap-call-btn ap-call-hang" onClick={() => hangUpCall()}>Hang up</button>
+          </Show>
+        </div>
+
+        <button type="button" class="ap-call-text-toggle" onClick={() => setShowLive(!showLive())}>
+          {showLive() ? "Hide transcript" : "View live transcript"}
         </button>
-        <span class="ap-muted ap-small">Local engines: Kokoro out, Whisper in. First call downloads the models once.</span>
       </div>
-      <Show when={error()}><div class="ap-card ap-card-err" role="alert">{error()}</div></Show>
-      <div class="ap-activity">
-        <For each={log()}>{(entry) => (
-          <div class="ap-activity-row"><strong>{entry.who}</strong><span>{entry.text}</span></div>
-        )}</For>
-      </div>
+
+      <Show when={showLive()}>
+        <div class="ap-call-transcript">
+          <Show when={call.lines().length} fallback={<span class="ap-muted ap-small">Nothing yet — start talking.</span>}>
+            <For each={call.lines()}>
+              {(line) => (
+                <div class="ap-call-line" classList={{ "ap-call-you": line.who === "you" }}>
+                  <span class="ap-call-who">{line.who === "you" ? "You" : "Agent"}</span>
+                  <span>{line.text}</span>
+                </div>
+              )}
+            </For>
+          </Show>
+        </div>
+      </Show>
+
+      <Show when={call.error()}>
+        <div class="ap-card ap-card-err" role="alert">{call.error()}</div>
+      </Show>
+
+      <Show when={saved().length}>
+        <div class="ap-call-saved">
+          <span class="ap-section-label ap-call-saved-label">Saved calls</span>
+          <For each={saved()}>
+            {(rec, idx) => (
+              <div class="ap-call-saved-item">
+                <button type="button" class="ap-call-saved-head" onClick={() => setOpenSaved(openSaved() === idx() ? null : idx())}>
+                  <span>Call · {new Date(rec.at).toLocaleString()}</span>
+                  <span class="ap-muted ap-small">{formatDuration(rec.ms)} · {rec.lines.length} turns</span>
+                </button>
+                <Show when={openSaved() === idx()}>
+                  <div class="ap-call-transcript">
+                    <For each={rec.lines}>
+                      {(line) => (
+                        <div class="ap-call-line" classList={{ "ap-call-you": line.who === "you" }}>
+                          <span class="ap-call-who">{line.who === "you" ? "You" : "Agent"}</span>
+                          <span>{line.text}</span>
+                        </div>
+                      )}
+                    </For>
+                  </div>
+                </Show>
+              </div>
+            )}
+          </For>
+        </div>
+      </Show>
     </div>
   )
 }
