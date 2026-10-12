@@ -1,5 +1,5 @@
 // APORIA: local voice — push-to-talk dictation (Whisper) + speak (Kokoro) + call mode loop.
-import { createEffect, createSignal } from "solid-js"
+import { createEffect, createSignal, onCleanup } from "solid-js"
 
 type Bridge = {
   stt?: (input: { pcm: number[] }) => Promise<{ text?: string }>
@@ -82,6 +82,10 @@ async function startRecording(onText: (text: string) => void, onSubmit: boolean)
   rec.start()
 }
 
+export function listenOnce(onText: (text: string) => void) {
+  return startRecording(onText, true)
+}
+
 export function stopRecording() {
   try { active?.rec.stop() } catch { /* ignore */ }
 }
@@ -108,10 +112,37 @@ export function MicButton(props: { class?: string }) {
   )
 }
 
-/**
- * Voice call: listen → transcribe → send → speak the reply → listen again.
- * `lastReply` supplies the latest assistant text (from the session view).
- */
+/** Injects a dictation mic into the stock composer toolbar (left of Send). No stock code touched. */
+export function ComposerMic() {
+  createEffect(() => {
+    const inject = () => {
+      const composer = document.querySelector<HTMLElement>('[data-component="composer"]')
+      if (!composer || composer.querySelector("[data-aporia-mic]")) return
+      const btn = document.createElement("button")
+      btn.type = "button"
+      btn.setAttribute("data-aporia-mic", "")
+      btn.className = "ap-icon-btn ap-mic-inline"
+      btn.title = "Dictate"
+      btn.textContent = "🎤"
+      let recording = false
+      btn.onclick = () => {
+        if (recording) { stopRecording(); recording = false; btn.textContent = "🎤"; return }
+        recording = true
+        btn.textContent = "⏹"
+        void startRecording(() => { recording = false; btn.textContent = "🎤" }, false).catch(() => { recording = false; btn.textContent = "🎤" })
+      }
+      const buttons = [...composer.querySelectorAll("button")]
+      const send = buttons.find((b) => b.type === "submit") ?? buttons[buttons.length - 1]
+      if (send?.parentElement) send.parentElement.insertBefore(btn, send)
+      else composer.appendChild(btn)
+    }
+    inject()
+    const observer = new MutationObserver(inject)
+    observer.observe(document.body, { childList: true, subtree: true })
+    onCleanup(() => observer.disconnect())
+  })
+  return null
+}
 export function CallButton(props: { lastReply: () => string; onError?: (message: string) => void }) {
   const [on, setOn] = createSignal((typeof localStorage !== "undefined" && localStorage.getItem("aporia.call")) === "on")
   let spoken = ""

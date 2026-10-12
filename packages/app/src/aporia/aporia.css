@@ -370,7 +370,11 @@
 .ap-react-add button:hover { background: var(--ap-hover); }
 
 /* APORIA: shell commands auto-background; hide the manual "Move to background" affordance. */
-[data-component="session-background-hint"] { display: none !important; }
+[data-component="session-background-hint"],
+[data-action="session.background"],
+button[title*="Move to background"] { display: none !important; }
+/* APORIA: dictated mic injected into the composer toolbar. */
+.ap-mic-inline { width: 28px; height: 28px; }
 
 /* APORIA: restyle the stock Settings surface to match the Aporetic look (so it doesn't read as opencode). */
 .settings-screen {

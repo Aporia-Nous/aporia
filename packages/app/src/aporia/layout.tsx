@@ -9,7 +9,7 @@ import { ReactionsLayer } from "./reactions"
 // behaviour stays upstream; this file only frames it.
 import { createEffect, createMemo, createResource, createSignal, For, lazy, onCleanup, Show, type ParentProps } from "solid-js"
 import { Portal } from "solid-js/web"
-import { MicButton, CallButton } from "./dictation"
+import { MicButton, CallButton, ComposerMic } from "./dictation"
 import { createVirtualizer } from "@tanstack/solid-virtual"
 import { useTheme } from "@opencode/ui/theme/context"
 import { useNavigate } from "@solidjs/router"
@@ -112,6 +112,7 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
   return (
     <div class="ap-root" classList={{ "ap-right-collapsed": !rightOpen(), "ap-rail-collapsed": !railOpen() }} data-component="aporia-layout">
       <Portal><AlertToasts /></Portal>
+      <ComposerMic />
       <UpdateWatcher />
       <BotDispatcher />
       <ReactionsLayer sessionID={props.view.sessionID()} agent={info()?.agent} />
