@@ -145,6 +145,15 @@ function BotEditor(props: { bot: Partial<Bot>; onClose: () => void }) {
             <label>Skills (comma separated)<input style={field} value={(b().skills ?? []).join(", ")} onInput={(e) => set("skills", list(e.currentTarget.value))} /></label>
             <label>Allowed tools (comma separated, empty = all)<input style={field} value={(b().tools ?? []).join(", ")} onInput={(e) => set("tools", list(e.currentTarget.value))} /></label>
             <label>Allowed MCPs (comma separated, empty = all)<input style={field} value={(b().mcps ?? []).join(", ")} onInput={(e) => set("mcps", list(e.currentTarget.value))} /></label>
+            <label>Context scopes (comma separated topics this bot owns)
+              <input style={field} data-action="aporia-bot-scopes" placeholder="e.g. billing, invoices, leads" value={(b().scopes ?? []).join(", ")} onInput={(e) => set("scopes", list(e.currentTarget.value))} />
+            </label>
+            <label>Kind
+              <select style={field} data-action="aporia-bot-kind" value={b().kind ?? "worker"} onChange={(e) => set("kind", e.currentTarget.value as Bot["kind"])}>
+                <option value="worker">Worker — answers directly</option>
+                <option value="expert">Expert — researches and stores a sourced finding before answering</option>
+              </select>
+            </label>
           </Show>
         </div>
         <Show when={error()}><div class="ap-card ap-card-err" role="alert">{error()}</div></Show>

@@ -16,6 +16,8 @@ export type Bot = {
   slug: string; name: string; avatar?: string; role: string; instructions: string
   model: string; tools: string[]; mcps: string[]; skills: string[]; voice?: string
   folder?: string; routines: Routine[]; sessions: string[]; created: string; seed?: boolean
+  scopes?: string[]
+  kind?: "expert" | "worker"
 }
 
 export const APORIA_HOME = process.env.APORIA_HOME || path.join(os.homedir(), "Aporia")
@@ -59,6 +61,8 @@ function normalize(input: Partial<Bot>, prev?: Bot): Bot {
     folder: input.folder ?? prev?.folder,
     routines: (input.routines ?? prev?.routines ?? []).map((r) => ({ ...r })),
     sessions: input.sessions ?? prev?.sessions ?? [],
+    scopes: input.scopes ?? prev?.scopes,
+    kind: input.kind ?? prev?.kind,
     created: prev?.created ?? new Date().toISOString(),
     seed: input.seed ?? prev?.seed,
     ...((input as any).roleVersion ?? (prev as any)?.roleVersion ? { roleVersion: (input as any).roleVersion ?? (prev as any)?.roleVersion } : {}),
