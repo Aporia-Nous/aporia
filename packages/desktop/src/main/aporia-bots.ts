@@ -34,6 +34,32 @@ const read = (f: string) => (existsSync(f) ? readFileSync(f, "utf8") : "")
 const cap = (s: string, n: number) => (s.length > n ? s.slice(-n) + "\n(older entries trimmed; use recall)" : s)
 const botFile = (slug: string) => path.join(BOTS_DIR, slug, "bot.json")
 
+// --- boundary validation ---------------------------------------------------------------------
+// Slugs, inbox ids and models cross the renderer IPC boundary (and template imports), so they are
+// untrusted. A slug must be exactly one path segment shaped like slugify() output; an inbox id must
+// be shaped like inboxPost() output; a model must be a plain `provider/model`. Without this, a value
+// such as `../bots/grok/bot` reaches path.join and turns any of these ops into arbitrary
+// read/write/delete outside the store (see REVIEW: traversal blocker).
+const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,46}[a-z0-9])?$/
+const INBOX_ID_RE = /^\d{10,}-[a-z0-9]{4,12}$/
+const MODEL_RE = /^[a-z0-9][a-z0-9._-]*\/[a-z0-9][a-z0-9._-]*$/i
+const oneSegment = (v: string) => v.length > 0 && !v.includes("/") && !v.includes("\\") && path.basename(v) === v
+export function safeSlug(value: unknown, label = "slug"): string {
+  const v = String(value ?? "")
+  if (!SLUG_RE.test(v) || !oneSegment(v)) throw new Error(`Invalid ${label}`)
+  return v
+}
+export function safeInboxId(value: unknown): string {
+  const v = String(value ?? "")
+  if (!INBOX_ID_RE.test(v) || !oneSegment(v)) throw new Error("Invalid inbox id")
+  return v
+}
+/** Keep a model only if it is a well-formed `provider/model`; otherwise fall back. Blocks frontmatter injection. */
+export function safeModel(value: unknown, fallback = DEFAULT_MODEL): string {
+  const v = String(value ?? "")
+  return MODEL_RE.test(v) ? v : fallback
+}
+
 export function listBots(): Bot[] {
   if (!existsSync(BOTS_DIR)) return []
   return readdirSync(BOTS_DIR)
@@ -53,7 +79,7 @@ function normalize(input: Partial<Bot>, prev?: Bot): Bot {
     avatar: input.avatar ?? prev?.avatar,
     role: String(input.role ?? prev?.role ?? ""),
     instructions: String(input.instructions ?? prev?.instructions ?? ""),
-    model: String(input.model || prev?.model || DEFAULT_MODEL),
+    model: safeModel(input.model, safeModel(prev?.model, DEFAULT_MODEL)),
     tools: input.tools ?? prev?.tools ?? [],
     mcps: input.mcps ?? prev?.mcps ?? [],
     skills: input.skills ?? prev?.skills ?? [],
@@ -129,7 +155,7 @@ function recentReactions(slug: string) {
 
 export function writeAgent(bot: Bot, shared: SharedPrompt = sharedPrompt()) {
   mkdirSync(agentsDir(), { recursive: true })
-  const fm = ["---", `description: ${frontmatterString(bot.role || bot.name)}`, "mode: primary", `model: ${bot.model}`, "---", ""].join("\n")
+  const fm = ["---", `description: ${frontmatterString(bot.role || bot.name)}`, "mode: primary", `model: ${safeModel(bot.model)}`, "---", ""].join("\n")
   const file = path.join(agentsDir(), `aporia-${bot.slug}.md`)
   const next = fm + agentPrompt(bot, shared) + "\n"
   if (read(file) !== next) writeFileSync(file, next)
@@ -169,9 +195,15 @@ export function inboxPending(): InboxMsg[] {
     .map((f) => { try { return JSON.parse(readFileSync(path.join(INBOX, f), "utf8")) } catch { return undefined } }).filter(Boolean)
 }
 export function inboxPost(m: Partial<InboxMsg>) {
+  // `from` is only a label; `to`/`room` must name something real, so a renderer cannot forge a
+  // message into an arbitrary recipient (or a non-existent one) and have it delivered.
+  const to = m.to === undefined ? undefined : safeSlug(m.to, "recipient")
+  const room = m.room === undefined ? undefined : safeSlug(m.room, "room")
+  if (to && !getBot(to)) throw new Error(`No bot ${to}`)
+  if (room && !listRooms().some((r) => r.slug === room)) throw new Error(`No room ${room}`)
   mkdirSync(INBOX, { recursive: true })
   const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-  const msg = { id, priority: false, kind: "message", created: new Date().toISOString(), ...m } as InboxMsg
+  const msg = { id, priority: false, kind: "message", created: new Date().toISOString(), ...m, from: String(m.from ?? "unknown").slice(0, 64), ...(to ? { to } : {}), ...(room ? { room } : {}) } as InboxMsg
   writeFileSync(path.join(INBOX, id + ".json"), JSON.stringify(msg, null, 2)); return msg
 }
 export function inboxAck(id: string, result: unknown) {
@@ -422,12 +454,12 @@ export function registerAporiaBotsHandler() {
   ipcMain.handle("aporia:bots", (_e, input: any) => {
     switch (input?.op) {
       case "list": return listBots()
-      case "get": return getBot(String(input.slug))
+      case "get": return getBot(safeSlug(input.slug, "bot slug"))
       case "save": return saveBot(input.bot ?? {})
-      case "delete": return deleteBot(String(input.slug))
+      case "delete": return deleteBot(safeSlug(input.slug, "bot slug"))
       case "health": return botsHealth()
       case "attachSession": {
-        const bot = getBot(String(input.slug)); if (!bot) throw new Error("No such bot")
+        const bot = getBot(safeSlug(input.slug, "bot slug")); if (!bot) throw new Error("No such bot")
         if (!bot.sessions.includes(input.sessionID)) bot.sessions.unshift(String(input.sessionID))
         return saveBot(bot)
       }
@@ -439,15 +471,16 @@ export function registerAporiaBotsHandler() {
       }
       case "inbox": return inboxPending()
       case "inboxPost": return inboxPost(input.msg ?? {})
-      case "inboxAck": return inboxAck(String(input.id), input.result)
+      case "inboxAck": return inboxAck(safeInboxId(input.id), input.result)
       case "rooms": return listRooms()
       case "roomSave": return saveRoom(input.room ?? {})
       case "roomPost": {
-        const e = roomAppend(String(input.slug), { from: String(input.from ?? "Ali"), text: String(input.text) })
-        if (input.fanout !== false) inboxPost({ from: String(input.from ?? "ali"), room: String(input.slug), message: String(input.text), priority: true, kind: "room" })
+        const slug = safeSlug(input.slug, "room slug")
+        const e = roomAppend(slug, { from: String(input.from ?? "Ali"), text: String(input.text) })
+        if (input.fanout !== false) inboxPost({ from: String(input.from ?? "ali"), room: slug, message: String(input.text), priority: true, kind: "room" })
         return e
       }
-      case "roomRead": return roomRead(String(input.slug))
+      case "roomRead": return roomRead(safeSlug(input.slug, "room slug"))
       case "paths": return { home: APORIA_HOME, bots: BOTS_DIR, user: USER_MEMORY, agents: agentsDir() }
     }
     throw new Error("Unknown bots op")

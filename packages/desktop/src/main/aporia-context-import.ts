@@ -7,15 +7,23 @@ export type SessionLike = { id: string; title: string; messages: SessionMessageL
 
 export type ImportPlan = { planned: Omit<Entry, "id" | "created">[]; skipped: number }
 
+// Defensive caps: the renderer limits itself, but the main process must not trust that.
+const MAX_SESSIONS = 2000
+const MAX_MESSAGES = 500
+
 export function planImport(sessions: SessionLike[], store: ContextStore): ImportPlan {
   const planned: Omit<Entry, "id" | "created">[] = []
   const seen = new Set<string>()
   let skipped = 0
-  for (const session of sessions) {
-    const topic = session.title?.trim() || "untitled"
-    for (const message of session.messages ?? []) {
-      const text = (message.text ?? "").trim()
-      if (!text || !session?.id || !message?.id) {
+  for (const session of Array.isArray(sessions) ? sessions.slice(0, MAX_SESSIONS) : []) {
+    // Null-safe: a malformed element is counted as skipped, never dereferenced.
+    if (!session?.id) { skipped++; continue }
+    const title = typeof session.title === "string" ? session.title.trim() : ""
+    const topic = title || "untitled"
+    const messages = Array.isArray(session.messages) ? session.messages.slice(0, MAX_MESSAGES) : []
+    for (const message of messages) {
+      const text = typeof message?.text === "string" ? message.text.trim() : ""
+      if (!text || !message?.id) {
         // Never write an entry without a real source — skip and count it.
         skipped++
         continue

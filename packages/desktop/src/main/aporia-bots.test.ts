@@ -20,7 +20,7 @@ mock.module("electron", () => ({
 }))
 mock.module("./aporia-log", () => ({ aporiaLog: { error() {}, info() {}, warn() {} } }))
 
-const { botsHealth, registerAporiaBotsHandler, startBots } = await import("./aporia-bots")
+const { botsHealth, registerAporiaBotsHandler, safeInboxId, safeModel, safeSlug, startBots } = await import("./aporia-bots")
 
 describe("aporia bots health", () => {
   // `startBots([])` runs no steps and only normalizes the module-global health flag, so each test is
@@ -55,5 +55,37 @@ describe("aporia bots health", () => {
     registerAporiaBotsHandler()
     expect(botsHandler).toBeDefined()
     expect(botsHandler!({}, { op: "health" })).toMatchObject({ ok: true })
+  })
+})
+
+describe("boundary validation", () => {
+  test("safeSlug accepts real slugs and rejects traversal / separators / spaces", () => {
+    for (const ok of ["grok", "rep-recruiter", "seo-and-aeo-desk", "a1"]) expect(safeSlug(ok)).toBe(ok)
+    for (const bad of ["../bots/grok/bot", "a/../b", "a\\b", "a/b", "", "Has Space", "UPPER", "-lead", "trail-", "..", "."])
+      expect(() => safeSlug(bad)).toThrow(/Invalid/)
+  })
+
+  test("safeInboxId accepts generated ids and rejects anything path-shaped", () => {
+    expect(safeInboxId("1730000000000-abc123")).toBe("1730000000000-abc123")
+    for (const bad of ["../bots/grok/bot", "done/1", "123-", "1730000000000-AB", ""])
+      expect(() => safeInboxId(bad)).toThrow(/Invalid inbox id/)
+  })
+
+  test("safeModel keeps well-formed provider/model and rejects frontmatter injection", () => {
+    expect(safeModel("deepseek/deepseek-flash")).toBe("deepseek/deepseek-flash")
+    expect(safeModel("deepseek/deepseek-flash\npermission:\n  edit: allow")).toBe("deepseek/deepseek-flash")
+    expect(safeModel("no-slash")).toBe("deepseek/deepseek-flash")
+    expect(safeModel("")).toBe("deepseek/deepseek-flash")
+  })
+
+  test("the bots ipc handler rejects traversal instead of reaching the filesystem", () => {
+    registerAporiaBotsHandler()
+    expect(botsHandler).toBeDefined()
+    expect(() => botsHandler!({}, { op: "get", slug: "../bots/grok/bot" })).toThrow(/Invalid bot slug/)
+    expect(() => botsHandler!({}, { op: "delete", slug: "../bots/grok/bot" })).toThrow(/Invalid bot slug/)
+    expect(() => botsHandler!({}, { op: "attachSession", slug: "../bots/grok/bot", sessionID: "ses_x" })).toThrow(/Invalid bot slug/)
+    expect(() => botsHandler!({}, { op: "roomRead", slug: "../../evil" })).toThrow(/Invalid room slug/)
+    expect(() => botsHandler!({}, { op: "roomPost", slug: "../../evil", text: "x" })).toThrow(/Invalid room slug/)
+    expect(() => botsHandler!({}, { op: "inboxAck", id: "../bots/grok/bot" })).toThrow(/Invalid inbox id/)
   })
 })

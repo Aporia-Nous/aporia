@@ -1,6 +1,7 @@
 // APORIA: tiny bridge to the LOCAL n8n public API. The key is read from the N8N_API_KEY env var
 // in the main process and never sent to the renderer. Only localhost is allowed.
 import { readdirSync, readFileSync } from "node:fs"
+import os from "node:os"
 import path from "node:path"
 import { ipcMain } from "electron"
 
@@ -43,10 +44,14 @@ export async function handleN8n(input: Op) {
       if (!/^[A-Za-z0-9]+$/.test(input.id)) throw new Error("Invalid id")
       return call("POST", `/workflows/${input.id}/${input.active ? "activate" : "deactivate"}`)
     case "importDir": {
-      const files = readdirSync(input.dir).filter((f) => f.toLowerCase().endsWith(".json"))
+      // Confine reads to the Aporia home: a renderer cannot point this at arbitrary directories.
+      const root = process.env.APORIA_HOME || path.join(os.homedir(), "Aporia")
+      const dir = path.resolve(String(input.dir ?? ""))
+      if (dir !== root && !dir.startsWith(root + path.sep)) throw new Error("Directory must be inside the Aporia home")
+      const files = readdirSync(dir).filter((f) => f.toLowerCase().endsWith(".json"))
       let imported = 0
       for (const file of files) {
-        const wf = JSON.parse(readFileSync(path.join(input.dir, file), "utf8"))
+        const wf = JSON.parse(readFileSync(path.join(dir, file), "utf8"))
         if (!Array.isArray(wf.nodes)) continue
         // Imported as inactive: the public API ignores/forbids `active` on create.
         await call("POST", "/workflows", { name: wf.name ?? file, nodes: wf.nodes, connections: wf.connections ?? {}, settings: wf.settings ?? {} })

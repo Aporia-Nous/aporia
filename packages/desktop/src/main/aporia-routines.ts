@@ -4,7 +4,7 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { BrowserWindow, dialog, ipcMain } from "electron"
-import { BOTS_DIR, getBot, inboxPost, listBots, saveBot, slugify, type Bot, type Routine } from "./aporia-bots"
+import { BOTS_DIR, getBot, inboxPost, listBots, safeSlug, saveBot, slugify, type Bot, type Routine } from "./aporia-bots"
 import { aporiaLog } from "./aporia-log"
 import { resolveVault } from "./aporia-vault-store"
 
@@ -173,7 +173,8 @@ export function addReaction(slug: string, r: { by: "ali" | "bot"; emoji: string;
 export function registerAporiaRoutinesHandler() {
   setInterval(() => { try { tick() } catch (e) { aporiaLog.error("aporia routines tick failed", e instanceof Error ? (e.stack ?? e.message) : String(e)) } }, 30_000)
   ipcMain.handle("aporia:routines", async (event, input: any) => {
-    const slug = String(input?.slug ?? "")
+    // `slug` reaches path.join for every per-bot file below, so it is validated at the boundary.
+    const slug = input?.slug === undefined || input?.slug === "" ? "" : safeSlug(input.slug, "bot slug")
     switch (input?.op) {
       case "history": return history(slug)
       case "next": try { return nextRun(String(input.cron)) ?? null } catch (e) { return { error: (e as Error).message } }
@@ -185,14 +186,18 @@ export function registerAporiaRoutinesHandler() {
       case "draft": return draftBot(String(input.description ?? ""))
       case "export": {
         const bot = getBot(slug); if (!bot) throw new Error("No such bot")
+        // The destination always comes from the OS save dialog, never from the renderer — a caller
+        // cannot point this at an arbitrary path to overwrite a file.
         const win = BrowserWindow.fromWebContents(event.sender) ?? undefined
-        const target = input.path ?? (await dialog.showSaveDialog(win!, { defaultPath: `${bot.slug}.aporia-bot.json`, filters: [{ name: "Aporetic bot", extensions: ["json"] }] })).filePath
+        const target = (await dialog.showSaveDialog(win!, { defaultPath: `${bot.slug}.aporia-bot.json`, filters: [{ name: "Aporetic bot", extensions: ["json"] }] })).filePath
         if (!target) return null
         writeFileSync(target, JSON.stringify(toTemplate(bot), null, 2)); return target
       }
       case "import": {
-        let file = input.path
-        if (!file) { const win = BrowserWindow.fromWebContents(event.sender) ?? undefined; const r = await dialog.showOpenDialog(win!, { filters: [{ name: "Aporetic bot", extensions: ["json"] }], properties: ["openFile"] }); file = r.filePaths[0] }
+        // Source always comes from the OS open dialog, never from the renderer (arbitrary read guard).
+        const win = BrowserWindow.fromWebContents(event.sender) ?? undefined
+        const picked = await dialog.showOpenDialog(win!, { filters: [{ name: "Aporetic bot", extensions: ["json"] }], properties: ["openFile"] })
+        const file = picked.filePaths[0]
         if (!file) return null
         return fromTemplate(JSON.parse(readFileSync(file, "utf8")))
       }
