@@ -27,9 +27,21 @@ export const aporiaAlerts = {
   list: alerts,
   unread,
   push(input: Omit<Alert, "id" | "at">) {
+    // Collapse repeats: if the same alert (title + detail) was raised in the last minute, bump that
+    // one instead of stacking another. Without this a failing loop (e.g. the voice error) piles up
+    // identical toasts that never seem to go away.
+    const same = (a: Alert) => a.title === input.title && (a.detail ?? "") === (input.detail ?? "")
+    const existing = [...alerts()].reverse().find(same)
+    if (existing && Date.now() - existing.at < 60_000) {
+      const bumped: Alert = { ...existing, at: Date.now(), read: false }
+      setAlerts([...alerts().filter((a) => a.id !== existing.id), bumped])
+      setToasts([...toasts().filter((t) => t.id !== existing.id), bumped].slice(-4))
+      if (!bumped.sticky) setTimeout(() => hideToast(bumped.id), 5000)
+      return bumped.id
+    }
     const alert: Alert = { ...input, id: crypto.randomUUID(), at: Date.now() }
     setAlerts([...alerts(), alert])
-    setToasts([...toasts(), alert])
+    setToasts([...toasts(), alert].slice(-4))
     if (!alert.sticky) setTimeout(() => hideToast(alert.id), 5000)
     return alert.id
   },

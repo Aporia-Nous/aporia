@@ -2,6 +2,7 @@
 // Engine is Kokoro; the PRODUCT exposes these as Aporia voices (Nova, Atlas, Iris, ...).
 // Free + local: no API key, no per-use cost. Model (~80 MB) downloads once, then cached.
 import { ipcMain } from "electron"
+import { configureModelCache } from "./aporia-stt"
 
 export const AporiaTtsChannel = "aporia:tts"
 
@@ -30,6 +31,8 @@ let modelPromise: Promise<Model> | undefined
 async function loadModel(): Promise<Model> {
   if (!modelPromise) {
     modelPromise = (async () => {
+      // Cache models in userData, not inside the read-only app.asar (same fix as STT).
+      configureModelCache(await import("@huggingface/transformers"))
       const mod: any = await import("kokoro-js")
       const KokoroTTS = mod.KokoroTTS ?? mod.default?.KokoroTTS
       return KokoroTTS.from_pretrained("onnx-community/Kokoro-82M-v1.0-ONNX", { dtype: "q8", device: "cpu" })
