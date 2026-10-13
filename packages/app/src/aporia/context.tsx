@@ -1,22 +1,23 @@
-// APORIA: Settings > Context. The grounded context store: existing chats imported as
-// topic-tagged, source-linked entries. Import only ADDS entries — it never changes a chat.
+// APORIA: Settings > Vault > Context. Shows the grounded context store and imports existing
+// chats as topic-tagged, sourced entries. Import only ADDS — it never changes a chat.
+// The real importer (which needs the server client) is registered by the sidebar, where the
+// server context exists; this panel just calls it. Settings runs outside that scope.
 import { createSignal, For, onMount, Show } from "solid-js"
-import { useServerSDK } from "@/runtime/server/client"
 import { aporiaAlerts } from "./alerts"
 import { topicCounts } from "./context-stats"
 
 type Entry = { id: string; topic: string; tags: string[]; text: string; source: { ref: string } }
+type ImportResult = { added: number; skipped: number; entries: Entry[]; truncated?: number }
 const bridge = () => (globalThis as any).electron?.aporia?.context as undefined | ((input: unknown) => Promise<any>)
 const box = { padding: "6px 8px", "border-radius": "6px", border: "1px solid var(--border-base, #2a3550)", background: "transparent", color: "inherit" }
 
+let importer: (() => Promise<ImportResult>) | undefined
+/** Registered by the shell (which has the server client) so the panel can trigger a real import. */
+export function setContextImporter(fn: () => Promise<ImportResult>) {
+  importer = fn
+}
+
 export function SettingsContext() {
-  // Defensive: useServerSDK() throws outside the server scope and would crash settings (see vault.tsx).
-  let sdk: any
-  try {
-    sdk = useServerSDK()
-  } catch {
-    sdk = undefined
-  }
   const [entries, setEntries] = createSignal<Entry[]>([])
   const [busy, setBusy] = createSignal(false)
   const [query, setQuery] = createSignal("")
@@ -28,42 +29,29 @@ export function SettingsContext() {
       setEntries((result?.entries ?? []) as Entry[])
       setError("")
     } catch (e) {
-      // A missing handler (e.g. APORIA_HOME unset) must be visible, not a silent empty list.
       setError(String((e as Error)?.message ?? e))
     }
   }
   onMount(() => { void load() })
 
-  const topics = () =>
-    topicCounts(entries()).filter((t) => !query() || t.topic.toLowerCase().includes(query().toLowerCase()))
+  const topics = () => topicCounts(entries()).filter((t) => !query() || t.topic.toLowerCase().includes(query().toLowerCase()))
 
-  const textOf = (m: any) => (m?.content ?? []).filter((c: any) => c?.type === "text").map((c: any) => c.text).join("\n").trim()
-
-  const importChats = async () => {
-    if (!bridge()) return
-    if (!sdk?.api?.session?.list) {
-      aporiaAlerts.push({ title: "Context needs the app server", detail: "The server connection isn't ready yet. Try again in a moment.", level: "error" })
+  const runImport = async () => {
+    if (!bridge()) {
+      aporiaAlerts.push({ title: "Context store unavailable", detail: "Available in the Aporetic desktop app.", level: "error" })
+      return
+    }
+    if (!importer) {
+      aporiaAlerts.push({ title: "Import not ready", detail: "The app server is still starting. Try again in a moment.", level: "error" })
       return
     }
     setBusy(true)
     try {
-      const sessions = (((await (sdk.api as any).session.list({ limit: 2000 }))?.data) ?? []) as any[]
-      const payload: unknown[] = []
-      let truncated = 0
-      for (const s of sessions) {
-        const msgs = (((await (sdk.api as any).message.list({ sessionID: s.id, limit: 100, order: "asc" }))?.data) ?? []) as any[]
-        if (msgs.length >= 100) truncated++
-        payload.push({
-          id: s.id,
-          title: s.title ?? "",
-          messages: msgs.map((m) => ({ id: m.id, role: m.type === "assistant" ? "assistant" : "user", text: textOf(m) })),
-        })
-      }
-      const r = await bridge()!({ op: "import", sessions: payload })
-      setEntries((r?.entries ?? []) as Entry[])
+      const r = await importer()
+      setEntries(r?.entries ?? [])
       aporiaAlerts.push({
         title: "Chats imported",
-        detail: `${r?.added ?? 0} entries added, ${r?.skipped ?? 0} skipped${truncated ? `, ${truncated} long chats capped at 100 messages` : ""}.`,
+        detail: `${r?.added ?? 0} entries added, ${r?.skipped ?? 0} skipped${r?.truncated ? `, ${r.truncated} long chats capped at 100 messages` : ""}.`,
         level: "success",
       })
     } catch (e) {
@@ -82,7 +70,7 @@ export function SettingsContext() {
             One grounded store of facts, each linked to its source. Bots answer only from these.
           </div>
         </div>
-        <button type="button" style={{ ...box, cursor: "pointer" }} disabled={busy()} onClick={importChats}>
+        <button type="button" style={{ ...box, cursor: "pointer" }} data-action="aporia-context-import" disabled={busy()} onClick={runImport}>
           {busy() ? "Importing…" : "Import chats"}
         </button>
       </div>

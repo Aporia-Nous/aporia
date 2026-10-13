@@ -26,6 +26,7 @@ import type { SessionModel } from "@/session/model"
 import { aporiaPrefs } from "./prefs"
 import { contextTokens, formatTokens, tokenTotal } from "./session-stats"
 import { AporiaRightPanel } from "./right-panel"
+import { setContextImporter } from "./context"
 import { Avatar } from "./avatar"
 import { EmptyState, Icon } from "./icons"
 import {
@@ -157,7 +158,6 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
             classList={{ "ap-busy": props.view.working() }}
             title={props.view.working() ? "Working" : "Idle"}
           />
-          <AlertBell />
           <label class="ap-search">
             <Icon name="search" size={14} />
             <input
@@ -170,6 +170,7 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
               }}
             />
           </label>
+          <AlertBell />
           <button type="button" class="ap-icon-btn ap-panel-toggle" title={rightOpen() ? "Hide panel" : "Show panel"} aria-label="Toggle right panel" onClick={toggleRight}>
             {rightOpen() ? "»" : "«"}
           </button>
@@ -230,6 +231,36 @@ function AporiaSidebar(props: { directory: string; currentID?: string; currentAg
 
 
   const sdk = useServerSDK()
+  // The Context store's importer needs the server client, which only exists here (Settings runs
+  // outside this scope). Register it once so the Settings > Vault > Context button can trigger it.
+  createEffect(() => {
+    setContextImporter(async () => {
+      const bridge = (globalThis as any).electron?.aporia?.context
+      if (!bridge) throw new Error("Context store unavailable")
+      const sessions = (((await (sdk.api as any).session.list({ limit: 2000 }))?.data) ?? []) as any[]
+      const payload: unknown[] = []
+      let truncated = 0
+      for (const s of sessions) {
+        const msgs = (((await (sdk.api as any).message.list({ sessionID: s.id, limit: 100, order: "asc" }))?.data) ?? []) as any[]
+        if (msgs.length >= 100) truncated++
+        payload.push({
+          id: s.id,
+          title: s.title ?? "",
+          messages: msgs.map((m) => ({
+            id: m.id,
+            role: m.type === "assistant" ? "assistant" : "user",
+            text: (m.content ?? [])
+              .filter((c: any) => c?.type === "text")
+              .map((c: any) => c.text)
+              .join("\n")
+              .trim(),
+          })),
+        })
+      }
+      const r = await bridge({ op: "import", sessions: payload })
+      return { added: r?.added ?? 0, skipped: r?.skipped ?? 0, entries: r?.entries ?? [], truncated }
+    })
+  })
   const [showSub, setShowSub] = createSignal(false)
   // Read-only: every root session the server knows, across all projects (not just opened ones).
   const [all] = createResource(
