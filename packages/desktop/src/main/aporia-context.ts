@@ -3,6 +3,7 @@
 // facts and never from guesswork. See docs/superpowers/specs/2026-10-12-bot-system-design.md.
 import { createHash } from "node:crypto"
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs"
+import { homedir } from "node:os"
 import { join } from "node:path"
 
 export type EntrySource =
@@ -28,10 +29,10 @@ export type ContextStore = {
   has(id: string): boolean
 }
 
-/** Where the store lives. Returns undefined (store disabled) when APORIA_HOME is missing, so we never write to the CWD. */
-export function contextDir(home: string | undefined): string | undefined {
-  if (!home || !home.trim()) return undefined
-  return join(home, "context")
+/** Where the store lives. Mirrors aporia-bots.ts: APORIA_HOME, else ~/Aporia. Never the CWD. */
+export function contextDir(home: string | undefined): string {
+  const base = home && home.trim() ? home : join(homedir(), "Aporia")
+  return join(base, "context")
 }
 
 /** Stable id for an entry: same source+topic+text always yields the same id, so import is idempotent. */

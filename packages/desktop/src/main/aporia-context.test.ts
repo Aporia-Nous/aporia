@@ -1,6 +1,6 @@
 import { test, expect } from "bun:test"
 import { mkdtempSync } from "node:fs"
-import { tmpdir } from "node:os"
+import { homedir, tmpdir } from "node:os"
 import { join } from "node:path"
 import { createContextStore, entryId, handleContext, contextDir } from "./aporia-context"
 
@@ -71,9 +71,9 @@ test("add refuses a non-string text or non-array tags", () => {
   expect(() => s.add({ topic: "t", tags: [], text: 123 as any, source: { kind: "session", ref: "r" } })).toThrow()
 })
 
-test("contextDir is undefined without APORIA_HOME and joins otherwise", () => {
-  expect(contextDir(undefined)).toBeUndefined()
-  expect(contextDir("")).toBeUndefined()
+test("contextDir defaults to ~/Aporia/context when APORIA_HOME is unset", () => {
+  expect(contextDir(undefined)).toBe(join(homedir(), "Aporia", "context"))
+  expect(contextDir("")).toBe(join(homedir(), "Aporia", "context"))
   expect(contextDir("C:\\home")).toBe(join("C:\\home", "context"))
 })
 
