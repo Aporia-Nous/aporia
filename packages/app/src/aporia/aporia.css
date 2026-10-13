@@ -64,7 +64,7 @@
 .ap-panel-toggle { font-size: 18px; line-height: 1; }
 .ap-rail-toggle { font-size: 18px; line-height: 1; }
 /* Teammates as a compact chip strip so the sidebar has ONE vertical conversation list. */
-.ap-bot-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 var(--ap-s3) var(--ap-s3); }
+.ap-bot-chips { display: flex; flex-direction: row; flex-wrap: wrap; align-items: flex-start; gap: 6px; padding: 0 var(--ap-s3) var(--ap-s3); }
 .ap-bot-chip {
   display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
   padding: 4px 9px 4px 4px; border-radius: 999px;
