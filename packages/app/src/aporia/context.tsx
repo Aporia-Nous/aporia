@@ -10,7 +10,13 @@ const bridge = () => (globalThis as any).electron?.aporia?.context as undefined 
 const box = { padding: "6px 8px", "border-radius": "6px", border: "1px solid var(--border-base, #2a3550)", background: "transparent", color: "inherit" }
 
 export function SettingsContext() {
-  const sdk = useServerSDK()
+  // Defensive: useServerSDK() throws outside the server scope and would crash settings (see vault.tsx).
+  let sdk: any
+  try {
+    sdk = useServerSDK()
+  } catch {
+    sdk = undefined
+  }
   const [entries, setEntries] = createSignal<Entry[]>([])
   const [busy, setBusy] = createSignal(false)
   const [query, setQuery] = createSignal("")
@@ -35,6 +41,10 @@ export function SettingsContext() {
 
   const importChats = async () => {
     if (!bridge()) return
+    if (!sdk?.api?.session?.list) {
+      aporiaAlerts.push({ title: "Context needs the app server", detail: "The server connection isn't ready yet. Try again in a moment.", level: "error" })
+      return
+    }
     setBusy(true)
     try {
       const sessions = (((await (sdk.api as any).session.list({ limit: 2000 }))?.data) ?? []) as any[]
