@@ -6,7 +6,7 @@
 import { createSignal } from "solid-js"
 
 export type CallState = "idle" | "connecting" | "listening" | "thinking" | "speaking" | "error"
-export type CallLine = { who: "you" | "agent"; text: string; at: number }
+export type CallLine = { who: "you" | "agent" | "tool"; text: string; at: number }
 
 // ---- reactive state (module singleton, so the loop survives tab switches) ----
 const [state, setState] = createSignal<CallState>("idle")
@@ -270,6 +270,14 @@ export function sayReply(text: string) {
   const clean = String(text ?? "").replace(/\s+/g, " ").trim()
   if (clean) speechQueue.push(clean)
   void pumpSpeech()
+}
+
+/** Append a line to the live call transcript — Ali's private view of the call. Nothing here is sent
+ *  to the agent; the agent only ever sees the spoken turns and its own session. */
+export function logLine(who: "you" | "agent" | "tool", text: string) {
+  const clean = String(text ?? "").replace(/\s+/g, " ").trim()
+  if (!clean) return
+  setLines((l) => [...l, { who, text: clean.slice(0, 500), at: Date.now() }])
 }
 
 /** The agent's turn has finished (no more text coming): flush and hand the mic back. */

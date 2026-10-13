@@ -10,7 +10,7 @@ import { ReactionsLayer } from "./reactions"
 import { createEffect, createMemo, createResource, createSignal, For, lazy, onCleanup, Show, type ParentProps } from "solid-js"
 import { Portal } from "solid-js/web"
 import { ComposerMic } from "./dictation"
-import { call, endAgentTurn, sayReply, setCallSender, setCallSession } from "./call"
+import { call, endAgentTurn, logLine, sayReply, setCallSender, setCallSession } from "./call"
 import { createVirtualizer } from "@tanstack/solid-virtual"
 import { useTheme } from "@opencode/ui/theme/context"
 import { useNavigate } from "@solidjs/router"
@@ -432,6 +432,23 @@ function AporiaSidebar(props: { directory: string; currentID?: string; currentAg
   )
 }
 
+/** One short human line for a tool call: the tool name plus its most telling input field. */
+function toolSummary(name: string, input: unknown): string {
+  const pick = (v: unknown): string => {
+    if (typeof v === "string") return v
+    if (v && typeof v === "object") {
+      const o = v as Record<string, unknown>
+      for (const k of ["command", "description", "filePath", "path", "pattern", "query", "url", "prompt"]) {
+        if (typeof o[k] === "string") return o[k] as string
+      }
+      try { return JSON.stringify(o) } catch { return "" }
+    }
+    return ""
+  }
+  const detail = pick(input).replace(/\s+/g, " ").trim().slice(0, 140)
+  return detail ? `${name}: ${detail}` : name
+}
+
 /** Headless: runs the voice call in its OWN session so the working chat only shows real work.
  *  Only the agent's finished reply is spoken; never the thinking/tool steps. */
 function VoiceCallHost(props: { directory: string; agent?: string; sessionID?: string }) {
@@ -492,6 +509,28 @@ function VoiceCallHost(props: { directory: string; agent?: string; sessionID?: s
     return { id: "", text: "" }
   }
 
+  // Log the agent's tool calls into the call transcript as they appear — Ali's private view of
+  // everything the call did. Deduped by message + part id; the first pass only SEEDS the set so a
+  // reused persisted call session does not replay its old tool calls into a fresh call.
+  const loggedTools = new Set<string>()
+  let toolPrimed = false
+  const logToolParts = () => {
+    const prime = !toolPrimed
+    toolPrimed = true
+    for (const m of callMessages() as any[]) {
+      if ((m?.type ?? m?.role) !== "assistant") continue
+      const parts = m.content ?? m.parts
+      if (!Array.isArray(parts)) continue
+      parts.forEach((p: any, i: number) => {
+        if (p?.type !== "tool") return
+        const key = `${m.id}:${p.id ?? i}`
+        if (loggedTools.has(key)) return
+        loggedTools.add(key)
+        if (!prime) logLine("tool", toolSummary(String(p.name ?? "tool"), p.state?.input ?? p.input))
+      })
+    }
+  }
+
   // Spoken turns go to the call's own session — never the working chat.
   let awaiting = false
   let turnGen = 0
@@ -526,6 +565,7 @@ function VoiceCallHost(props: { directory: string; agent?: string; sessionID?: s
   const timer = setInterval(() => {
     if (!call.active || !callSessionID) { awaiting = false; return }
     void (data.session as any).message?.sync?.(callSessionID)
+    logToolParts()
     if (isWorking()) { sawRunning = true; return }
     if (!awaiting) return
     if (call.interrupts() !== turnGen) {
@@ -540,6 +580,7 @@ function VoiceCallHost(props: { directory: string; agent?: string; sessionID?: s
     if (!sawRunning && Date.now() - sentAt < 1500) return // do not race a stale answer into the gap
     lastSpokenId = msg.id
     awaiting = false
+    logLine("agent", msg.text) // keep the agent's spoken reply in the transcript too
     sayReply(msg.text)
     endAgentTurn()
   }, 400)

@@ -535,6 +535,9 @@ button[title*="Move to background"] { display: none !important; }
 .ap-call-line { display: flex; flex-direction: column; gap: 1px; font-size: 13px; line-height: 1.35; }
 .ap-call-who { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ap-muted); }
 .ap-call-you .ap-call-who { color: #2dd4bf; }
+.ap-call-tool { opacity: 0.8; }
+.ap-call-tool .ap-call-who { color: #f59e0b; }
+.ap-call-tool span:last-child { font-style: italic; }
 .ap-call-saved { display: flex; flex-direction: column; gap: 6px; }
 .ap-call-saved-label { padding-left: 0; }
 .ap-call-saved-item { border: 1px solid var(--ap-line); border-radius: var(--ap-r-sm); overflow: hidden; }

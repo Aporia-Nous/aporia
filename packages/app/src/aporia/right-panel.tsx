@@ -290,8 +290,8 @@ function CallTab(props: { view: AporiaView }) {
           <Show when={call.lines().length} fallback={<span class="ap-muted ap-small">Nothing yet — start talking.</span>}>
             <For each={call.lines()}>
               {(line) => (
-                <div class="ap-call-line" classList={{ "ap-call-you": line.who === "you" }}>
-                  <span class="ap-call-who">{line.who === "you" ? "You" : "Agent"}</span>
+                <div class="ap-call-line" classList={{ "ap-call-you": line.who === "you", "ap-call-tool": line.who === "tool" }}>
+                  <span class="ap-call-who">{line.who === "you" ? "You" : line.who === "tool" ? "Tool" : "Agent"}</span>
                   <span>{line.text}</span>
                 </div>
               )}
@@ -318,8 +318,8 @@ function CallTab(props: { view: AporiaView }) {
                   <div class="ap-call-transcript">
                     <For each={rec.lines}>
                       {(line) => (
-                        <div class="ap-call-line" classList={{ "ap-call-you": line.who === "you" }}>
-                          <span class="ap-call-who">{line.who === "you" ? "You" : "Agent"}</span>
+                        <div class="ap-call-line" classList={{ "ap-call-you": line.who === "you", "ap-call-tool": line.who === "tool" }}>
+                          <span class="ap-call-who">{line.who === "you" ? "You" : line.who === "tool" ? "Tool" : "Agent"}</span>
                           <span>{line.text}</span>
                         </div>
                       )}
