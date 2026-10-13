@@ -31,6 +31,7 @@ export function TeammatesSection(props: { sessions: SessionInfo[]; currentAgent?
   const [list] = createResource(version, () => bots({ op: "list" }) as Promise<Bot[]>, { initialValue: [] })
   const [paths] = createResource(() => bots({ op: "paths" }) as Promise<{ bots: string }>)
   const [editing, setEditing] = createSignal<Partial<Bot> | undefined>()
+  const [menu, setMenu] = createSignal<{ x: number; y: number; bot: Bot } | undefined>()
 
   const open = async (bot: Bot, fresh = false) => {
     const agent = agentFor(bot.slug)
@@ -65,7 +66,7 @@ export function TeammatesSection(props: { sessions: SessionInfo[]; currentAgent?
               title={`${bot.name} — ${bot.role}`}
               data-bot={bot.slug}
               onClick={() => void open(bot)}
-              onContextMenu={(event) => { event.preventDefault(); setEditing({ ...bot }) }}
+              onContextMenu={(event) => { event.preventDefault(); setMenu({ x: event.clientX, y: event.clientY, bot }) }}
             >
               <span class="ap-avatar ap-bot-avatar">{bot.avatar || bot.name.slice(0, 2).toUpperCase()}</span>
               <span class="ap-bot-chip-name">{bot.name}</span>
@@ -73,6 +74,18 @@ export function TeammatesSection(props: { sessions: SessionInfo[]; currentAgent?
           )}
         </For>
       </nav>
+      <Show when={menu()}>
+        {(m) => (
+          <Portal>
+            <div class="ap-ctx-overlay" onClick={() => setMenu(undefined)} onContextMenu={(event) => { event.preventDefault(); setMenu(undefined) }}>
+              <div class="ap-ctxmenu" style={{ left: `${m().x}px`, top: `${m().y}px` }} onClick={(event) => event.stopPropagation()}>
+                <button type="button" data-action="aporia-copy-bot-id" onClick={async () => { try { await navigator.clipboard.writeText(m().bot.slug); aporiaAlerts.push({ title: "Bot ID copied", detail: m().bot.slug, level: "success" }) } catch { aporiaAlerts.push({ title: "Copy failed", detail: "Clipboard is unavailable.", level: "error" }) } setMenu(undefined) }}>Copy ID</button>
+                <button type="button" onClick={() => { setEditing({ ...m().bot }); setMenu(undefined) }}>Edit bot</button>
+              </div>
+            </div>
+          </Portal>
+        )}
+      </Show>
       <Show when={editing()}>
         <BotEditor bot={editing()!} onClose={() => setEditing(undefined)} />
       </Show>
