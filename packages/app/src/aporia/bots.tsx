@@ -54,20 +54,21 @@ export function TeammatesSection(props: { sessions: SessionInfo[]; currentAgent?
         <button type="button" class="ap-sub-toggle" title="New bot" data-action="aporia-bot-new" onClick={() => setEditing({ name: "", role: "", instructions: "", model: "deepseek/deepseek-flash", folder: "Teammates" })}>+ New bot</button>
         <button type="button" class="ap-sub-toggle" title="Import a .aporia-bot.json template" data-action="aporia-bot-import" onClick={async () => { try { const b = await routines({ op: "import" }); if (b) { refreshBots(); aporiaAlerts.push({ title: `Imported ${b.name}`, detail: "Its routines are off until you enable them.", level: "success" }) } } catch (err) { aporiaAlerts.push({ title: "Import failed", detail: String((err as Error)?.message ?? err), level: "error" }) } }}>Import</button>
       </div>
-      <nav class="ap-bot-list">
+      <nav class="ap-bot-list ap-bot-chips">
         <For each={list() ?? []}>
           {(bot) => (
-            <div class="ap-session ap-bot" classList={{ "ap-selected": props.currentAgent === agentFor(bot.slug) }} data-bot={bot.slug}>
-              <button type="button" class="ap-bot-main" onClick={() => void open(bot)} title={bot.role}>
-                <span class="ap-avatar ap-bot-avatar">{bot.avatar || bot.name.slice(0, 2).toUpperCase()}</span>
-                <span class="ap-session-text">
-                  <strong class="ap-ellipsis">{bot.name}</strong>
-                  <span class="ap-muted ap-ellipsis">{bot.role}</span>
-                </span>
-              </button>
-              <button type="button" class="ap-bot-mini" title="New chat with this bot" onClick={() => void open(bot, true)}>＋</button>
-              <button type="button" class="ap-bot-mini" title="Edit bot" onClick={() => setEditing({ ...bot })}>⋯</button>
-            </div>
+            <button
+              type="button"
+              class="ap-bot-chip"
+              classList={{ "ap-selected": props.currentAgent === agentFor(bot.slug) }}
+              title={`${bot.name} — ${bot.role}`}
+              data-bot={bot.slug}
+              onClick={() => void open(bot)}
+              onContextMenu={(event) => { event.preventDefault(); setEditing({ ...bot }) }}
+            >
+              <span class="ap-avatar ap-bot-avatar">{bot.avatar || bot.name.slice(0, 2).toUpperCase()}</span>
+              <span class="ap-bot-chip-name">{bot.name}</span>
+            </button>
           )}
         </For>
       </nav>

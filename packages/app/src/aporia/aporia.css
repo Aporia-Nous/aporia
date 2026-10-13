@@ -53,8 +53,8 @@
   display: flex; flex-direction: column; min-height: 0;
   background: var(--ap-panel); backdrop-filter: blur(12px);
 }
-.ap-sidebar { border-right: 1px solid var(--ap-line); }
-.ap-right { border-left: 1px solid var(--ap-line); position: relative; }
+.ap-sidebar { border-right: 1px solid var(--ap-line); grid-column: 1; }
+.ap-right { border-left: 1px solid var(--ap-line); position: relative; grid-column: 3; }
 .ap-root.ap-right-collapsed .ap-right { display: none; }
 .ap-root.ap-rail-collapsed .ap-sidebar { display: none; }
 /* Reclaim a collapsed column so the center actually expands (no dead space). */
@@ -63,6 +63,18 @@
 .ap-root.ap-rail-collapsed.ap-right-collapsed[data-component="aporia-layout"] { grid-template-columns: 0 minmax(0, 1fr) 0; }
 .ap-panel-toggle { font-size: 18px; line-height: 1; }
 .ap-rail-toggle { font-size: 18px; line-height: 1; }
+/* Teammates as a compact chip strip so the sidebar has ONE vertical conversation list. */
+.ap-bot-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 var(--ap-s3) var(--ap-s3); }
+.ap-bot-chip {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
+  padding: 4px 9px 4px 4px; border-radius: 999px;
+  border: 1px solid var(--ap-line); background: transparent; color: var(--ap-text);
+  font: inherit; cursor: pointer; transition: background 120ms ease, border-color 120ms ease;
+}
+.ap-bot-chip:hover { background: var(--ap-hover); }
+.ap-bot-chip.ap-selected { border-color: #6366f1; }
+.ap-bot-chip .ap-bot-avatar { width: 20px; height: 20px; font-size: 9px; }
+.ap-bot-chip-name { font-size: 12px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ap-panel-collapse { position: absolute; top: 8px; right: 8px; font-size: 18px; line-height: 1; }
 .ap-brand { display: flex; align-items: center; gap: var(--ap-s3); padding: var(--ap-s5) var(--ap-s4) var(--ap-s3); }
 .ap-brand img { border-radius: var(--ap-r-sm); box-shadow: 0 0 0 1px var(--ap-line-strong); }
@@ -101,7 +113,7 @@
 .ap-connect-button:active { transform: translateY(1px); }
 
 /* Center */
-.ap-center { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.ap-center { display: flex; flex-direction: column; min-width: 0; min-height: 0; grid-column: 2; }
 .ap-chat-header {
   position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: var(--ap-s3);
   height: 56px; padding: 0 var(--ap-s5); border-bottom: 1px solid var(--ap-line);
