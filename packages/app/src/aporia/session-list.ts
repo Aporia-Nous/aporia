@@ -57,12 +57,21 @@ export function toSessionRow(session: SessionInfo): SessionRow {
   }
 }
 
-/** Dedupe the server list with the live store (store wins), dropping archived rows. */
+/** A bot/dispatch session flagged internal must not clutter the human chat list. */
+export function isInternalSession(session: SessionInfo): boolean {
+  const meta = (session as { metadata?: Record<string, unknown> })?.metadata
+  const aporia = meta?.aporia as { internal?: boolean } | undefined
+  return aporia?.internal === true
+}
+
+/** Dedupe the server list with the live store (store wins), dropping archived and internal rows. */
 export function mergeSessions(all: readonly SessionInfo[] | undefined, local: readonly SessionInfo[], includeChildren: boolean) {
   const merged = new Map<string, SessionInfo>()
   for (const session of all ?? []) merged.set(session.id, session)
   for (const session of local) merged.set(session.id, session)
-  return [...merged.values()].filter((session) => (includeChildren || !session.parentID) && !session.time.archived)
+  return [...merged.values()].filter(
+    (session) => (includeChildren || !session.parentID) && !session.time.archived && !isInternalSession(session),
+  )
 }
 
 /** Sort newest-first, cap, then precompute row strings — all off the keystroke path. */

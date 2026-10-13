@@ -11,6 +11,7 @@ import { agentFor, bots, refreshBots, type Bot } from "./bots"
 import { createDispatchScheduler } from "./dispatch-queue"
 import { buildGroundedPrompt, verifyGrounded } from "./context-grounded"
 import { scopedEntries, isDuplicate } from "./context-scope"
+import { needsResearch, researchPrompt, type BotKind } from "./expert-policy"
 
 type Msg = { id: string; from: string; to?: string; room?: string; message: string; priority: boolean; kind: "message" | "reply" | "room" | "routine"; created: string; fromSession?: string; routine?: { id: string; name: string }; manual?: boolean }
 const routines = (input: unknown) => (globalThis as any).electron?.aporia?.routines?.(input)
@@ -30,7 +31,10 @@ export function BotDispatcher() {
     const directory = `${(await paths).bots}\\${bot.slug}`
     const created = data.session.create({ id: Session.ID.create(), agent: agentFor(bot.slug), model: { id: rest.join("/"), providerID }, location: { directory } } as any)
     await created.request
-    if (title) await api.session.update({ sessionID: created.id, title }).catch(() => undefined)
+    // Bot/dispatch sessions are internal: they must not show as human chats (Phase 5).
+    await api.session
+      .update({ sessionID: created.id, metadata: { aporia: { internal: true } }, ...(title ? { title } : {}) })
+      .catch(() => undefined)
     return created.id as string
   }
   async function exists(sessionID?: string) {
@@ -51,17 +55,18 @@ export function BotDispatcher() {
   const busy = (sessionID: string) => { try { return data.session.status(sessionID) === "running" } catch { return false } }
 
   /** Prompt a session and return the final assistant text once the turn settles. */
-  async function turn(sessionID: string, text: string, metadata: Record<string, unknown>, scopes?: string[]) {
+  async function turn(sessionID: string, text: string, metadata: Record<string, unknown>, scopes?: string[], kind?: BotKind) {
     const before = Date.now()
-    // Grounded answers: hand the bot only the entries in ITS scope and require a citation.
+    // Experts must research before they answer.
+    const ask = needsResearch(kind, false) ? `${researchPrompt(text, scopes)}\n\n${text}` : text
     let allowedIds: string[] = []
-    let promptText = text
+    let promptText = ask
     let entries: { id: string; topic: string; text: string }[] = []
     try {
       const context = (globalThis as any).electron?.aporia?.context
       const result = context ? await context({ op: "query", q: {} }) : undefined
       entries = (result?.entries ?? []) as { id: string; topic: string; text: string }[]
-      const grounded = buildGroundedPrompt(text, scopedEntries(entries, scopes))
+      const grounded = buildGroundedPrompt(ask, scopedEntries(entries, scopes))
       allowedIds = grounded.allowedIds
       promptText = grounded.prompt
     } catch {
@@ -119,13 +124,13 @@ export function BotDispatcher() {
     await bots({ op: "inboxAck", id: m.id, result: { sessionID, state: "delivered" } })
     if (m.kind === "routine") {
       try {
-        const out = await turn(sessionID, `⏰ Routine "${m.routine?.name}"${m.manual ? " (run now by Ali)" : ""}:\n\n${m.message}`, { kind: "routine", routine: m.routine?.id, msg: m.id }, target.scopes)
+        const out = await turn(sessionID, `⏰ Routine "${m.routine?.name}"${m.manual ? " (run now by Ali)" : ""}:\n\n${m.message}`, { kind: "routine", routine: m.routine?.id, msg: m.id }, target.scopes, target.kind as BotKind)
         await routines({ op: "result", slug: target.slug, routine: m.routine?.id, name: m.routine?.name, sessionID, excerpt: out })
       } catch (err) { await routines({ op: "result", slug: target.slug, routine: m.routine?.id, name: m.routine?.name, sessionID, error: String((err as Error)?.message ?? err) }) }
       return
     }
     const label = m.kind === "reply" ? `📬 Reply from ${name(m.from)}` : `📨 From ${name(m.from)} (bot message${m.priority ? ", priority" : ""})`
-    const reply = await turn(sessionID, `${label}:\n\n${m.message}`, { kind: m.kind, from: m.from, msg: m.id }, target.scopes)
+    const reply = await turn(sessionID, `${label}:\n\n${m.message}`, { kind: m.kind, from: m.from, msg: m.id }, target.scopes, target.kind as BotKind)
     if (m.kind === "message" && list.some((b) => b.slug === m.from)) {
       await bots({ op: "inboxPost", msg: { from: target.slug, to: m.from, message: reply, priority: true, kind: "reply", replyTo: m.id } })
     }
@@ -150,7 +155,7 @@ export function BotDispatcher() {
       const log = (await bots({ op: "roomRead", slug: room.slug })) as { at: string; from: string; text: string }[]
       const mineIdx = log.map((e) => e.from).lastIndexOf(bot.name)
       const recent = log.slice(mineIdx + 1).slice(-20).map((e) => `${e.from}: ${e.text}`).join("\n\n")
-      const reply = await turn(sessionID, `🧑‍🤝‍🧑 Room "${room.name}" (members: ${room.members.map(name).join(", ")}). New posts since your last turn:\n\n${recent}\n\nYour reply goes to everyone in the room. Reply PASS to stay silent.`, { kind: "room", room: room.slug, msg: m.id }, bot.scopes)
+      const reply = await turn(sessionID, `🧑‍🤝‍🧑 Room "${room.name}" (members: ${room.members.map(name).join(", ")}). New posts since your last turn:\n\n${recent}\n\nYour reply goes to everyone in the room. Reply PASS to stay silent.`, { kind: "room", room: room.slug, msg: m.id }, bot.scopes, bot.kind as BotKind)
       if (!/^\s*PASS\.?\s*$/i.test(reply)) await bots({ op: "roomPost", slug: room.slug, from: bot.name, text: reply, fanout: false })
     }
     aporiaAlerts.push({ title: `Room ${room.name}: round finished`, level: "info" })

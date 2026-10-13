@@ -14,6 +14,7 @@ export type Bot = {
   tools: string[]; mcps: string[]; skills: string[]; voice?: string; folder?: string
   routines: { id: string; name: string; cron: string; prompt: string; enabled: boolean }[]; sessions: string[]
   scopes?: string[]
+  kind?: "expert" | "worker"
 }
 const bridge = () => (globalThis as any).electron?.aporia?.bots as undefined | ((i: unknown) => Promise<any>)
 export const bots = (input: unknown) => (bridge() ? bridge()!(input) : Promise.reject(new Error("Teammates need the Aporetic desktop app")))
