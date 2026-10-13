@@ -67,7 +67,13 @@ const APP_IDS = {
   prod: "com.aporianous.desktop",
 } as const
 
-const getBase = (appId: string): Configuration => ({
+const PRODUCT_NAMES = {
+  dev: "Aporetic Dev",
+  beta: "Aporetic Beta",
+  prod: "Aporetic",
+} as const
+
+const getBase = (appId: string, productName: string): Configuration => ({
   artifactName: "aporia-desktop-${os}-${arch}.${ext}",
   directories: {
     output: "dist",
@@ -80,6 +86,10 @@ const getBase = (appId: string): Configuration => ({
   // https://www.electron.build/docs/linux/
   extraMetadata: {
     desktopName: `${appId}.desktop`,
+    // Carry the product name into the packaged app: the Windows version resource and the NSIS
+    // default install dir both read it, so without this they fall back to the package name
+    // ("@opencodedesktop") and the .exe has no product/version metadata.
+    productName,
   },
   files: [
     "out/**/*",
@@ -193,14 +203,15 @@ const getBase = (appId: string): Configuration => ({
 
 function getConfig() {
   const appId = APP_IDS[channel]
-  const base = getBase(appId)
+  const productName = PRODUCT_NAMES[channel]
+  const base = getBase(appId, productName)
 
   switch (channel) {
     case "dev": {
       return {
         ...base,
         appId,
-        productName: "Aporetic Dev",
+        productName,
         deb: { fpm: [metainfoFpm(appId)] },
         rpm: { packageName: "aporetic-dev", fpm: [metainfoFpm(appId)] },
       }
@@ -210,7 +221,7 @@ function getConfig() {
       return {
         ...base,
         appId,
-        productName: "Aporetic Beta",
+        productName,
         protocols: { name: "Aporetic Beta", schemes: ["aporia"] },
         publish: null, // APORIA: no OpenCode update feed
         deb: { fpm: [metainfoFpm(appId)] },
@@ -222,7 +233,7 @@ function getConfig() {
       return {
         ...base,
         appId,
-        productName: "Aporetic",
+        productName,
         protocols: { name: "Aporetic", schemes: ["aporia"] },
         publish: null, // APORIA: no OpenCode update feed
         deb: { fpm: [metainfoFpm(appId), legacyDesktopEntryFpm] },
