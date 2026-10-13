@@ -67,7 +67,7 @@ export function SettingsContext() {
         <div>
           <h2 style={{ margin: 0 }}>Context</h2>
           <div style={{ opacity: 0.7, "font-size": "12px" }}>
-            One grounded store of facts, each linked to its source. Bots answer only from these.
+            Shared memory: facts with their sources, so bots don't repeat each other or contradict what you've already settled.
           </div>
         </div>
         <button type="button" style={{ ...box, cursor: "pointer" }} data-action="aporia-context-import" disabled={busy()} onClick={runImport}>

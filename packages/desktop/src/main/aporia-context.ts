@@ -1,8 +1,9 @@
-// APORIA: the grounded context store. One local, append-only fact index where every entry
-// carries its SOURCE (a chat message, url, or file), so bots can answer only from cited
-// facts and never from guesswork. See docs/superpowers/specs/2026-10-12-bot-system-design.md.
+// APORIA: shared memory. One local, append-only fact index where every entry carries its SOURCE
+// (a chat message, url, or file), so the memory can be trusted and bots don't repeat each other.
+// Bots MAY use it as background; they are never required to answer only from it. See
+// docs/superpowers/specs/2026-10-12-bot-system-design.md.
 import { createHash } from "node:crypto"
-import { appendFileSync, existsSync, mkdirSync, readFileSync } from "node:fs"
+import { appendFileSync, existsSync, mkdirSync, readFileSync, statSync } from "node:fs"
 import { homedir } from "node:os"
 import { join } from "node:path"
 
@@ -44,9 +45,14 @@ export function createContextStore(dir: string): ContextStore {
   const file = join(dir, "entries.jsonl")
   mkdirSync(dir, { recursive: true })
   let entries: Entry[] = []
+  let loadedSize = 0
   const index = new Map<string, Entry>()
-  if (existsSync(file)) {
-    for (const line of readFileSync(file, "utf8").split("\n")) {
+  const load = () => {
+    entries = []
+    index.clear()
+    if (!existsSync(file)) { loadedSize = 0; return }
+    const raw = readFileSync(file, "utf8")
+    for (const line of raw.split("\n")) {
       const trimmed = line.trim()
       if (!trimmed) continue
       try {
@@ -57,6 +63,20 @@ export function createContextStore(dir: string): ContextStore {
         // skip a corrupt line rather than lose the whole store
       }
     }
+    // Track the bytes we ACTUALLY read (not a fresh stat): a write that lands after this read leaves
+    // the file larger than loadedSize, so the next refresh reloads instead of absorbing the bytes.
+    loadedSize = Buffer.byteLength(raw)
+  }
+  load()
+  // The store is shared with the aporia-memory MCP (and the importer); another writer can append
+  // while we are running, so re-read when the file changed instead of serving a stale snapshot.
+  const refresh = () => {
+    try {
+      if (statSync(file).size !== loadedSize) load()
+    } catch {
+      loadedSize = 0
+      load()
+    }
   }
   return {
     add(input) {
@@ -66,6 +86,7 @@ export function createContextStore(dir: string): ContextStore {
       if (!input.source || typeof input.source.ref !== "string" || !input.source.ref.trim()) {
         throw new Error("context entry requires a non-empty source ref")
       }
+      refresh()
       const id = entryId(input)
       const existing = index.get(id)
       if (existing) return existing
@@ -73,15 +94,20 @@ export function createContextStore(dir: string): ContextStore {
       entries.push(entry)
       index.set(id, entry)
       appendFileSync(file, JSON.stringify(entry) + "\n")
+      // Re-read so loadedSize reflects exactly what is on disk (and any concurrent external write).
+      load()
       return entry
     },
     all() {
+      refresh()
       return [...entries]
     },
     has(id) {
+      refresh()
       return index.has(id)
     },
     query({ topic, tag, text }) {
+      refresh()
       const needle = text?.toLowerCase()
       return entries.filter(
         (e) =>

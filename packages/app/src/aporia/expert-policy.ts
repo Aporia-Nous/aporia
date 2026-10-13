@@ -10,7 +10,8 @@ export function needsResearch(kind: BotKind | undefined, hasFindings: boolean): 
 export function researchPrompt(question: string, scopes: string[] | undefined): string {
   const scope = scopes && scopes.length ? scopes.join(", ") : "the general topic"
   return (
-    `You are an expert. Before you answer, RESEARCH ${scope} using web search and the context store, ` +
-    `and store at least one sourced finding. Do not answer until a finding is stored.\n\nQuestion: ${question}`
+    `You are an expert on ${scope}. Before you answer, find it out — use web search or read the files. ` +
+    `Then save what you learned with the remember_finding tool (topic, text, and the source: the url or ` +
+    `file path you got it from — a finding without a real source is rejected). Then answer.\n\nQuestion: ${question}`
   )
 }

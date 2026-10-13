@@ -9,8 +9,8 @@ import { useServerSDK } from "@/runtime/server/client"
 import { aporiaAlerts } from "./alerts"
 import { agentFor, bots, refreshBots, type Bot } from "./bots"
 import { createDispatchScheduler } from "./dispatch-queue"
-import { buildGroundedPrompt, verifyGrounded } from "./context-grounded"
-import { scopedEntries, isDuplicate } from "./context-scope"
+import { buildMemoryPrompt } from "./context-grounded"
+import { scopedEntries } from "./context-scope"
 import { needsResearch, researchPrompt, type BotKind } from "./expert-policy"
 
 type Msg = { id: string; from: string; to?: string; room?: string; message: string; priority: boolean; kind: "message" | "reply" | "room" | "routine"; created: string; fromSession?: string; routine?: { id: string; name: string }; manual?: boolean }
@@ -57,20 +57,19 @@ export function BotDispatcher() {
   /** Prompt a session and return the final assistant text once the turn settles. */
   async function turn(sessionID: string, text: string, metadata: Record<string, unknown>, scopes?: string[], kind?: BotKind) {
     const before = Date.now()
-    // Experts must research before they answer.
+    // Experts find things out before they answer (a behaviour, not a refusal gate).
     const ask = needsResearch(kind, false) ? `${researchPrompt(text, scopes)}\n\n${text}` : text
-    let allowedIds: string[] = []
     let promptText = ask
-    let entries: { id: string; topic: string; text: string }[] = []
     try {
       const context = (globalThis as any).electron?.aporia?.context
       const result = context ? await context({ op: "query", q: {} }) : undefined
-      entries = (result?.entries ?? []) as { id: string; topic: string; text: string }[]
-      const grounded = buildGroundedPrompt(ask, scopedEntries(entries, scopes))
-      allowedIds = grounded.allowedIds
-      promptText = grounded.prompt
+      const entries = (result?.entries ?? []) as { id: string; topic: string; text: string }[]
+      // Shared memory is background the bot MAY use. No gate: it is never told to refuse, and its
+      // answer is never stored back as a "fact" (only remember_finding may write memory, and only
+      // with a real source).
+      promptText = buildMemoryPrompt(ask, scopedEntries(entries, scopes)).prompt
     } catch {
-      // no store yet — fall through and prompt as before
+      // no store yet — prompt as before
     }
     await api.session.prompt({ sessionID, text: promptText, delivery: "queue", metadata: { aporia: metadata } })
     const started = Date.now()
@@ -81,35 +80,7 @@ export function BotDispatcher() {
       const last = list.find((m: any) => m.type === "assistant" && (m.time?.created ?? 0) >= before - 1000)
       const done = last && last.time?.completed && last.finish !== "tool-calls" && !busy(sessionID)
       stable = done ? stable + 1 : 0
-      if (stable >= 2) {
-        let reply = textOf(last) || "(no text reply)"
-        // Only judge grounding when we actually had a scoped store to ground against.
-        if (allowedIds.length > 0) {
-          const verdict = verifyGrounded(reply, allowedIds)
-          if (!verdict.ok) return `${reply}\n\n⚠️ ungrounded (${verdict.reason})`
-          // One source of truth: store the grounded answer back unless it already exists.
-          try {
-            const context = (globalThis as any).electron?.aporia?.context
-            const topic = scopes?.[0] ?? "bots"
-            if (context) {
-              if (isDuplicate({ topic, text: reply }, entries)) reply = `${reply}\n\n(not stored: duplicate)`
-              else
-                await context({
-                  op: "add",
-                  entry: {
-                    topic,
-                    tags: [],
-                    text: reply,
-                    source: { kind: "session", ref: `${sessionID}:${last.id}`, sessionID, messageID: last.id },
-                  },
-                })
-            }
-          } catch {
-            // storing is best-effort; the reply still returns
-          }
-        }
-        return reply
-      }
+      if (stable >= 2) return textOf(last) || "(no text reply)"
     }
     return "(timed out waiting for a reply)"
   }

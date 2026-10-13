@@ -2,6 +2,7 @@
 // Scopes: "user" -> %USERPROFILE%\Aporia\memory\USER.md (shared, facts about Ali)
 //         "bot"  -> %USERPROFILE%\Aporia\bots\<bot>\MEMORY.md (how that bot does its job)
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, copyFileSync } from "node:fs"
+import { createHash } from "node:crypto"
 import path from "node:path"
 import os from "node:os"
 const ROOT = process.env.APORIA_HOME || path.join(os.homedir(), "Aporia")
@@ -15,6 +16,31 @@ const read = (f) => (existsSync(f) ? readFileSync(f, "utf8") : "")
 const facts = (f) => read(f).split(/\r?\n/).filter((l) => l.startsWith("- "))
 const norm = (s) => s.toLowerCase().replace(/^- (\[\d{4}-\d{2}-\d{2}\] )?/, "").replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim()
 const today = () => new Date().toLocaleDateString("en-CA", { timeZone: "America/Chicago" })
+
+// ---- shared context store (the APORIA_HOME\context\entries.jsonl the app reads) -----------------
+// The one hard rule: a finding may only be written WITH a real source. Model output can never be
+// stored as a "fact". The id matches aporia-context.ts entryId so nothing is ever duplicated.
+const contextFile = () => path.join(ROOT, "context", "entries.jsonl")
+function rememberFinding({ topic, text, source, tags }) {
+  const body = String(text ?? "").trim()
+  if (!body) throw new Error("text is required (the finding)")
+  const ref = String(source ?? "").trim()
+  if (!ref) throw new Error("source is required — a finding must come from somewhere real (a url or file path)")
+  const t = String(topic ?? "").trim() || "general"
+  const kind = /^https?:\/\//i.test(ref) ? "url" : "file"
+  const input = { topic: t, tags: Array.isArray(tags) ? tags.map(String) : [], text: body, source: { kind, ref } }
+  const id = createHash("sha256").update(`${input.source.ref}\n${input.topic}\n${input.text}`).digest("hex")
+  const f = contextFile()
+  mkdirSync(path.dirname(f), { recursive: true })
+  if (existsSync(f)) {
+    for (const line of read(f).split("\n")) {
+      if (!line.trim()) continue
+      try { if (JSON.parse(line).id === id) return `Already stored [${id}].` } catch { /* skip a corrupt line */ }
+    }
+  }
+  appendFileSync(f, JSON.stringify({ ...input, id, created: Date.now() }) + "\n")
+  return `Stored finding [${id}] on "${t}" from ${ref}. Cite [${id}] if you use it.`
+}
 
 function remember({ scope, bot, fact }) {
   if (!fact || !String(fact).trim()) throw new Error("fact is required")
@@ -85,6 +111,7 @@ const TOOLS = [
   { name: "remember", description: "Save one self-contained lasting fact (dedupes, adds the date).", inputSchema: { type: "object", properties: { scope: scopeProp, bot: botProp, fact: { type: "string" } }, required: ["scope", "fact"] }, run: remember },
   { name: "forget", description: "Remove facts containing the given text (use when Ali corrects something, then remember the new fact).", inputSchema: { type: "object", properties: { scope: scopeProp, bot: botProp, match: { type: "string" } }, required: ["scope", "match"] }, run: forget },
   { name: "recall", description: "Search shared and your own memory. Empty query lists everything.", inputSchema: { type: "object", properties: { query: { type: "string" }, bot: botProp, limit: { type: "number" } } }, run: recall },
+  { name: "remember_finding", description: "Save a sourced finding to the shared context store (topic, text, source). The source is REQUIRED — the url or file path you got it from; a finding with no real source is rejected. Use it when you research something so the team can reuse it.", inputSchema: { type: "object", properties: { topic: { type: "string", description: "the topic this finding belongs to" }, text: { type: "string", description: "the finding itself" }, source: { type: "string", description: "where it came from: a url or file path" }, tags: { type: "array", items: { type: "string" } } }, required: ["text", "source"] }, run: rememberFinding },
   { name: "send_to_bot", description: "Send an async message to another Aporia bot (or room:<slug>). Returns immediately; the reply arrives later as a new message in your chat.", inputSchema: { type: "object", properties: { from: { type: "string", description: "Your own bot slug" }, target: { type: "string", description: "Target bot slug or room:<slug>" }, message: { type: "string" }, priority: { type: "boolean", description: "true wakes the target now; false waits until it is idle" } }, required: ["from", "target", "message"] }, run: sendToBot },
   { name: "react", description: "Put one emoji reaction on Ali's latest message in your chat (instead of a reply to thanks/acknowledgements). Max one per message.", inputSchema: { type: "object", properties: { bot: botProp, emoji: { type: "string" } }, required: ["bot", "emoji"] }, run: react },
   { name: "list_bots", description: "List Aporia teammate bots (slug: name - role).", inputSchema: { type: "object", properties: {} }, run: listBots },
