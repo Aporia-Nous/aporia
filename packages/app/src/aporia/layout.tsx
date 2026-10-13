@@ -438,14 +438,24 @@ function VoiceCallHost(props: { directory: string; agent?: string; sessionID?: s
   const sdk = useServerSDK()
   const data = useData()
   let callSessionID: string | undefined
-  let lastSpoken = ""
 
   const storeKey = () => `aporia.call.session.${props.agent ?? "build"}:${props.directory}`
+
+  // A call's session must be flagged internal so it never shows up in the chat list (the bot
+  // dispatcher does the same for its sessions). Best-effort: a failure only means it stays visible.
+  const markInternal = async (id: string) => {
+    try {
+      const update = (sdk.api as any)?.session?.update
+      if (typeof update !== "function") return
+      const current = ((data.session.list() ?? []) as any[]).find((s) => s.id === id)?.metadata ?? {}
+      await update({ sessionID: id, metadata: { ...current, aporia: { ...(current?.aporia ?? {}), internal: true } } })
+    } catch { /* non-fatal */ }
+  }
 
   const ensureSession = async (): Promise<string | undefined> => {
     if (callSessionID) return callSessionID
     const saved = (() => { try { return localStorage.getItem(storeKey()) || undefined } catch { return undefined } })()
-    if (saved && (data.session.list() ?? []).some((s: any) => s.id === saved)) { callSessionID = saved; return saved }
+    if (saved && (data.session.list() ?? []).some((s: any) => s.id === saved)) { callSessionID = saved; void markInternal(saved); return saved }
     try {
       const id = Session.ID.create()
       const created: any = (data.session as any).create({
@@ -455,6 +465,7 @@ function VoiceCallHost(props: { directory: string; agent?: string; sessionID?: s
       })
       if (created?.request) await created.request
       callSessionID = id
+      await markInternal(id)
       try { localStorage.setItem(storeKey(), id) } catch { /* ignore */ }
       return id
     } catch {
@@ -464,30 +475,40 @@ function VoiceCallHost(props: { directory: string; agent?: string; sessionID?: s
 
   const callMessages = () => (callSessionID ? (data.session.message.list(callSessionID) ?? []) : [])
   const isWorking = () => (callSessionID ? String((data.session as any).status?.(callSessionID) ?? "") === "running" : false)
-  const lastAssistant = (): string => {
+  const lastAssistantMsg = (): { id: string; text: string } => {
     const msgs = [...callMessages()] as any[]
     for (let i = msgs.length - 1; i >= 0; i--) {
       const m = msgs[i]
       if ((m?.type ?? m?.role) !== "assistant") continue
       const parts = m.content ?? m.parts
-      if (Array.isArray(parts)) {
-        const text = parts
-          .filter((p: any) => (p?.type === "text" || p?.type === "assistant.text") && !p?.synthetic)
-          .map((p: any) => p.text ?? "")
-          .join("\n")
-          .trim()
-        if (text) return text
-      }
+      if (!Array.isArray(parts)) continue
+      const text = parts
+        .filter((p: any) => p?.type === "text" && !p?.synthetic)
+        .map((p: any) => p.text ?? "")
+        .join("\n")
+        .trim()
+      if (text) return { id: String(m.id ?? ""), text }
     }
-    return ""
+    return { id: "", text: "" }
   }
 
   // Spoken turns go to the call's own session — never the working chat.
+  let awaiting = false
+  let turnGen = 0
+  let lastSpokenId = ""
+  let baselineId = "" // last assistant id at send time: anything at or before it is not OUR answer
+  let sentAt = 0
+  let sawRunning = false
   setCallSender(async (text) => {
     const id = await ensureSession()
     if (!id) throw new Error("Could not open a call session")
     const synthetic = (sdk.api as any)?.session?.synthetic
     if (typeof synthetic !== "function") throw new Error("Voice channel unavailable")
+    turnGen = call.interrupts()
+    awaiting = true
+    sawRunning = false
+    sentAt = Date.now()
+    baselineId = lastAssistantMsg().id
     await synthetic({
       sessionID: id,
       text: `This is a live voice call. The user just said: "${text}". Do what they ask, using tools as needed, then reply in one or two short spoken sentences.`,
@@ -498,22 +519,30 @@ function VoiceCallHost(props: { directory: string; agent?: string; sessionID?: s
 
   createEffect(() => setCallSession(props.sessionID))
 
-  // Turn end: the call session stopped working — speak its final answer, hand the mic back.
-  let sawWorking = false
+  // Turn end: the call session stopped working and a fresh answer exists — speak it, hand the mic
+  // back. Polled fast so a quick turn is not missed; guarded three ways so a superseded turn's
+  // answer is never spoken over the user's new one: the barge-in generation, the pre-send baseline
+  // message id, and a short grace before trusting an idle-with-no-running-observed gap.
   const timer = setInterval(() => {
-    if (!call.active || !callSessionID) { sawWorking = false; return }
-    if (isWorking()) {
-      sawWorking = true
-      void (data.session as any).message?.sync?.(callSessionID)
+    if (!call.active || !callSessionID) { awaiting = false; return }
+    void (data.session as any).message?.sync?.(callSessionID)
+    if (isWorking()) { sawRunning = true; return }
+    if (!awaiting) return
+    if (call.interrupts() !== turnGen) {
+      // A barge-in (or the watchdog) superseded this turn: adopt the new generation and treat the
+      // answer already present as seen, so it is never spoken as if it were the new turn's.
+      turnGen = call.interrupts()
+      baselineId = lastAssistantMsg().id
       return
     }
-    if (sawWorking) {
-      sawWorking = false
-      const text = lastAssistant()
-      if (text && text !== lastSpoken) { lastSpoken = text; sayReply(text) }
-      endAgentTurn()
-    }
-  }, 800)
+    const msg = lastAssistantMsg()
+    if (!msg.text || msg.id === lastSpokenId || msg.id === baselineId) return // no answer of ours yet
+    if (!sawRunning && Date.now() - sentAt < 1500) return // do not race a stale answer into the gap
+    lastSpokenId = msg.id
+    awaiting = false
+    sayReply(msg.text)
+    endAgentTurn()
+  }, 400)
   onCleanup(() => clearInterval(timer))
 
   createEffect(() => {

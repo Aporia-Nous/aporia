@@ -4,7 +4,6 @@
 // transcribes, sends, speaks the reply, and listens again — no button presses.
 // Free + local: Whisper in, Kokoro out. Audio never leaves the machine.
 import { createSignal } from "solid-js"
-import { insertIntoComposer, sendPrompt } from "./dictation"
 
 export type CallState = "idle" | "connecting" | "listening" | "thinking" | "speaking" | "error"
 export type CallLine = { who: "you" | "agent"; text: string; at: number }
@@ -17,6 +16,9 @@ const [muted, setMuted] = createSignal(false)
 const [error, setError] = createSignal("")
 // Bumped when something wants the Call tab shown (composer phone icon / start).
 const [callUiRequest, setCallUiRequest] = createSignal(0)
+// Bumped on every barge-in, so the host can tell a superseded turn from the live one and not
+// speak the old answer over the user's new turn.
+const [interruptNonce, setInterruptNonce] = createSignal(0)
 
 export const call = {
   state,
@@ -25,6 +27,7 @@ export const call = {
   muted,
   error,
   uiRequest: callUiRequest,
+  interrupts: interruptNonce,
   get active() {
     const s = state()
     return s === "connecting" || s === "listening" || s === "thinking" || s === "speaking"
@@ -69,6 +72,9 @@ let pumping = false
 let turnDone = false
 let abortSpeech: (() => void) | undefined
 let bargeMs = 0
+// Incremented when a turn starts, is interrupted, or the call hangs up. A turn that was superseded
+// while awaiting STT/thinking must drop its result rather than send or speak.
+let turnSeq = 0
 
 const NOISE = /^(you|thank you\.?|thanks?( for watching| for watching\.)?\.?|\[blank_audio\]|\(silence\)|\s*[.,!?]*\s*)$/i
 
@@ -149,6 +155,7 @@ function onAudio(event: AudioProcessingEvent) {
 }
 
 async function finishTurn(chunks: Float32Array[]) {
+  const seq = ++turnSeq
   busy = true
   setState("thinking")
   try {
@@ -156,22 +163,27 @@ async function finishTurn(chunks: Float32Array[]) {
     if (raw.length < MIN_UTTER_SAMPLES) return resumeListening()
     const pcm = resample(raw, ctx?.sampleRate ?? TARGET_RATE, TARGET_RATE)
     const res = await (globalThis as any).electron?.aporia?.stt?.({ pcm: Array.from(pcm) })
+    // Hung up or interrupted while transcribing: drop this utterance; never send it late.
+    if (!wantListening || seq !== turnSeq) return resumeListening()
     const text = String(res?.text ?? "").trim()
     if (isNoise(text)) return resumeListening()
     setLines((l) => [...l, { who: "you", text, at: Date.now() }])
-    if (sendHandler) {
-      // Hidden send: the agent sees the spoken words, the chat does not show them as a prompt.
-      await Promise.resolve(sendHandler(text)).catch((e) => setError(e instanceof Error ? e.message : String(e)))
-    } else if (insertIntoComposer(text)) {
-      sendPrompt()
-    } else {
-      try { await navigator.clipboard.writeText(text) } catch { /* ignore */ }
+    if (!sendHandler) {
+      // No hidden sender registered. NEVER fall back to typing the spoken words into the visible
+      // working chat — keep them out of the session entirely and tell the user why.
+      setError("Voice channel unavailable")
       return resumeListening()
     }
-    // Stay in "thinking" until the agent's reply starts streaming. Safety net so a silent
-    // or tool-only turn still hands the mic back instead of stalling the call.
+    let failed = false
+    await Promise.resolve(sendHandler(text)).catch((e) => { failed = true; setError(e instanceof Error ? e.message : String(e)) })
+    if (failed) return resumeListening()
+    // Stay in "thinking" until the agent's reply starts streaming. Safety net so a silent or
+    // tool-only turn still hands the mic back instead of stalling the call.
     setTimeout(() => {
-      if (wantListening && busy && state() === "thinking" && speechQueue.length === 0 && !pumping) endAgentTurn()
+      if (seq !== turnSeq || !wantListening || !busy || state() !== "thinking" || speechQueue.length > 0 || pumping) return
+      turnSeq++ // cancel the in-flight turn so its late result is dropped, not spoken
+      setInterruptNonce((n) => n + 1) // and tell the host to treat any pending answer as superseded
+      endAgentTurn()
     }, 45000)
   } catch (e) {
     setError(e instanceof Error ? e.message : String(e))
@@ -205,19 +217,31 @@ function splitSpeakable(text: string): { say: string; rest: string } {
 
 function playTts(text: string, voice?: string): Promise<void> {
   return new Promise<void>((resolve) => {
+    let url: string | undefined
+    let done = false
+    // One exit for every path (ended, error, abort, or play() rejecting) so the blob URL is always
+    // revoked and the singleton is always cleared — a rejected play() used to leak both.
+    const finish = () => {
+      if (done) return
+      done = true
+      if (url) URL.revokeObjectURL(url)
+      speakingEl = undefined
+      abortSpeech = undefined
+      resolve()
+    }
     void (async () => {
       try {
         const res = await (globalThis as any).electron?.aporia?.tts?.({ text, voice })
         const bytes = Uint8Array.from(atob(res?.wav ?? ""), (c) => c.charCodeAt(0))
-        const url = URL.createObjectURL(new Blob([bytes], { type: "audio/wav" }))
+        url = URL.createObjectURL(new Blob([bytes], { type: "audio/wav" }))
         const audio = new Audio(url)
         speakingEl = audio
-        abortSpeech = () => { try { audio.pause() } catch { /* ignore */ } URL.revokeObjectURL(url); speakingEl = undefined; resolve() }
-        audio.onended = () => { URL.revokeObjectURL(url); speakingEl = undefined; abortSpeech = undefined; resolve() }
-        audio.onerror = () => { URL.revokeObjectURL(url); speakingEl = undefined; abortSpeech = undefined; resolve() }
+        abortSpeech = () => { try { audio.pause() } catch { /* ignore */ } finish() }
+        audio.onended = finish
+        audio.onerror = finish
         await audio.play()
       } catch {
-        resolve()
+        finish()
       }
     })()
   })
@@ -259,6 +283,8 @@ export function endAgentTurn() {
 
 /** Barge-in: user spoke over the agent — stop talking and listen immediately. */
 function interrupt() {
+  turnSeq++ // drop the superseded turn's pending result
+  setInterruptNonce((n) => n + 1) // tell the host not to speak that turn's answer
   speechQueue = []
   turnDone = false
   try { abortSpeech?.() } catch { /* ignore */ }
@@ -307,6 +333,7 @@ async function start() {
 }
 
 function hangup() {
+  turnSeq++ // a turn still awaiting STT/thinking must not send or speak after hang-up
   wantListening = false
   busy = false
   capturing = false
@@ -387,6 +414,8 @@ export { splitSpeakable }
 if (typeof window !== "undefined") {
   window.addEventListener("aporia:start-call", () => startVoiceCall())
   window.addEventListener("aporia:hangup-call", () => hangup())
+  // Release the mic if the window reloads/closes mid-call instead of leaving the track hot.
+  window.addEventListener("beforeunload", () => hangup())
 }
 
 export function openCallUi() { setCallUiRequest((n) => n + 1) }
