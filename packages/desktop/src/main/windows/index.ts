@@ -25,6 +25,7 @@ import {
 import { registerRendererProtocol, setProtocolReporter } from "./protocol"
 import { loadWindow } from "./scheme"
 import { createWindowRegistry } from "./registry"
+import { isQuitting, setQuitting } from "./quitting"
 import { makeWindowRecovery } from "./recovery"
 import { takeEarlyWindow, type EarlyWindow } from "./early"
 import { manageWindowState, readWindowState, resolveWindowState, windowStateFile } from "./window-state"
@@ -75,6 +76,7 @@ export function setRelaunchHandler(handler: () => void) {
 
 export function setAppQuitting(quitting = true) {
   registry.setQuitting(quitting)
+  setQuitting(quitting)
 }
 
 export function getLastFocusedWindow() {
@@ -174,7 +176,7 @@ export const makeMainWindows = Effect.fn("Window.make")(function* () {
     // quitting), so background bot-message delivery never stops just because the window was closed.
     if (!early && process.platform !== "darwin") {
       win.on("close", (event) => {
-        if (registry.isQuitting()) return
+        if (isQuitting()) return
         event.preventDefault()
         win.hide()
       })

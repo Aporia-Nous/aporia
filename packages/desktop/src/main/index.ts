@@ -21,6 +21,7 @@ import { runAporiaStartup } from "./aporia-startup" // APORIA
 import { applyStagedUpdateOnLaunch, registerAporiaUpdateHandler } from "./aporia-update" // APORIA
 import { createEarlyWindow } from "./windows/early"
 import { createAporiaTray } from "./windows/tray"
+import { setAppQuitting } from "./windows"
 import { rendererAssetsServed } from "./windows/protocol"
 import { registerRendererScheme } from "./windows/scheme"
 
@@ -41,6 +42,10 @@ process.env.OPENCODE_DISABLE_CHANNEL_DB ??= "1"
 // hundred milliseconds of module evaluation and layers — loads. Configuration and the scheme must
 // precede ready; the window is created the moment ready fires; everything else is imported after.
 configureApplication()
+
+// Any real quit path (menu, Ctrl+Q, OS shutdown) must be allowed to close the hidden-in-tray
+// window; mark it so the close-to-tray handler steps aside.
+app.on("before-quit", () => setAppQuitting(true))
 
 if (acquireApplicationLock()) {
   // Only the primary instance may hand off to the updater (a second launch must never stop the running app).
