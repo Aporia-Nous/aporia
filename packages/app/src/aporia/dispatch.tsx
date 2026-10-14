@@ -71,7 +71,13 @@ export function BotDispatcher() {
     } catch {
       // no store yet — prompt as before
     }
-    await api.session.prompt({ sessionID, text: promptText, delivery: "queue", metadata: { aporia: metadata } })
+    // The bot still receives the full text; `displayText` only changes what the UI shows, so a
+    // bot-to-bot turn reads as a small quiet line instead of dumping the message into the chat.
+    const display = String((metadata as { display?: unknown }).display ?? "").trim()
+    const promptMeta = display
+      ? { displayText: display, comments: [], attachments: [], aporia: metadata }
+      : { aporia: metadata }
+    await api.session.prompt({ sessionID, text: promptText, delivery: "queue", metadata: promptMeta })
     const started = Date.now()
     let stable = 0
     while (Date.now() - started < TURN_TIMEOUT_MS) {
@@ -95,13 +101,15 @@ export function BotDispatcher() {
     await bots({ op: "inboxAck", id: m.id, result: { sessionID, state: "delivered" } })
     if (m.kind === "routine") {
       try {
-        const out = await turn(sessionID, `⏰ Routine "${m.routine?.name}"${m.manual ? " (run now by Ali)" : ""}:\n\n${m.message}`, { kind: "routine", routine: m.routine?.id, msg: m.id }, target.scopes, target.kind as BotKind)
+        const out = await turn(sessionID, `⏰ Routine "${m.routine?.name}"${m.manual ? " (run now by Ali)" : ""}:\n\n${m.message}`, { kind: "routine", routine: m.routine?.id, msg: m.id, display: `⏰ Routine "${m.routine?.name}"` }, target.scopes, target.kind as BotKind)
         await routines({ op: "result", slug: target.slug, routine: m.routine?.id, name: m.routine?.name, sessionID, excerpt: out })
       } catch (err) { await routines({ op: "result", slug: target.slug, routine: m.routine?.id, name: m.routine?.name, sessionID, error: String((err as Error)?.message ?? err) }) }
       return
     }
     const label = m.kind === "reply" ? `📬 Reply from ${name(m.from)}` : `📨 From ${name(m.from)} (bot message${m.priority ? ", priority" : ""})`
-    const reply = await turn(sessionID, `${label}:\n\n${m.message}`, { kind: m.kind, from: m.from, msg: m.id }, target.scopes, target.kind as BotKind)
+    // What the receiving bot's chat shows: a small line, never the message body.
+    const display = m.kind === "reply" ? `📬 Reply received from ${name(m.from)}` : `📨 Message received from ${name(m.from)}`
+    const reply = await turn(sessionID, `${label}:\n\n${m.message}`, { kind: m.kind, from: m.from, msg: m.id, display }, target.scopes, target.kind as BotKind)
     if (m.kind === "message" && list.some((b) => b.slug === m.from)) {
       await bots({ op: "inboxPost", msg: { from: target.slug, to: m.from, message: reply, priority: true, kind: "reply", replyTo: m.id } })
     }
@@ -126,7 +134,7 @@ export function BotDispatcher() {
       const log = (await bots({ op: "roomRead", slug: room.slug })) as { at: string; from: string; text: string }[]
       const mineIdx = log.map((e) => e.from).lastIndexOf(bot.name)
       const recent = log.slice(mineIdx + 1).slice(-20).map((e) => `${e.from}: ${e.text}`).join("\n\n")
-      const reply = await turn(sessionID, `🧑‍🤝‍🧑 Room "${room.name}" (members: ${room.members.map(name).join(", ")}). New posts since your last turn:\n\n${recent}\n\nYour reply goes to everyone in the room. Reply PASS to stay silent.`, { kind: "room", room: room.slug, msg: m.id }, bot.scopes, bot.kind as BotKind)
+      const reply = await turn(sessionID, `🧑‍🤝‍🧑 Room "${room.name}" (members: ${room.members.map(name).join(", ")}). New posts since your last turn:\n\n${recent}\n\nYour reply goes to everyone in the room. Reply PASS to stay silent.`, { kind: "room", room: room.slug, msg: m.id, display: `🧑‍🤝‍🧑 Room "${room.name}" — new posts` }, bot.scopes, bot.kind as BotKind)
       if (!/^\s*PASS\.?\s*$/i.test(reply)) await bots({ op: "roomPost", slug: room.slug, from: bot.name, text: reply, fanout: false })
     }
     aporiaAlerts.push({ title: `Room ${room.name}: round finished`, level: "info" })
