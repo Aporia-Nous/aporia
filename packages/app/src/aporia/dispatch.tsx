@@ -18,12 +18,18 @@ const routines = (input: unknown) => (globalThis as any).electron?.aporia?.routi
 type Room = { slug: string; name: string; members: string[]; sessions: Record<string, string> }
 const IDLE_DELAY_MS = 2 * 60_000 // non-priority messages wait this long (target idle) before they wake it
 const TURN_TIMEOUT_MS = 15 * 60_000
+// Loop guard: two bots can ping-pong forever (each turn fires another send_to_bot). Cap how many
+// messages may pass between the same pair inside a window.
+const PAIR_WINDOW_MS = 10 * 60_000
+const PAIR_MAX = 6
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 export function BotDispatcher() {
   const sdk = useServerSDK()
   const data = useData()
   const api = sdk.api as any
+  // Per bot-pair delivery timestamps for the loop guard (in-memory, per running app).
+  const pairHits = new Map<string, number[]>()
 
   const paths = bots({ op: "paths" }) as Promise<{ bots: string }>
   async function createSession(bot: Bot, title?: string) {
@@ -101,6 +107,25 @@ export function BotDispatcher() {
     }
     const sessionID = await botSession(target)
     if (!m.priority && (busy(sessionID) || Date.now() - Date.parse(m.created) < IDLE_DELAY_MS)) return // wait
+    // Loop guard (counted only when we are about to DELIVER, not on every retry tick): two bots can
+    // ping-pong forever because each turn fires another send_to_bot. Cap per pair. Ali's own
+    // messages are never rate-limited.
+    if (m.to && list.some((b) => b.slug === m.from)) {
+      const key = [m.from, m.to].sort().join("|")
+      const now = Date.now()
+      const hits = (pairHits.get(key) ?? []).filter((t) => now - t < PAIR_WINDOW_MS)
+      if (hits.length >= PAIR_MAX) {
+        await bots({ op: "inboxAck", id: m.id, result: { suppressed: "loop-guard" } })
+        aporiaAlerts.push({
+          title: "Bot loop paused",
+          detail: `${name(m.from)} → ${name(m.to)}: ${PAIR_MAX} messages in a row, so I stopped it.`,
+          level: "warning",
+        })
+        return
+      }
+      hits.push(now)
+      pairHits.set(key, hits)
+    }
     await bots({ op: "inboxAck", id: m.id, result: { sessionID, state: "delivered" } })
     // Delivery receipt: the sender (and Ali) can see the message actually landed, not just queued.
     aporiaAlerts.push({ title: `✓ Delivered to ${target.name}`, detail: m.from ? `from ${name(m.from)}` : undefined, level: "success" })
