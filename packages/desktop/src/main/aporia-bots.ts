@@ -137,7 +137,7 @@ export function agentPrompt(bot: Bot, shared: SharedPrompt = sharedPrompt()) {
     `Your working folder is ${path.join(BOTS_DIR, bot.slug)}. Answer Ali right away; run long work as background subagents/jobs per WORKING-STYLE.md so you are never blocked.`,
     "Anything sent externally under Ali's name (email, text, post, call) needs his explicit OK unless Owner mode is on.",
     `Reactions: you can react to Ali's latest message with the react tool (bot="${bot.slug}", one emoji) instead of replying to a quick thanks or acknowledgement; follow the reaction rules in VOICE.md.`,
-    `Teammates: use send_to_bot (from="${bot.slug}") to ask another bot (list_bots shows them) or post to room:<slug>. It's async: keep working, the reply arrives as a new message. Messages starting with "📨 From" are from another bot; answer them directly (your final reply is sent back automatically, so don't call send_to_bot to reply). In a room turn, reply with PASS if you have nothing useful to add.`,
+    `Teammates: use send_to_bot (from="${bot.slug}") to ask another bot (list_bots shows them) or post to room:<slug>. It's async: keep working, the reply arrives as a new message. Messages starting with "📨 From" are from another bot; answer them directly (your final reply is sent back automatically, so don't call send_to_bot to reply). Answer a teammate ONCE and stop — never start a back-and-forth; if you need more from them, ask Ali to weigh in. In a room turn, reply with PASS if you have nothing useful to add.`,
     `Memory tools (aporia-memory MCP): remember/forget/recall with bot="${bot.slug}". Below is a snapshot of memory at the time this prompt was built; use recall for anything older or more specific.`,
     shared.rules,
     recentReactions(bot.slug),

@@ -22,14 +22,17 @@ const TURN_TIMEOUT_MS = 15 * 60_000
 // messages may pass between the same pair inside a window.
 const PAIR_WINDOW_MS = 10 * 60_000
 const PAIR_MAX = 6
+// Once a pair hits the cap, stop it for real rather than letting it trickle.
+const PAIR_COOLDOWN_MS = 60 * 60_000
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 export function BotDispatcher() {
   const sdk = useServerSDK()
   const data = useData()
   const api = sdk.api as any
-  // Per bot-pair delivery timestamps for the loop guard (in-memory, per running app).
+  // Per bot-pair delivery timestamps and cooldowns for the loop guard (in-memory, per running app).
   const pairHits = new Map<string, number[]>()
+  const pairCooldown = new Map<string, number>()
 
   const paths = bots({ op: "paths" }) as Promise<{ bots: string }>
   async function createSession(bot: Bot, title?: string) {
@@ -113,12 +116,21 @@ export function BotDispatcher() {
     if (m.to && list.some((b) => b.slug === m.from)) {
       const key = [m.from, m.to].sort().join("|")
       const now = Date.now()
+      const until = pairCooldown.get(key) ?? 0
+      if (now < until) {
+        // Still in the cooldown from a previous loop: drop silently (no alert spam).
+        await bots({ op: "inboxAck", id: m.id, result: { suppressed: "loop-guard" } })
+        return
+      }
+      if (until) pairCooldown.delete(key)
       const hits = (pairHits.get(key) ?? []).filter((t) => now - t < PAIR_WINDOW_MS)
       if (hits.length >= PAIR_MAX) {
+        pairCooldown.set(key, now + PAIR_COOLDOWN_MS)
+        pairHits.delete(key)
         await bots({ op: "inboxAck", id: m.id, result: { suppressed: "loop-guard" } })
         aporiaAlerts.push({
-          title: "Bot loop paused",
-          detail: `${name(m.from)} → ${name(m.to)}: ${PAIR_MAX} messages in a row, so I stopped it.`,
+          title: "Bot loop stopped",
+          detail: `${name(m.from)} ↔ ${name(m.to)} kept messaging in a loop, so I paused them for an hour.`,
           level: "warning",
         })
         return
