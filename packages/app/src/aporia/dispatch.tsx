@@ -95,10 +95,15 @@ export function BotDispatcher() {
     const name = (slug: string) => list.find((b) => b.slug === slug)?.name ?? slug
     if (m.room) return deliverRoom(m, list, name)
     const target = list.find((b) => b.slug === m.to)
-    if (!target) return bots({ op: "inboxAck", id: m.id, result: { error: "no such bot" } })
+    if (!target) {
+      aporiaAlerts.push({ title: `✗ Could not deliver to ${m.to}`, detail: "No such bot.", level: "error" })
+      return bots({ op: "inboxAck", id: m.id, result: { error: "no such bot" } })
+    }
     const sessionID = await botSession(target)
     if (!m.priority && (busy(sessionID) || Date.now() - Date.parse(m.created) < IDLE_DELAY_MS)) return // wait
     await bots({ op: "inboxAck", id: m.id, result: { sessionID, state: "delivered" } })
+    // Delivery receipt: the sender (and Ali) can see the message actually landed, not just queued.
+    aporiaAlerts.push({ title: `✓ Delivered to ${target.name}`, detail: m.from ? `from ${name(m.from)}` : undefined, level: "success" })
     if (m.kind === "routine") {
       try {
         const out = await turn(sessionID, `⏰ Routine "${m.routine?.name}"${m.manual ? " (run now by Ali)" : ""}:\n\n${m.message}`, { kind: "routine", routine: m.routine?.id, msg: m.id, display: `⏰ Routine "${m.routine?.name}"` }, target.scopes, target.kind as BotKind)
@@ -161,6 +166,22 @@ export function BotDispatcher() {
       aporiaAlerts.push({ title: "Bot message failed", detail: `${m.from} → ${m.to ?? m.room}: ${String((err as Error)?.message ?? err)}`, level: "error" })
     },
   })
-  onMount(() => { const t = setInterval(() => { void scheduler.tick().catch(() => undefined) }, 4000); onCleanup(() => clearInterval(t)) })
+  onMount(() => {
+    const t = setInterval(() => { void scheduler.tick().catch(() => undefined) }, 4000)
+    // Surface messages that have been sitting undelivered (the dispatcher only runs while the app is
+    // open; without this they wait silently forever).
+    const stuck = setInterval(async () => {
+      try {
+        const msgs = (await bots({ op: "inbox" })) as Msg[]
+        const old = (msgs ?? []).filter((x) => Date.now() - Date.parse(x.created) > 10 * 60_000)
+        if (old.length) aporiaAlerts.push({
+          title: `${old.length} bot message${old.length > 1 ? "s" : ""} still undelivered`,
+          detail: old.slice(0, 3).map((x) => `${x.from} → ${x.to ?? x.room}`).join(", "),
+          level: "warning",
+        })
+      } catch { /* bridge/server not ready */ }
+    }, 60_000)
+    onCleanup(() => { clearInterval(t); clearInterval(stuck) })
+  })
   return null
 }
