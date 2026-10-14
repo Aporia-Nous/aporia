@@ -21,7 +21,7 @@
   --ap-ease: 160ms cubic-bezier(0.2, 0, 0, 1);
   --ap-focus: 0 0 0 2px var(--ap-bg), 0 0 0 4px rgb(96 165 250 / 0.75);
   display: grid;
-  grid-template-columns: minmax(232px, 22%) minmax(0, 1fr) minmax(256px, 20%);
+  grid-template-columns: minmax(264px, 24%) minmax(0, 1fr) minmax(256px, 20%);
   flex: 1; min-height: 0; width: 100%;
   background:
     radial-gradient(1200px 600px at 50% -20%, rgb(99 102 241 / 0.10), transparent 60%),
@@ -59,12 +59,12 @@
 .ap-root.ap-rail-collapsed .ap-sidebar { display: none; }
 /* Reclaim a collapsed column so the center actually expands (no dead space). */
 .ap-root.ap-rail-collapsed[data-component="aporia-layout"] { grid-template-columns: 0 minmax(0, 1fr) minmax(256px, 20%); }
-.ap-root.ap-right-collapsed[data-component="aporia-layout"] { grid-template-columns: minmax(232px, 22%) minmax(0, 1fr) 0; }
+.ap-root.ap-right-collapsed[data-component="aporia-layout"] { grid-template-columns: minmax(264px, 24%) minmax(0, 1fr) 0; }
 .ap-root.ap-rail-collapsed.ap-right-collapsed[data-component="aporia-layout"] { grid-template-columns: 0 minmax(0, 1fr) 0; }
 .ap-panel-toggle { font-size: 18px; line-height: 1; }
 .ap-rail-toggle { font-size: 18px; line-height: 1; }
 /* Teammates as a compact chip strip so the sidebar has ONE vertical conversation list. */
-.ap-bot-list.ap-bot-chips { display: flex; flex-direction: row; flex-wrap: wrap; align-items: flex-start; gap: 6px; padding: 0 var(--ap-s3) var(--ap-s3); }
+.ap-bot-list.ap-bot-chips { display: flex; flex-direction: row; flex-wrap: wrap; align-items: flex-start; gap: 8px; padding: 0 var(--ap-s3) var(--ap-s3); }
 .ap-bot-chip {
   flex: 0 0 auto;
   display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
@@ -75,7 +75,7 @@
 .ap-bot-chip:hover { background: var(--ap-hover); }
 .ap-bot-chip.ap-selected { border-color: #6366f1; }
 .ap-bot-chip .ap-bot-avatar { width: 20px; height: 20px; font-size: 9px; }
-.ap-bot-chip-name { font-size: 12px; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ap-bot-chip-name { font-size: 12px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ap-panel-collapse { position: absolute; top: 8px; right: 8px; font-size: 18px; line-height: 1; }
 .ap-brand { display: flex; align-items: center; gap: var(--ap-s3); padding: var(--ap-s5) var(--ap-s4) var(--ap-s3); }
 .ap-brand img { border-radius: var(--ap-r-sm); box-shadow: 0 0 0 1px var(--ap-line-strong); }
