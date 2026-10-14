@@ -20,6 +20,7 @@ import { aporiaLog } from "./aporia-log" // APORIA
 import { runAporiaStartup } from "./aporia-startup" // APORIA
 import { applyStagedUpdateOnLaunch, registerAporiaUpdateHandler } from "./aporia-update" // APORIA
 import { createEarlyWindow } from "./windows/early"
+import { createAporiaTray } from "./windows/tray"
 import { rendererAssetsServed } from "./windows/protocol"
 import { registerRendererScheme } from "./windows/scheme"
 
@@ -76,6 +77,8 @@ if (acquireApplicationLock()) {
       onError: (stage, error) => aporiaLog.error(`aporia startup ${stage} failed`, error.stack ?? error.message),
     })
     marks.window = Date.now()
+    // Tray so closing the window keeps the app alive (and delivery running).
+    createAporiaTray()
     startSidecarProbe()
 
     // The window's renderer is already loading. Its HTML and preloaded chunks are served from this
