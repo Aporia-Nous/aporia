@@ -58,31 +58,63 @@ function Idle-Minutes {
 }
 function Head { Push-Location $Src; try { $c = (git rev-parse HEAD).Trim(); $s = (git log -1 --format=%s).Trim(); $b = (git branch --show-current).Trim(); return @{ commit = $c; subject = $s; branch = $b } } finally { Pop-Location } }
 
+# Every mutating command is an OPERATION with an id, recorded in state. A reader must be able to tell "the operation I
+# asked for succeeded" from "some earlier operation succeeded". Historical ok=true must never certify a new attempt -
+# that was a real false green: a no-op build left lastBuild.ok=true from three days earlier and read as healthy.
+function New-Operation($name) {
+  $id = "{0}-{1}-{2}" -f (Get-Date -Format 'yyyyMMddHHmmss'), $name, ([guid]::NewGuid().ToString('N').Substring(0, 8))
+  $script:opId = $id
+  return $id
+}
+
 function Do-Build {
+  $op = New-Operation 'build'
   $lock = Join-Path $Root 'build.lock'
-  if (Test-Path $lock) { $old = Get-Content $lock -ErrorAction SilentlyContinue; if ($old -and (Get-Process -Id $old -ErrorAction SilentlyContinue)) { Log "build already running (pid $old)"; return } }
+  if (Test-Path $lock) { $old = Get-Content $lock -ErrorAction SilentlyContinue; if ($old -and (Get-Process -Id $old -ErrorAction SilentlyContinue)) { Log "[$op] build already running (pid $old) - NO BUILD PERFORMED"; exit 6 } }
   Set-Content $lock $PID
   try {
     (Get-Process -Id $PID).PriorityClass = 'BelowNormal'   # children (bun, electron-builder) inherit it
     $s = Load-State; $h = Head
+    Log "[$op] entered build: pid=$PID forced=$Force source=$($h.commit.Substring(0,10)) branch=$($h.branch)"
     $have = @($s.installed.commit, $s.staged.commit)
-    if (-not $Force -and $have -contains $h.commit) { Log "up to date ($($h.commit.Substring(0,10)))"; return }
+    if (-not $Force -and $have -contains $h.commit) { Log "[$op] up to date ($($h.commit.Substring(0,10))) - NO BUILD PERFORMED"; return }
     Log "building $($h.commit.Substring(0,10)) '$($h.subject)' on $($h.branch)"
     $exe = Join-Path $Src 'packages\desktop\dist\win-unpacked\Aporia.exe'; $t0 = Get-Date
     $bl = Join-Path $Root 'build.log'; $bs = Join-Path $Src 'build-win6.ps1'
     cmd /c "powershell -NoProfile -ExecutionPolicy Bypass -File `"$bs`" > `"$bl`" 2>&1"
-    if (-not (Test-Path $exe) -or (Get-Item $exe).LastWriteTime -lt $t0) { Log "BUILD FAILED, see build.log"; Set-Prop $s 'lastBuild' @{ ok = $false; at = (Get-Date).ToString('o'); commit = $h.commit }; Save-State $s; exit 2 }
+    $bc = $LASTEXITCODE
+    Log "[$op] build-win6.ps1 exit=$bc"
+    if (-not (Test-Path $exe) -or (Get-Item $exe).LastWriteTime -lt $t0) { Log "[$op] BUILD FAILED (exe missing or not rebuilt), see build.log"; Set-Prop $s 'lastBuild' @{ ok = $false; at = (Get-Date).ToString('o'); commit = $h.commit; operationId = $op; reason = 'packaged exe missing or not rebuilt'; exit = $bc }; Save-State $s; exit 2 }
     Mirror (Split-Path $exe) (Join-Path $Root 'staged')
     Copy-Item $PSCommandPath (Join-Path $Root 'aporia-update.ps1') -Force
-    Set-Prop $s 'staged' @{ commit = $h.commit; subject = $h.subject; branch = $h.branch; builtAt = (Get-Date).ToString('o'); minutes = [int]((Get-Date) - $t0).TotalMinutes }
-    Set-Prop $s 'lastBuild' @{ ok = $true; at = (Get-Date).ToString('o'); commit = $h.commit }
-    Save-State $s; Log "staged $($h.commit.Substring(0,10)). Ali sees 'Update ready, restart to apply'."
+    # Assert the staged artifact is actually complete before claiming success: a stage that "succeeds" with no CLI is
+    # indistinguishable from a good one to every later reader.
+    $stagedAsar = Join-Path $Root 'staged\resources\app.asar'
+    $stagedCli = Join-Path $Root 'staged\resources\opencode-cli.exe'
+    if (-not (Test-Path $stagedAsar) -or -not (Test-Path $stagedCli)) {
+      Log "[$op] STAGE FAILED: incomplete staged app (asar=$(Test-Path $stagedAsar) cli=$(Test-Path $stagedCli))"
+      Set-Prop $s 'lastBuild' @{ ok = $false; at = (Get-Date).ToString('o'); commit = $h.commit; operationId = $op; reason = 'staged app incomplete' }
+      Save-State $s; exit 2
+    }
+    $cliInfo = Get-Item $stagedCli
+    Log "[$op] staged CLI built=$($cliInfo.LastWriteTime) bytes=$($cliInfo.Length)"
+    Set-Prop $s 'staged' @{ commit = $h.commit; subject = $h.subject; branch = $h.branch; builtAt = (Get-Date).ToString('o'); minutes = [int]((Get-Date) - $t0).TotalMinutes; operationId = $op; cliBuilt = $cliInfo.LastWriteTime.ToString('o') }
+    Set-Prop $s 'lastBuild' @{ ok = $true; at = (Get-Date).ToString('o'); commit = $h.commit; operationId = $op }
+    Save-State $s; Log "[$op] staged $($h.commit.Substring(0,10)). Ali sees 'Update ready, restart to apply'."
   } finally { Remove-Item $lock -Force -ErrorAction SilentlyContinue }
 }
 
 function Do-Apply {
+  $op = New-Operation 'apply'
   $s = Load-State; $staged = Join-Path $Root 'staged'
-  if (-not (Test-Path (Join-Path $staged 'Aporia.exe'))) { Log 'nothing staged'; return }
+  if (-not (Test-Path (Join-Path $staged 'Aporia.exe'))) {
+    # No staged artifact means no operation happened. Recording ok:false with this operation's id is what stops an
+    # old lastResult.ok=true from being read as "the apply I just asked for was healthy".
+    Set-Prop $s 'lastResult' @{ ok = $false; operationId = $op; at = (Get-Date).ToString('o'); reason = 'nothing staged - no operation performed' }
+    Save-State $s; Log "[$op] nothing staged - no operation performed"; exit 1
+  }
+  $stagedCommit = $s.staged.commit
+  if ($stagedCommit -and $stagedCommit -ne (Head).commit) { Log "[$op] WARNING: staged commit $($stagedCommit.Substring(0,10)) is not the current source HEAD $((Head).commit.Substring(0,10))" }
   if ($WaitForExit) { $t = Get-Date; while ((Get-Process -Id $WaitForExit -ErrorAction SilentlyContinue) -and ((Get-Date) - $t).TotalSeconds -lt 60) { Start-Sleep -Milliseconds 300 }; Stop-Aporia }
   elseif (@(Main-Aporia).Count) {
     if (-not $Restart) { Set-Prop $s 'pendingApply' $true; Save-State $s; Log 'Aporia is running: will apply on next launch'; return }
@@ -100,15 +132,15 @@ function Do-Apply {
   $commit = $s.staged.commit; Set-Prop $s 'staged' $null; Set-Prop $s 'pendingApply' $false; Save-State $s
   $since = Get-Date; Start-Aporia; $sec = Test-Health $since
   if ($null -ne $sec) {
-    Set-Prop $s 'installed' @{ commit = $commit; appliedAt = (Get-Date).ToString('o') }
-    Set-Prop $s 'lastResult' @{ ok = $true; commit = $commit; loadSeconds = $sec; at = (Get-Date).ToString('o'); seen = $false }
+    Set-Prop $s 'installed' @{ commit = $commit; appliedAt = (Get-Date).ToString('o'); operationId = $op }
+    Set-Prop $s 'lastResult' @{ ok = $true; commit = $commit; stagedCommit = $stagedCommit; loadSeconds = $sec; at = (Get-Date).ToString('o'); seen = $false; operationId = $op }
     Save-State $s; Log "update OK: healthy in ${sec}s"; return
   }
   Log "health check FAILED within ${HealthSeconds}s: rolling back"
   Stop-Aporia; Mirror (Join-Path $Root 'previous') $Install
   $failed = Join-Path $Root 'failed'; if (Test-Path $failed) { Remove-Item $failed -Recurse -Force }; Move-Item $applying $failed
   $since = Get-Date; Start-Aporia; $sec = Test-Health $since
-  Set-Prop $s 'lastResult' @{ ok = $false; rolledBack = $true; commit = $commit; restoredHealthy = ($null -ne $sec); loadSeconds = $sec; at = (Get-Date).ToString('o'); seen = $false }
+  Set-Prop $s 'lastResult' @{ ok = $false; rolledBack = $true; commit = $commit; stagedCommit = $stagedCommit; restoredHealthy = ($null -ne $sec); loadSeconds = $sec; at = (Get-Date).ToString('o'); seen = $false; operationId = $op }
   Save-State $s; Log "rolled back; previous build healthy=$($null -ne $sec)"; exit 5
 }
 
