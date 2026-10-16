@@ -186,6 +186,26 @@ Re-run any of them: `bun work/run-and-log.ts <outfile> <cwd> <command…>` and `
 read-only).
 
 
+## Independent verification
+
+`verifier` subagent, read-only, against the tree at `32cbce8f72`. It read the files and quoted them; it was not permitted
+to run the test command, so it compared the stored evidence files against the claims. A self-check and a verification are
+not the same thing, and this is the only independent one recorded here so far.
+
+- **VERDICT PASS.** Every item it failed on its first pass is now confirmed from files: the amended hash is right and no
+  live claim cites `7e44cba2c1`; the `252 pass / 0 fail` and typecheck `exit 0` evidence files match the claims word for
+  word; the per-commit file lists are readable text; the correlated-turn times carry a zone (`America/Chicago, UTC−05:00`).
+- Code claims it re-checked itself: the `userBoundary === 0` fall-through in `packages/core/src/session/compaction.ts`
+  is byte-identical to the pre-fix file while the `userBoundary > 0` path is bounded by `keep` (`:756-765`); the two new
+  `SUMMARY_RULES` bullets exist only after the fix (`:154-155`); fixtures 1, 4, 5 assert retention and accounting and
+  never the summary's wording (`packages/core/test/session-compaction.test.ts:736, 791, 853`).
+- Disclosed and not resolved: the exact fixture `after` figures (289, 306, 278, 283) are prose, not a stored run
+  artifact — the tests assert bounds, which the fixture table already says; the two docs commits' own `--stat` lines were
+  missing from the evidence file (appended by the commit that carries this paragraph); the literal token "CT" is not used,
+  `America/Chicago, UTC−05:00` is.
+
+The verdict applies to `32cbce8f72`. The commit carrying this paragraph is docs-only and was not re-verified.
+
 ## Blockers
 
 None. Every stage attempted so far is committed and green.

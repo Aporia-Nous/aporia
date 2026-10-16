@@ -8,3 +8,18 @@
  packages/core/src/session/compaction.ts       |   2 +
  packages/core/test/session-compaction.test.ts | 220 ++++++++++++++++++++++++++
  4 files changed, 363 insertions(+)
+
+71fa511d22 docs(an-rewrite): record the DEV database split and its wiring proof
+ docs/an-rewrite/REQUIREMENTS-EVIDENCE.md | 21 +++++++++-
+ docs/an-rewrite/STATUS.md                | 70 ++++++++++++++++++++++++++++----
+ 2 files changed, 82 insertions(+), 9 deletions(-)
+32cbce8f72 docs(an-rewrite): commit the evidence logs and correct the amended commit hash
+ docs/an-rewrite/REQUIREMENTS-EVIDENCE.md           |  4 +-
+ docs/an-rewrite/STATUS.md                          | 66 ++++++++++++++++++----
+ .../evidence/2026-10-16-commit-files.txt           | 10 ++++
+ docs/an-rewrite/evidence/2026-10-16-db-copy.txt    |  9 +++
+ docs/an-rewrite/evidence/2026-10-16-db-prod.txt    |  9 +++
+ docs/an-rewrite/evidence/2026-10-16-db-wiring.txt  | 25 ++++++++
+ .../evidence/2026-10-16-session-suites.txt         | 12 ++++
+ docs/an-rewrite/evidence/2026-10-16-typecheck.txt  |  8 +++
+ 8 files changed, 130 insertions(+), 13 deletions(-)
