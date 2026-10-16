@@ -86,7 +86,13 @@ function Do-Build {
     Log "[$op] build-win6.ps1 exit=$bc"
     if (-not (Test-Path $exe) -or (Get-Item $exe).LastWriteTime -lt $t0) { Log "[$op] BUILD FAILED (exe missing or not rebuilt), see build.log"; Set-Prop $s 'lastBuild' @{ ok = $false; at = (Get-Date).ToString('o'); commit = $h.commit; operationId = $op; reason = 'packaged exe missing or not rebuilt'; exit = $bc }; Save-State $s; exit 2 }
     Mirror (Split-Path $exe) (Join-Path $Root 'staged')
-    Copy-Item $PSCommandPath (Join-Path $Root 'aporia-update.ps1') -Force
+    # Refresh the deployed copy only when we were run from somewhere else (e.g. $Src\scripts after a git pull).
+    # Copying the deployed copy onto itself throws a non-terminating "cannot overwrite the item with itself" error,
+    # which made every otherwise-good build log look broken.
+    $deployedSelf = Join-Path $Root 'aporia-update.ps1'
+    if ((Resolve-Path $PSCommandPath).Path -ne (Resolve-Path $deployedSelf -ErrorAction SilentlyContinue).Path) {
+      Copy-Item $PSCommandPath $deployedSelf -Force
+    }
     # Assert the staged artifact is actually complete before claiming success: a stage that "succeeds" with no CLI is
     # indistinguishable from a good one to every later reader.
     $stagedAsar = Join-Path $Root 'staged\resources\app.asar'
