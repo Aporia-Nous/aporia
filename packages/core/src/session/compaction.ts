@@ -725,12 +725,18 @@ const splitConversation = (messages: ReadonlyArray<SessionMessage.Info>, keep: n
   })
   if (entries.length === 0) return undefined
 
-  const recent = entries.slice(recentStart(entries, keep, previousCompaction(messages)))
+  const start = recentStart(entries, keep, previousCompaction(messages))
+  const recent = entries.slice(start)
+  const text = recent.map((entry) => entry.text).join("\n\n")
   return {
     older: messages.slice(0, recent[0]?.index ?? messages.length),
-    recent: recent.map((entry) => entry.text).join("\n\n"),
+    // The cut falls inside one exchange when the newest messages alone fill the allowance.
+    recent: text && start > 0 && recent[0]?.message.type !== "user" ? `${MID_EXCHANGE}\n\n${text}` : text,
   }
 }
+
+/** Opens recent text that begins mid-exchange, so the summary above and the text below read as one record. */
+const MID_EXCHANGE = "[Earlier part of this exchange is summarized above]"
 
 const recentStart = (
   entries: ReadonlyArray<{ readonly message: SessionMessage.Info; readonly text: string }>,
@@ -738,16 +744,17 @@ const recentStart = (
   previous: SessionMessage.CompactionCompleted | undefined,
 ) => {
   // Drop the oldest entries until the rest fit the allowance, but always keep the newest one.
-  const dropped = Math.min(
-    oldestToDrop(entries, (entry) => Token.estimate(entry.text), keep),
-    entries.length - 1,
-  )
+  const sizes = entries.map((entry) => Token.estimate(entry.text))
+  const dropped = Math.min(oldestToDrop(sizes, (size) => size, keep), entries.length - 1)
 
-  // Start at a user message so an assistant's tool calls and results stay together.
+  // Start at a user message so an assistant's tool calls and results stay together, but only while the exchange
+  // from there still fits the allowance. Snapping back past the budget keeps more than `keep`: with one long
+  // exchange the whole conversation stays verbatim and compaction reclaims nothing.
   const userBoundary = entries.findLastIndex((entry, index) => index <= dropped && entry.message.type === "user")
-  if (userBoundary > 0) return userBoundary
+  if (userBoundary > 0)
+    return sizes.slice(userBoundary).reduce((total, size) => total + size, 0) <= keep ? userBoundary : dropped
 
-  // Everything fits. Keep only the latest exchange so there is an older part left to summarize.
+  // Everything fits the allowance. Keep only the latest exchange so there is an older part left to summarize.
   const latestUser = entries.findLastIndex((entry) => entry.message.type === "user")
   if (latestUser > 0) return latestUser
 

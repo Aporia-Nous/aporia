@@ -17,6 +17,7 @@ import { SessionProjector } from "@opencode/core/session/projector"
 import { SessionRunnerModel } from "@opencode/core/session/runner/model"
 import { SessionTable } from "@opencode/core/session/sql"
 import { SessionStore } from "@opencode/core/session/store"
+import { Token } from "@opencode/core/util/token"
 import { Session } from "@opencode/core/session"
 import { Location } from "@opencode/core/location"
 import { Project } from "@opencode/core/project"
@@ -404,6 +405,65 @@ const recentWithToolOutput = (id: Session.ID, content: SessionMessage.ToolStateC
     const stored = (yield* store.context(id))[0]
     return stored?.type === "compaction" && stored.status === "completed" ? stored.recent : ""
   })
+
+/**
+ * Two user messages, then one long stretch of assistant tool results that together exceed the configured `keep`
+ * (15,000 tokens). The last user message sits far earlier than the first message that fits the allowance, so a
+ * boundary snap that ignores the budget keeps the whole stretch verbatim.
+ */
+it.effect("recent text fits keep even when the last user message is far behind the budget", () =>
+  Effect.gen(function* () {
+    requests = []
+    const sessionID = Session.ID.make("ses_keep_budget")
+    const session = yield* insertSession(sessionID)
+    const user = (text: string) =>
+      SessionMessage.User.make({
+        id: SessionMessage.ID.create(),
+        type: "user",
+        text,
+        time: { created: DateTime.makeUnsafe(0) },
+      })
+    const assistant = (call: string) =>
+      Schema.decodeUnknownSync(SessionMessage.Assistant)({
+        id: SessionMessage.ID.create(),
+        type: "assistant",
+        agent: Agent.defaultID,
+        model: { id: "summary-model", providerID: "test" },
+        content: [
+          {
+            type: "tool",
+            id: call,
+            name: "read",
+            state: {
+              status: "completed",
+              input: { filePath: `${call}.txt` },
+              // The largest a single tool output survives the transcript's own truncation at.
+              content: [{ type: "text", text: "x".repeat(1_250) }],
+            },
+            time: { created: 0 },
+          },
+        ],
+        time: { created: 0, completed: 0 },
+      })
+    const messages = [
+      user("Earlier question"),
+      user("Read every file"),
+      ...Array.from({ length: 60 }, (_, index) => assistant(`call_read_${index}`)),
+    ]
+
+    expect(yield* compactManually(session, messages)).toEqual({ status: "completed" })
+
+    const store = yield* SessionStore.Service
+    const stored = (yield* store.context(sessionID))[0]
+    const recent = stored?.type === "compaction" && stored.status === "completed" ? stored.recent : ""
+
+    // 60 results of ~330 tokens each: keeping all of them is ~20k tokens, well past the 15,000 default `keep`.
+    expect(Token.estimate(recent)).toBeLessThanOrEqual(15_000)
+    expect(recent).toContain("call_read_59")
+    expect(recent).not.toContain("call_read_0.txt")
+    // The cut lands inside one exchange, so the retained text says so instead of looking like a whole turn.
+    expect(recent).toContain("summarized above")
+  }))
 
 it.effect("manual compaction summarizes short context instead of no-op", () =>
   Effect.gen(function* () {
