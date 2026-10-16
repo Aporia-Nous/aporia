@@ -17,6 +17,14 @@ import { Npm } from "@opencode/util/npm"
 import { EffectFlock } from "@opencode/util/effect-flock"
 import { Heap } from "./heap"
 import { CpuProfile } from "./cpu-profile"
+import { buildInfo } from "./build-info"
+
+// Build provenance is answered before anything else starts: it decides whether an artifact may be installed at all, so
+// it must not depend on the command tree loading, on config being valid, or on a server or plugin runtime being up.
+if (process.argv.includes("--build-info")) {
+  process.stdout.write(JSON.stringify(buildInfo()) + "\n")
+  process.exit(0)
+}
 
 ensurePluginRuntime()
 

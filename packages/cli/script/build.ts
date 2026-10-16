@@ -189,6 +189,16 @@ export default { path: file, version: ${JSON.stringify(opencodePty.version)}, sh
       OPENCODE_CLI_NAME: "'opencode'",
       OPENCODE_CHANNEL: `'${Script.channel}'`,
       OPENCODE_ARTIFACT: `'cli'`,
+      // Build provenance, baked in at compile time. Injected as literals so minification and bytecode compilation
+      // cannot lose them: a runtime lookup would be renamed or dropped. Values come from Script, which reads the tree
+      // it is building; the binary then carries its own identity and can be asked for it (--build-info).
+      OPENCODE_BUILD_COMMIT: JSON.stringify(Script.commit ?? ""),
+      OPENCODE_BUILD_DIRTY: Script.dirty === true ? "true" : "false",
+      OPENCODE_BUILD_ID: JSON.stringify(Script.buildId),
+      OPENCODE_BUILD_TIME: JSON.stringify(Script.builtAt),
+      OPENCODE_BUILD_DIRTY_SAMPLE: JSON.stringify(
+        Script.dirty ? `${Script.dirtyFiles} uncommitted path(s): ${Script.dirtySample}` : "",
+      ),
       OPENCODE_LIBC: item.os === "linux" ? `'${item.abi ?? "glibc"}'` : "undefined",
       // FFF_LIBC selects the fff native lib variant: "musl" or "gnu".
       FFF_LIBC: item.os === "linux" ? `'${item.abi ?? "gnu"}'` : "undefined",

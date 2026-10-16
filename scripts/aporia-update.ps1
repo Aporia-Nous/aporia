@@ -7,6 +7,10 @@
     apply [-Restart -ByUser]   install the staged build. Without -Restart it only marks it to apply on next launch.
           [-WaitForExit PID]   (used by the app: wait for that Aporia process to quit, then swap and relaunch)
     rollback                   restore the previous build (kept on every apply)
+    verify [-Dir PATH] [-Expect COMMIT]
+                               check a folder's CLI identity without building, installing or restarting: exit 0 only
+                               if the CLI is stamped, was not built from a dirty tree, and (when -Expect is given)
+                               reports that commit. Defaults to the installed app and its recorded commit.
     tick                       scheduled check: build if a new commit landed; apply only if Ali opted in to
                                "apply when idle" and no agent run is busy and the PC has been idle 10+ min.
   State/logs: %LOCALAPPDATA%\Aporia\updates\ (state.json, update.log, build.log, staged\, previous\, failed\)
@@ -14,7 +18,8 @@
 param(
   [Parameter(Position = 0)][string]$Cmd = 'status',
   [switch]$Force, [switch]$Restart, [switch]$ByUser, [switch]$Hidden,
-  [int]$WaitForExit = 0, [int]$HealthSeconds = 30
+  [int]$WaitForExit = 0, [int]$HealthSeconds = 30,
+  [string]$VerifyDir, [string]$Expect
 )
 $ErrorActionPreference = 'Continue'  # native tools (taskkill, bun) write to stderr; real failures throw explicitly
 $Src = if ($env:APORIA_SOURCE) { $env:APORIA_SOURCE } else { 'C:\Tools\aporia' }
@@ -67,6 +72,21 @@ function New-Operation($name) {
   return $id
 }
 
+# Read a CLI's build provenance by EXECUTING it. Never by reading a json file beside it: the artifact and the identity
+# it claims must not be separable, or a stale binary can be shipped under a fresh label. Returns $null if the binary
+# cannot be run at all; returns an object with stamped=$false if it runs but carries no stamp.
+function Get-CliBuildInfo($exe) {
+  if (-not (Test-Path $exe)) { return $null }
+  $raw = $null
+  try { $raw = & $exe '--build-info' 2>$null | Select-Object -First 1 } catch { return $null }
+  if (-not $raw) { return $null }
+  $text = ($raw | Out-String).Trim()
+  if (-not $text) { return $null }
+  # A binary that predates stamping prints help (an unknown flag is not an error to it), so a parse failure here means
+  # "runs, but has no stamp" - which is a refusal, not a crash. Report it as such instead of as an execution failure.
+  try { return $text | ConvertFrom-Json } catch { return [pscustomobject]@{ stamped = $false; note = "binary ran but printed no build stamp (first line: $($text.Substring(0, [Math]::Min(40, $text.Length))))" } }
+}
+
 function Do-Build {
   $op = New-Operation 'build'
   $lock = Join-Path $Root 'build.lock'
@@ -85,6 +105,27 @@ function Do-Build {
     $bc = $LASTEXITCODE
     Log "[$op] build-win6.ps1 exit=$bc"
     if (-not (Test-Path $exe) -or (Get-Item $exe).LastWriteTime -lt $t0) { Log "[$op] BUILD FAILED (exe missing or not rebuilt), see build.log"; Set-Prop $s 'lastBuild' @{ ok = $false; at = (Get-Date).ToString('o'); commit = $h.commit; operationId = $op; reason = 'packaged exe missing or not rebuilt'; exit = $bc }; Save-State $s; exit 2 }
+    # --- the build invariant, part 1. The CLI the packaging step just produced must certify, in its own voice, that it
+    # came from THIS source tree. Checked on the packaged build BEFORE anything is mirrored into staged\, so a refused
+    # build leaves staged\ untouched rather than replacing a good artifact with one nobody can certify.
+    $builtCli = Join-Path (Split-Path $exe) 'resources\opencode-cli.exe'
+    $cli = Get-CliBuildInfo $builtCli
+    $why = $null
+    if (-not (Test-Path $builtCli)) { $why = "packaged app has no CLI at resources\opencode-cli.exe" }
+    elseif (-not $cli) { $why = 'could not execute the packaged CLI to read its build stamp' }
+    elseif (-not $cli.stamped) { $why = "packaged CLI carries no build stamp: $($cli.note)" }
+    elseif ($cli.commit -ne $h.commit) { $why = "packaged CLI reports commit $($cli.commit) but source HEAD is $($h.commit)" }
+    elseif ($cli.dirty) { $why = "packaged CLI was built from a DIRTY tree, so it is not equivalent to commit $($h.commit)" }
+    if ($why) {
+      Log "[$op] BUILD INVARIANT FAILED: $why"
+      Log "[$op] refusing to stage. staged\ was not touched; the installed build is untouched."
+      $fail = @{ ok = $false; at = (Get-Date).ToString('o'); commit = $h.commit; operationId = $op; reason = "build invariant: $why" }
+      if ($cli) { $fail.cliBuild = @{ commit = $cli.commit; dirty = $cli.dirty; buildId = $cli.buildId; builtAt = $cli.builtAt } }
+      Set-Prop $s 'lastBuild' $fail
+      Save-State $s; exit 3
+    }
+    $cliSha = (Get-FileHash $builtCli -Algorithm SHA256).Hash
+    Log "[$op] build invariant OK: packaged CLI says commit=$($cli.commit.Substring(0,10)) dirty=$($cli.dirty) buildId=$($cli.buildId) builtAt=$($cli.builtAt) sha256=$($cliSha.Substring(0,16))"
     Mirror (Split-Path $exe) (Join-Path $Root 'staged')
     # Refresh the deployed copy only when we were run from somewhere else (e.g. $Src\scripts after a git pull).
     # Copying the deployed copy onto itself throws a non-terminating "cannot overwrite the item with itself" error,
@@ -102,10 +143,24 @@ function Do-Build {
       Set-Prop $s 'lastBuild' @{ ok = $false; at = (Get-Date).ToString('o'); commit = $h.commit; operationId = $op; reason = 'staged app incomplete' }
       Save-State $s; exit 2
     }
+    # --- the build invariant, part 2: the copy must be the same bytes we certified, so the thing we handed to apply is
+    # the thing we verified. A copy step is where "verified the source, shipped the sibling" bugs live.
+    $stagedSha = (Get-FileHash $stagedCli -Algorithm SHA256).Hash
+    if ($stagedSha -ne $cliSha) {
+      Log "[$op] BUILD INVARIANT FAILED: staged CLI sha256 $($stagedSha.Substring(0,16)) is not the certified artifact $($cliSha.Substring(0,16))"
+      Log "[$op] refusing to stage."
+      Set-Prop $s 'lastBuild' @{ ok = $false; at = (Get-Date).ToString('o'); commit = $h.commit; operationId = $op; reason = 'build invariant: staged CLI differs from the certified packaged CLI' }
+      Save-State $s; exit 3
+    }
     $cliInfo = Get-Item $stagedCli
-    Log "[$op] staged CLI built=$($cliInfo.LastWriteTime) bytes=$($cliInfo.Length)"
-    Set-Prop $s 'staged' @{ commit = $h.commit; subject = $h.subject; branch = $h.branch; builtAt = (Get-Date).ToString('o'); minutes = [int]((Get-Date) - $t0).TotalMinutes; operationId = $op; cliBuilt = $cliInfo.LastWriteTime.ToString('o') }
-    Set-Prop $s 'lastBuild' @{ ok = $true; at = (Get-Date).ToString('o'); commit = $h.commit; operationId = $op }
+    Log "[$op] staged CLI built=$($cliInfo.LastWriteTime) bytes=$($cliInfo.Length) sha256 verified"
+    $stagedRec = @{
+      commit = $h.commit; subject = $h.subject; branch = $h.branch; builtAt = (Get-Date).ToString('o')
+      minutes = [int]((Get-Date) - $t0).TotalMinutes; operationId = $op; cliBuilt = $cliInfo.LastWriteTime.ToString('o')
+      cliBuild = @{ commit = $cli.commit; dirty = $cli.dirty; buildId = $cli.buildId; builtAt = $cli.builtAt; sha256 = $cliSha }
+    }
+    Set-Prop $s 'staged' $stagedRec
+    Set-Prop $s 'lastBuild' @{ ok = $true; at = (Get-Date).ToString('o'); commit = $h.commit; operationId = $op; cliBuild = $stagedRec.cliBuild }
     Save-State $s; Log "[$op] staged $($h.commit.Substring(0,10)). Ali sees 'Update ready, restart to apply'."
   } finally { Remove-Item $lock -Force -ErrorAction SilentlyContinue }
 }
@@ -120,7 +175,23 @@ function Do-Apply {
     Save-State $s; Log "[$op] nothing staged - no operation performed"; exit 1
   }
   $stagedCommit = $s.staged.commit
-  if ($stagedCommit -and $stagedCommit -ne (Head).commit) { Log "[$op] WARNING: staged commit $($stagedCommit.Substring(0,10)) is not the current source HEAD $((Head).commit.Substring(0,10))" }
+  $stagedCliBuild = $s.staged.cliBuild
+  $stagedCliSha = if ($stagedCliBuild) { $stagedCliBuild.sha256 } else { $null }
+  # The staged artifact must still match the source tree. If commits landed after staging, this build is no longer
+  # equivalent to HEAD, so applying it would install something no commit describes - refuse, and say what to do.
+  if ($stagedCommit -and $stagedCommit -ne (Head).commit) {
+    $why = "staged build is $($stagedCommit.Substring(0,10)) but source HEAD is now $((Head).commit.Substring(0,10))"
+    Log "[$op] BUILD INVARIANT FAILED: $why - refusing to apply. Run build to re-stage from HEAD."
+    Set-Prop $s 'lastResult' @{ ok = $false; operationId = $op; at = (Get-Date).ToString('o'); stagedCommit = $stagedCommit; reason = "build invariant: $why"; seen = $false }
+    Save-State $s; exit 7
+  }
+  if (-not $stagedCliBuild) {
+    # No provenance record means nothing was ever certified about the binary in staged\. Applying it would be exactly
+    # the stale-CLI failure this invariant exists to prevent, so refuse rather than fall back to trusting the folder.
+    Log "[$op] BUILD INVARIANT FAILED: staged build has no CLI provenance record - refusing to apply. Run build to re-stage."
+    Set-Prop $s 'lastResult' @{ ok = $false; operationId = $op; at = (Get-Date).ToString('o'); reason = 'build invariant: staged build has no CLI provenance record'; seen = $false }
+    Save-State $s; exit 7
+  }
   if ($WaitForExit) { $t = Get-Date; while ((Get-Process -Id $WaitForExit -ErrorAction SilentlyContinue) -and ((Get-Date) - $t).TotalSeconds -lt 60) { Start-Sleep -Milliseconds 300 }; Stop-Aporia }
   elseif (@(Main-Aporia).Count) {
     if (-not $Restart) { Set-Prop $s 'pendingApply' $true; Save-State $s; Log 'Aporia is running: will apply on next launch'; return }
@@ -136,18 +207,34 @@ function Do-Apply {
   Mirror $staged $Install
   $applying = Join-Path $Root 'applying'; if (Test-Path $applying) { Remove-Item $applying -Recurse -Force }; Move-Item $staged $applying
   $commit = $s.staged.commit; Set-Prop $s 'staged' $null; Set-Prop $s 'pendingApply' $false; Save-State $s
-  $since = Get-Date; Start-Aporia; $sec = Test-Health $since
-  if ($null -ne $sec) {
-    Set-Prop $s 'installed' @{ commit = $commit; appliedAt = (Get-Date).ToString('o'); operationId = $op }
-    Set-Prop $s 'lastResult' @{ ok = $true; commit = $commit; stagedCommit = $stagedCommit; loadSeconds = $sec; at = (Get-Date).ToString('o'); seen = $false; operationId = $op }
-    Save-State $s; Log "update OK: healthy in ${sec}s"; return
+  # --- build invariant, after install: the installed CLI must BE the staged artifact, in its own words and its own bytes ---
+  $instCli = Join-Path $Install 'resources\opencode-cli.exe'
+  $inst = Get-CliBuildInfo $instCli
+  $invFail = $null
+  if (-not $inst) { $invFail = 'could not execute the installed CLI to read its build stamp' }
+  elseif (-not $inst.stamped) { $invFail = 'installed CLI carries no build stamp' }
+  elseif ($inst.commit -ne $stagedCliBuild.commit) { $invFail = "installed CLI reports commit $($inst.commit), staged was $($stagedCliBuild.commit)" }
+  elseif ($inst.commit -ne $commit) { $invFail = "installed CLI reports commit $($inst.commit), expected $commit" }
+  elseif ($inst.dirty) { $invFail = 'installed CLI was built from a dirty tree' }
+  elseif ($stagedCliSha) {
+    $instSha = (Get-FileHash $instCli -Algorithm SHA256).Hash
+    if ($instSha -ne $stagedCliSha) { $invFail = "installed CLI sha256 $($instSha.Substring(0,16)) is not the staged artifact $($stagedCliSha.Substring(0,16))" }
   }
-  Log "health check FAILED within ${HealthSeconds}s: rolling back"
+  if ($invFail) { Log "[$op] BUILD INVARIANT FAILED after install: $invFail" }
+  $since = Get-Date; Start-Aporia; $sec = Test-Health $since
+  if ($null -ne $sec -and -not $invFail) {
+    Set-Prop $s 'installed' @{ commit = $commit; appliedAt = (Get-Date).ToString('o'); operationId = $op; cliBuild = @{ commit = $inst.commit; dirty = $inst.dirty; buildId = $inst.buildId; builtAt = $inst.builtAt; sha256 = $stagedCliSha } }
+    Set-Prop $s 'lastResult' @{ ok = $true; commit = $commit; stagedCommit = $stagedCommit; loadSeconds = $sec; at = (Get-Date).ToString('o'); seen = $false; operationId = $op; cliCommit = $inst.commit }
+    Save-State $s; Log "update OK: healthy in ${sec}s; installed CLI identity verified ($($inst.commit.Substring(0,10)))"; return
+  }
+  if ($invFail) { Log "[$op] rolling back: the installed CLI is not what was staged" }
+  else { Log "health check FAILED within ${HealthSeconds}s: rolling back" }
   Stop-Aporia; Mirror (Join-Path $Root 'previous') $Install
   $failed = Join-Path $Root 'failed'; if (Test-Path $failed) { Remove-Item $failed -Recurse -Force }; Move-Item $applying $failed
   $since = Get-Date; Start-Aporia; $sec = Test-Health $since
-  Set-Prop $s 'lastResult' @{ ok = $false; rolledBack = $true; commit = $commit; stagedCommit = $stagedCommit; restoredHealthy = ($null -ne $sec); loadSeconds = $sec; at = (Get-Date).ToString('o'); seen = $false; operationId = $op }
-  Save-State $s; Log "rolled back; previous build healthy=$($null -ne $sec)"; exit 5
+  $rollReason = if ($invFail) { "build invariant: $invFail" } else { 'health check failed' }
+  Set-Prop $s 'lastResult' @{ ok = $false; rolledBack = $true; commit = $commit; stagedCommit = $stagedCommit; restoredHealthy = ($null -ne $sec); loadSeconds = $sec; at = (Get-Date).ToString('o'); seen = $false; operationId = $op; reason = $rollReason }
+  Save-State $s; Log "rolled back; previous build healthy=$($null -ne $sec); reason: $rollReason"; exit 5
 }
 
 function Do-Rollback {
@@ -158,15 +245,42 @@ function Do-Rollback {
   Save-State $s; Log "manual rollback done, healthy=$($null -ne $sec)"
 }
 
+function Do-Verify {
+  # Answers "is the app in this folder actually the build we think it is?" without building, installing or restarting
+  # anything. It is the same Get-CliBuildInfo check the build and apply gates use, so it can be run against a staged
+  # folder, an installed app, or an artifact someone handed over - which is the only way to exercise the mismatch case
+  # without waiting on a build.
+  $s = Load-State
+  $dir = if ($VerifyDir) { $VerifyDir } else { $Install }
+  $expect = if ($Expect) { $Expect } elseif ($dir -eq $Install) { $s.installed.commit } else { $null }
+  $exe = Join-Path $dir 'resources\opencode-cli.exe'
+  $info = Get-CliBuildInfo $exe
+  $reasons = @()
+  if (-not (Test-Path $exe)) { $reasons += "no CLI at $exe" }
+  elseif (-not $info) { $reasons += 'could not execute the CLI to read its build stamp' }
+  else {
+    if (-not $info.stamped) { $reasons += "CLI carries no build stamp: $($info.note)" }
+    if ($info.dirty -eq $true) { $reasons += "CLI was built from a dirty tree: $($info.dirtySample)" }
+    if ($expect -and $info.stamped -and $info.commit -ne $expect) {
+      $reasons += "CLI reports commit $($info.commit) but $expect was expected"
+    }
+  }
+  $sha = $null
+  if (Test-Path $exe) { $sha = (Get-FileHash $exe -Algorithm SHA256).Hash }
+  [ordered]@{ ok = ($reasons.Count -eq 0); dir = $dir; expected = $expect; sha256 = $sha; cli = $info; reasons = $reasons } | ConvertTo-Json -Depth 8
+  if ($reasons.Count -gt 0) { exit 3 }
+}
+
 switch ($Cmd) {
   'status' { $s = Load-State; Set-Prop $s 'source' (Head); Set-Prop $s 'busy' (Busy); $s | ConvertTo-Json -Depth 8 }
   'build' { Do-Build }
   'apply' { Do-Apply }
   'rollback' { Do-Rollback }
+  'verify' { Do-Verify }
   'tick' {
     Do-Build
     $s = Load-State
     if ($s.staged -and $s.prefs.applyWhenIdle -and (Busy) -eq 0 -and (Idle-Minutes) -ge 10) { $script:Restart = $true; Do-Apply }
   }
-  default { Write-Output 'usage: aporia-update status|build [-Force]|apply [-Restart -ByUser]|rollback|tick' ; exit 1 }
+  default { Write-Output 'usage: aporia-update status|build [-Force]|apply [-Restart -ByUser]|rollback|verify [-Dir PATH] [-Expect COMMIT]|tick' ; exit 1 }
 }
