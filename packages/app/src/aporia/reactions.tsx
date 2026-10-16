@@ -65,7 +65,13 @@ export function ReactionsLayer(props: { sessionID?: string; agent?: string }) {
         if (pills.innerHTML !== text) pills.innerHTML = text
       }
     }
-    void paint(); const t = setInterval(() => void paint().catch(() => undefined), 4000)
+    void paint()
+    // Reactions are painted into the transcript, so there is nothing to keep current while the window is hidden —
+    // this used to fetch the reaction list every 4 s whether or not anything was on screen.
+    const t = setInterval(() => {
+      if (document.hidden) return
+      void paint().catch(() => undefined)
+    }, 4000)
     onCleanup(() => { stop = true; clearInterval(t) })
   })
   return null

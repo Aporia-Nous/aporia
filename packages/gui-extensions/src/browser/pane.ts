@@ -10,6 +10,8 @@ import { createBrowserPage, type BrowserPage, type Shared } from "./chromium"
 import { browserFailure } from "./errors"
 import { createBrowserNetwork, type BrowserNetwork } from "./network"
 import { destinationOrigin, fileURLWithin, refusal } from "./policy"
+import { browserProfile } from "./profile"
+import { openTab } from "./tabs"
 import { createRefs } from "./refs"
 import type { PaneEvent } from "./ipc"
 import { createBrowserRestoreStore } from "./restore"
@@ -39,6 +41,13 @@ type Entry = {
   fileRoots: string[]
 }
 
+/**
+ * Guards outlive the pane instance that installed them: an extension reload replaces the instance but the Electron
+ * session keeps the listener, so the file roots it consults are tracked here rather than in a captured map.
+ */
+const guarded = new Set<string>()
+const watching = new Set<Entry>()
+
 export type Pane = ReturnType<typeof createBrowserPane>
 
 export function createBrowserPane(input: {
@@ -60,6 +69,19 @@ export function createBrowserPane(input: {
   const runtime = ManagedRuntime.make(NodeHttpClient.layerNodeHttp)
   let disposed = false
 
+  /** Installs the file:// guard for a partition once; the handler resolves the roots live on every request. */
+  function guard(partition: string) {
+    if (guarded.has(partition)) return
+    guarded.add(partition)
+    electron.session.fromPartition(partition).webRequest.onBeforeRequest({ urls: ["file://*/*"] }, (details, callback) =>
+      callback({
+        cancel: !Array.from(watching).some(
+          (entry) => entry.partition === partition && fileURLWithin(details.url, entry.fileRoots),
+        ),
+      }),
+    )
+  }
+
   return {
     async register(window: number, binding: string, target: Target) {
       const server = input.serverEndpoints.get(target.server)
@@ -74,6 +96,10 @@ export function createBrowserPane(input: {
       if (win.isDestroyed() || win.webContents.isDestroyed()) throw new Error("browser.pane.owner.unavailable")
       const sessionID = SessionID.make(target.session)
       const storageKey = `${target.server}\n${sessionID}`
+      // One live attachment per profile. The partition carries a single proxy tunnel, so a second attachment for the
+      // same server and session would reconfigure it and then tear down the first one's connections on close.
+      const same = Array.from(entries.values()).find((other) => other.storageKey === storageKey)
+      if (same) close(same, "browser.pane.replaced")
       const saved = restore.load(storageKey)
 
       const previous = target.restore ?? {
@@ -106,18 +132,15 @@ export function createBrowserPane(input: {
           ]),
         ),
         focusedTabID: previous.focusedTabID,
-        partition: `opencode-browser-${crypto.randomUUID()}`,
+        partition: browserProfile(storageKey),
         storageKey,
         fileRoots: [],
       }
 
       // Navigation guards cover documents; subresources (img, script, fetch) also must not read
-      // file: URLs outside the roots. One listener per partition covers every page in this attachment.
-      electron.session
-        .fromPartition(entry.partition)
-        .webRequest.onBeforeRequest({ urls: ["file://*/*"] }, (details, callback) =>
-          callback({ cancel: !fileURLWithin(details.url, entry.fileRoots) }),
-        )
+      // file: URLs outside the roots. The partition is stable now, so the guard is installed once per partition and
+      // reads the roots of the attachments currently live on it: nothing keeps allowing a root after its entry closed.
+      guard(entry.partition)
       // "unsupported" means the server has no browser plugin; the renderer stops retrying.
       let reason: "browser.pane.unsupported" | "browser.pane.replaced" | "browser.pane.suspended" | undefined
       let attached = false
@@ -136,6 +159,7 @@ export function createBrowserPane(input: {
       }
 
       entries.set(binding, entry)
+      watching.add(entry)
       void runtime
         .runPromise(
           Effect.gen(function* () {
@@ -388,6 +412,7 @@ export function createBrowserPane(input: {
 
     if (!suspended) publishState(entry, reason)
     entries.delete(entry.binding)
+    watching.delete(entry)
     entry.registered.reject(new Error("browser.pane.registration.closed"))
     entry.cleanup?.()
     entry.abort.abort()
@@ -546,12 +571,22 @@ export function createBrowserPane(input: {
     }
 
     if (action.type === "tabs.open") {
+      const url = action.url ?? "about:blank"
+      // A page that is already open is focused instead of opened again. Without this every link click, every
+      // "open browser" command, and every agent open stacked another tab on the same page.
+      const already = openTab(inventory(entry).tabs, url)
+
+      if (already) {
+        if (action.focus !== false) focus(entry, already.id)
+
+        return { value: inventory(entry).tabs.find((tab) => tab.id === already.id) ?? already, files: [] }
+      }
       const page = create(entry)
 
       if (action.focus !== false) focus(entry, page.state().id)
       await page.ready
       await page.execute(
-        { action: { type: "navigate", tabID: page.state().id, url: action.url ?? "about:blank" }, files: [] },
+        { action: { type: "navigate", tabID: page.state().id, url }, files: [] },
         signal,
       )
       publishState(entry)

@@ -193,6 +193,8 @@
 .ap-files li .ap-ellipsis { flex: 1; }
 .ap-file-icon { color: var(--ap-teal); }
 .ap-computer { display: flex; flex-direction: column; gap: var(--ap-s3); }
+/* The browser keeps its page while the panel shows another tab, so it is never reloaded out from under the user. */
+.ap-browser-pane { display: block; }
 .ap-computer-frame { width: 100%; aspect-ratio: 4 / 3; border: 1px solid var(--ap-line-strong); border-radius: var(--ap-r-lg); background: #000; box-shadow: var(--ap-shadow); }
 .ap-computer-form { display: flex; gap: var(--ap-s2); }
 .ap-computer-form .ap-input { flex: 1; }

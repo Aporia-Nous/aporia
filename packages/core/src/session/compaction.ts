@@ -42,6 +42,12 @@ export type Settings = {
   auto: boolean
   /** Tokens kept free below the model's limits before compacting. Unset keeps 10% free. */
   buffer?: number
+  /**
+   * The largest context automatic compaction allows, whatever window the model advertises. A provider's window is a
+   * maximum, not a target: every step re-sends the whole context, so a session resting near the top of a
+   * million-token window pays for a million tokens on every request. Unset uses `AUTO_COMPACT_CONTEXT`.
+   */
+  max_context?: number
   /** Tokens of recent conversation kept verbatim beside the summary. */
   keep: number
 }
@@ -95,6 +101,13 @@ const NOTHING_TO_COMPACT: Failure = { error: { type: "compaction.unavailable", m
 const SHRINK_STEPS = [0.7, 0.5, 0.35]
 // The least of the window kept free for the last reply before compaction and for the summary itself.
 const RESERVE_MIN = 16_000
+/**
+ * The working context automatic compaction aims at when `compaction.max_context` is unset. Deliberately far below
+ * any current model's window: cost is context size times request count, and a session that stays open makes a lot of
+ * requests. DeepSeek V4.1 Flash advertises a 1,000,000-token window, so an unbounded ceiling let one 18-day session
+ * run 3,158 requests at an average of 718k tokens each (2.23B cache-read tokens) before anything compacted.
+ */
+const AUTO_COMPACT_CONTEXT = 100_000
 /** A common window size, assumed for the compaction request when the model's window is unknown. */
 const UNKNOWN_WINDOW = 200_000
 const TOOL_OUTPUT_MAX_CHARS = 1_250
@@ -194,7 +207,7 @@ export const layer = Layer.effect(
 
     const state = State.create<Settings, Editor>({
       name: "session-compaction",
-      initial: () => ({ auto: true, keep: 15_000 }),
+      initial: () => ({ auto: true, keep: 15_000, max_context: AUTO_COMPACT_CONTEXT }),
       editor: (settings) => ({
         configure: (update) => {
           Object.assign(settings, update)
@@ -208,7 +221,7 @@ export const layer = Layer.effect(
 
       // Only the user compacts when automatic compaction is off, overflow included.
       if (trigger.reason !== "manual" && !settings.auto) return { status: "skipped" }
-      if (trigger.reason === "auto" && !due(context, calculateCeiling(context.model.limit, settings.buffer)))
+      if (trigger.reason === "auto" && !due(context, settings, autoCeiling(context, settings)))
         return { status: "skipped" }
       const native = context.model.compaction?.type === "native"
       const agent = native ? undefined : yield* agents.get(Agent.ID.make("compaction"))
@@ -219,7 +232,7 @@ export const layer = Layer.effect(
             .pipe(Effect.orElseSucceed(() => undefined)))) ??
         context.model
       const ceiling = calculateCeiling(model.limit, settings.buffer)
-      // An unknown window never triggers auto compaction, but the compaction request still needs a size to aim for.
+      // An unknown window has no ceiling of its own, so the summary request is sized against a common window instead.
       const cap = Number.isFinite(ceiling)
         ? ceiling
         : calculateCeiling({ ...model.limit, context: UNKNOWN_WINDOW }, settings.buffer)
@@ -239,7 +252,7 @@ export const layer = Layer.effect(
       )
     })
 
-    const due = (context: SessionContext.Loaded, ceiling: number) => {
+    const due = (context: SessionContext.Loaded, settings: Settings, ceiling: number) => {
       const messages = context.messages
       // A compaction just completed; let the runner rebuild the request from it first.
       const last = messages.at(-1)
@@ -247,7 +260,13 @@ export const layer = Layer.effect(
       // An encrypted native window estimates as nothing, so wait for a response to measure it.
       const measured = messages.findLastIndex((message) => hasMeasuredPrompt(message, context.model.ref))
       if (measured < messages.findLastIndex(SessionProviderContext.isCheckpoint)) return false
-      return estimateContext(context) >= ceiling
+      if (estimateContext(context) < ceiling) return false
+      // `max_context` can make a session due that the model's own window would have left alone. Compaction only
+      // replaces conversation, so if the system prompt, tool definitions, and instructions alone already reach the
+      // ceiling it cannot bring the session under it: the next step would be due again and summarize over and over.
+      // A ceiling the window itself set is left exactly as it was.
+      const window = calculateCeiling(context.model.limit, settings.buffer)
+      return ceiling >= window || irreducible(context) < ceiling
     }
 
     /**
@@ -910,6 +929,26 @@ const calculateCeiling = (limit: SessionContext.Loaded["model"]["limit"], buffer
   if (buffer !== undefined) return window - buffer
   return window - Math.max(Math.floor(window * 0.1), window >= 2 * RESERVE_MIN ? RESERVE_MIN : 0)
 }
+
+/**
+ * What a compaction cannot shrink: the system prompt, tool definitions, instructions, and the rest of the request the
+ * runner builds outside the conversation. Measured with no messages, so only the irreducible prefix is counted.
+ */
+const irreducible = (context: SessionContext.Loaded) => {
+  const base = transcript(context, [])
+  return estimateRequest({ system: base.system, tools: context.tools.definitions, messages: [] })
+}
+
+/**
+ * The size automatic compaction fires at: the model's own ceiling, or `max_context` when that is smaller. The floor
+ * keeps a small `max_context` clear of the tokens a compaction leaves behind, so compaction cannot fire again on the
+ * very next step.
+ */
+const autoCeiling = (context: SessionContext.Loaded, settings: Settings) =>
+  Math.min(
+    calculateCeiling(context.model.limit, settings.buffer),
+    Math.max(settings.max_context ?? AUTO_COMPACT_CONTEXT, settings.keep + RESERVE_MIN),
+  )
 
 /**
  * Another provider's count may describe a native window this model cannot replay. History then holds the original

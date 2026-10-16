@@ -205,17 +205,36 @@ it.effect("auto compaction estimates current content against the buffered prompt
     const due = (context: SessionContext.Loaded) =>
       compaction.compact({ reason: "auto", context }).pipe(Effect.map((outcome) => outcome.status !== "skipped"))
 
-    // 90% of the input limit, which takes precedence over the context window.
-    const inputLimited = { context: 400_000, input: 272_000, output: 128_000 }
-    expect(yield* due(input(244_799, inputLimited))).toBe(false)
-    expect(yield* due(input(244_800, inputLimited))).toBe(true)
+    // The input limit takes precedence over the larger context window: 110k less the 16k reserve.
+    const inputLimited = { context: 400_000, input: 110_000, output: 128_000 }
+    expect(yield* due(input(93_999, inputLimited))).toBe(false)
+    expect(yield* due(input(94_000, inputLimited))).toBe(true)
     const native = (tokens: number, limit: { context: number; input?: number; output: number } = inputLimited) => {
       const selected = input(tokens, limit)
       return { ...selected, model: { ...selected.model, compaction: { type: "native" as const } } }
     }
-    expect(yield* due(native(244_799))).toBe(false)
-    expect(yield* due(native(244_800))).toBe(true)
-    expect(yield* due(native(1_000_000, { context: 0, input: undefined, output: 0 }))).toBe(false)
+    expect(yield* due(native(93_999))).toBe(false)
+    expect(yield* due(native(94_000))).toBe(true)
+    // A window far above the working context does not raise the ceiling: a session resting at 900k pays for 900k on
+    // every request, so automatic compaction aims at `max_context` instead of following the window.
+    const hugeWindow = { context: 1_000_000, output: 384_000 }
+    expect(yield* due(native(99_999, hugeWindow))).toBe(false)
+    expect(yield* due(native(100_000, hugeWindow))).toBe(true)
+    // A window with no known limit is bounded the same way, so it cannot run unbounded.
+    expect(yield* due(native(99_999, { context: 0, input: undefined, output: 0 }))).toBe(false)
+    expect(yield* due(native(100_000, { context: 0, input: undefined, output: 0 }))).toBe(true)
+    // A system prompt that reaches the ceiling on its own cannot be compacted away, so the session is left alone
+    // rather than summarized on every step.
+    const plain = input(0, hugeWindow)
+    const verbose = {
+      ...plain,
+      agent: { ...plain.agent, info: { ...plain.agent.info, system: "x".repeat(1_000_000) } },
+    }
+    expect(SessionCompaction.estimateContext(verbose)).toBeGreaterThanOrEqual(100_000)
+    expect(yield* due(verbose)).toBe(false)
+    // With the model's own window as the binding limit, compaction stays available even though the system prompt
+    // cannot fit it: nothing else could bring the request under that window.
+    expect(yield* due({ ...verbose, model: input(0, { context: 500, output: 100 }).model })).toBe(true)
 
     // The summary's 16k output limit is more than 10% of a 100k window, so it sets the ceiling.
     const contextLimited = { context: 100_000, output: 10_000 }

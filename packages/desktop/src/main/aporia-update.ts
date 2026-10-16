@@ -11,6 +11,19 @@ import path from "node:path"
 const ROOT = path.join(process.env.LOCALAPPDATA ?? path.join(app.getPath("home"), "AppData", "Local"), "Aporia", "updates")
 const STATE = path.join(ROOT, "state.json")
 const SOURCE = process.env.APORIA_SOURCE ?? "C:\\Tools\\aporia"
+const INSTALL = path.join(
+  process.env.LOCALAPPDATA ?? path.join(app.getPath("home"), "AppData", "Local"),
+  "Programs",
+  // The folder the NSIS installer uses. It is named from the app id, not the product name ("Aporia"), so it cannot be
+  // derived from app.getName(). A wrong value silently disables every update in the installed app.
+  "Aporetic",
+)
+
+// Dev and production use different Electron user-data directories but used to share ROOT above.
+// That let both renderers observe one staged production update and race to apply it, repeatedly
+// terminating each other. Only the managed production install may drive this updater.
+const isManagedProduction = () =>
+  app.isPackaged && path.resolve(path.dirname(process.execPath)).toLowerCase() === path.resolve(INSTALL).toLowerCase()
 
 const readState = (): any => {
   try { return JSON.parse(fs.readFileSync(STATE, "utf8").replace(/^\uFEFF/, "")) } catch { return {} }
@@ -51,7 +64,7 @@ const alive = (pid?: number) => { if (!pid) return false; try { process.kill(pid
 
 /** Call at the very top of main: if a build is staged, hand off to the updater and quit before any window. */
 export function applyStagedUpdateOnLaunch(): boolean {
-  if (process.platform !== "win32" || process.env.APORIA_SKIP_UPDATE === "1") return false
+  if (process.platform !== "win32" || process.env.APORIA_SKIP_UPDATE === "1" || !isManagedProduction()) return false
   if (!fs.existsSync(path.join(ROOT, "staged", "Aporia.exe"))) { fs.rmSync(ATTEMPT, { force: true }); return false }
   const staged = String(readState().staged?.commit ?? "")
   let attempt: any = {}
@@ -69,6 +82,7 @@ export function applyStagedUpdateOnLaunch(): boolean {
 }
 
 export function registerAporiaUpdateHandler() {
+  if (!isManagedProduction()) return
   ipcMain.handle("aporia:update", async (_event, input: { action?: string; busy?: number; applyWhenIdle?: boolean; ids?: string[] }) => {
     switch (input?.action) {
       case "status": {

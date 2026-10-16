@@ -161,7 +161,7 @@ export const Operations = [
   ),
   operation(
     "tabs.open",
-    "Open a browser tab, show it in the Review pane, and select it. Defaults to about:blank. Website traffic uses the connected server's network; localhost reaches that server.",
+    "Open a browser tab, show it in the Review pane, and select it. If a tab already shows that URL, that tab is focused instead of adding a duplicate. Defaults to about:blank. Website traffic uses the connected server's network; localhost reaches that server.",
     {
       url: optional(short),
       focus: optional(Schema.Boolean).annotate({

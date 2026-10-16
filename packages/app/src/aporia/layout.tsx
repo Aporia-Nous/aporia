@@ -563,29 +563,35 @@ function VoiceCallHost(props: { directory: string; agent?: string; sessionID?: s
   // back. Polled fast so a quick turn is not missed; guarded three ways so a superseded turn's
   // answer is never spoken over the user's new one: the barge-in generation, the pre-send baseline
   // message id, and a short grace before trusting an idle-with-no-running-observed gap.
-  const timer = setInterval(() => {
-    if (!call.active || !callSessionID) { awaiting = false; return }
-    void (data.session as any).message?.sync?.(callSessionID)
-    logToolParts()
-    if (isWorking()) { sawRunning = true; return }
-    if (!awaiting) return
-    if (call.interrupts() !== turnGen) {
-      // A barge-in (or the watchdog) superseded this turn: adopt the new generation and treat the
-      // answer already present as seen, so it is never spoken as if it were the new turn's.
-      turnGen = call.interrupts()
-      baselineId = lastAssistantMsg().id
-      return
-    }
-    const msg = lastAssistantMsg()
-    if (!msg.text || msg.id === lastSpokenId || msg.id === baselineId) return // no answer of ours yet
-    if (!sawRunning && Date.now() - sentAt < 1500) return // do not race a stale answer into the gap
-    lastSpokenId = msg.id
-    awaiting = false
-    logLine("agent", msg.text) // keep the agent's spoken reply in the transcript too
-    sayReply(msg.text)
-    endAgentTurn()
-  }, 400)
-  onCleanup(() => clearInterval(timer))
+  // Polled fast, but only while a call is live: at a fixed interval this woke 2.5 times a second for the whole life of
+  // every session — 400 ms, forever — and on a session with no call in progress every one of those was a no-op. The
+  // effect owns the timer, so it starts with the call and is disposed when the call ends or the view unmounts.
+  createEffect(() => {
+    if (!call.active) return
+    const timer = setInterval(() => {
+      if (!callSessionID) { awaiting = false; return }
+      void (data.session as any).message?.sync?.(callSessionID)
+      logToolParts()
+      if (isWorking()) { sawRunning = true; return }
+      if (!awaiting) return
+      if (call.interrupts() !== turnGen) {
+        // A barge-in (or the watchdog) superseded this turn: adopt the new generation and treat the
+        // answer already present as seen, so it is never spoken as if it were the new turn's.
+        turnGen = call.interrupts()
+        baselineId = lastAssistantMsg().id
+        return
+      }
+      const msg = lastAssistantMsg()
+      if (!msg.text || msg.id === lastSpokenId || msg.id === baselineId) return // no answer of ours yet
+      if (!sawRunning && Date.now() - sentAt < 1500) return // do not race a stale answer into the gap
+      lastSpokenId = msg.id
+      awaiting = false
+      logLine("agent", msg.text) // keep the agent's spoken reply in the transcript too
+      sayReply(msg.text)
+      endAgentTurn()
+    }, 400)
+    onCleanup(() => clearInterval(timer))
+  })
 
   createEffect(() => {
     const message = call.error()

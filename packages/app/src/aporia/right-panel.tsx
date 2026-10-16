@@ -15,9 +15,15 @@ const AutomationsTab = lazy(() => import("./automations").then((m) => ({ default
 
 export function AporiaRightPanel(props: { view: AporiaView; onClose?: () => void; callTab?: boolean; onCallTabHandled?: () => void }) {
   const [tab, setTab] = createSignal<Tab>("details")
+  const [browserUsed, setBrowserUsed] = createSignal(false)
   // A voice call (composer phone icon) can request the Call tab.
   createEffect(() => {
     if (props.callTab) { setTab("call"); props.onCallTabHandled?.() }
+  })
+  // The browser is mounted on first use and then kept mounted, so switching tabs never reloads the page. Mounting
+  // it eagerly would fetch the saved URL for every panel open, including for a user who never opens the Browser tab.
+  createEffect(() => {
+    if (tab() === "browser") setBrowserUsed(true)
   })
   const info = () => props.view.info()
   const files = createMemo(() => touchedFiles(props.view.messages()))
@@ -156,10 +162,14 @@ export function AporiaRightPanel(props: { view: AporiaView; onClose?: () => void
           <Match when={tab() === "automations"}>
             <AutomationsTab />
           </Match>
-          <Match when={tab() === "browser"}>
-            <BrowserTab />
-          </Match>
         </Switch>
+        {/* APORIA: the browser stays mounted while the panel switches tabs. Unmounting it reloaded the page and
+            dropped anything it was signed into, which read as the browser never staying put. */}
+        <div class="ap-browser-pane" style={{ display: tab() === "browser" ? undefined : "none" }}>
+          <Show when={browserUsed()}>
+            <BrowserTab />
+          </Show>
+        </div>
       </div>
     </aside>
   )

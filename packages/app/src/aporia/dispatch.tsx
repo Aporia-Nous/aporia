@@ -9,21 +9,27 @@ import { useServerSDK } from "@/runtime/server/client"
 import { aporiaAlerts } from "./alerts"
 import { agentFor, bots, refreshBots, type Bot } from "./bots"
 import { createDispatchScheduler } from "./dispatch-queue"
+import { createDedupe, fingerprint } from "./dedupe"
+import { isSilentReply } from "./reply"
 import { buildMemoryPrompt } from "./context-grounded"
 import { scopedEntries } from "./context-scope"
 import { needsResearch, researchPrompt, type BotKind } from "./expert-policy"
 
-type Msg = { id: string; from: string; to?: string; room?: string; message: string; priority: boolean; kind: "message" | "reply" | "room" | "routine"; created: string; fromSession?: string; routine?: { id: string; name: string }; manual?: boolean }
+type Msg = { id: string; from: string; to?: string; room?: string; message: string; priority: boolean; kind: "message" | "reply" | "room" | "routine"; created: string; fromSession?: string; routine?: { id: string; name: string }; manual?: boolean; response?: "required" | "none" }
 const routines = (input: unknown) => (globalThis as any).electron?.aporia?.routines?.(input)
 type Room = { slug: string; name: string; members: string[]; sessions: Record<string, string> }
 const IDLE_DELAY_MS = 2 * 60_000 // non-priority messages wait this long (target idle) before they wake it
-const TURN_TIMEOUT_MS = 15 * 60_000
+// How long to wait for a bot's reply before the turn is reported as timed out.
+const TURN_TIMEOUT_MS = 10 * 60_000
 // Loop guard: two bots can ping-pong forever (each turn fires another send_to_bot). Cap how many
 // messages may pass between the same pair inside a window.
 const PAIR_WINDOW_MS = 10 * 60_000
 const PAIR_MAX = 6
 // Once a pair hits the cap, stop it for real rather than letting it trickle.
 const PAIR_COOLDOWN_MS = 60 * 60_000
+// A repeat inside this window is the same message arriving twice, not a second message. Matches the loop guard's
+// window, since a broadcast that fans out or a pair that echoes itself both land inside it.
+const DUPLICATE_WINDOW_MS = 10 * 60_000
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 export function BotDispatcher() {
@@ -33,6 +39,8 @@ export function BotDispatcher() {
   // Per bot-pair delivery timestamps and cooldowns for the loop guard (in-memory, per running app).
   const pairHits = new Map<string, number[]>()
   const pairCooldown = new Map<string, number>()
+  // Repeats are remembered in memory, per running app, like the loop guard's counters.
+  const duplicate = createDedupe(DUPLICATE_WINDOW_MS).duplicate
 
   const paths = bots({ op: "paths" }) as Promise<{ bots: string }>
   async function createSession(bot: Bot, title?: string) {
@@ -110,6 +118,24 @@ export function BotDispatcher() {
     }
     const sessionID = await botSession(target)
     if (!m.priority && (busy(sessionID) || Date.now() - Date.parse(m.created) < IDLE_DELAY_MS)) return // wait
+    // A repeat is the same words from the same sender to the same target inside the window. Dropped rather than
+    // delivered, so it costs no turn. Routines and Ali are exempt: a routine repeats on schedule by design, and Ali's
+    // own messages are never suppressed.
+    if (m.kind !== "routine" && list.some((b) => b.slug === m.from)) {
+      if (duplicate(fingerprint(m.from, m.to ?? "", m.message), m.id)) {
+        await bots({ op: "inboxAck", id: m.id, result: { suppressed: "duplicate" } })
+        return
+      }
+      // The sender says whether this needs an answer. `none` is not escalated: no turn, no cost. It is held on disk
+      // beside the bot and read on its next real turn, the way room posts are, so it survives a restart and the bot
+      // is not blind to what was said. Ali and routines are exempt — a message from Ali always gets a turn, whatever
+      // it is labelled.
+      if (m.response === "none") {
+        await bots({ op: "fyiAppend", slug: target.slug, from: m.from, text: m.message })
+        await bots({ op: "inboxAck", id: m.id, result: { suppressed: "fyi", state: "held" } })
+        return
+      }
+    }
     // Loop guard (counted only when we are about to DELIVER, not on every retry tick): two bots can
     // ping-pong forever because each turn fires another send_to_bot. Cap per pair. Ali's own
     // messages are never rate-limited.
@@ -151,9 +177,34 @@ export function BotDispatcher() {
     const label = m.kind === "reply" ? `📬 Reply from ${name(m.from)}` : `📨 From ${name(m.from)} (bot message${m.priority ? ", priority" : ""})`
     // What the receiving bot's chat shows: a small line, never the message body.
     const display = m.kind === "reply" ? `📬 Reply received from ${name(m.from)}` : `📨 Message received from ${name(m.from)}`
-    const reply = await turn(sessionID, `${label}:\n\n${m.message}`, { kind: m.kind, from: m.from, msg: m.id, display }, target.scopes, target.kind as BotKind)
-    if (m.kind === "message" && list.some((b) => b.slug === m.from)) {
-      await bots({ op: "inboxPost", msg: { from: target.slug, to: m.from, message: reply, priority: true, kind: "reply", replyTo: m.id } })
+    // Without the PASS line a bot has no way to end a turn quietly, so every "already handled" reply became another
+    // message back and another turn on the other side.
+    // Anything held since this bot's last turn rides along here, so the message it is answering is not the only thing
+    // it knows. Held notes live beside the bot, so a restart does not lose them.
+    const held = ((await bots({ op: "fyiDrain", slug: target.slug })) as { from: string; text: string }[] | undefined) ?? []
+    const heldText = held.length
+      ? `Not needing a reply, held since your last turn:\n\n${held.map((e) => `${name(e.from)}: ${e.text}`).join("\n\n")}\n\n---\n\n`
+      : ""
+    const ask = `${heldText}${label}:\n\n${m.message}\n\nIf you have nothing to add — no new information and nothing for them to do — reply with exactly PASS and nothing is sent.`
+    const reply = await turn(sessionID, ask, { kind: m.kind, from: m.from, msg: m.id, display }, target.scopes, target.kind as BotKind)
+    if (m.kind === "message" && list.some((b) => b.slug === m.from) && !isSilentReply(reply)) {
+      // One-way. An exchange ends here: a reply is never answered in turn, so nothing either bot says can start
+      // another round. The answer wakes the asker only if the asker said it was blocked on one; otherwise it is filed
+      // as held, and the asker reads it on its next turn — one wake instead of one per reply, which is what a
+      // question sent to many bots used to cost.
+      const blocked = m.response === "required"
+      await bots({
+        op: "inboxPost",
+        msg: {
+          from: target.slug,
+          to: m.from,
+          message: reply,
+          priority: true,
+          kind: "reply",
+          replyTo: m.id,
+          response: blocked ? "required" : "none",
+        },
+      })
     }
   }
 
@@ -162,6 +213,9 @@ export function BotDispatcher() {
     const room = rooms.find((r) => r.slug === m.room)
     await bots({ op: "inboxAck", id: m.id, result: { room: m.room } })
     if (!room) return
+    if (m.kind !== "room" && list.some((b) => b.slug === m.from)) {
+      if (duplicate(fingerprint(m.from, `room:${room.slug}`, m.message), m.id)) return
+    }
     if (m.kind !== "room") await bots({ op: "roomPost", slug: room.slug, from: name(m.from), text: m.message, fanout: false })
     // Members take turns, each sees what was posted since its own last turn (including earlier members this round).
     for (const slug of room.members) {
@@ -177,7 +231,7 @@ export function BotDispatcher() {
       const mineIdx = log.map((e) => e.from).lastIndexOf(bot.name)
       const recent = log.slice(mineIdx + 1).slice(-20).map((e) => `${e.from}: ${e.text}`).join("\n\n")
       const reply = await turn(sessionID, `🧑‍🤝‍🧑 Room "${room.name}" (members: ${room.members.map(name).join(", ")}). New posts since your last turn:\n\n${recent}\n\nYour reply goes to everyone in the room. Reply PASS to stay silent.`, { kind: "room", room: room.slug, msg: m.id, display: `🧑‍🤝‍🧑 Room "${room.name}" — new posts` }, bot.scopes, bot.kind as BotKind)
-      if (!/^\s*PASS\.?\s*$/i.test(reply)) await bots({ op: "roomPost", slug: room.slug, from: bot.name, text: reply, fanout: false })
+      if (!isSilentReply(reply)) await bots({ op: "roomPost", slug: room.slug, from: bot.name, text: reply, fanout: false })
     }
     aporiaAlerts.push({ title: `Room ${room.name}: round finished`, level: "info" })
   }

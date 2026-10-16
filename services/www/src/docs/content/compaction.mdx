@@ -74,6 +74,7 @@ Add `compaction` to any [OpenCode configuration file](/config):
     "auto": false,
     "keep": { "tokens": 24000 },
     "buffer": 16000,
+    "max_context": 100000,
   },
 }
 ```
@@ -83,8 +84,9 @@ Add `compaction` to any [OpenCode configuration file](/config):
 | `auto` | `true` | Compact automatically near the context limit, and recover once when a provider rejects a request as too long. Manual compaction always works. |
 | `keep.tokens` | `15000` | Approximate recent conversation kept beside the summary. Larger values preserve more detail but leave less room for new work. |
 | `buffer` | 10% of the limit | Tokens to keep free below the model's limit. Larger values start automatic compaction earlier. |
+| `max_context` | `100000` | The largest context automatic compaction allows, whatever window the model advertises. Every request re-sends the whole context, so a session that rests near the top of a million-token window pays for a million tokens on every step. Raise it for work that genuinely needs a longer conversation. |
 
-`keep.tokens` and `buffer` accept non-negative integers.
+`keep.tokens`, `buffer`, and `max_context` accept non-negative integers.
 
 ## Providers
 

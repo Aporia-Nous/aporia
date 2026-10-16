@@ -137,7 +137,7 @@ export function agentPrompt(bot: Bot, shared: SharedPrompt = sharedPrompt()) {
     `Your working folder is ${path.join(BOTS_DIR, bot.slug)}. Answer Ali right away; run long work as background subagents/jobs per WORKING-STYLE.md so you are never blocked.`,
     "Anything sent externally under Ali's name (email, text, post, call) needs his explicit OK unless Owner mode is on.",
     `Reactions: you can react to Ali's latest message with the react tool (bot="${bot.slug}", one emoji) instead of replying to a quick thanks or acknowledgement; follow the reaction rules in VOICE.md.`,
-    `Teammates: use send_to_bot (from="${bot.slug}") to ask another bot (list_bots shows them) or post to room:<slug>. It's async: keep working, the reply arrives as a new message. Messages starting with "📨 From" are from another bot; answer them directly (your final reply is sent back automatically, so don't call send_to_bot to reply). Answer a teammate ONCE and stop — never start a back-and-forth; if you need more from them, ask Ali to weigh in. In a room turn, reply with PASS if you have nothing useful to add.`,
+    `Teammates: use send_to_bot (from="${bot.slug}") to message another bot (list_bots shows them) or post to room:<slug>. When your message only informs — an update, a heads-up, a closing note — pass response:"none": it is then held and read on their next turn instead of waking a turn of its own, which is what stops a team-wide thread. Leave response out when you are asking something and need an answer. It's async: keep working; a reply arrives later as a new message. Messages starting with "📨 From" are from another bot; answer them directly — your final reply is sent back automatically. A reply is never answered in turn, so never wait for one: if you need more, ask Ali to weigh in. If a message needs nothing from you, reply with exactly PASS and nothing is sent. Answer a teammate ONCE and stop — never start a back-and-forth. Messages headed "Not needing a reply, held since your last turn" are updates from other bots; read them, do not answer them. In a room turn, reply with PASS if you have nothing useful to add.`,
     `Memory tools (aporia-memory MCP): remember/forget/recall with bot="${bot.slug}". Below is a snapshot of memory at the time this prompt was built; use recall for anything older or more specific.`,
     shared.rules,
     recentReactions(bot.slug),
@@ -186,7 +186,7 @@ export const regenerateAll = () => regenerateBots(listBots().map((b) => b.slug))
 // ---- inbox (bot-to-bot) and rooms --------------------------------------------------------
 export const INBOX = path.join(APORIA_HOME, "inbox")
 export const ROOMS = path.join(APORIA_HOME, "rooms")
-export type InboxMsg = { id: string; from: string; to?: string; room?: string; message: string; priority: boolean; kind: "message" | "reply" | "room" | "routine"; routine?: { id: string; name: string }; manual?: boolean; created: string; replyTo?: string; fromSession?: string }
+export type InboxMsg = { id: string; from: string; to?: string; room?: string; message: string; priority: boolean; kind: "message" | "reply" | "room" | "routine"; routine?: { id: string; name: string }; manual?: boolean; created: string; replyTo?: string; fromSession?: string; response?: "required" | "none" }
 export type Room = { slug: string; name: string; members: string[]; sessions: Record<string, string>; created: string }
 const roomFile = (slug: string) => path.join(ROOMS, slug, "room.json")
 export function inboxPending(): InboxMsg[] {
@@ -213,6 +213,43 @@ export function inboxAck(id: string, result: unknown) {
   writeFileSync(path.join(done, `${id}.json`), JSON.stringify({ ...msg, result, deliveredAt: new Date().toISOString() }, null, 2)); rmSync(f)
   appendFileSync(path.join(APORIA_HOME, "bots", "messages.log.jsonl"), JSON.stringify({ at: new Date().toISOString(), ...msg, result }) + "\n")
   return true
+}
+
+/** A message the sender marked as needing no reply, waiting beside its bot until that bot's next turn. */
+export type HeldFyi = { at: string; from: string; text: string }
+/** Oldest first; past this many the oldest are dropped rather than growing without bound. */
+const FYI_MAX = 50
+const fyiFile = (slug: string) => path.join(BOTS_DIR, safeSlug(slug, "bot"), "fyi.json")
+
+function readFyi(file: string): HeldFyi[] {
+  try {
+    const parsed = JSON.parse(readFileSync(file, "utf8"))
+    return Array.isArray(parsed) ? parsed.filter((e) => e && typeof e.text === "string") : []
+  } catch {
+    return []
+  }
+}
+
+/** Hold a no-reply message for a bot. Written to disk so a restart does not lose it. */
+export function fyiAppend(input: { slug?: unknown; from?: unknown; text?: unknown }) {
+  const file = fyiFile(String(input.slug ?? ""))
+  const held = readFyi(file)
+  held.push({
+    at: new Date().toISOString(),
+    from: String(input.from ?? "unknown").slice(0, 64),
+    text: String(input.text ?? "").slice(0, 8_000),
+  })
+  mkdirSync(path.dirname(file), { recursive: true })
+  writeFileSync(file, JSON.stringify(held.slice(-FYI_MAX), null, 2))
+  return { held: Math.min(held.length, FYI_MAX) }
+}
+
+/** Read and clear: a held message is read exactly once, on the turn that drains it. */
+export function fyiDrain(slug: unknown): HeldFyi[] {
+  const file = fyiFile(String(slug ?? ""))
+  const held = readFyi(file)
+  if (held.length) writeFileSync(file, JSON.stringify([], null, 2))
+  return held
 }
 export function listRooms(): Room[] {
   if (!existsSync(ROOMS)) return []
@@ -472,6 +509,8 @@ export function registerAporiaBotsHandler() {
       case "inbox": return inboxPending()
       case "inboxPost": return inboxPost(input.msg ?? {})
       case "inboxAck": return inboxAck(safeInboxId(input.id), input.result)
+      case "fyiAppend": return fyiAppend(input)
+      case "fyiDrain": return fyiDrain(input.slug)
       case "rooms": return listRooms()
       case "roomSave": return saveRoom(input.room ?? {})
       case "roomPost": {
