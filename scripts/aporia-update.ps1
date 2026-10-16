@@ -19,7 +19,7 @@ param(
   [Parameter(Position = 0)][string]$Cmd = 'status',
   [switch]$Force, [switch]$Restart, [switch]$ByUser, [switch]$Hidden,
   [int]$WaitForExit = 0, [int]$HealthSeconds = 30,
-  [string]$VerifyDir, [string]$Expect
+  [Alias('Dir')][string]$VerifyDir, [string]$Expect
 )
 $ErrorActionPreference = 'Continue'  # native tools (taskkill, bun) write to stderr; real failures throw explicitly
 $Src = if ($env:APORIA_SOURCE) { $env:APORIA_SOURCE } else { 'C:\Tools\aporia' }
@@ -77,14 +77,24 @@ function New-Operation($name) {
 # cannot be run at all; returns an object with stamped=$false if it runs but carries no stamp.
 function Get-CliBuildInfo($exe) {
   if (-not (Test-Path $exe)) { return $null }
-  $raw = $null
-  try { $raw = & $exe '--build-info' 2>$null | Select-Object -First 1 } catch { return $null }
-  if (-not $raw) { return $null }
-  $text = ($raw | Out-String).Trim()
-  if (-not $text) { return $null }
-  # A binary that predates stamping prints help (an unknown flag is not an error to it), so a parse failure here means
+  $lines = $null
+  try { $lines = @(& $exe '--build-info' 2>$null) } catch { return $null }
+  if (-not $lines -or $lines.Count -eq 0) { return $null }
+  # Take the first line that parses as a JSON object carrying 'stamped'. Reading only the first line would break the
+  # moment the binary emits a warning line before the stamp; matching on the 'stamped' property keeps the stamp
+  # authoritative without accepting arbitrary output.
+  foreach ($l in $lines) {
+    $t = "$l".Trim()
+    if (-not $t.StartsWith('{')) { continue }
+    $o = $null
+    try { $o = $t | ConvertFrom-Json } catch { continue }
+    if ($o -and $null -ne $o.PSObject.Properties['stamped']) { return $o }
+  }
+  # A binary that predates stamping prints help (an unknown flag is not an error to it), so no JSON line means
   # "runs, but has no stamp" - which is a refusal, not a crash. Report it as such instead of as an execution failure.
-  try { return $text | ConvertFrom-Json } catch { return [pscustomobject]@{ stamped = $false; note = "binary ran but printed no build stamp (first line: $($text.Substring(0, [Math]::Min(40, $text.Length))))" } }
+  $first = ("$($lines[0])").Trim()
+  $sample = if ($first.Length -gt 40) { $first.Substring(0, 40) } else { $first }
+  return [pscustomobject]@{ stamped = $false; note = "binary ran but printed no build stamp (first line: $sample)" }
 }
 
 function Do-Build {
