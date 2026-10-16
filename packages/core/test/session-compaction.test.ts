@@ -683,3 +683,223 @@ it.effect("forked session compaction reuses the fork root prompt cache key", () 
     expect(requests[0]?.promptCacheKey).toBe(rootID)
   }),
 )
+
+/** A user message with the given text. */
+const turn = (text: string) =>
+  SessionMessage.User.make({
+    id: SessionMessage.ID.create(),
+    type: "user",
+    text,
+    time: { created: DateTime.makeUnsafe(0) },
+  })
+
+/** An assistant text reply, optionally carrying the provider's own measurement of the request that produced it. */
+const reply = (text: string, input?: number) =>
+  Schema.decodeUnknownSync(SessionMessage.Assistant)({
+    id: SessionMessage.ID.create(),
+    type: "assistant",
+    agent: Agent.defaultID,
+    model: { id: "summary-model", providerID: "test" },
+    content: [{ type: "text", text }],
+    ...(input === undefined ? {} : { tokens: { input, output: 0, reasoning: 0, cache: { read: 0, write: 0 } } }),
+    time: { created: 0, completed: 0 },
+  })
+
+/** An assistant reply whose one tool call completed with this result. */
+const toolReply = (call: string, name: string, fileName: string, result: string) =>
+  Schema.decodeUnknownSync(SessionMessage.Assistant)({
+    id: SessionMessage.ID.create(),
+    type: "assistant",
+    agent: Agent.defaultID,
+    model: { id: "summary-model", providerID: "test" },
+    content: [
+      {
+        type: "tool",
+        id: call,
+        name,
+        state: { status: "completed", input: { filePath: fileName }, content: [{ type: "text", text: result }] },
+        time: { created: 0 },
+      },
+    ],
+    time: { created: 0, completed: 0 },
+  })
+
+/**
+ * J fixture 1. A long synthetic session crossing the automatic threshold: a design decision, the correction that
+ * supersedes it, the reference path, an approval restriction, one completed local action and a pending task. The
+ * summarizer is handed every one of them (nothing is dropped silently), the prompt says how to treat them, and the
+ * newest user messages stay verbatim in the retained window.
+ *
+ * What this fixture does not prove: the wording a real summarizer model writes. The summary text here is the mock's,
+ * so preservation is verified at the summarizer's input, the prompt's rules and the retention boundary.
+ */
+it.effect("J fixture 1: a session crossing the threshold keeps the correction, reference, restriction and pending work", () =>
+  Effect.gen(function* () {
+    requests = []
+    const sessionID = Session.ID.make("ses_j1_long_session")
+    const session = yield* insertSession(sessionID)
+    const compaction = yield* SessionCompaction.Service
+    const store = yield* SessionStore.Service
+    const messages = [
+      turn("Objective: rebuild the Aporetic shell as the real AN design."),
+      reply("Decision: build the shell from the recovered design mockup.", 101_000),
+      turn("Correction: use aporetic-an-exact-flow-v11-selfcontained.html, not replacement-concept-NOT-APPROVED.png."),
+      toolReply("call_write_status", "write", "docs/an-rewrite/STATUS.md", "Wrote 42 lines to STATUS.md"),
+      turn("Restriction: do not push to the remote and do not run aporia-update."),
+      reply("Pending: add the J fixtures 1, 4 and 5."),
+    ]
+    const before = SessionCompaction.estimateContext(loaded(session, messages))
+    expect(before).toBeGreaterThanOrEqual(100_000)
+
+    expect(yield* compaction.compact({ reason: "auto", context: loaded(session, messages) })).toEqual({
+      status: "completed",
+    })
+
+    expect(requests).toHaveLength(1)
+    const sent = JSON.stringify(requests[0]?.messages)
+    // The older part reaches the summarizer whole, with the completed action's own evidence.
+    expect(sent).toContain("Decision: build the shell from the recovered design mockup.")
+    expect(sent).toContain("use aporetic-an-exact-flow-v11-selfcontained.html")
+    expect(sent).toContain("Wrote 42 lines to STATUS.md")
+    // The prompt carries the two rules that keep a correction and a finished action from being lost or redone.
+    expect(sent).toContain("superseded")
+    expect(sent).toContain("does not repeat a completed action")
+    // The newest exchange is not summarized: it is kept verbatim beside the summary, exactly once.
+    expect(sent).not.toContain("do not push to the remote")
+
+    const context = yield* store.context(sessionID)
+    expect(context.filter((message) => message.type === "compaction")).toHaveLength(1)
+    const after = SessionCompaction.estimateContext(loaded(session, context))
+    expect(after).toBeLessThan(before)
+    // The compacted context fits the working budget with the reply reserve held back.
+    expect(after).toBeLessThanOrEqual(100_000)
+    const checkpoint = context[0]
+    if (checkpoint?.type !== "compaction" || checkpoint.status !== "completed")
+      throw new Error("expected a completed checkpoint")
+    expect(checkpoint.recent).toContain("Restriction: do not push to the remote and do not run aporia-update.")
+    expect(checkpoint.recent).toContain("Pending: add the J fixtures 1, 4 and 5.")
+    expect(checkpoint.recent).not.toContain("Decision: build the shell from the recovered design mockup.")
+  }),
+)
+
+/**
+ * J fixture 4. Accounting: provider tool schemas are part of the prompt size, the provider's own measurement and the
+ * estimated tail are separate quantities, a large tool result plus an attached reference are counted, the compacted
+ * context actually fits the budget, and the session's lifetime token total is a different number from the active
+ * context (so it must never be printed as the current context size).
+ */
+it.effect("J fixture 4: tool schemas, tool output and attachments are accounted for and the compacted context fits", () =>
+  Effect.gen(function* () {
+    requests = []
+    const sessionID = Session.ID.make("ses_j4_accounting")
+    const session = yield* insertSession(sessionID)
+    const compaction = yield* SessionCompaction.Service
+    const store = yield* SessionStore.Service
+
+    const description = "Read a file from disk."
+    const inputSchema = {
+      type: "object",
+      properties: { filePath: { type: "string", description: "Absolute path to read." } },
+      required: ["filePath"],
+    }
+    const definitions = [ToolDefinition.make({ name: "read", description, inputSchema })]
+    const schemas = { definitions, execute: () => Effect.die("Compaction must not execute tools") }
+    const overhead = Token.estimate("read" + description + JSON.stringify(inputSchema))
+    expect(overhead).toBeGreaterThan(0)
+    const withoutSchemas = SessionCompaction.estimateContext(loaded(session, []))
+    expect(SessionCompaction.estimateContext({ ...loaded(session, []), tools: schemas }) - withoutSchemas).toBe(overhead)
+
+    const attachment = Schema.decodeUnknownSync(SessionMessage.User)({
+      id: SessionMessage.ID.create(),
+      type: "user",
+      text: "",
+      files: [{ mime: "image/png", data: "a".repeat(2_000), source: { type: "inline" } }],
+      time: { created: 0 },
+    })
+    const messages = [
+      turn("Objective: rebuild the shell."),
+      reply("Decision: keep the v11 mockup.", 101_000),
+      toolReply("call_read_big", "read", "aporetic-an-exact-flow-v11-selfcontained.html", "x".repeat(1_250)),
+      attachment,
+    ]
+    const context = { ...loaded(session, messages), tools: schemas }
+    // The provider's count is the measurement; everything after it is estimated on top.
+    expect(SessionCompaction.estimatePrompt(context).measured).toBe(101_000)
+    expect(SessionCompaction.estimatePrompt(context).estimated).toBeGreaterThan(0)
+    const before = SessionCompaction.estimateContext(context)
+    expect(before).toBeGreaterThan(101_000)
+
+    expect(yield* compaction.compact({ reason: "auto", context })).toEqual({ status: "completed" })
+    const after = SessionCompaction.estimateContext({
+      ...loaded(session, yield* store.context(sessionID)),
+      tools: schemas,
+    })
+    expect(after).toBeLessThan(before)
+    expect(after).toBeLessThanOrEqual(100_000)
+
+    // The session row holds lifetime usage recorded from responses. It is not the active context, and the two must
+    // not be confused when the UI prints a size.
+    const spent = (yield* store.get(sessionID))?.tokens?.input ?? 0
+    expect(spent).toBeGreaterThan(0)
+    expect(spent).not.toBe(after)
+  }),
+)
+
+/**
+ * J fixture 5. Two successive compactions: the second update carries the first checkpoint once, does not re-send the
+ * raw tool results that checkpoint already covers (no redundant retrieval), leaves exactly one checkpoint (no
+ * exponential growth) and reclaims room both times without a storm of extra requests.
+ */
+it.effect("J fixture 5: successive compactions keep one checkpoint, drop covered history and stay in budget", () =>
+  Effect.gen(function* () {
+    requests = []
+    const sessionID = Session.ID.make("ses_j5_successive")
+    const session = yield* insertSession(sessionID)
+    const compaction = yield* SessionCompaction.Service
+    const store = yield* SessionStore.Service
+    const first = [
+      turn("Task A: rebuild the shell."),
+      reply("Decision: keep the v11 mockup as the design reference.", 101_000),
+      ...Array.from({ length: 60 }, (_, index) =>
+        toolReply(`call_read_${index}`, "read", `call_read_${index}.txt`, "x".repeat(1_250)),
+      ),
+      turn("Keep the v11 mockup as the design reference."),
+      reply("Pending: the fixtures."),
+    ]
+    const before1 = SessionCompaction.estimateContext(loaded(session, first))
+    expect(before1).toBeGreaterThanOrEqual(100_000)
+    expect(yield* compaction.compact({ reason: "auto", context: loaded(session, first) })).toEqual({
+      status: "completed",
+    })
+    expect(requests).toHaveLength(1)
+
+    const context1 = yield* store.context(sessionID)
+    const after1 = SessionCompaction.estimateContext(loaded(session, context1))
+    expect(after1).toBeLessThan(before1)
+    // keep (15,000) plus the checkpoint's own summary and prompt overhead.
+    expect(after1).toBeLessThanOrEqual(20_000)
+
+    const second = [
+      ...context1,
+      turn("Also record the threshold and its units in STATUS."),
+      reply("Progress: the fixtures are written.", 101_000),
+    ]
+    const before2 = SessionCompaction.estimateContext(loaded(session, second))
+    expect(before2).toBeGreaterThanOrEqual(100_000)
+    expect(yield* compaction.compact({ reason: "auto", context: loaded(session, second) })).toEqual({
+      status: "completed",
+    })
+    expect(requests).toHaveLength(2)
+
+    const update = JSON.stringify(requests[1]?.messages)
+    // The previous checkpoint is the single record of the older work, and the raw results it covers are gone.
+    expect(update.split("manual summary").length - 1).toBe(1)
+    expect(update).not.toContain("call_read_0.txt")
+
+    const context2 = yield* store.context(sessionID)
+    expect(context2.filter((message) => message.type === "compaction")).toHaveLength(1)
+    const after2 = SessionCompaction.estimateContext(loaded(session, context2))
+    expect(after2).toBeLessThan(before2)
+    expect(after2).toBeLessThanOrEqual(20_000)
+  }),
+)
