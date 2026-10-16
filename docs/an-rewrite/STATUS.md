@@ -3,12 +3,13 @@
 Checkout: `C:\Tools\aporia\.worktrees\opt`, branch `rebrand/nousphere`. Source of truth for the order of work:
 `APORETIC-DEV-BUILD-LIST.md` (a copy of it is not kept here; the brief is `APORETIC-DEV-REWRITE-HANDOFF.md`, sections A–K).
 
-Nothing is pushed. Nothing is merged. The installed app (`%LOCALAPPDATA%\Programs\Aporetic`) and the live databases
-are untouched by this work. No packaging script and no `aporia-update` was run.
+Nothing is pushed. Nothing is merged. The installed app (`%LOCALAPPDATA%\Programs\Aporetic`) is untouched by this
+work, and the live database is only ever read (Stage 0a takes a read-only copy of it). No packaging script and no
+`aporia-update` was run.
 
 ## Stage log
 
-### Stage 0 — compaction (brief J) — 2 commits, WORK IN PROGRESS
+### Stage 0 — compaction (brief J) — 2 commits, committed (J stays PARTIAL: S2–S4 open)
 
 | # | commit | subject | tests |
 | - | - | - | - |
@@ -81,12 +82,65 @@ summary request, not the active context. Some rows carry no usage at all, so the
 - Gap: the retry count of a compaction request is not persisted anywhere, so it can only be observed live, not
   reconstructed from the store. Requirement J asks for it per turn; until it is recorded it stays UNVERIFIED.
 
-### Stage 0a — DEV isolation — NOT STARTED
+### Stage 0a — DEV isolation — database split done, GUI relaunch pending
 
-DEV and the installed app currently share `~/.local/share/opencode/opencode-aporia.db`. The plan (safety rule 1):
-free-space check, a consistent `.backup` into `opencode-aporia-dev.db`, a new `run-dev-isolated.cmd` inside the
-worktree, then a 5-minute DEV run that shows the dev DB changing and the prod DB not. The shared DB is the source of
-every number in this file, so a read-only copy is kept before anything moves.
+Measured first, at 18:02 local on 2026-10-16: the only running Electron app is the **DEV** instance (app-path
+`...\.worktrees\opt\packages\desktop\out\main\index.js`, userData `com.aporianous.desktop.dev`, `packaged:false`), and
+it is writing `opencode-aporia.db` — session `ses_ec15498a0ffefgkKGi3yhJ6Yaa` (this session) had 1032 messages, the
+newest at 18:02:18 local. `packages/desktop/src/main/index.ts:29` defaults `OPENCODE_DB` to `opencode-aporia.db`, so
+DEV shares the installed app's store unless the environment says otherwise. That is the defect this stage fixes.
+
+The copy is `VACUUM INTO` rather than a file copy, because the DB is being written to throughout: `VACUUM INTO` reads
+one consistent snapshot on a read-only connection, which is what a `.backup` gives.
+
+| item | value |
+| - | - |
+| prod DB | `~\.local\share\opencode\opencode-aporia.db`, 10,206,101,504 bytes (9.51 GB), 691 sessions, `session_message` max(rowid) 70,126 |
+| dev copy | `~\.local\share\opencode\opencode-aporia-dev.db`, 1,213,816,832 bytes (1.13 GB), 691 sessions, 69,976 messages, `pragma integrity_check` = **ok** |
+| snapshot moment | 17:57:35 local — the newest message in the copy; the live file was already at 18:02:18 (1009 vs 1032 messages in the same session) |
+| free space | 30.7 GB before → 29.8 GB after (gate for later stages passes) |
+| source connection | read-only; no write connection was ever opened on the live DB |
+
+The 9.51 GB → 1.13 GB difference is unreferenced free pages (~8.4 GB), not a fix and not this stage's work; recorded
+because it is surprising and it makes later `.bak` copies cheap.
+
+Wiring proof, free and repeatable. `packages/cli/src/database-path.ts:12` is `path.resolve(data, filename)`, so a
+relative name resolves against the data dir and an absolute path is used as-is:
+
+| `OPENCODE_DB` | `opencode debug paths` → `db` |
+| - | - |
+| `opencode-aporia-dev.db` (what the launcher sets) | `~\.local\share\opencode\opencode-aporia-dev.db` |
+| `opencode-aporia.db` (what runs today) | `~\.local\share\opencode\opencode-aporia.db` |
+| unset | `~\.local\share\opencode\opencode-local.db` — the CLI's channel default, a different file again |
+
+With an absolute throwaway path the CLI created `probe.db`, `probe.db-shm` and `probe.db-wal` at exactly that path and
+left the data dir untouched: the environment variable, not the data dir, decides which file the app opens.
+
+The launcher `run-dev-isolated.cmd` (582 bytes, SHA256 `BFE2F9A86F04A0FBF72F292D60FC734CE74EE5DA14D06584F94DDD6B0AE29429`)
+is **git-ignored** — `.gitignore:46` is `run-dev*.cmd` — so it is recorded here instead of committed:
+
+```
+@echo off
+set "PATH=C:\Tools\node22;%USERPROFILE%\.bun\bin;%PATH%"
+set "OPENCODE_DISABLE_CHANNEL_DB=1"
+set "OPENCODE_DB=opencode-aporia-dev.db"
+cd /d C:\Tools\aporia\.worktrees\opt\packages\desktop
+bun dev > C:\Tools\aporia\dev-isolated.log 2>&1
+```
+
+The log lives outside the worktree so it never appears as an untracked file. `dev.ts` overrides
+`OPENCODE_DISABLE_CHANNEL_DB` to `0` and sets `OPENCODE_CHANNEL=local` at runtime, so `OPENCODE_DB` is the value that
+decides the file.
+
+**Not done, and not doable from inside this session:** run the launcher and send one chat. The running DEV instance is
+the app hosting this session, so relaunching it ends this conversation — that restart is Ali's call, not a step to
+take unilaterally. Until it happens, DEV still writes to the prod DB (measured above), and the "prod untouched" half
+of the acceptance check has not been demonstrated live. The wiring, the copy and the launcher are done and verified.
+
+Also outstanding: an import-based write probe (a marked session export re-imported into the copy) fails with
+`Internal Server Error` because the export reuses message ids that already exist — a primary-key conflict in the probe,
+not a product bug. Neither file received partial rows (checked for both marker ids).
+
 
 ## Blockers
 
