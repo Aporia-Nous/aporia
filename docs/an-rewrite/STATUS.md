@@ -14,9 +14,23 @@ work, and the live database is only ever read (Stage 0a takes a read-only copy o
 | # | commit | subject | tests |
 | - | - | - | - |
 | 1 | `6414ab39d2` | `fix(compaction): keep the retained recent text within the configured budget` | session suites 249 pass / 0 fail before this stage's fixtures |
-| 2 | `7e44cba2c1` | `fix(compaction): protect superseded instructions and completed work in the summary` | 252 pass / 0 fail across `session-compaction`, `session-runner`, `session-compact`, `session-provider-context`, `session-compaction-transport`; `bun run typecheck` exit 0 |
+| 2 | `7fd1f9d77e` | `fix(compaction): protect superseded instructions and completed work in the summary` (this commit was amended once, to fold in a hash correction inside this file, so its hash is `7fd1f9d77e` and the intermediate `7e44cba2c1` no longer exists) | 252 pass / 0 fail across `session-compaction`, `session-runner`, `session-compact`, `session-provider-context`, `session-compaction-transport`; `bun run typecheck` exit 0 — re-run output stored in `docs/an-rewrite/evidence/2026-10-16-session-suites.txt` (`Ran 252 tests across 5 files`, exit 0) and `docs/an-rewrite/evidence/2026-10-16-typecheck.txt` (exit 0) |
 
-Files touched, and nothing else: `packages/core/src/session/compaction.ts`,
+Files touched by each commit, from `git show --stat` (also stored in `docs/an-rewrite/evidence/2026-10-16-commit-files.txt`):
+
+```
+6414ab39d2 fix(compaction): keep the retained recent text within the configured budget
+ packages/core/src/session/compaction.ts       | 25 +++++++----
+ packages/core/test/session-compaction.test.ts | 60 +++++++++++++++++++++++++++
+
+7fd1f9d77e fix(compaction): protect superseded instructions and completed work in the summary
+ docs/an-rewrite/REQUIREMENTS-EVIDENCE.md      |  48 ++++++
+ docs/an-rewrite/STATUS.md                     |  93 +++++++++
+ packages/core/src/session/compaction.ts       |   2 +
+ packages/core/test/session-compaction.test.ts | 220 ++++++++++++++++++++++++++
+```
+
+Files touched in code, and nothing else: `packages/core/src/session/compaction.ts`,
 `packages/core/test/session-compaction.test.ts`.
 
 The commit message differs from the one suggested in the build list (`bounded summary + accurate active-context`)
@@ -37,7 +51,8 @@ that day ran over the 15,000-token budget, the worst at 2.49x (37,389 tokens).
 
 #### One correlated turn (measured read-only from the live store)
 
-Session `ses_ec48eb578ffe74WT5yyzIHQgxT`, compaction recorded 2026-10-16 20:00:46 local, `status=completed`,
+Session `ses_ec48eb578ffe74WT5yyzIHQgxT`, compaction recorded 2026-10-16 20:00:46 local (`America/Chicago`, UTC−05:00 —
+every wall-clock time in this file is that zone, and the store itself keeps UTC milliseconds), `status=completed`,
 `reason=auto`. All of the numbers below belong to that one turn.
 
 | quantity | value |
@@ -96,7 +111,7 @@ one consistent snapshot on a read-only connection, which is what a `.backup` giv
 | item | value |
 | - | - |
 | prod DB | `~\.local\share\opencode\opencode-aporia.db`, 10,206,101,504 bytes (9.51 GB), 691 sessions, `session_message` max(rowid) 70,126 |
-| dev copy | `~\.local\share\opencode\opencode-aporia-dev.db`, 1,213,816,832 bytes (1.13 GB), 691 sessions, 69,976 messages, `pragma integrity_check` = **ok** |
+| dev copy | `~\.local\share\opencode\opencode-aporia-dev.db`, 1,213,820,928 bytes (1.13 GB — one 4 KB page more than when it was written; explained by the write proof below), 691 sessions, 69,976 messages, `pragma integrity_check` = **ok** |
 | snapshot moment | 17:57:35 local — the newest message in the copy; the live file was already at 18:02:18 (1009 vs 1032 messages in the same session) |
 | free space | 30.7 GB before → 29.8 GB after (gate for later stages passes) |
 | source connection | read-only; no write connection was ever opened on the live DB |
@@ -132,14 +147,43 @@ The log lives outside the worktree so it never appears as an untracked file. `de
 `OPENCODE_DISABLE_CHANNEL_DB` to `0` and sets `OPENCODE_CHANNEL=local` at runtime, so `OPENCODE_DB` is the value that
 decides the file.
 
-**Not done, and not doable from inside this session:** run the launcher and send one chat. The running DEV instance is
-the app hosting this session, so relaunching it ends this conversation — that restart is Ali's call, not a step to
-take unilaterally. Until it happens, DEV still writes to the prod DB (measured above), and the "prod untouched" half
-of the acceptance check has not been demonstrated live. The wiring, the copy and the launcher are done and verified.
+**Not done, and not doable from inside this session:** the 5-minute DEV run — launch it, send one chat, watch the dev DB
+move while the installed app is idle. The running DEV instance *is* the app hosting this session, so relaunching it ends
+this conversation; that restart is Ali's call, not a step to take unilaterally. Until it happens DEV still writes to the
+prod DB, measured above. The wiring, the copy, the launcher and the write path are done and verified without it.
 
-Also outstanding: an import-based write probe (a marked session export re-imported into the copy) fails with
-`Internal Server Error` because the export reuses message ids that already exist — a primary-key conflict in the probe,
-not a product bug. Neither file received partial rows (checked for both marker ids).
+The write proof — the missing half of the acceptance check, obtained without restarting the app. Running the app's **own** CLI
+in standalone mode with `OPENCODE_DB=opencode-aporia-dev.db` from the CLI package wrote to the copy and to nothing else:
+
+| what | copy (`opencode-aporia-dev.db`) | prod (`opencode-aporia.db`) |
+| - | - | - |
+| `session export ses_eb9a719b… --standalone --sanitize` | read 212,590 bytes of JSON out of it | untouched |
+| `session import` (the marked export) | wrote `project` row `c5189011fce500798501d55e0d4d892df7cae532` (`C:/Tools/aporia`, `vcs:git`) at 23:03:17.486Z **plus 2 `worktree` rows** (`C:/Tools/aporia`, `C:/Tools/aporia/.worktrees/opt`) at 23:03:17.5 | **absent** — 38 project rows, and its only aporia worktree row is the old `a1b358fd…` from 2026-10-11 |
+| `kv` row `job.background/msg_146efbb71001ci3889tfu2xgHN` at 22:57:58.642Z | present | not checked past the snapshot |
+
+The import itself failed (`Internal Server Error`, because the export reuses message ids that already exist — a primary-key
+conflict in the probe, not a product bug) and it wrote no partial session rows: both marker ids are absent from both files
+(`work/db-marker.ts`). The one 4 KB page the copy gained is exactly those project/worktree rows. So the code path that
+writes, writes to the file `OPENCODE_DB` names — verified both ways: present in the copy, absent in prod.
+
+Open question, not a claim: the same directory `C:/Tools/aporia` now carries **two** project ids — `a1b358fd…` (2026-10-11,
+`strategy` null in its worktree row) and `c5189011…` (23:03:17 today, `vcs: git`, worktrees recorded). Either the id is
+derived from something that changed (a remote or a resolved repo root) or the app can mint a duplicate project id for one
+directory. Worth checking when the bot/team model lands, because sessions hang off project ids.
+
+Evidence files, all committed under `docs/an-rewrite/evidence/`:
+
+| file | what it holds |
+| - | - |
+| `2026-10-16-session-suites.txt` | the five session suites re-run on `7fd1f9d77e`: `Ran 252 tests across 5 files`, 252 pass / 0 fail, exit 0 |
+| `2026-10-16-typecheck.txt` | `bun run typecheck` in `packages/core`, exit 0 |
+| `2026-10-16-commit-files.txt` | `git show --stat` for both Stage 0 commits — the scope claim |
+| `2026-10-16-db-wiring.txt` | the four `debug paths` runs and the files the CLI created at the absolute probe path |
+| `2026-10-16-db-prod.txt`, `2026-10-16-db-copy.txt` | the same session in both files — 1065 messages at 23:09Z in prod against 1009 frozen at 22:57:35Z in the copy |
+
+Re-run any of them: `bun work/run-and-log.ts <outfile> <cwd> <command…>` and `bun work/db-wiring-proof.ts <outfile>`
+(the scripts live in `C:\Users\Dilla\Aporia\bots\aporetic-dev\work`, outside the repo, and only ever open a database
+read-only).
 
 
 ## Blockers

@@ -1,0 +1,10 @@
+6414ab39d2 fix(compaction): keep the retained recent text within the configured budget
+ packages/core/src/session/compaction.ts       | 25 +++++++----
+ packages/core/test/session-compaction.test.ts | 60 +++++++++++++++++++++++++++
+ 2 files changed, 76 insertions(+), 9 deletions(-)
+7fd1f9d77e fix(compaction): protect superseded instructions and completed work in the summary
+ docs/an-rewrite/REQUIREMENTS-EVIDENCE.md      |  48 ++++++
+ docs/an-rewrite/STATUS.md                     |  93 +++++++++++
+ packages/core/src/session/compaction.ts       |   2 +
+ packages/core/test/session-compaction.test.ts | 220 ++++++++++++++++++++++++++
+ 4 files changed, 363 insertions(+)
