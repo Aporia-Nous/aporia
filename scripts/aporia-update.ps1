@@ -19,7 +19,10 @@ param(
 $ErrorActionPreference = 'Continue'  # native tools (taskkill, bun) write to stderr; real failures throw explicitly
 $Src = if ($env:APORIA_SOURCE) { $env:APORIA_SOURCE } else { 'C:\Tools\aporia' }
 $Root = Join-Path $env:LOCALAPPDATA 'Aporia\updates'
-$Install = Join-Path $env:LOCALAPPDATA 'Programs\@opencodedesktop'
+# Must match the folder the NSIS installer uses (resources/windows/installer.nsh: $LOCALAPPDATA\Programs\${PRODUCT_NAME}).
+# A stale value here mirrors every staged build into a folder that is NOT the installed app, fails the health check and
+# rolls back - i.e. updates silently never work. It was '@opencodedesktop' (the npm package name), which is not it.
+$Install = Join-Path $env:LOCALAPPDATA 'Programs\Aporetic'
 $StateF = Join-Path $Root 'state.json'
 $ServiceF = Join-Path $env:USERPROFILE '.local\state\opencode\service.json'
 New-Item -ItemType Directory -Force $Root | Out-Null
