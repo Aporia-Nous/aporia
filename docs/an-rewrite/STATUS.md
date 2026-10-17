@@ -97,7 +97,7 @@ summary request, not the active context. Some rows carry no usage at all, so the
 - Gap: the retry count of a compaction request is not persisted anywhere, so it can only be observed live, not
   reconstructed from the store. Requirement J asks for it per turn; until it is recorded it stays UNVERIFIED.
 
-### Stage 0a — DEV isolation — database split done, GUI relaunch pending
+### Stage 0a — DEV isolation — done; the switch-over itself is Ali's restart, and the run found one hazard
 
 Measured first, at 18:02 local on 2026-10-16: the only running Electron app is the **DEV** instance (app-path
 `...\.worktrees\opt\packages\desktop\out\main\index.js`, userData `com.aporianous.desktop.dev`, `packaged:false`), and
@@ -147,10 +147,67 @@ The log lives outside the worktree so it never appears as an untracked file. `de
 `OPENCODE_DISABLE_CHANNEL_DB` to `0` and sets `OPENCODE_CHANNEL=local` at runtime, so `OPENCODE_DB` is the value that
 decides the file.
 
-**Not done, and not doable from inside this session:** the 5-minute DEV run — launch it, send one chat, watch the dev DB
-move while the installed app is idle. The running DEV instance *is* the app hosting this session, so relaunching it ends
-this conversation; that restart is Ali's call, not a step to take unilaterally. Until it happens DEV still writes to the
-prod DB, measured above. The wiring, the copy, the launcher and the write path are done and verified without it.
+**The 5-minute DEV run, done without ending this session.** The DEV app hosting this conversation cannot restart itself, so
+the isolation test ran as a **second, independent DEV instance**: the already-built `out/` (no rebuild — nothing listens on
+5173, main serves the built renderer when `ELECTRON_RENDERER_URL` is unset), its own profile under `%TEMP%\aporia-dev-iso`
+so it takes its own single-instance lock, its own spawned server (`OPENCODE_DESKTOP_ISOLATED_SERVER=1`,
+`OPENCODE_DESKTOP_SERVER_CHANNEL=local`, service file in that profile) and `OPENCODE_DB` pointing at the dev copy. It was
+launched detached with `([wmiclass]'Win32_Process').Create($cmd)` because a `Start-Process` child is killed when the app
+restarts. Baseline `2026-10-16T23:55:43.982Z` (= 18:55:43 America/Chicago, UTC−05:00); read 70 s later — read-only, from
+both files:
+
+| | prod `opencode-aporia.db` | dev copy `opencode-aporia-dev.db` |
+| - | - | - |
+| file size | 10,206,101,504 bytes (unchanged — WAL mode) | 1,213,820,928 → **1,220,341,760** bytes |
+| messages / max(rowid) | 70,130 / 70,269 | 69,990 / 70,129 |
+| rows written after the baseline | **24**, every one of them this session and this turn (21 `assistant`, 2 `compaction`, 1 `system`) | **14**, every one of them this session and none of them mine (9 `assistant`, 2 `synthetic`, 2 `system`, 1 `compaction`) |
+| new project rows | none (38 before and after) | one, seen at 23:56:17.290Z in the earlier attribution run (`project 929146ea…`); the file holds 40 project rows against prod's 38 |
+| the instance's own process command line | children of PID 34148, `--user-data-dir=…\com.aporianous.desktop.dev` | children of the second instance, `--user-data-dir=…\aporia-dev-iso\desktop` |
+
+So the isolated instance wrote **only** into the file `OPENCODE_DB` named, and the prod file moved only from this session's
+own turn. Two honest caveats, stated rather than hidden: (1) the second instance ran under a **test-root profile**, not
+`com.aporianous.desktop.dev`, because a second instance sharing that profile would have been refused by the single-instance
+lock — what this proves is which **database file** a DEV instance writes, not the profile name; (2) the run accidentally
+produced a live duplicate agent (below), which is why the instance was killed.
+
+**Hazard found, and it is worth knowing before the switch.** The 14 rows the dev copy received start with an app-generated
+notice rather than anything I sent:
+
+```
+#70116 2026-10-16T23:56:16.572Z synthetic
+{"metadata":{"notice":"restart"},"text":"The server restarted while you were working. Continue from where you left off
+without repeating completed work.","description":"Continuing after restart"}
+```
+
+then a fresh 49,325-character instruction blob (`#70117`, `#70120`, `metadata.notice = "instructions"`), then a synthetic row
+carrying **my own interrupted shell job** marked cancelled —
+
+```
+#70118 synthetic {"metadata":{"source":"shell","shellID":"sh_146efbb5f001s1n8sr59270WNV","state":"cancelled"}, …
+"Command cancelled because the server restarted"}
+```
+
+— and that is the `copy-db.ts` command from this turn. Read together: on startup the app **resumed the interrupted turn**,
+re-injected the instruction blob and told the agent to continue, and the agent continued **with the copy's context**, which
+stops at 22:57 — an hour behind the tree it was writing to. Its own reasoning in `#70121` says so: *"the repo log now shows
+commits I didn't make in this visible history."* Same session id, same worktree, same task, stale context, real API spend,
+and a second writer.
+
+Standing rule that follows (also in `REQUIREMENTS-EVIDENCE.md`): **never point an app instance at a copy of a database whose
+in-flight turn has already continued or finished in the original file** — the instance will resume it. Starting a *fresh*
+DEV could hit this too, so the switch script warns instead of staying silent.
+
+The duplicate was killed and its side effects audited: no worktree `electron.exe` survived, nothing held `--port 3084`, no
+stray partial copies under the temp roots, `git status --porcelain` in the worktree clean, and its only artifacts are
+`work/db-probe.ts` and `work/out-copydb.txt` in the bot folder. Its rows were left in the dev copy on purpose: the copy is
+the artifact that carries the finding, and the switch script rebuilds it.
+
+**Switch-over, one action.** (1) Quit the DEV app from the tray. (2) Run
+`C:\Users\Dilla\Aporia\bots\aporetic-dev\work\switch-dev-to-isolated.cmd` — it refuses while an app instance is up, rebuilds
+the dev copy from prod with `VACUUM INTO`, checks `integrity_check`, swaps it in, warns if the newest unfinished turn in the
+copy is recent, and launches `run-dev-isolated.cmd`. (3) Say "switched" and DEV is on its own DB from then on. The copy is
+rebuilt at switch time rather than now so it cannot carry an in-flight turn; the dev copy left on disk is deliberately the
+run's artifact.
 
 The write proof — the missing half of the acceptance check, obtained without restarting the app. Running the app's **own** CLI
 in standalone mode with `OPENCODE_DB=opencode-aporia-dev.db` from the CLI package wrote to the copy and to nothing else:
@@ -180,6 +237,7 @@ Evidence files, all committed under `docs/an-rewrite/evidence/`:
 | `2026-10-16-commit-files.txt` | `git show --stat` for both Stage 0 commits — the scope claim |
 | `2026-10-16-db-wiring.txt` | the four `debug paths` runs and the files the CLI created at the absolute probe path |
 | `2026-10-16-db-prod.txt`, `2026-10-16-db-copy.txt` | the same session in both files — 1065 messages at 23:09Z in prod against 1009 frozen at 22:57:35Z in the copy |
+| `2026-10-16-dev-db-isolation.txt` | the isolation run: both files' size/row counts/rows-since-baseline grouped by session, the unfinished-turn tails, and all 14 rows the resumed turn wrote into the dev copy |
 
 Re-run any of them: `bun work/run-and-log.ts <outfile> <cwd> <command…>` and `bun work/db-wiring-proof.ts <outfile>`
 (the scripts live in `C:\Users\Dilla\Aporia\bots\aporetic-dev\work`, outside the repo, and only ever open a database
