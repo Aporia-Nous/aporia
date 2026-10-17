@@ -2,14 +2,33 @@
 branch: 
 an/stage-2-event-store
 log: 
+71bcc139cb docs(an-rewrite): fix the six claims the second verifier pass failed
+225781f019 fix(mission): make the restart proof depend on the log, not the waker
+86e11bca69 docs(an-rewrite): correct the Stage 2 record after the first verifier pass
 df5054e918 test(mission): pin the role rules and the approval resume
 849840bb55 fix(mission): make append's result honest and the wake dedupe log-backed
 2abfc71bf5 docs(an-rewrite): record Stage 2 with its stored runs and the dev-copy state
 96ee966d94 test(mission): prove the coordination rules and coordinator recovery
 285d02fa91 feat(mission): derive coordination state and the wake rules from the log
+07a85dfafc feat(mission): append-only mission event log with a replay cursor
+28859fd16e docs(an-rewrite): Stage 1 independent verification PASS, with the push state stored
+28b6f22a4d docs(an-rewrite): correct the Stage 1 commit count and cite the dev-copy counters
+6167b94db4 docs(an-rewrite): back Stage 1's numbers with stored runs, fix the claims the verifier failed
+19f4e7cf24 test(mission): pin both tasks across a refused and a completed archive
+414d159845 fix(mission): bump each reassigned task's own revision on archive
+8a4724ff36 docs(an-rewrite): record Stage 1 and its replay evidence
+4d1de66eb5 fix(mission): let the backfill runner read counts before the domain tables exist
+e2be3f6b1b feat(mission): durable bot, team, mission and task domain
+c2b211d313 docs(an-rewrite): record the DEV isolation run, the resumed-turn hazard and the switch script
+602004a2f7 docs(an-rewrite): record the independent verifier verdict for Stage 0
+32cbce8f72 docs(an-rewrite): commit the evidence logs and correct the amended commit hash
+note: the status below is taken before the evidence files this run writes are committed, so they 
+appear there as modified or untracked. Every code and docs file is otherwise at the state shown. 
 status --porcelain: 
+ D docs/an-rewrite/evidence/2026-10-17-stage2-backup.txt
+ D docs/an-rewrite/evidence/2026-10-17-stage2-branch-log.txt
  M docs/an-rewrite/evidence/2026-10-17-stage2-gates.txt
-?? docs/an-rewrite/evidence/2026-10-17-stage2-backup.txt
+?? docs/an-rewrite/evidence/2026-10-17-stage2-red-run.txt
  
 === 1. coordination rules + restart recovery (test/coordination.test.ts) === 
 --- command: bun test test/coordination.test.ts --- 
@@ -18,7 +37,7 @@ bun test v1.4.3 (c6da4a4d3)
  13 pass
  0 fail
  126 expect() calls
-Ran 13 tests across 1 file. [1100.00ms]
+Ran 13 tests across 1 file. [952.00ms]
 exit=0 
 --- the test names in that file, so the run can be matched to the claims --- 
 71:  it.effect("an artifact wakes the reviewer once; a replay wakes nobody", () =>
@@ -45,7 +64,7 @@ bun test v1.4.3 (c6da4a4d3)
  9 pass
  0 fail
  62 expect() calls
-Ran 9 tests across 1 file. [937.00ms]
+Ran 9 tests across 1 file. [728.00ms]
 exit=0 
  
 === 3. packages/core typecheck (tsgo -b tsconfig.json tsconfig.tests.json) === 
@@ -58,7 +77,7 @@ bun test v1.4.3 (c6da4a4d3)
  54 pass
  0 fail
  118 expect() calls
-Ran 54 tests across 10 files. [1370.00ms]
+Ran 54 tests across 10 files. [189.00ms]
 exit=0 
  
 === 5. packages/desktop standing gate: bun test src/main/aporia === 
@@ -67,7 +86,7 @@ bun test v1.4.3 (c6da4a4d3)
  62 pass
  0 fail
  189 expect() calls
-Ran 62 tests across 10 files. [1.79s]
+Ran 62 tests across 10 files. [1442.00ms]
 exit=0 
  
 === 6. packages/app typecheck (known: 2 pre-existing custom-elements.d.ts TS1128 errors) === 
@@ -94,8 +113,47 @@ domain tables present: 10/10
 mission_event columns: seq, id, mission_id, task_id, correlation_id, type, actor, payload, idempotency_key, time_created
 mission_coordinator_cursor columns: id, seq
 stage2 migration recorded: 1
-{"session_v2":694,"session_message":70847,"project":38,"migration":52,"bot":13,"team":1,"mission":1,"task":0,"mission_event":0,"mission_coordinator_cursor":0}
+{"session_v2":695,"session_message":70937,"project":38,"migration":52,"bot":13,"team":1,"mission":1,"task":0,"mission_event":0,"mission_coordinator_cursor":0}
 indexes: mission_event_correlation_idx, mission_event_idempotency_idx, mission_event_mission_idx, mission_event_task_idx, sqlite_autoindex_mission_coordinator_cursor_1, sqlite_autoindex_mission_event_1
+--- the dev copy's tables, read-only, to reconcile the count against the backup --- 
+file: C:\Users\Dilla\.local\share\opencode\opencode-aporia-dev.db
+tables: 36
+  account
+  account_state
+  bot
+  control_account
+  credential
+  event
+  event_sequence
+  instruction_blob
+  instruction_entry
+  instruction_state
+  kv
+  message
+  migration
+  mission
+  mission_coordinator_cursor
+  mission_event
+  mission_session
+  mission_ui_state
+  part
+  permission
+  project
+  project_directory
+  session
+  session_inbox
+  session_message
+  session_pending
+  session_share
+  session_v2
+  sqlite_sequence
+  task
+  task_dependency
+  team
+  team_member
+  todo
+  workspace
+  worktree
 exit=0 
  
 === 9. the Stage 2 migration as generated === 

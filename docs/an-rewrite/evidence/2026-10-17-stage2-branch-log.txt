@@ -23,10 +23,13 @@ exit=0
 exit=0 
  
 --- command: git rev-parse HEAD --- 
-df5054e918d67c7edeca64c224d48b832a2ab565
+71bcc139cbe49aef263997fe19a318d0d85839a5
 exit=0 
  
 --- command: git log --oneline c2b211d313..HEAD  (every commit on this branch since the checkpoint; Stage 1's are included because the branch is based on its tip) --- 
+71bcc139cb docs(an-rewrite): fix the six claims the second verifier pass failed
+225781f019 fix(mission): make the restart proof depend on the log, not the waker
+86e11bca69 docs(an-rewrite): correct the Stage 2 record after the first verifier pass
 df5054e918 test(mission): pin the role rules and the approval resume
 849840bb55 fix(mission): make append's result honest and the wake dedupe log-backed
 2abfc71bf5 docs(an-rewrite): record Stage 2 with its stored runs and the dev-copy state
@@ -50,7 +53,8 @@ c2b211d313 docs(an-rewrite): record the DEV isolation run, the resumed-turn haza
 exit=0 
  
 --- command: git status --porcelain --- 
+ M docs/an-rewrite/evidence/2026-10-17-stage2-backup.txt
  M docs/an-rewrite/evidence/2026-10-17-stage2-branch-log.txt
  M docs/an-rewrite/evidence/2026-10-17-stage2-gates.txt
-?? docs/an-rewrite/evidence/2026-10-17-stage2-backup.txt
+?? docs/an-rewrite/evidence/2026-10-17-stage2-red-run.txt
 exit=0 

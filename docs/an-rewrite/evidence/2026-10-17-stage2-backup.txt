@@ -1,10 +1,18 @@
-===== Stage 2 pre-migration backup, read-only ===== 
+===== Stage 2 pre-migration backup of the DEV database ===== 
+The COPY is only ever opened read-only below. The script that MADE it opened the source 
+read-write to checkpoint the WAL (TRUNCATE) before copying, and the copy is a standalone 
+database file in journal_mode delete, with no -wal or -shm beside it (listing at the end). 
 backup file: C:\Users\Dilla\.local\share\opencode\opencode-aporia-dev.db.bak-stage2 
- M packages/core/src/mission/coordinator.ts
- M packages/core/src/mission/event.ts
- M packages/core/test/coordination.test.ts
-?? docs/an-rewrite/evidence/2026-10-17-stage2-backup.txt
-backup file timestamp and size: 
+how it was made (run 2026-10-17, before any Stage 2 code opened the dev copy): 
+  bun run C:\Users\Dilla\Aporia\bots\aporetic-dev\work\backup-stage1.ts C:\Users\Dilla\.local\share\opencode\opencode-aporia-dev.db C:\Users\Dilla\.local\share\opencode\opencode-aporia-dev.db.bak-stage2 
+the script checks that the target does not already exist, so the command above cannot overwrite a backup. 
+repo state when the backup was verified: 
+ M docs/an-rewrite/evidence/2026-10-17-stage2-backup.txt
+ D docs/an-rewrite/evidence/2026-10-17-stage2-branch-log.txt
+ M docs/an-rewrite/evidence/2026-10-17-stage2-gates.txt
+?? docs/an-rewrite/evidence/2026-10-17-stage2-red-run.txt
+ 
+backup file timestamp (this machine's local time, America/Chicago, NOT UTC) and size: 
  Volume in drive C is Windows
  Volume Serial Number is 6248-8018
 
@@ -12,7 +20,7 @@ backup file timestamp and size:
 
 10/17/2026  03:52 AM        1221545984 opencode-aporia-dev.db.bak-stage2
                1 File(s)     1221545984 bytes
-               0 Dir(s)     16363720704 bytes free
+               0 Dir(s)     16329519104 bytes free
 sha256 of the backup file: 
 SHA256 hash of C:\Users\Dilla\.local\share\opencode\opencode-aporia-dev.db.bak-stage2:
 fd19bd5c404c94fa266aa41d3eb477aa9b9feda4bf915ce034832e5589bf0ba9
@@ -31,6 +39,46 @@ stage2 migration recorded: 0
 {"session_v2":693,"session_message":70693,"project":38,"migration":51,"bot":0,"team":0,"mission":0,"task":0,"mission_event":-1,"mission_coordinator_cursor":-1}
 indexes: (none)
 exit=0 
+--- the backup's tables, read-only, so 33 before and 36 after can be reconciled --- 
+file: C:\Users\Dilla\.local\share\opencode\opencode-aporia-dev.db.bak-stage2
+tables: 33
+  account
+  account_state
+  bot
+  control_account
+  credential
+  event
+  event_sequence
+  instruction_blob
+  instruction_entry
+  instruction_state
+  kv
+  message
+  migration
+  mission
+  mission_session
+  mission_ui_state
+  part
+  permission
+  project
+  project_directory
+  session
+  session_inbox
+  session_message
+  session_pending
+  session_share
+  session_v2
+  task
+  task_dependency
+  team
+  team_member
+  todo
+  workspace
+  worktree
+exit=0 
+ 
+--- everything beside the backup with that name (it, and no -wal or -shm) --- 
+opencode-aporia-dev.db.bak-stage2
  
 --- the script that made the backup, from outside the repo (not committed), sha256 then full text --- 
 SHA256 hash of C:\Users\Dilla\Aporia\bots\aporetic-dev\work\backup-stage1.ts:
