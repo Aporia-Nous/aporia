@@ -1,6 +1,8 @@
 # Aporetic rewrite — STATUS
 
-Checkout: `C:\Tools\aporia\.worktrees\opt`, branch `rebrand/nousphere`. Source of truth for the order of work:
+Checkout: `C:\Tools\aporia\.worktrees\opt`, on `rebrand/nousphere` up to the checkpoint tag `an/checkpoint-pre-stage1`
+(`c2b211d313`), and on stage branches cut from it from there on (currently `an/stage-1-domain-model`, which is not merged
+back). Source of truth for the order of work:
 `APORETIC-DEV-BUILD-LIST.md` (a copy of it is not kept here; the brief is `APORETIC-DEV-REWRITE-HANDOFF.md`, sections A–K).
 
 Nothing is pushed. Nothing is merged. The installed app (`%LOCALAPPDATA%\Programs\Aporetic`) is untouched by this
@@ -244,10 +246,20 @@ Re-run any of them: `bun work/run-and-log.ts <outfile> <cwd> <command…>` and `
 read-only).
 
 
-### Stage 1 — durable domain model: bots, teams, missions, tasks — 6 commits on `an/stage-1-domain-model`
+### Stage 1 — durable domain model: bots, teams, missions, tasks — branch `an/stage-1-domain-model`
 
 Branch `an/stage-1-domain-model` from tag `an/checkpoint-pre-stage1` (`c2b211d313`). Nothing pushed, nothing merged,
-nothing packaged, nothing installed.
+nothing packaged, nothing installed. Push state is stored, not inferred: `docs/an-rewrite/evidence/2026-10-17-stage1-branch-log.txt`
+records `git ls-remote --heads origin refs/heads/an/*` returning nothing (exit 0), `git branch -r --contains HEAD` returning
+nothing, `git ls-remote --tags origin refs/tags/an/*` returning nothing, no upstream on the branch, `origin` as the only
+remote, and `rebrand/nousphere` holding none of the Stage 1 commits. Commits since
+the checkpoint, per that log: `e2be3f6b1b`, `4d1de66eb5`, `8a4724ff36`, `414d159845`, `19f4e7cf24`, `6167b94db4`,
+`28b6f22a4d`, plus the docs commit that carries this sentence, which by construction cannot appear in a log written before it.
+No commit count is stated here for that reason; `git log --oneline c2b211d313..HEAD` is the authority.
+
+**Independent verification: VERDICT PASS on the fifth pass.** The first four failed — one on a real code defect (`archiveBot`'s
+shared revision), three on documentation claims that had no stored output or were wrong. Every pass is quoted in
+`docs/an-rewrite/evidence/2026-10-17-stage1-verifier-passes.md` and summarised under **Independent verification** below.
 
 | # | commit | subject | tests |
 | - | - | - | - |
@@ -256,7 +268,7 @@ nothing packaged, nothing installed.
 | 3 | `8a4724ff36` | `docs(an-rewrite): record Stage 1 and its replay evidence` | docs only, not re-verified |
 | 4 | `414d159845` | `fix(mission): bump each reassigned task's own revision on archive` | the first independent verification pass caught this (see **Independent verification** below); red/green in gates §1–2 |
 | 5 | `19f4e7cf24` | `test(mission): pin both tasks across a refused and a completed archive` | same test file, 9 pass / 62 `expect()` calls, exit 0 (gates §1) |
-| 6 | `6167b94db4` | `docs(an-rewrite): back Stage 1's numbers with stored runs, fix the claims the verifier failed` | docs only, not re-verified. Its own hash could not be in it, so the table was corrected in the docs commit that follows, which is likewise docs-only and not listed — `git log c2b211d313..an/stage-1-domain-model` is the authoritative list |
+| 6 | `6167b94db4` | `docs(an-rewrite): back Stage 1's numbers with stored runs, fix the claims the verifier failed` | docs only, not re-verified. The two docs commits after it (`28b6f22a4d` and the one carrying this table) correct hashes and wording in this section; they are not listed as rows because a row cannot name the commit it is written in. Nothing in them changes code, tests or data |
 
 Evidence for every number below: `docs/an-rewrite/evidence/2026-10-17-stage1-gates.txt` (the test runs, both typechecks, the
 scope diff and the live-store check), `docs/an-rewrite/evidence/2026-10-17-stage1-devcopy-state.txt` (the dev copy's own counts,
@@ -369,8 +381,9 @@ replay above proves restoring it and rerunning reproduces the same result.
 
 ## Independent verification
 
-Three passes, all by the `verifier` subagent, read-only, each reported as it came. The full text of each is stored in
-`docs/an-rewrite/evidence/2026-10-17-stage1-verifier-passes.md`.
+Every pass was the `verifier` subagent, read-only, and each was reported as it came. The text of each pass it returned is
+stored in `docs/an-rewrite/evidence/2026-10-17-stage1-verifier-passes.md`; the sentences below are the summary, and where they
+differ in detail the stored report is the one to read.
 
 **Pass 1 — VERDICT FAIL, Stage 1 tree at `8a4724ff36`.** The defect it found was real: `archiveBot` wrote one revision for the
 whole set, derived from the oldest open task (`open[0].revision + 1`), so a task already at revision 3 would have been lowered
@@ -391,13 +404,39 @@ service functions" (29 is right), a pointer to a Stage 0 section as if it had ca
 `REQUIREMENTS-EVIDENCE.md` row 3 omitting two commits, and an acceptance row asserting for one task what it said for both.
 All were fixed before Pass 3.
 
-**What no pass could check from the repo, disclosed rather than claimed.** The verifier has no shell in its runtime, so it
-cannot confirm push/merge state or the per-commit file scope from git itself — gates §9 (`git diff --name-only`/`--stat` from
-the checkpoint) and §10 (working tree status) are the stored substitutes. The replay database was a temporary copy and is
-deleted, so the replay's table and row counts stand on the stored text; the dev copy's own state is counted separately in
-`2026-10-17-stage1-devcopy-state.txt`, and the same runner can be re-run against it or against `.bak-stage1`. The gates file
-is produced by `C:\Users\Dilla\Aporia\bots\aporetic-dev\work\stage1-gates.cmd` and §11 by `work\check-room-sessions.ts`, both
-outside the repo, and that script opens the live store `{ readonly: true }` and writes nothing.
+**Pass 3 — VERDICT FAIL, tree at `28b6f22a4d`.** No code or test objection and no risk to Ali's app or data; six documentation
+and claim faults: a commit count that a later commit had already invalidated, "the full text of each pass is stored" while only
+two of three were, a sentence saying the verifier has no shell when it had in fact quoted `git` output, a checkout line naming
+`rebrand/nousphere` while the work sat on the stage branch, `REQUIREMENTS-EVIDENCE.md` row 5 citing the replay file for facts
+that are in the dev-copy file, and a claim that the backfill runner could be re-run "against `.bak-stage1`", which would have
+migrated the restore point itself. All six are corrected in the docs commit that carries this paragraph.
+
+**Pass 4 — VERDICT FAIL, same tree plus the branch-log evidence.** One objection, and it was correct: "nothing is pushed"
+rested on "no upstream configured", and a branch pushed with `git push origin HEAD` (no `-u`) has no upstream either. The
+branch-log generator now asks the remote directly and the regenerated file stores `git ls-remote --heads origin
+refs/heads/an/*` and `git ls-remote --tags origin refs/tags/an/*` both empty at exit 0, plus `git branch -r --contains HEAD`
+empty.
+
+**Pass 5 — VERDICT PASS.** It verified, from the stored files: the push state including the no-`-u` case; the seven commits;
+the dev-copy counters; the replay numbers; the 9 / 54 / 62 test runs and the two `custom-elements.d.ts:1` errors; and that
+`service.ts:340-343` still bumps each reassigned task's own revision with the archive test pinning 1→2 and 2→3 across both the
+refused and the moved state. What it lists as still unverified or disclosed, quoted in full in the passes file: the push check
+covers one remote and only the `refs/heads/an/*` and `refs/tags/an/*` namespaces; the replay database is deleted, so its counts
+stand on stored text; the dev copy is counted read-only and no pass re-ran the migration against it; the file scope is per
+stage, not per commit; the app restart and the switch-over are Ali's; and the evidence holds no credential.
+
+**What no pass could check from the repo, disclosed rather than claimed.** The verifier reads files and quotes `git` output,
+but runs no build, test, migration or app command, so anything a command produces is checked against the stored evidence
+files rather than reproduced. The replay database was a temporary copy and is deleted, so the replay's table and row counts
+stand on the stored text; the dev copy's own state is counted separately, read-only, in
+`2026-10-17-stage1-devcopy-state.txt`. The stage's whole file scope is gates §9 (`git diff --name-only`/`--stat` from the
+checkpoint, which is per stage rather than per commit). The same runner can be re-run against a **fresh copy of** `.bak-stage1` — never against
+the backup itself: the runner refuses only `opencode-aporia.db` by name, so pointing it at `opencode-aporia-dev.db.bak-stage1`
+would migrate the restore point in place. Push state is stored rather than inferred: no upstream, `git ls-remote --heads origin
+refs/heads/an/*` and `--tags origin refs/tags/an/*` both empty, `git branch -r --contains HEAD` empty, and
+`rebrand/nousphere` holding none of the stage commits (`2026-10-17-stage1-branch-log.txt`). The gates file is produced by
+`C:\Users\Dilla\Aporia\bots\aporetic-dev\work\stage1-gates.cmd`, §11 by `work\check-room-sessions.ts` and the branch log by
+`work\stage1-branch-log.cmd`, all outside the repo; the live store is opened `{ readonly: true }` and written by none of them.
 
 Pass 1 of the earlier stage, for completeness, was `verifier` at tree `32cbce8f72` (Stage 0) — it never looked at `archiveBot`,
 so the Stage 1 defect is Pass 1 above, not that one.
