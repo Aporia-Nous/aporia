@@ -244,7 +244,7 @@ Re-run any of them: `bun work/run-and-log.ts <outfile> <cwd> <command…>` and `
 read-only).
 
 
-### Stage 1 — durable domain model: bots, teams, missions, tasks — 5 commits on `an/stage-1-domain-model`, plus the docs commit this text lands in
+### Stage 1 — durable domain model: bots, teams, missions, tasks — 6 commits on `an/stage-1-domain-model`
 
 Branch `an/stage-1-domain-model` from tag `an/checkpoint-pre-stage1` (`c2b211d313`). Nothing pushed, nothing merged,
 nothing packaged, nothing installed.
@@ -256,13 +256,14 @@ nothing packaged, nothing installed.
 | 3 | `8a4724ff36` | `docs(an-rewrite): record Stage 1 and its replay evidence` | docs only, not re-verified |
 | 4 | `414d159845` | `fix(mission): bump each reassigned task's own revision on archive` | the first independent verification pass caught this (see **Independent verification** below); red/green in gates §1–2 |
 | 5 | `19f4e7cf24` | `test(mission): pin both tasks across a refused and a completed archive` | same test file, 9 pass / 62 `expect()` calls, exit 0 (gates §1) |
-| 6 | this commit | `docs(an-rewrite): …` | docs only, not re-verified — a commit cannot carry its own verification |
+| 6 | `6167b94db4` | `docs(an-rewrite): back Stage 1's numbers with stored runs, fix the claims the verifier failed` | docs only, not re-verified. Its own hash could not be in it, so the table was corrected in the docs commit that follows, which is likewise docs-only and not listed — `git log c2b211d313..an/stage-1-domain-model` is the authoritative list |
 
 Evidence for every number below: `docs/an-rewrite/evidence/2026-10-17-stage1-gates.txt` (the test runs, both typechecks, the
-scope diff and the live-store check) and `docs/an-rewrite/evidence/2026-10-17-stage1-migration-backfill.txt` (the migration and
-backfill replay). The gates file opens with `git log` for the branch and its working tree, so a reader can see which commits
-existed when the runs were made; §1 is the tree at `19f4e7cf24` and §2 re-runs the same test against `service.ts` as of
-`8a4724ff36` to show the fail it was written for.
+scope diff and the live-store check), `docs/an-rewrite/evidence/2026-10-17-stage1-devcopy-state.txt` (the dev copy's own counts,
+read-only) and `docs/an-rewrite/evidence/2026-10-17-stage1-migration-backfill.txt` (the migration and backfill replay). The
+gates file opens with `git log` for the branch and its working tree, so a reader can see which commits existed when the runs
+were made; §1 is the tree at `19f4e7cf24` and §2 re-runs the same test against `service.ts` as of `8a4724ff36` to show the
+fail it was written for.
 
 Standing gates at `19f4e7cf24`, stored in the gates file: `bun test src/aporia` in `packages/app` = **54 pass / 0 fail** across
 10 files, exit 0 (§4); `bun test src/main/aporia` in `packages/desktop` = **62 pass / 0 fail** across 10 files, exit 0 (§5);
