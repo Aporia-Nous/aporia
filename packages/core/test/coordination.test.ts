@@ -450,7 +450,9 @@ describe("coordinator recovery", () => {
       }).pipe(Effect.provide(fileLayer(file)))
       expect(deliveries).toHaveLength(1)
 
-      // Third boot: even a caller that re-handles the stored fact cannot wake the reviewer twice.
+      // Third boot: the waker's own memory is wiped first, so nothing but the log can stop a second
+      // delivery. The reviewer must still not be woken a second time.
+      delivered.clear()
       yield* Effect.gen(function* () {
         const coordinator = yield* Mission.Coordinator.Service
         const events = yield* Mission.MissionEvents.Service
@@ -458,7 +460,7 @@ describe("coordinator recovery", () => {
         const artifact = all.find((event) => event.type === "artifact.created")
         expect(artifact).toBeDefined()
         if (artifact) yield* coordinator.handle(artifact)
-        expect(wakeEvents(all)).toHaveLength(1)
+        expect(wakeEvents(yield* events.list())).toHaveLength(1)
       }).pipe(Effect.provide(fileLayer(file)))
       expect(deliveries).toHaveLength(1)
       expect(seeded.taskId).toBeDefined()
