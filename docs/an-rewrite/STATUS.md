@@ -503,7 +503,11 @@ stored).
 - `switch-dev-to-isolated.cmd` rebuilds the dev copy from prod, so a later switch replaces this copy with an unmigrated one; the
   first app start then applies both migrations and `script/mission-backfill.ts` has to run again, exactly as Stage 1 says.
 
-Rollback: `git revert df5054e918 849840bb55 96ee966d94 285d02fa91 07a85dfafc` (newest first). The migration file and both
+Rollback: a local checkpoint tag `an/checkpoint-pre-stage3` sits at `032825e677`, the commit this section was closed on, so
+`git switch -c <name> an/checkpoint-pre-stage3` returns to a known-good Stage 2 tree without touching the branch. The tag is
+local, like `an/checkpoint-pre-stage1`: `git ls-remote --tags origin "refs/tags/an/*"` is empty at exit 0, so nothing about it
+left this machine. The commit that records it sits one commit later, by construction. To undo the code instead,
+`git revert df5054e918 849840bb55 96ee966d94 285d02fa91 07a85dfafc` (newest first). The migration file and both
 generated registries (`migration.gen.ts`, `schema.gen.ts`, `schema.json`) go with `07a85dfafc`. For data,
 `opencode-aporia-dev.db.bak-stage2` is the pre-stage copy, counted read-only in `2026-10-17-stage2-backup.txt`:
 **1,221,545,984 bytes** (1.14 GiB), sha256 `fd19bd5c…9bf0ba9`, `integrity_check` `ok`, journal mode `delete`, 693 `session_v2`,
