@@ -58,6 +58,20 @@ ISSUES:
 Confirmed from files: red-run is consistent with the test as written — third boot clears `delivered` but keeps `deliveries`, so only the log check at coordinator.ts:149-152 prevents the second delivery, and the recorded failure is exactly line 465 with `Received length: 2` (test:455-465). Backup arithmetic is right: 33 listed tables + `mission_event` + `mission_coordinator_cursor` + `sqlite_sequence` = 36 (backup:45-77; gates:120-156). Backup invocation, local-time label and stand-alone listing are present (backup:7,15,21,81), and size/sha match the docs (backup:22,26; STATUS.md:499). Gates script logs 20 commits (stage2-gates.cmd:16) and the log includes `07a85dfafc` (gates:13). Stage 2 rule/acceptance tests all exist in the printed test list (gates:43-55), the 13/126 count matches §1 (gates:37-40), and no unevidenced 10/115 count survives. "Nothing pushed" still holds at `71bcc139cb` (branch-log:16-26, 49-53). No secret found in the docs.
 ```
 
-## Pass 4
+## Pass 4 — tree at `3901d73d03` — VERDICT: FAIL
+
+```
+VERDICT: FAIL
+
+ISSUES:
+- 1: `REQUIREMENTS-EVIDENCE.md:35` (row 3) still lists Stage 2 as `07a85dfafc`, `285d02fa91`, `96ee966d94`, `849840bb55`, `df5054e918` "plus docs commits `2abfc71bf5` and the one that carries this row", omitting `225781f019`, `86e11bca69`, `71bcc139cb` and `a77ac8747c`, all recorded in the branch log it cites (`2026-10-17-stage2-branch-log.txt:30-46`).
+- 1: `STATUS.md:386-390` names eight commits but drops `2abfc71bf5` and `86e11bca69` while claiming only the final docs commit cannot be in the log (`2026-10-17-stage2-branch-log.txt:30-35,39`).
+- 1: The sentence saying session counts are read "rather than quoted here" quotes `693 / 70,693` in the same breath (`STATUS.md:492-493`, `REQUIREMENTS-EVIDENCE.md:36`); the numbers themselves match `backup.txt:22,26,39`.
+- 8: "Pass 4 — recorded here after it ran" has no pass-4 record behind it (`STATUS.md:561`; `2026-10-17-stage2-verifier-passes.md:61-63`).
+- Confirmed: all 11 rule rows and 5 acceptance rows map to printed tests (`gates:43-55`); red run fails `Received length: 2` with byte-identical restore (`red-run:18,55-56`); backup size/sha match; nothing pushed at `71bcc139cb`; no secrets.
+- Unverified: "code unchanged `a77ac8747c`→`3901d73d03`" rests only on the reflog commit subject (`logs/HEAD:143`); no file-level diff is readable.
+```
+
+## Pass 5
 
 Recorded in `STATUS.md` after it ran.

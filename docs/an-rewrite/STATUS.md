@@ -385,9 +385,10 @@ Branch cut from the **Stage 1 tip** (`28859fd16e`), not from `rebrand/nousphere`
 cutting it from the checkpoint would have meant re-creating that table here; the deviation is recorded because it also means
 this branch carries Stage 1's commits. Commits: `07a85dfafc` (the log and its cursor), `285d02fa91` (the rules and the
 coordinator), `96ee966d94` (the first tests), `849840bb55` (two defects the first verifier pass found), `df5054e918` (three
-more tests), `225781f019` (the restart proof made to depend on the log alone), `71bcc139cb` (the six claims the second pass
-failed), `a77ac8747c` (the evidence regenerated at `71bcc139cb`), then the docs commit that carries this section — which by
-construction cannot appear in a log written before it. Nothing pushed, nothing merged, nothing packaged, nothing installed. The
+more tests), `225781f019` (the restart proof made to depend on the log alone), then the docs and evidence commits `2abfc71bf5`,
+`86e11bca69`, `71bcc139cb` and `a77ac8747c`, and finally the docs commit that carries this section. The branch log's own `git
+log` block is the authoritative list; every commit after its HEAD (`a77ac8747c`'s children) is by construction not in it.
+Nothing pushed, nothing merged, nothing packaged, nothing installed. The
 push state is stored, not inferred, in `docs/an-rewrite/evidence/2026-10-17-stage2-branch-log.txt`, which records each command
 line, its output and its exit code at `71bcc139cb`: `git ls-remote --heads origin refs/heads/an/*` empty at exit 0, `git
 ls-remote --tags origin refs/tags/an/*` empty at exit 0, `git branch -r --contains HEAD` empty, no upstream on the branch (exit
@@ -488,11 +489,11 @@ stored).
   `session_message`, `project`, `migration`, `bot` 13, `team` 1, `mission` 1, `task` 0, `mission_event` 0,
   `mission_coordinator_cursor` 0) because nothing in the running app emits yet. That is the honest state, not a failure.
 - The dev copy is **live**: the running DEV app writes its own sessions into `opencode-aporia-dev.db` (its newest rows are this
-  morning's own bot and verifier sessions), so the session counts drift between evidence runs — 693 sessions / 70,693 messages
-  in the pre-migration backup, and a higher pair in whichever gates §8 run is read. That is why the session counts are quoted
-  from a named file rather than here: the file holds the snapshot its own run took, read-only, and it moved again between the
-  last two runs. The domain counts are what the claims rest on and they are stable (13 bots / 1 team / 1 mission, `task` 0,
-  `mission_event` 0, migration 52, `integrity_check` ok).
+  morning's own bot and verifier sessions), so its session counts move between runs. Two figures appear here anyway, both because
+  the file that stores them is stored too and reads them back: the pre-migration backup recorded 693 sessions / 70,693 messages
+  (backup evidence file), and the gates §8 snapshot recorded its own pair in its own run. No session count is asserted for the
+  live copy from memory. The domain counts are what the claims rest on and they are stable (13 bots / 1 team / 1 mission,
+  `task` 0, `mission_event` 0, migration 52, `integrity_check` ok).
 - `switch-dev-to-isolated.cmd` rebuilds the dev copy from prod, so a later switch replaces this copy with an unmigrated one; the
   first app start then applies both migrations and `script/mission-backfill.ts` has to run again, exactly as Stage 1 says.
 
@@ -558,7 +559,19 @@ log and the gates run cited at `86e11bca69` when both record `71bcc139cb`, and a
 `Received length: 2`), that the table arithmetic holds against both lists, that the backup's invocation, timezone label and
 stand-alone listing are present, and that nothing is pushed.
 
-**Pass 4 — recorded here after it ran.**
+**Pass 4 — VERDICT FAIL, tree at `3901d73d03`.** Four citation faults, no code or test fault: the row-3 commit list stopped at
+`df5054e918`; the STATUS commit sentence had dropped `2abfc71bf5` and `86e11bca69` while claiming only the final docs commit
+could be missing from the log; the sentence that said session counts are read rather than quoted quoted `693 / 70,693` in the
+same breath (those are the backup's own stored numbers, and the text now says so); and a "Pass 4 — recorded here after it ran"
+placeholder was itself an unevidenced claim. It confirmed the eleven rule rows and five acceptance rows all map to printed
+tests, the red run fails with `Received length: 2` and restores byte-identically, the backup's size and sha256 match, and
+nothing is pushed. It also reported one thing it could not check: "code unchanged between `a77ac8747c` and `3901d73d03`" rested
+on a commit subject, with no file-level diff readable to it. That gap is answered by
+`2026-10-17-stage2-code-diff.txt`, which prints `git diff --name-only` and `--stat` over that range with the tip it covered.
+
+**A note on how this section is written.** A pass's record is written by the commit that fixes what it found, so no pass can
+observe its own record and a placeholder for the next pass is an unevidenced claim. The last paragraph here therefore states
+the pass it records and its tree; when a later pass changes the tree again, its record arrives the same way.
 
 ### Stage 1 — branch `an/stage-1-domain-model`
 
