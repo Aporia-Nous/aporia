@@ -1,0 +1,24 @@
+===== what changed between the Stage 2 evidence commit and the docs tip ===== 
+repository: C:\Tools\aporia\.worktrees\opt 
+base commit: a77ac8747c (docs(an-rewrite): regenerate the Stage 2 evidence at the corrected tip) 
+tip at run time: 
+592834ffb27bd18d535073f9f3eb976ddcb340ea
+ 
+The claim this file tests: after the evidence commit, nothing but documentation changed, so the 
+code and tests verified before that point are the code and tests at the tip. 
+--- command: git diff --name-only a77ac8747c HEAD --- 
+docs/an-rewrite/REQUIREMENTS-EVIDENCE.md
+docs/an-rewrite/STATUS.md
+docs/an-rewrite/evidence/2026-10-17-stage2-verifier-passes.md
+exit=0 
+--- command: git diff --stat a77ac8747c HEAD --- 
+ docs/an-rewrite/REQUIREMENTS-EVIDENCE.md           |  4 +-
+ docs/an-rewrite/STATUS.md                          | 46 +++++++++++++++++-----
+ .../evidence/2026-10-17-stage2-verifier-passes.md  | 30 +++++++++++++-
+ 3 files changed, 67 insertions(+), 13 deletions(-)
+exit=0 
+--- command: git diff --name-only a77ac8747c HEAD -- packages/ (empty means no code changed) --- 
+exit=0 
+ 
+note: the commit that carries this file is one commit after the tip printed above, so the range 
+printed here cannot include it. Every commit after a77ac8747c is listed by the tip line above. 
