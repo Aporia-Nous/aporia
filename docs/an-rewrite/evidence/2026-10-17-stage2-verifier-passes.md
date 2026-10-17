@@ -72,12 +72,6 @@ ISSUES:
 - Unverified: "code unchanged `a77ac8747c`→`3901d73d03`" rests only on the reflog commit subject (`logs/HEAD:143`); no file-level diff is readable.
 ```
 
-## How these records are kept
-
-Each record is appended when the pass returns, and the text is the verifier's own (quotes keep its wording, including its
-numbering). A record is therefore written by the commit that follows the pass, and no record can describe the commit that
-contains it. The file's newest block is the newest pass recorded here; the branch's later commits say what was done about it.
-
 ## Pass 5 — tree at `3c7d13e7ed` — VERDICT: FAIL
 
 ```
@@ -90,4 +84,49 @@ ISSUES:
 - 5: `2026-10-17-stage2-code-diff.txt:5` covers only to `592834ffb2`, and its line "Every commit after `a77ac8747c` is listed by the tip line above" is false (two commits sit between); "no packages/ change since a77ac8747c" is proven only to `592834ffb2`.
 - Confirmed: 11 rule + 5 acceptance rows map to printed tests; 13/126; backup 1,221,545,984 / `fd19bd5c…9bf0ba9` / 693 / 70,693; nothing pushed; no secrets.
 - 3: Session figures are correctly attributed, and the red run records `Received length: 2` with a byte-identical restore.
+```
+
+## How these records are kept
+
+Each record is appended when the pass returns, and the text is the verifier's own (quotes keep its wording, including its
+numbering). A record is therefore written by the commit that follows the pass, and no record can describe the commit that
+contains it. The file's newest block is the newest pass recorded here; the branch's later commits say what was done about it.
+
+## Pass 6 — tree at `61c9c54782` — VERDICT: FAIL
+
+```
+VERDICT: FAIL
+
+ISSUES:
+- 4: STATUS's Stage 2 section still ends at the Pass 4 record (tree `3901d73d03`), while this file ends with a Pass 5 `VERDICT: FAIL` block — the newest records do not match, and no Stage 2 Pass 5 paragraph exists in STATUS.
+- 4: The note that follows claimed "the last paragraph here therefore states the pass it records and its tree", but the last paragraph stated neither.
+- 8: The Pass 5 block was the only pass header without a tree, so it could not be tied to `3c7d13e7ed` from the file itself.
+- 5: The verifier could not re-run git (read-only by design), so the tree-hash claim rested on stored output: the pair is equal (`bc13327f…`, both lines, exit=0) and `git diff --name-only` lists only docs paths — verified as printed output, not reproduced.
+- Confirmed: the six named code commits match the branch log's six non-docs commits; no exhaustive list is asserted and the snapshot is correctly scoped to `71bcc139cb`; 11 rule + 5 acceptance rows map to the printed tests; 13 pass / 126 expect; backup 1,221,545,984 bytes / `fd19bd5c…9bf0ba9`; red run `Received length: 2` with a byte-identical restore; nothing pushed; no secret.
+```
+
+## Pass 7 — tree at `61d56d7af9` — VERDICT: FAIL
+
+```
+VERDICT: FAIL
+
+ISSUES:
+- 1: The note said "this paragraph … name[s] the same pass and the same tree", but the note paragraph named neither; only the Pass 5 record above it did.
+- 1: "four passes in a row failed on a prose commit list" was unsupported by the stored records: that fault appears in Passes 3–5; Pass 2's recorded faults were the 10/115 count, the third boot, `8/10` and the table counts.
+- Confirmed: STATUS and this file agree on Pass 5 at `3c7d13e7ed`, and every pass header now names a tree.
+- Confirmed: 11 rule + 5 acceptance rows map to the 13 printed tests; §1 stores 13 pass / 126 expect; the red run records `Received length: 2` with a byte-identical restore; the backup's size and sha256 match; `bc13327f…` is the stored `packages/` hash on both rev-parse lines; push refs are empty at `71bcc139cb`; no secret found.
+```
+
+## Pass 8 — tree at `bceeb3b841` — VERDICT: PASS
+
+```
+VERDICT: PASS
+
+- Both fixes hold: STATUS.md:575 and this file both name Pass 5 at `3c7d13e7ed`; the "stored verifier text wins" convention matches Stage 1; the docs-only, not-re-verified precedent is stored for Stage 1; "passes 3, 4 and 5 each failed on a prose commit list" matches the recorded issues.
+- Non-blocking: the gates file said the evidence files appear "modified or untracked" but two show as deleted (` D`).
+- Non-blocking: REQUIREMENTS-EVIDENCE said the prose list "went stale four times" while STATUS counted three passes.
+- Non-blocking: the backup timestamp is labelled America/Chicago, not a literal "CT" or offset; Stage 0 already discloses that convention.
+- Non-blocking: task and inbox ids derive from a 32-bit FNV-1a hash; a collision would silently merge ids, and this was not disclosed.
+- Non-blocking: code-diff stops at its own tip, so packages/ equality at HEAD rests on re-running its rev-parse line; the file says so.
+- Non-blocking: the production waker is untested and nothing starts the coordinator yet, both disclosed.
 ```

@@ -484,6 +484,11 @@ stored).
 - The production waker (`SessionInbox.admit`) is compiled and typechecked but **not covered by a test**: every test replaces
   `Coordinator.wakerNode` with a recording waker. What is proven is the coordinator's side of exactly-once; that a real inbox
   row reaches a real bot session is Stage 3's job, together with the trigger.
+- Decision and task ids derived from a content fingerprint use 32-bit FNV-1a (`coordination.ts`). Two different events with the
+  same visible content would collapse into one id, and a hash collision would do the same silently. The dedupe keys are scoped by
+  event kind and correlation, the full id is stored on the row, and nothing depends on the hash being collision-resistant for
+  correctness of delivery — but the risk is real and is stated rather than papered over. Moving to a wider hash is a one-line
+  change if it ever matters.
 - Nothing in the app calls `Coordinator.drain` yet. No timer, no hook from the session event bus, no UI: the coordinator is a
   node that exists and is tested, not a running part of the app. Stage 3 wires the trigger and the cards.
 - The dev copy has the two new tables and the migration recorded, with **0 rows in `mission_event`** (gates §8: `session_v2`,
@@ -583,6 +588,15 @@ STATUS ended at Pass 4 while the passes file already had Pass 5 — which the no
 describe the commit that contains it, and the newest record in this section names the same pass and the same tree as the newest
 block in `2026-10-17-stage2-verifier-passes.md`. Where they ever disagree, the stored verifier text is the one to trust. The
 record added after the final pass is a docs-only commit and is not itself re-verified, as on Stage 1.
+
+**Pass 8 — VERDICT PASS, tree at `bceeb3b841`.** It checked the two wording fixes against the stored reports, then went over the
+stage as a stage: `event.ts`, `coordination.ts`, `coordinator.ts`, `service.ts`, the migration, the 13-test file, the acceptance
+table and the standing gates. Its non-blocking observations, all now addressed or disclosed: the gates script said the evidence
+files appear "modified or untracked" when two show as deleted (script wording fixed and the run regenerated); "went stale four
+times" counted list artifacts where the record counts three passes (reworded); the backup timestamp is labelled with a zone name
+rather than an offset, the convention Stage 0 already discloses; the fingerprint ids are 32-bit FNV-1a and a collision would
+merge ids silently (now in the limitations above); the code-diff file stops at its own tip (it prints the rev-parse line to
+re-run); and the production waker plus the missing trigger are both still disclosed. **Stage 2 is closed on a PASS.**
 
 ### Stage 1 — branch `an/stage-1-domain-model`
 
