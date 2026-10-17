@@ -55,21 +55,18 @@ export const make = Effect.fn("MissionEvents.make")(function* () {
   const database = yield* Database.Service
   const db = database.db
 
-  const byKey = (idempotencyKey: string) =>
-    db
-      .select()
-      .from(MissionEventTable)
-      .where(eq(MissionEventTable.idempotency_key, idempotencyKey))
-      .get()
-      .pipe(Effect.orDie)
-
   const append = Effect.fn("MissionEvents.append")(function* (input: MissionSchema.AppendEventInput) {
-    const existing = yield* byKey(input.idempotencyKey)
-    if (existing) return { event: toEvent(existing), inserted: false }
-
-    const row = yield* db
+    // The lookup, the insert and the read-back all happen inside one transaction, so the answer to
+    // "did this call create the row?" cannot be invalidated between the check and the write.
+    const result = yield* db
       .transaction((tx) =>
         Effect.gen(function* () {
+          const existing = yield* tx
+            .select()
+            .from(MissionEventTable)
+            .where(eq(MissionEventTable.idempotency_key, input.idempotencyKey))
+            .get()
+          if (existing) return { row: existing, inserted: false }
           const inserted = yield* tx
             .insert(MissionEventTable)
             .values({
@@ -86,18 +83,20 @@ export const make = Effect.fn("MissionEvents.make")(function* () {
             .onConflictDoNothing()
             .returning()
             .get()
-          if (inserted) return inserted
-          // Lost a race on the same key: the other writer's row is the fact, not a second one.
-          return yield* tx
+          if (inserted) return { row: inserted, inserted: true }
+          // Lost a race on the same key: the other writer's row is the fact, not a second one, and
+          // this call did not create it.
+          const raced = yield* tx
             .select()
             .from(MissionEventTable)
             .where(eq(MissionEventTable.idempotency_key, input.idempotencyKey))
             .get()
+          return raced ? { row: raced, inserted: false } : undefined
         }),
       )
       .pipe(Effect.orDie)
-    if (!row) return yield* Effect.die(new Error("MissionEvents.append lost the idempotency race"))
-    return { event: toEvent(row), inserted: true }
+    if (!result) return yield* Effect.die(new Error("MissionEvents.append lost the idempotency race"))
+    return { event: toEvent(result.row), inserted: result.inserted }
   })
 
   const list = Effect.fn("MissionEvents.list")(function* (input?: ListInput) {

@@ -144,6 +144,12 @@ export const make = Effect.fn("MissionCoordinator.make")(function* () {
       }
       if (decision._tag === "wake") {
         const key = `wake:${event.id}:${decision.botID}:${decision.purpose}`
+        // The log decides "already woken", not process memory: if this key is recorded, the wake was
+        // already attempted before, so a replay in a fresh process changes nothing.
+        const recorded = yield* events
+          .list({ correlationID: event.correlationId })
+          .pipe(Effect.map((rows) => rows.some((row) => row.idempotencyKey === key)))
+        if (recorded) return
         // Wake first: a record that claims delivery must not exist before delivery was attempted.
         const result = yield* waker.wake({
           key,
