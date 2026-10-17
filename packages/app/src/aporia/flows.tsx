@@ -55,13 +55,14 @@ export function FlowsSection() {
       setError("")
       const id = selected()
       if (id) {
-        const history = await api().run.list({ flowID: id, limit: "10" })
-        setRuns([...(history?.data ?? [])])
+        // The generated client unwraps `{ data }` for every flow endpoint except list (which also carries the runner).
+        const history = (await api().run.list({ flowID: id, limit: "10" })) as FlowRunSummary[] | undefined
+        setRuns([...(history ?? [])])
       }
       const open = detail()
       if (open && isOpen(open.status)) {
-        const next = await api().run.get({ runID: open.runId })
-        if (next?.data) setDetail(next.data)
+        const next = (await api().run.get({ runID: open.runId })) as FlowRunDetail | undefined
+        if (next) setDetail(next)
       }
     } catch (e) {
       setError(errorText(e))
@@ -82,8 +83,8 @@ export function FlowsSection() {
 
   const showRun = async (runId: string) => {
     try {
-      const next = await api().run.get({ runID: runId })
-      setDetail(next?.data)
+      const next = (await api().run.get({ runID: runId })) as FlowRunDetail | undefined
+      setDetail(next)
     } catch (e) {
       setError(errorText(e))
     }
@@ -93,9 +94,14 @@ export function FlowsSection() {
     setBusy(flow.id)
     setError("")
     try {
-      const started = await api().start({ flowID: flow.id, requestId: requestId("panel"), input: {}, trigger: "manual" })
+      const started = (await api().start({
+        flowID: flow.id,
+        requestId: requestId("panel"),
+        input: {},
+        trigger: "manual",
+      })) as { runId: string; created: boolean }
       setSelected(flow.id)
-      await showRun(started.data.runId)
+      await showRun(started.runId)
       await refresh()
     } catch (e) {
       setError(errorText(e))
@@ -109,10 +115,10 @@ export function FlowsSection() {
     if (!parsed.ok) return setDraftError(parsed.error)
     setDraftError("")
     try {
-      const saved = await api().save({ definition: parsed.definition })
+      const saved = (await api().save({ definition: parsed.definition })) as { id: string; version: number; created: boolean }
       setDraft("")
       setAdding(false)
-      showToast(saved.data.created ? `Saved flow ${saved.data.id} (version ${saved.data.version})` : `Flow ${saved.data.id} is unchanged`)
+      showToast(saved.created ? `Saved flow ${saved.id} (version ${saved.version})` : `Flow ${saved.id} is unchanged`)
       await refresh()
     } catch (e) {
       setDraftError(errorText(e))
@@ -275,13 +281,13 @@ export function FlowCommands() {
       slashArguments: true,
       onSelect: async (_source?: unknown, input?: string) => {
         try {
-          const started = await sdk.api.flow.start({
+          const started = (await sdk.api.flow.start({
             flowID: flow.id,
             requestId: requestId("slash"),
             input: slashInput(input),
             trigger: "slash",
-          })
-          showToast({ title: startedToast(flow.name, started.data.created), variant: "success" } as never)
+          })) as { runId: string; created: boolean }
+          showToast({ title: startedToast(flow.name, started.created), variant: "success" } as never)
         } catch (e) {
           showToast({ title: `Flow ${flow.name} did not start`, description: errorText(e), variant: "error" } as never)
         }
