@@ -93,6 +93,8 @@ const OUTCOMES: ReadonlySet<MissionSchema.MissionEventType> = new Set<MissionSch
   "coordination.attention",
   "coordination.closed",
   "ack",
+  // A person resolving a card: recorded, folded into the card, and never a cause of more work.
+  "attention.resolved",
 ])
 
 /** The only events allowed to start work on an already-finished task. */

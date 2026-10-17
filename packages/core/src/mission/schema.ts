@@ -277,6 +277,9 @@ export type CorrelationID = typeof CorrelationID.Type
  *   * outcomes are what the coordinator produced (`coordination.wake`, `coordination.attention`,
  *     `coordination.closed`) and `ack`, which is by definition not news.
  * An outcome never causes another outcome, so a wake cannot wake a wake.
+ *
+ * `attention.resolved` is a person closing an attention card. It is recorded like any fact, but it is
+ * treated as an outcome: dealing with a card never wakes anybody.
  */
 export const MissionEventType = Schema.Literals([
   "task.created",
@@ -295,6 +298,7 @@ export const MissionEventType = Schema.Literals([
   "coordination.closed",
   "coordination.wake",
   "coordination.attention",
+  "attention.resolved",
   "ack",
 ])
 export type MissionEventType = typeof MissionEventType.Type
@@ -386,6 +390,10 @@ export class TeamCoordinatorError extends Schema.TaggedError<TeamCoordinatorErro
   teamID: Schema.String,
   botID: Schema.String,
 }) {}
+export class AttentionCardNotFoundError extends Schema.TaggedError<AttentionCardNotFoundError>()(
+  "Mission.AttentionCardNotFound",
+  { cardID: Schema.String },
+) {}
 export class MissionLinkError extends Schema.TaggedError<MissionLinkError>()("Mission.Link", {
   message: Schema.String,
 }) {}

@@ -1,6 +1,6 @@
 export * as MissionEvents from "./event.js"
 
-import { and, asc, eq, gt, sql } from "drizzle-orm"
+import { and, asc, eq, gt, inArray, sql } from "drizzle-orm"
 import { Context, Effect, Layer } from "effect"
 import { makeGlobalNode } from "@opencode/util/effect/app-node"
 import { Database } from "../database/database.js"
@@ -30,6 +30,8 @@ export interface ListInput {
   readonly correlationID?: MissionSchema.CorrelationID
   /** Exclusive: only rows with a higher `seq`. This is how a replay resumes. */
   readonly afterSeq?: number
+  /** Only these event types. An empty list matches nothing. */
+  readonly types?: ReadonlyArray<MissionSchema.MissionEventType>
   readonly limit?: number
 }
 
@@ -105,6 +107,7 @@ export const make = Effect.fn("MissionEvents.make")(function* () {
       input?.taskID === undefined ? undefined : eq(MissionEventTable.task_id, input.taskID),
       input?.correlationID === undefined ? undefined : eq(MissionEventTable.correlation_id, input.correlationID),
       input?.afterSeq === undefined ? undefined : gt(MissionEventTable.seq, input.afterSeq),
+      input?.types === undefined ? undefined : inArray(MissionEventTable.type, [...input.types]),
     ].filter((filter) => filter !== undefined)
     const ordered = db
       .select()
