@@ -1,9 +1,13 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "1a41028c-fde5-4071-b6f1-fc472d2302ac",
-  "prevIds": ["8416c640-f865-4450-b964-dcbc38f64952"],
+  "id": "4794fc0f-9de1-44b4-a8d4-59b1b7041ca8",
+  "prevIds": ["1a41028c-fde5-4071-b6f1-fc472d2302ac"],
   "ddl": [
+    {
+      "name": "flow_runner_lease",
+      "entityType": "tables"
+    },
     {
       "name": "mission_coordinator_cursor",
       "entityType": "tables"
@@ -119,6 +123,56 @@
     {
       "name": "worktree",
       "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "flow_runner_lease"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "owner",
+      "entityType": "columns",
+      "table": "flow_runner_lease"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "boot",
+      "entityType": "columns",
+      "table": "flow_runner_lease"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "expires_at",
+      "entityType": "columns",
+      "table": "flow_runner_lease"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "time_updated",
+      "entityType": "columns",
+      "table": "flow_runner_lease"
     },
     {
       "type": "text",
@@ -2484,6 +2538,13 @@
       "name": "worktree_pk",
       "entityType": "pks",
       "table": "worktree"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "flow_runner_lease_pk",
+      "table": "flow_runner_lease",
+      "entityType": "pks"
     },
     {
       "columns": ["id"],

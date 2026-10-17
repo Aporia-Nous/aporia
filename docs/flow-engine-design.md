@@ -101,6 +101,29 @@ reads `flow.run.requested` and the step events, folds each open run, and works o
 middle of a run resumes from the last recorded fact. A step that has `started` with no matching `succeeded` or
 `failed` is the crash window, handled by the idempotency rules in §8.
 
+**One runner per database (stage 1, after the verifier's H1).** Every server process (desktop, CLI, a second copy)
+builds the runner, and two of them can open the same database. Only the holder of the runner lease advances runs: a
+single row (`flow_runner_lease`: owner, boot, expiry) taken and renewed with one conditional upsert, so two runners
+cannot both take it. The lease lasts 30 s, is renewed every 10 s while held (also while a slow step is in flight), is
+re-checked against the database right before every step start, and is cleared on a clean shutdown so the next runner
+takes over at once. Lease times are wall-clock, because they are compared across processes.
+
+Every `flow.step.started` records the runner's `owner` id and its process `boot` id. A started step with no result is
+treated as **cut off by a crash only when its owner no longer holds the lease** (or, for this runner's own steps, when
+the step is no longer in flight in this process). While the owner holds the lease the step is simply running: no
+retry, no card. A start recorded before this change carries no owner and reads as cut off, as before. If a runner
+loses the race to record a start (`inserted: false`), the step belongs to whoever recorded it, and the loser stops
+advancing that run instead of counting an action and re-planning.
+
+No lock is held across a step's I/O. Each run has its own lock, held while that run advances (including its own HTTP
+call), so one slow step holds up only its own run. Ticks run open runs side by side, skip a run another tick is
+already advancing, and the runner loop starts a tick every second without waiting for the previous one.
+
+Known limits: the lease is a lease, not a fence. A runner that stalls for longer than the lease (a suspended laptop,
+a debugger) may find another runner has taken over and treated its in-flight step as cut off; for an unsafe step
+that means an attention card, never a silent repeat. Clock skew between processes on one machine is not a concern;
+the lease is not meant for a database shared across machines.
+
 ## 5. The classify-or-decide step
 
 This is the one general AI primitive, and it is how flows avoid both guessing and stopping dead.
@@ -155,6 +178,11 @@ This is the one general AI primitive, and it is how flows avoid both guessing an
     invoice* may or may not have run. Check, then mark done or run again."
 - Retry policy is per step: max attempts (default 3), exponential backoff with jitter, and which error classes are
   retryable (network and 5xx yes; 4xx and validation no).
+- **Stage 1 as built:** an `unsafe` HTTP step gets one attempt by default (a 5xx may already have done the work). A
+  flow author may set `maxAttempts` up to 5 on an unsafe step; that is an explicit opt-in to automatic repeats after a
+  5xx or a network error, and the far end may then see the call more than once. It does **not** change the crash
+  window: an unsafe step cut off by a crash still raises a card and is never re-run on its own, whatever its
+  `maxAttempts`. Backoff is 1 s, 2 s, 4 s ... capped at 30 s, without jitter in stage 1.
 - When retries are used up, the run takes the step's `error` output if the flow wired one. Otherwise the run fails
   and raises one attention card per run, deduped by run id.
 - **Loop safety:** a flow that triggers itself is detected through the correlation chain and refused past a depth
@@ -206,6 +234,28 @@ and never imply a partnership.
 - AI steps cannot widen permissions. A model's output is data. It cannot add a host, read a credential or start an
   undeclared flow.
 - Flow-as-tool inherits the **lower** of the agent's permissions and the flow's grants, never the higher.
+
+**HTTP boundary in stage 1 (after the verifier's M1, M2 and LOW findings).** Checked at save and again at run against
+the resolved values, because a saved definition may predate a check:
+- A url is `http` or `https`, its host (and port) is declared exactly in `permissions.hosts`, a template may fill the
+  path or query but never the scheme or host, and the scheme a step's url declares is the one it is called with.
+- A url may not carry a user name or password (`https://user:pw@host/`): the HTTP client would turn it into Basic
+  auth, and credentials arrive with the vault (F2).
+- A flow may not set credential headers (`Authorization`, `Cookie`, `Proxy-Authorization`) or headers that decide
+  where or how a request travels: `Host`, `Connection`, `Keep-Alive`, `Transfer-Encoding`, `TE`, `Trailer`,
+  `Upgrade`, `Content-Length`, `Expect`, `Forwarded`, `Via`, `X-Real-IP`, `X-Original-URL`, `X-Rewrite-URL`, any
+  `Proxy-*` or `X-Forwarded-*`, and method overrides (`X-HTTP-Method-Override`, `X-HTTP-Method`,
+  `X-Method-Override`, which would let a "GET", treated as safe to repeat, act as a POST or DELETE).
+- Redirects are never followed; responses are capped at 1 MB; a timeout is 1 to 60 s.
+- **DNS and private addresses (stance, not a defence):** a declared host is a name, and the runner calls whatever
+  that name resolves to at call time. There is no resolve-and-pin and no private-address block, so a declared name
+  that resolves to a loopback or private address is called, and a declared public name whose DNS is changed to a
+  private address (DNS rebinding) is not stopped. This is deliberate for stage 1: local services (`127.0.0.1:port`,
+  home-lab hosts) are a real use, and the boundary is who may save a flow (the owner). Resolve-and-pin with an
+  explicit `permissions.privateNetwork` opt-in is planned with the vault (F2), before flows can be saved by anyone
+  other than the owner.
+- A `set` or `transform.rename` may not write the field `__proto__`, and template resolution defines keys rather than
+  assigning them, so no step can replace an item's prototype.
 
 ## 12. Open-core boundary
 

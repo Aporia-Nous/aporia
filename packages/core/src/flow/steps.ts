@@ -1,6 +1,6 @@
 // The deterministic steps that need no clock and no network: pure functions from input items to
 // named outputs. `wait`, `http` and `run-flow` are carried out by the runner.
-import type { Step } from "./definition.js"
+import { FORBIDDEN_FIELD, type Step } from "./definition.js"
 import { resolve, test, type Condition, type Item, type Json, type Scope } from "./expr.js"
 
 export type Outputs = Record<string, Item[]>
@@ -40,7 +40,11 @@ export const runPure = (step: Step, input: StepInput): Outputs => {
         main: base.map((item) => {
           const scope = scopeFor(input, base, item)
           const out: Item = keep ? {} : { ...item }
-          for (const [name, value] of Object.entries(fields)) out[name] = resolve(value, scope)
+          for (const [name, value] of Object.entries(fields)) {
+            // Refused at save too; checked here for definitions saved before that check existed.
+            if (name === FORBIDDEN_FIELD) throw new Error(`set may not write the field "${FORBIDDEN_FIELD}"`)
+            out[name] = resolve(value, scope)
+          }
           return out
         }),
       }
@@ -67,11 +71,15 @@ export const runPure = (step: Step, input: StepInput): Outputs => {
           let next: Item = { ...item }
           if (rename)
             for (const [from, to] of Object.entries(rename))
-              if (Object.prototype.hasOwnProperty.call(next, from)) {
+              if (to === FORBIDDEN_FIELD) throw new Error(`rename may not write the field "${FORBIDDEN_FIELD}"`)
+              else if (Object.prototype.hasOwnProperty.call(next, from)) {
                 next[to] = next[from]!
                 delete next[from]
               }
-          if (pick) next = Object.fromEntries(pick.filter((name) => name in next).map((name) => [name, next[name]!]))
+          if (pick)
+            next = Object.fromEntries(
+              pick.filter((name) => Object.prototype.hasOwnProperty.call(next, name)).map((name) => [name, next[name]!]),
+            )
           if (omit) for (const name of omit) delete next[name]
           return next
         }),

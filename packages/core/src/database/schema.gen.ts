@@ -5,6 +5,15 @@ const schema: Omit<DatabaseMigration.Migration, "id"> = {
   up(tx) {
     return Effect.gen(function* () {
       yield* tx.run(`
+        CREATE TABLE \`flow_runner_lease\` (
+          \`id\` text PRIMARY KEY,
+          \`owner\` text NOT NULL,
+          \`boot\` text NOT NULL,
+          \`expires_at\` integer NOT NULL,
+          \`time_updated\` integer NOT NULL
+        );
+      `)
+      yield* tx.run(`
         CREATE TABLE \`mission_coordinator_cursor\` (
           \`id\` text PRIMARY KEY,
           \`seq\` integer DEFAULT 0 NOT NULL

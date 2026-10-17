@@ -1,13 +1,16 @@
 export * as Flows from "./service.js"
 
-import { Clock, Context, Effect, Layer, Semaphore } from "effect"
+import { randomUUID } from "node:crypto"
+import { Cause, Clock, Context, Duration, Effect, Layer, Option, Schedule, Semaphore } from "effect"
 import { makeGlobalNode } from "@opencode/util/effect/app-node"
+import { Database } from "../database/database.js"
 import { MissionEvents } from "../mission/event.js"
 import { MissionSchema } from "../mission/schema.js"
 import { canonical, ID, validate, type Definition, type Step } from "./definition.js"
 import { FlowInvalidError, FlowNotFoundError, FlowRunNotFoundError } from "./errors.js"
 import { resolve, type Item, type Json } from "./expr.js"
 import * as Http from "./http.js"
+import * as Lease from "./lease.js"
 import * as Run from "./run.js"
 import { isPure, runPure, type Outputs } from "./steps.js"
 
@@ -19,6 +22,7 @@ export const MAX_DEPTH = 5
 export const MAX_OUTPUT_CHARS = 256_000
 const MAX_ACTIONS_PER_RUN = 50
 const MAX_PASSES = 20
+const RUN_CONCURRENCY = 8
 const REQUEST_ID = /^[A-Za-z0-9_-]{8,64}$/
 const RUNNER: MissionSchema.Actor = { kind: "system", id: "flow-runner" }
 
@@ -88,10 +92,20 @@ export interface Interface {
   ) => Effect.Effect<{ runId: string; created: boolean }, FlowNotFoundError | FlowInvalidError>
   readonly runs: (input?: { flowId?: string; limit?: number }) => Effect.Effect<ReadonlyArray<RunSummary>>
   readonly run: (runId: string) => Effect.Effect<RunDetail, FlowRunNotFoundError>
-  /** Advance every open run as far as it can go now. Returns the number of actions taken. */
+  /**
+   * Advance every open run as far as it can go now. Returns the number of actions taken. Does nothing
+   * unless this service holds the runner lease, and skips a run another fiber is already advancing.
+   */
   readonly tick: Effect.Effect<number>
   /** Advance one run by at most `maxActions` actions (tests use this to stop in the middle). */
   readonly advance: (runId: string, maxActions?: number) => Effect.Effect<number>
+}
+
+export interface Options {
+  /** How long the runner lease lasts without renewal. Default 30 s. */
+  readonly leaseMs?: number
+  /** This runner's id on the lease and on every step start. Default: a fresh id per service. */
+  readonly owner?: string
 }
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/Flows") {}
@@ -106,10 +120,23 @@ const preview = (value: unknown, limit = 2000): string | undefined => {
 
 const clip = (text: string, limit = 500) => (text.length > limit ? `${text.slice(0, limit)}…` : text)
 
-export const make = Effect.fn("Flows.make")(function* () {
+export const make = Effect.fn("Flows.make")(function* (options?: Options) {
   const events = yield* MissionEvents.Service
   const saving = yield* Semaphore.make(1)
-  const ticking = yield* Semaphore.make(1)
+  // Any number of processes may open this database; only the lease holder advances runs (lease.ts).
+  const lease = yield* Lease.make({ owner: options?.owner ?? `flow-runner-${randomUUID()}`, ttlMs: options?.leaseMs })
+  // Renew while held, so a lease survives a slow step even when nothing else ticks.
+  yield* Effect.suspend(() => (lease.held() ? Effect.asVoid(lease.acquire) : Effect.void)).pipe(
+    Effect.catchCause((cause) =>
+      Cause.hasInterrupts(cause)
+        ? Effect.failCause(cause)
+        : Effect.logWarning("Flow runner lease renewal failed", { cause: Cause.pretty(cause) }),
+    ),
+    Effect.repeat(Schedule.spaced(Duration.millis(Math.max(10, Math.floor(lease.ttlMs / 3))))),
+    Effect.forkScoped,
+  )
+  // A clean stop hands the lease over at once instead of making the next runner wait it out.
+  yield* Effect.addFinalizer(() => lease.release)
 
   const versions = Effect.fn("Flows.versions")(function* (flowId: string) {
     const rows = yield* events.list({ correlationID: flowCorrelation(flowId), types: ["flow.saved"] })
@@ -303,7 +330,45 @@ export const make = Effect.fn("Flows.make")(function* () {
       ...(retryAt === undefined ? {} : { retryAt }),
     })
 
+  /** What every step start records: the step, and which runner (owner and boot) is carrying it out. */
+  const startedPayload = (step: Step, attempt: number): Record<string, Json> => ({
+    step: step.id,
+    attempt,
+    type: step.type,
+    owner: lease.owner,
+    boot: lease.boot,
+  })
+
+  // Steps this runner has started and not finished, by step key. Together with the owner and boot on
+  // the start, this is how "started, no result" reads as still running instead of cut off by a crash.
+  const inFlight = new Set<string>()
+
+  const inFlightCheck =
+    (state: Run.RunState, holder: Lease.Holder | undefined): Run.InFlight =>
+    (step, attempt) => {
+      const owner = attempt.payload.owner
+      const boot = attempt.payload.boot
+      // A start with no owner was recorded before the lease existed; nothing can still be running it.
+      if (typeof owner !== "string" || typeof boot !== "string") return false
+      if (owner === lease.owner && boot === lease.boot) return inFlight.has(stepKey(state, step, attempt.attempt))
+      // Another runner's step is still running only while that runner holds the lease.
+      return holder !== undefined && holder.owner === owner && holder.boot === boot
+    }
+
+  /** Whether some step of the run was started by another runner or boot and has no result. */
+  const foreignOpen = (state: Run.RunState) => {
+    for (const list of state.steps.values()) {
+      const latest = list[list.length - 1]
+      if (latest && !latest.result && (latest.payload.owner !== lease.owner || latest.payload.boot !== lease.boot))
+        return true
+    }
+    return false
+  }
+
+  /** Start one step. False when this runner must stop advancing the run (lease lost, or start taken). */
   const start = Effect.fn("Flows.start")(function* (def: Definition, state: Run.RunState, step: Step, attempt: number) {
+    // Checked against the database right before anything that can reach outside the log.
+    if (!(yield* lease.acquire)) return false
     const now = yield* Clock.currentTimeMillis
     const inputs = Run.inputsOf(def, state, step.id)
     const items = inputs.flat()
@@ -314,13 +379,17 @@ export const make = Effect.fn("Flows.make")(function* () {
     if (step.type === "run-flow") {
       const flowId = String(step.params.flowId)
       if (state.depth + 1 > MAX_DEPTH) {
-        yield* record(state, "flow.step.started", stepKey(state, step, attempt), { step: step.id, attempt, type: step.type })
-        return yield* fail(state, step, attempt, `run-flow is nested more than ${MAX_DEPTH} deep`, true)
+        const started = yield* record(state, "flow.step.started", stepKey(state, step, attempt), startedPayload(step, attempt))
+        if (!started.inserted) return false
+        yield* fail(state, step, attempt, `run-flow is nested more than ${MAX_DEPTH} deep`, true)
+        return true
       }
       const target = (yield* versions(flowId)).at(-1)
       if (!target) {
-        yield* record(state, "flow.step.started", stepKey(state, step, attempt), { step: step.id, attempt, type: step.type })
-        return yield* fail(state, step, attempt, `flow ${flowId} does not exist`, true)
+        const started = yield* record(state, "flow.step.started", stepKey(state, step, attempt), startedPayload(step, attempt))
+        if (!started.inserted) return false
+        yield* fail(state, step, attempt, `flow ${flowId} does not exist`, true)
+        return true
       }
       const resolved = step.params.input === undefined ? (scope.item as Json) : resolve(step.params.input, scope)
       child = {
@@ -349,34 +418,46 @@ export const make = Effect.fn("Flows.make")(function* () {
       extra.childRunId = appended.event.correlationId
     }
     const started = yield* record(state, "flow.step.started", stepKey(state, step, attempt), {
-      step: step.id,
-      attempt,
-      type: step.type,
+      ...startedPayload(step, attempt),
       ...extra,
     })
-    if (!started.inserted) return
+    // Someone else recorded this start first, so the step is theirs: stop, do not count it, do not re-plan.
+    if (!started.inserted) return false
     if (isPure(step)) {
       let outputs: Outputs
       try {
         outputs = runPure(step, { inputs, input: state.input, steps: scope.steps })
       } catch (error) {
-        return yield* fail(state, step, attempt, error instanceof Error ? error.message : String(error), true)
+        yield* fail(state, step, attempt, error instanceof Error ? error.message : String(error), true)
+        return true
       }
-      return yield* succeed(state, step, attempt, outputs)
+      yield* succeed(state, step, attempt, outputs)
+      return true
     }
     if (step.type === "http") {
-      const outcome = yield* Http.execute({ def, step, scope, runId: state.runId })
-      if (outcome.ok) return yield* succeed(state, step, attempt, { main: [outcome.item] })
-      const retry = outcome.retryable && attempt < Http.maxAttempts(step)
-      const at = yield* Clock.currentTimeMillis
-      return yield* fail(state, step, attempt, outcome.error, !retry, retry ? at + Http.backoff(attempt) : undefined)
+      const key = stepKey(state, step, attempt)
+      inFlight.add(key)
+      yield* Effect.gen(function* () {
+        const outcome = yield* Http.execute({ def, step, scope, runId: state.runId })
+        if (outcome.ok) {
+          yield* succeed(state, step, attempt, { main: [outcome.item] })
+          return
+        }
+        const retry = outcome.retryable && attempt < Http.maxAttempts(step)
+        const at = yield* Clock.currentTimeMillis
+        yield* fail(state, step, attempt, outcome.error, !retry, retry ? at + Http.backoff(attempt) : undefined)
+      }).pipe(Effect.ensuring(Effect.sync(() => inFlight.delete(key))))
+      return true
     }
     // wait and run-flow finish later, through `finish-wait` and `await-child`.
+    return true
   })
 
   const advance = Effect.fn("Flows.advance")(function* (runId: string, maxActions = MAX_ACTIONS_PER_RUN) {
     let actions = 0
     while (actions < maxActions) {
+      // Only the lease holder moves runs. One that has lost it (or is near the end of it) stops here.
+      if (!lease.held()) return actions
       const state = yield* loadRun(runId)
       if (!state || state.end) return actions
       const def = yield* definitionAt(state.flowId, state.version)
@@ -388,13 +469,14 @@ export const make = Effect.fn("Flows.make")(function* () {
         return actions + 1
       }
       const now = yield* Clock.currentTimeMillis
-      const next = Run.plan(def, state, now)
+      const holder = foreignOpen(state) ? yield* lease.holder : undefined
+      const next = Run.plan(def, state, now, inFlightCheck(state, holder))
       switch (next.kind) {
         case "none":
         case "idle":
           return actions
         case "start":
-          yield* start(def, state, next.step, next.attempt)
+          if (!(yield* start(def, state, next.step, next.attempt))) return actions
           break
         case "finish-wait":
           yield* succeed(state, next.step, next.attempt, { main: Run.inputsOf(def, state, next.step.id).flat() })
@@ -437,30 +519,62 @@ export const make = Effect.fn("Flows.make")(function* () {
     return actions
   })
 
+  // One advance at a time per run, held across that run's own I/O. It never covers another run, so a
+  // slow step holds up only the run it belongs to.
+  const locks = new Map<string, Semaphore.Semaphore>()
+  const lockOf = (runId: string) => {
+    let lock = locks.get(runId)
+    if (!lock) {
+      lock = Semaphore.makeUnsafe(1)
+      locks.set(runId, lock)
+    }
+    return lock
+  }
+
+  // Open runs, kept up to date from the log by sequence number instead of re-reading every run request
+  // and end on every tick. Insertion order is request order.
+  const open = new Map<string, true>()
+  let scanned = 0
   const openRuns = Effect.gen(function* () {
-    const rows = yield* events.list({ types: ["flow.run.requested", "flow.run.completed", "flow.run.failed"] })
-    const ended = new Set(rows.filter((row) => row.type !== "flow.run.requested").map((row) => row.correlationId))
-    // Newest first: a child run finishes before the parent that waits on it looks again, so a chain
-    // of sub-flows unwinds in one pass instead of one level per pass.
-    return rows
-      .filter((row) => row.type === "flow.run.requested" && !ended.has(row.correlationId))
-      .map((row) => row.correlationId)
-      .reverse()
+    const rows = yield* events.list({
+      types: ["flow.run.requested", "flow.run.completed", "flow.run.failed"],
+      afterSeq: scanned,
+    })
+    for (const row of rows) {
+      // Two ticks can read the same rows; only the first to get here applies them, in log order.
+      if (row.seq <= scanned) continue
+      scanned = row.seq
+      if (row.type === "flow.run.requested") open.set(row.correlationId, true)
+      else {
+        open.delete(row.correlationId)
+        locks.delete(row.correlationId)
+      }
+    }
+    // Newest first: a child run finishes before the parent that waits on it looks again.
+    return [...open.keys()].reverse()
   })
 
-  const tick = ticking.withPermits(1)(
-    Effect.gen(function* () {
-      let total = 0
-      // A parent can start a child mid-pass; another pass picks the child up and then the parent again.
-      for (let pass = 0; pass < MAX_PASSES; pass++) {
-        let progress = 0
-        for (const runId of yield* openRuns) progress += yield* advance(runId)
-        total += progress
-        if (progress === 0) break
-      }
-      return total
-    }),
-  )
+  const tick = Effect.gen(function* () {
+    if (!(yield* lease.acquire)) return 0
+    let total = 0
+    // A parent can start a child mid-pass; another pass picks the child up and then the parent again.
+    for (let pass = 0; pass < MAX_PASSES; pass++) {
+      // Runs move side by side, and a run that another fiber is already advancing (a slow step in
+      // flight) is skipped rather than waited for.
+      const counts = yield* Effect.forEach(
+        yield* openRuns,
+        (runId) =>
+          lockOf(runId)
+            .withPermitsIfAvailable(1)(advance(runId))
+            .pipe(Effect.map(Option.getOrElse(() => 0))),
+        { concurrency: RUN_CONCURRENCY },
+      )
+      const progress = counts.reduce((sum, count) => sum + count, 0)
+      total += progress
+      if (progress === 0) break
+    }
+    return total
+  })
 
   return Service.of({
     save,
@@ -470,12 +584,22 @@ export const make = Effect.fn("Flows.make")(function* () {
     runs,
     run,
     tick,
-    advance: (runId, maxActions) => ticking.withPermits(1)(advance(runId, maxActions)),
+    advance: (runId, maxActions) =>
+      Effect.gen(function* () {
+        if (!(yield* lease.acquire)) return 0
+        return yield* lockOf(runId).withPermits(1)(advance(runId, maxActions))
+      }),
   })
 })
 
-export const layer = Layer.effect(Service, make())
+export const layerWith = (options?: Options) => Layer.effect(Service, make(options))
 
-export const node = makeGlobalNode({ service: Service, layer, deps: [MissionEvents.node] })
+export const layer = layerWith()
+
+export const node = makeGlobalNode({ service: Service, layer, deps: [MissionEvents.node, Database.node] })
+
+/** The Flows node with runner options (tests use a short lease or a fixed owner id). */
+export const configured = (options?: Options) =>
+  makeGlobalNode({ service: Service, layer: layerWith(options), deps: [MissionEvents.node, Database.node] })
 
 export { ID }

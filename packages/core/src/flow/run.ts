@@ -210,8 +210,15 @@ export type Plan =
 
 export const RUN_AGAIN = "run-again"
 
+/**
+ * Whether a started step with no result is still in flight: its owner (the runner and boot recorded on
+ * `flow.step.started`) still holds the runner lease and has the step open. Without an answer, or when
+ * the answer is no, a started step with no result was cut off by a crash.
+ */
+export type InFlight = (step: Step, attempt: Attempt) => boolean
+
 /** What to do next for a run. One action at a time; the runner re-plans after each. */
-export const plan = (def: Definition, state: RunState, now: number): Plan => {
+export const plan = (def: Definition, state: RunState, now: number, inFlight?: InFlight): Plan => {
   if (state.end) return { kind: "none" }
   const waits: Array<{ until?: number; reason: string }> = []
   for (const step of def.steps) {
@@ -236,6 +243,11 @@ export const plan = (def: Definition, state: RunState, now: number): Plan => {
       const childRunId = str(attempt.payload.childRunId)
       if (childRunId) return { kind: "await-child", step, attempt: attempt.attempt, childRunId }
       return { kind: "start", step, attempt: attempt.attempt + 1 }
+    }
+    // Still running under a live owner: neither a retry nor a card, just wait for its result.
+    if (inFlight?.(step, attempt)) {
+      waits.push({ reason: `${step.id} is running` })
+      continue
     }
     if (safety(step) !== "unsafe") return { kind: "start", step, attempt: attempt.attempt + 1 }
     const card = state.cards.find((entry) => entry.step === step.id && entry.attempt === attempt.attempt)

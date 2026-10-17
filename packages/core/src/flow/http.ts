@@ -1,7 +1,9 @@
 // The HTTP step. No credentials (they arrive with the vault in F2), no redirects (a redirect could
-// leave the declared hosts), a timeout, and a size cap on what comes back.
+// leave the declared hosts), a timeout, and a size cap on what comes back. Everything the definition
+// check refuses at save is refused again here, against the resolved values, because a saved
+// definition may predate a check and a template fills values only at run time.
 import { Effect } from "effect"
-import { hostOf, safety, type Definition, type Step } from "./definition.js"
+import { headerProblem, hostOf, safety, schemeOf, urlProblem, type Definition, type Step } from "./definition.js"
 import { resolve, type Item, type Json, type Scope } from "./expr.js"
 
 export const MAX_RESPONSE_BYTES = 1_000_000
@@ -45,6 +47,12 @@ export const execute = (input: {
   } catch {
     return Effect.succeed({ ok: false, error: "url is not valid", retryable: false })
   }
+  const refused = (error: string) => Effect.succeed<HttpOutcome>({ ok: false, error, retryable: false })
+  const bad = urlProblem(url)
+  if (bad) return refused(bad)
+  const declared = schemeOf(typeof p.url === "string" ? p.url : "")
+  if (declared && url.protocol !== `${declared}:`)
+    return refused(`url scheme ${url.protocol.replace(/:$/, "")} is not the declared ${declared}`)
   const host = hostOf(url.href)
   const allowed = new Set((input.def.permissions?.hosts ?? []).map((h) => h.toLowerCase()))
   if (!host || !allowed.has(host))
@@ -56,8 +64,15 @@ export const execute = (input: {
   const headers = new Headers()
   const resolvedHeaders = p.headers !== undefined ? resolve(p.headers, input.scope) : undefined
   if (resolvedHeaders && typeof resolvedHeaders === "object" && !Array.isArray(resolvedHeaders))
-    for (const [key, value] of Object.entries(resolvedHeaders))
-      headers.set(key, typeof value === "string" ? value : JSON.stringify(value))
+    for (const [key, value] of Object.entries(resolvedHeaders)) {
+      const problem = headerProblem(key)
+      if (problem) return refused(`header ${key.slice(0, 60)} ${problem}`)
+      try {
+        headers.set(key, typeof value === "string" ? value : JSON.stringify(value))
+      } catch {
+        return refused(`header ${key.slice(0, 60)} has a value that cannot be sent`)
+      }
+    }
   // Idempotent by declaration: the far end can drop a repeat because the key never changes per step.
   if (safety(input.step) === "idempotent" && method !== "GET" && method !== "HEAD")
     headers.set("Idempotency-Key", `flow-${input.runId}-${input.step.id}`)

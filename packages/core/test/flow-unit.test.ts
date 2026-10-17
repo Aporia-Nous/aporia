@@ -154,6 +154,55 @@ describe("validation", () => {
 const run = (step: Record<string, unknown>, inputs: FlowExpr.Item[][]) =>
   FlowSteps.runPure(step as unknown as FlowDefinition.Step, { inputs, input: { who: "ali" }, steps: {} })
 
+describe("verifier findings: headers, userinfo, scheme, __proto__", () => {
+  const http = (params: Record<string, unknown>) => ({
+    id: "f",
+    name: "F",
+    permissions: { hosts: ["h.example"] },
+    steps: [{ id: "s", type: "http", params: { url: "https://h.example/", ...params } }],
+  })
+
+  test("routing, hop-by-hop and credential headers are refused; ordinary ones are not", () => {
+    for (const name of ["Host", "connection", "Keep-Alive", "Transfer-Encoding", "TE", "Trailer", "Upgrade", "Content-Length", "Expect", "Forwarded", "Via", "X-Real-IP", "Proxy-Connection", "Proxy-Anything", "X-Forwarded-For", "x-forwarded-host", "X-HTTP-Method-Override", "Authorization", "Cookie"])
+      expect(FlowDefinition.headerProblem(name)).toBeDefined()
+    expect(FlowDefinition.headerProblem("bad name")).toContain("not a valid header name")
+    for (const name of ["Accept", "Content-Type", "X-Request-Id", "User-Agent"]) expect(FlowDefinition.headerProblem(name)).toBeUndefined()
+    const problems = FlowDefinition.validate(http({ headers: { Host: "evil.example", Accept: "x" } }))
+    expect(problems.join(" ")).toContain("header Host decides where or how the request travels")
+    expect(problems.join(" ")).not.toContain("Accept")
+  })
+
+  test("a url with a user name or password is refused, literal or templated", () => {
+    expect(FlowDefinition.urlProblem("https://u:p@h.example/")).toContain("user name or password")
+    expect(FlowDefinition.urlProblem("https://u@h.example/")).toContain("user name or password")
+    expect(FlowDefinition.urlProblem("https://h.example/")).toBeUndefined()
+    expect(FlowDefinition.urlProblem("ftp://h.example/")).toBe("url must be http or https")
+    expect(FlowDefinition.validate(http({ url: "https://u:p@h.example/" })).join(" ")).toContain("user name or password")
+    expect(FlowDefinition.validate(http({ url: "https://u:p@h.example/{{ item.id }}" })).join(" ")).toContain("user name or password")
+    expect(FlowDefinition.validate(http({}))).toEqual([])
+  })
+
+  test("the scheme a url declares is the one it keeps", () => {
+    expect(FlowDefinition.schemeOf("https://h.example/{{ item.p }}")).toBe("https")
+    expect(FlowDefinition.schemeOf("HTTP://h.example/")).toBe("http")
+    expect(FlowDefinition.schemeOf("{{ item.url }}")).toBeUndefined()
+  })
+
+  test("__proto__ is refused as a set or rename target, and stays a plain field when resolved", () => {
+    const set = JSON.parse('{"id":"f","name":"F","steps":[{"id":"s","type":"set","params":{"fields":{"__proto__":{"x":1}}}}]}')
+    expect(FlowDefinition.validate(set).join(" ")).toContain('set may not write the field "__proto__"')
+    const rename = { id: "f", name: "F", steps: [{ id: "s", type: "transform", params: { rename: { a: "__proto__" } } }] }
+    expect(FlowDefinition.validate(rename).join(" ")).toContain('rename may not write the field "__proto__"')
+    const input = { inputs: [[{ a: 1 }]], input: {}, steps: {} }
+    expect(() => FlowSteps.runPure(set.steps[0], input)).toThrow("__proto__")
+    expect(() => FlowSteps.runPure(rename.steps[0] as unknown as FlowDefinition.Step, input)).toThrow("__proto__")
+    const resolved = FlowExpr.resolve(JSON.parse('{"__proto__":{"polluted":true}}'), scope({})) as Record<string, unknown>
+    expect(Object.getPrototypeOf(resolved)).toBe(Object.prototype)
+    expect(Object.prototype.hasOwnProperty.call(resolved, "__proto__")).toBe(true)
+    expect(({} as Record<string, unknown>).polluted).toBeUndefined()
+  })
+})
+
 describe("pure steps", () => {
   test("set adds fields per item, keeps or drops the rest, and starts from nothing", () => {
     expect(run({ id: "s", type: "set", params: { fields: { b: "{{ item.a }}!" } } }, [[{ a: 1 }, { a: 2 }]]).main).toEqual([
@@ -271,9 +320,19 @@ describe("planner", () => {
     expect(FlowRun.plan(def, FlowRun.fold("cor_r", [requested, done])!, 0).kind).toBe("none")
   })
 
+  test("a started step whose owner is still running it waits; once it is not, it is a crash", () => {
+    const owned = ev("flow.step.started", { step: "send", attempt: 1, type: "http", owner: "r1", boot: "b1" })
+    const state = FlowRun.fold("cor_r", [requested, ...aDone, owned])!
+    const live: FlowRun.InFlight = (_step, attempt) => attempt.payload.owner === "r1" && attempt.payload.boot === "b1"
+    expect(FlowRun.plan(def, state, 0, live)).toMatchObject({ kind: "idle", reason: "send is running" })
+    expect(FlowRun.plan(def, state, 0, () => false).kind).toBe("raise-card")
+    expect(FlowRun.plan(def, state, 0).kind).toBe("raise-card")
+  })
+
   test("http backoff doubles to a cap and unsafe calls get one attempt", () => {
     expect([1, 2, 3, 6, 10].map(FlowHttp.backoff)).toEqual([1000, 2000, 4000, 30000, 30000])
     expect(FlowHttp.maxAttempts({ id: "s", type: "http", params: { method: "POST" } } as FlowDefinition.Step)).toBe(1)
     expect(FlowHttp.maxAttempts({ id: "s", type: "http", params: {} } as FlowDefinition.Step)).toBe(3)
   })
 })
+

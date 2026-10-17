@@ -61,7 +61,9 @@ export const resolve = (value: Json, scope: Scope): Json => {
   if (Array.isArray(value)) return value.map((entry) => resolve(entry, scope))
   if (value !== null && typeof value === "object") {
     const out: Item = {}
-    for (const [key, entry] of Object.entries(value)) out[key] = resolve(entry, scope)
+    // Defined, not assigned: a "__proto__" key stays a plain field instead of replacing the prototype.
+    for (const [key, entry] of Object.entries(value))
+      Object.defineProperty(out, key, { value: resolve(entry, scope), enumerable: true, writable: true, configurable: true })
     return out
   }
   return value

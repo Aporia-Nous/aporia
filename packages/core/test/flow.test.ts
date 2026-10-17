@@ -2,13 +2,14 @@ import { afterAll, beforeEach, describe, expect } from "bun:test"
 import fs from "node:fs/promises"
 import os from "node:os"
 import path from "node:path"
-import { Effect, Fiber, Layer } from "effect"
+import { Context, Effect, Exit, Fiber, Layer, Scope } from "effect"
 import { TestClock } from "effect/testing"
 import { LayerNode } from "@opencode/util/effect/layer-node"
 import { AppNodeBuilder } from "../src/effect/app-node-builder"
 import { Database } from "../src/database/database.js"
 import { Mission } from "../src/mission.js"
 import { Flow } from "../src/flow.js"
+import { FlowRunnerLeaseTable } from "../src/flow/lease.sql.js"
 import { testEffect } from "./lib/effect"
 
 // Flow engine stage 1 (docs/an-rewrite/FLOW1-PLAN.md, F1-1 .. F1-7). Every HTTP call goes to a
@@ -21,6 +22,12 @@ const hits: Record<string, number> = {}
 const bodies: Array<{ path: string; body: string; idempotencyKey: string | null }> = []
 let hang = false
 let fail500 = 0
+// `/slow` answers only when the test opens the gate: a call that is still in flight, not a dead one.
+let slowGate: Promise<void> = Promise.resolve()
+let openSlow: () => void = () => undefined
+const holdSlow = () => {
+  slowGate = new Promise<void>((resolve) => (openSlow = resolve))
+}
 const hit = (key: string) => (hits[key] = (hits[key] ?? 0) + 1)
 
 const server = Bun.serve({
@@ -33,6 +40,10 @@ const server = Bun.serve({
     bodies.push({ path: url.pathname, body: await request.text(), idempotencyKey: request.headers.get("idempotency-key") })
     // A call that never answers, so a test can cut the process off in the middle of it.
     if (hang) return new Promise<Response>(() => undefined)
+    if (url.pathname === "/slow") {
+      await slowGate
+      return Response.json({ ok: true, method: request.method })
+    }
     if (url.pathname === "/flaky" && fail500 > 0) {
       fail500--
       return new Response("busy", { status: 500 })
@@ -53,6 +64,8 @@ beforeEach(() => {
   bodies.length = 0
   hang = false
   fail500 = 0
+  openSlow()
+  slowGate = Promise.resolve()
   deliveries.length = 0
 })
 
@@ -702,6 +715,331 @@ describe("F1-7 crash window", () => {
       const detail = yield* flows.run(runId)
       expect(detail.status).toBe("failed")
       expect(hits["POST /flaky"]).toBe(1)
+    }),
+  )
+})
+
+// ---- verifier findings H1 / M3: one runner per database, and no lock held across I/O ------------
+
+/** One HTTP step against `/slow`, which answers only when the test opens the gate. */
+const slowFlow = (id: string, method: "GET" | "POST") => ({
+  id,
+  name: `Slow ${id}`,
+  permissions: { hosts: [HOST] },
+  steps: [{ id: "call", type: "http", params: { method, url: `${BASE}/slow`, timeoutSeconds: 60 } }],
+  connections: [],
+})
+
+/**
+ * Build a whole service graph in its own scope and its own memo map, the way a second process opens the
+ * same database: its own SQLite connection, its own Flows service and its own runner id.
+ */
+const boot = (layer: ReturnType<typeof manualFile>) =>
+  Effect.gen(function* () {
+    const scope = yield* Scope.make()
+    const context = yield* Layer.buildWithMemoMap(layer, yield* Layer.makeMemoMap, scope)
+    return {
+      flows: Context.get(context, Flow.Flows.Service),
+      cards: Context.get(context, Mission.AttentionCards.Service),
+      log: Context.get(context, Mission.MissionEvents.Service),
+      close: Scope.close(scope, Exit.void),
+    }
+  })
+
+const startedRow = (runId: string, step: string, type: string, owner: string, boot: string) => ({
+  type: "flow.step.started" as const,
+  actor: { kind: "system" as const, id: "flow-runner" },
+  idempotencyKey: `flow:step:${runId}:${step}:1`,
+  correlationId: Mission.CorrelationID.make(runId),
+  payload: { step, attempt: 1, type, owner, boot },
+})
+
+const setLease = (owner: string, boot: string, expiresAt: number) =>
+  Effect.gen(function* () {
+    const { db } = yield* Database.Service
+    yield* db
+      .insert(FlowRunnerLeaseTable)
+      .values({ id: "runner", owner, boot, expires_at: expiresAt, time_updated: Date.now() })
+      .onConflictDoUpdate({ target: FlowRunnerLeaseTable.id, set: { owner, boot, expires_at: expiresAt } })
+      .run()
+      .pipe(Effect.orDie)
+  })
+
+describe("H1 one runner per database", () => {
+  const twoServices = (method: "GET" | "POST") =>
+    Effect.gen(function* () {
+      const { directory, file } = yield* tempDb
+      const a = yield* boot(manualFile(file))
+      const b = yield* boot(manualFile(file))
+      expect(b.flows).not.toBe(a.flows)
+      const flowId = `two-${method.toLowerCase()}`
+      const key = `${method} /slow`
+      yield* a.flows.save(slowFlow(flowId, method))
+      const { runId } = yield* a.flows.requestRun({ flowId, requestId: rid(flowId) })
+      holdSlow()
+      const fiber = yield* a.flows.tick.pipe(Effect.forkChild)
+      expect(yield* waitForHits(key, 1)).toBe(true)
+      // While A's call is in flight, B ticks and advances over and over (the verifier's repro).
+      // (Each call writes the lease row to a file database, so 30 rounds is what fits the test time.)
+      for (let i = 0; i < 30; i++) {
+        expect(yield* b.flows.tick).toBe(0)
+        expect(yield* b.flows.advance(runId)).toBe(0)
+        if (i % 10 === 0) yield* spin
+      }
+      expect(hits[key]).toBe(1)
+      expect(yield* b.cards.list()).toHaveLength(0)
+      expect((yield* b.flows.run(runId)).steps[0]!.status).toBe("running")
+      const started = (yield* b.log.list({ correlationID: Mission.CorrelationID.make(runId) })).filter(
+        (row) => row.type === "flow.step.started",
+      )
+      expect(started).toHaveLength(1)
+      expect(typeof started[0]!.payload.owner).toBe("string")
+      expect(typeof started[0]!.payload.boot).toBe("string")
+      openSlow()
+      yield* Fiber.join(fiber)
+      expect((yield* b.flows.run(runId)).status).toBe("completed")
+      expect(hits[key]).toBe(1)
+      expect(yield* b.cards.list()).toHaveLength(0)
+      // A clean stop hands the lease over: B runs the next request at once, and only once.
+      yield* a.close
+      const next = yield* b.flows.requestRun({ flowId, requestId: rid(`${flowId}-b`) })
+      yield* b.flows.tick
+      expect((yield* b.flows.run(next.runId)).status).toBe("completed")
+      expect(hits[key]).toBe(2)
+      yield* b.close
+      yield* cleanup(directory)
+    })
+
+  it.effect("two services on one file database: a slow GET in flight is called once, with no card", () =>
+    twoServices("GET"),
+  )
+  it.effect("two services on one file database: a slow POST in flight is called once, with no card", () =>
+    twoServices("POST"),
+  )
+
+  const twoRunnerLoops = (method: "GET" | "POST") =>
+    Effect.gen(function* () {
+      const { directory, file } = yield* tempDb
+      const a = yield* boot(runnerFile(file))
+      const b = yield* boot(runnerFile(file))
+      expect(b.flows).not.toBe(a.flows)
+      const flowId = `loops-${method.toLowerCase()}`
+      const key = `${method} /slow`
+      holdSlow()
+      yield* b.flows.save(slowFlow(flowId, method))
+      const { runId } = yield* b.flows.requestRun({ flowId, requestId: rid(flowId) })
+      expect(yield* settle(Effect.sync(() => (hits[key] ?? 0) >= 1), 5)).toBe(true)
+      // Both loops keep polling every second for 15 seconds while the call is in flight.
+      for (let round = 0; round < 15; round++) {
+        yield* TestClock.adjust("1 second")
+        for (let i = 0; i < 4; i++) yield* spin
+      }
+      expect(hits[key]).toBe(1)
+      expect(yield* a.cards.list()).toHaveLength(0)
+      openSlow()
+      expect(yield* settle(Effect.map(a.flows.run(runId), (d) => d.status === "completed"), 5)).toBe(true)
+      expect(hits[key]).toBe(1)
+      expect(yield* a.cards.list()).toHaveLength(0)
+      yield* a.close
+      yield* b.close
+      yield* cleanup(directory)
+    })
+
+  it.effect("two runner loops on one file database: a slow GET is called once, with no card", () => twoRunnerLoops("GET"))
+  it.effect("two runner loops on one file database: a slow POST is called once, with no card", () => twoRunnerLoops("POST"))
+
+  it.effect("a step whose owner no longer holds the lease was cut off: a GET runs again, a POST raises one card", () =>
+    Effect.gen(function* () {
+      const flows = yield* Flow.Flows.Service
+      const log = yield* Mission.MissionEvents.Service
+      const cards = yield* Mission.AttentionCards.Service
+      yield* flows.save(slowFlow("gone-get", "GET"))
+      yield* flows.save(slowFlow("gone-post", "POST"))
+      const get = yield* flows.requestRun({ flowId: "gone-get", requestId: rid("gone-get") })
+      const post = yield* flows.requestRun({ flowId: "gone-post", requestId: rid("gone-post") })
+      // A runner in a process that has since died held the lease and started both steps.
+      yield* setLease("dead-runner", "dead-boot", Date.now() - 1)
+      yield* log.append(startedRow(get.runId, "call", "http", "dead-runner", "dead-boot"))
+      yield* log.append(startedRow(post.runId, "call", "http", "dead-runner", "dead-boot"))
+      yield* flows.tick
+      const got = yield* flows.run(get.runId)
+      expect(got.status).toBe("completed")
+      expect(got.steps[0]!.attempts).toBe(2)
+      expect(hits["GET /slow"]).toBe(1)
+      const posted = yield* flows.run(post.runId)
+      expect(posted.status).toBe("needs-attention")
+      expect(hits["POST /slow"]).toBeUndefined()
+      const open = yield* cards.list()
+      expect(open).toHaveLength(1)
+      expect(open[0]!.title).toContain("may or may not have run")
+      expect(open[0]!.correlationId as string).toBe(post.runId)
+    }),
+  )
+
+  it.effect("a step whose owner still holds the lease is left alone; once the lease runs out it is a crash", () =>
+    Effect.gen(function* () {
+      const flows = yield* Flow.Flows.Service
+      const log = yield* Mission.MissionEvents.Service
+      const cards = yield* Mission.AttentionCards.Service
+      yield* flows.save(slowFlow("held-post", "POST"))
+      const { runId } = yield* flows.requestRun({ flowId: "held-post", requestId: rid("held-post") })
+      yield* setLease("other-runner", "other-boot", Date.now() + 60_000)
+      yield* log.append(startedRow(runId, "call", "http", "other-runner", "other-boot"))
+      for (let i = 0; i < 20; i++) {
+        expect(yield* flows.tick).toBe(0)
+        expect(yield* flows.advance(runId)).toBe(0)
+      }
+      expect(hits["POST /slow"]).toBeUndefined()
+      expect(yield* cards.list()).toHaveLength(0)
+      expect((yield* flows.run(runId)).steps[0]!.status).toBe("running")
+      // The other runner dies without handing the lease over; it runs out.
+      yield* setLease("other-runner", "other-boot", Date.now() - 1)
+      yield* flows.tick
+      expect(yield* cards.list()).toHaveLength(1)
+      expect((yield* flows.run(runId)).status).toBe("needs-attention")
+      expect(hits["POST /slow"]).toBeUndefined()
+    }),
+  )
+})
+
+describe("M3 no lock across I/O", () => {
+  it.effect("a slow step (60 s timeout, still in flight) in one run does not hold up another run", () =>
+    Effect.gen(function* () {
+      const flows = yield* Flow.Flows.Service
+      yield* flows.save(slowFlow("slow-a", "GET"))
+      yield* flows.save(fiveStep())
+      holdSlow()
+      const a = yield* flows.requestRun({ flowId: "slow-a", requestId: rid("slow-a") })
+      const fiber = yield* flows.tick.pipe(Effect.forkChild)
+      expect(yield* waitForHits("GET /slow", 1)).toBe(true)
+      const b = yield* flows.requestRun({ flowId: "five", requestId: rid("five-b"), input: { who: "b" } })
+      // Neither a tick nor a direct advance of B waits for A's call.
+      expect(yield* flows.tick).toBeGreaterThan(0)
+      expect((yield* flows.run(b.runId)).status).toBe("completed")
+      expect((yield* flows.run(a.runId)).steps[0]!.status).toBe("running")
+      const c = yield* flows.requestRun({ flowId: "five", requestId: rid("five-c"), input: { who: "c" } })
+      expect(yield* flows.advance(c.runId)).toBeGreaterThan(0)
+      expect((yield* flows.run(c.runId)).status).toBe("completed")
+      expect(hits["GET /slow"]).toBe(1)
+      openSlow()
+      yield* Fiber.join(fiber)
+      expect((yield* flows.run(a.runId)).status).toBe("completed")
+      expect(hits["GET /slow"]).toBe(1)
+    }),
+  )
+
+  it.effect("the runner loop keeps polling while a slow step is in flight", () =>
+    Effect.gen(function* () {
+      const { directory, file } = yield* tempDb
+      yield* Effect.gen(function* () {
+        const flows = yield* Flow.Flows.Service
+        yield* flows.save(slowFlow("slow-loop", "GET"))
+        yield* flows.save(fiveStep())
+        holdSlow()
+        const a = yield* flows.requestRun({ flowId: "slow-loop", requestId: rid("slow-loop") })
+        expect(yield* settle(Effect.sync(() => (hits["GET /slow"] ?? 0) >= 1), 3)).toBe(true)
+        const b = yield* flows.requestRun({ flowId: "five", requestId: rid("loop-b"), input: { who: "b" } })
+        expect(yield* settle(Effect.map(flows.run(b.runId), (d) => d.status === "completed"), 3)).toBe(true)
+        expect((yield* flows.run(a.runId)).steps[0]!.status).toBe("running")
+        openSlow()
+        expect(yield* settle(Effect.map(flows.run(a.runId), (d) => d.status === "completed"), 3)).toBe(true)
+        expect(hits["GET /slow"]).toBe(1)
+      }).pipe(Effect.provide(runnerFile(file), { local: true }))
+      yield* cleanup(directory)
+    }),
+  )
+})
+
+// ---- verifier findings M1 / M2 / LOW: refused at save and again at run ----------------------------
+
+describe("M1/M2 routing headers and userinfo", () => {
+  const httpFlow = (id: string, params: Record<string, unknown>) => ({
+    id,
+    name: `Http ${id}`,
+    permissions: { hosts: [HOST] },
+    steps: [{ id: "call", type: "http", params: { method: "POST", url: `${BASE}/send`, ...params } }],
+    connections: [],
+  })
+  const refusedAtRun: Array<[string, Record<string, unknown>, string]> = [
+    ["run-host", { headers: { Host: "internal.example" } }, "header Host decides where"],
+    ["run-xfh", { headers: { "X-Forwarded-Host": "internal.example" } }, "header X-Forwarded-Host decides where"],
+    ["run-te", { headers: { "Transfer-Encoding": "chunked" } }, "header Transfer-Encoding decides where"],
+    ["run-override", { headers: { "X-HTTP-Method-Override": "DELETE" } }, "header X-HTTP-Method-Override decides"],
+    ["run-userinfo", { url: `http://user:pw@${HOST}/send` }, "may not carry a user name or password"],
+  ]
+
+  it.effect("save refuses Host, hop-by-hop, Proxy-*, X-Forwarded-*, method overrides and userinfo", () =>
+    Effect.gen(function* () {
+      const flows = yield* Flow.Flows.Service
+      const headers = {
+        Host: "a",
+        Connection: "close",
+        "Transfer-Encoding": "chunked",
+        "Content-Length": "1",
+        "Proxy-Connection": "x",
+        "X-Forwarded-For": "1.2.3.4",
+        "X-HTTP-Method-Override": "DELETE",
+        "X-Ok": "fine",
+      }
+      const error = yield* flows.save(httpFlow("bad-headers", { headers })).pipe(Effect.flip)
+      expect(error._tag).toBe("Flow.Invalid")
+      const problems = (error as unknown as { problems: string[] }).problems
+      for (const name of Object.keys(headers).filter((name) => name !== "X-Ok"))
+        expect(problems.some((p) => p.includes(`header ${name} `))).toBe(true)
+      expect(problems.some((p) => p.includes("X-Ok"))).toBe(false)
+      for (const url of [`http://user:pw@${HOST}/send`, `http://user@${HOST}/send`, `http://user:pw@${HOST}/x/{{ item.n }}`]) {
+        const bad = yield* flows.save(httpFlow("bad-userinfo", { url })).pipe(Effect.flip)
+        expect((bad as unknown as { problems: string[] }).problems.join(" ")).toContain("may not carry a user name or password")
+      }
+      expect(yield* events).toHaveLength(0)
+    }),
+  )
+
+  it.effect("a definition that slipped past save (an older version) is refused again at run, with no request sent", () =>
+    Effect.gen(function* () {
+      const flows = yield* Flow.Flows.Service
+      const log = yield* Mission.MissionEvents.Service
+      for (const [id, params, message] of refusedAtRun) {
+        const def = httpFlow(id, params)
+        yield* log.append({
+          type: "flow.saved",
+          actor: { kind: "user", id: "older-version" },
+          idempotencyKey: `flow:saved:${id}:1`,
+          correlationId: Mission.CorrelationID.make(`cor_flow_${id}`),
+          payload: { flowId: id, version: 1, definition: def, hash: JSON.stringify(def) },
+        })
+        const { runId } = yield* flows.requestRun({ flowId: id, requestId: rid(id) })
+        yield* flows.tick
+        const detail = yield* flows.run(runId)
+        expect(detail.status).toBe("failed")
+        expect(detail.steps[0]!.error).toContain(message)
+      }
+      expect(hits["POST /send"]).toBeUndefined()
+    }),
+  )
+
+  it.effect("a set step writing __proto__ is refused at save and fails at run without touching the prototype", () =>
+    Effect.gen(function* () {
+      const flows = yield* Flow.Flows.Service
+      const log = yield* Mission.MissionEvents.Service
+      const def = JSON.parse(
+        `{"id":"proto","name":"Proto","steps":[{"id":"s","type":"set","params":{"fields":{"__proto__":{"polluted":true}}}}],"connections":[]}`,
+      )
+      const error = yield* flows.save(def).pipe(Effect.flip)
+      expect((error as unknown as { problems: string[] }).problems.join(" ")).toContain('may not write the field "__proto__"')
+      yield* log.append({
+        type: "flow.saved",
+        actor: { kind: "user", id: "older-version" },
+        idempotencyKey: "flow:saved:proto:1",
+        correlationId: Mission.CorrelationID.make("cor_flow_proto"),
+        payload: { flowId: "proto", version: 1, definition: def, hash: JSON.stringify(def) },
+      })
+      const { runId } = yield* flows.requestRun({ flowId: "proto", requestId: rid("proto") })
+      yield* flows.tick
+      const detail = yield* flows.run(runId)
+      expect(detail.status).toBe("failed")
+      expect(detail.steps[0]!.error).toContain("__proto__")
+      expect(({} as Record<string, unknown>).polluted).toBeUndefined()
     }),
   )
 })

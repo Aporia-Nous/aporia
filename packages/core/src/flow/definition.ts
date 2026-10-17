@@ -70,6 +70,66 @@ export const hostOf = (url: string): string | undefined => {
   }
 }
 
+/** The scheme a url literally starts with. A step's url keeps it: a resolved url may not switch it. */
+export const schemeOf = (url: string): string | undefined => /^(https?):\/\//i.exec(url)?.[1]?.toLowerCase()
+
+/**
+ * Why a url may not be called, or undefined when it may. Only http and https, and no user name or
+ * password in it: the HTTP client would turn those into an Authorization header, and credentials
+ * arrive with the vault (F2).
+ */
+export const urlProblem = (url: string | URL): string | undefined => {
+  let parsed: URL
+  try {
+    parsed = typeof url === "string" ? new URL(url) : url
+  } catch {
+    return "url must be http or https"
+  }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return "url must be http or https"
+  if (parsed.username !== "" || parsed.password !== "")
+    return "url may not carry a user name or password; credentials arrive with the vault (F2)"
+  return undefined
+}
+
+const HEADER_NAME = /^[A-Za-z0-9!#$%&'*+.^_`|~-]{1,128}$/
+const CREDENTIAL_HEADERS = new Set(["authorization", "cookie", "proxy-authorization"])
+// Headers that decide where a request goes, how it is framed, or what method it really is. The url and
+// the HTTP client own these. A flow that set Host or X-Forwarded-* could reach a virtual host or a
+// backend other than the declared one; framing headers could desync the connection; a method override
+// would let a "GET" (treated as safe to repeat) act as a POST or DELETE at the far end.
+const ROUTING_HEADERS = new Set([
+  "host",
+  "connection",
+  "keep-alive",
+  "transfer-encoding",
+  "te",
+  "trailer",
+  "upgrade",
+  "content-length",
+  "expect",
+  "forwarded",
+  "via",
+  "x-real-ip",
+  "x-original-url",
+  "x-rewrite-url",
+  "x-http-method-override",
+  "x-http-method",
+  "x-method-override",
+])
+
+/** Why a flow may not set this request header, or undefined when it may. Checked at save and at run. */
+export const headerProblem = (name: string): string | undefined => {
+  if (!HEADER_NAME.test(name)) return "is not a valid header name"
+  const lower = name.toLowerCase()
+  if (CREDENTIAL_HEADERS.has(lower)) return "carries a credential; credentials arrive with the vault (F2)"
+  if (ROUTING_HEADERS.has(lower) || lower.startsWith("proxy-") || lower.startsWith("x-forwarded-"))
+    return "decides where or how the request travels; only the url and the HTTP client set it"
+  return undefined
+}
+
+/** A field name a step may not write: assigning it would replace the item's prototype. */
+export const FORBIDDEN_FIELD = "__proto__"
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value)
 
@@ -84,6 +144,7 @@ const checkParams = (step: Step, hosts: ReadonlySet<string>): string[] => {
   switch (step.type) {
     case "set": {
       if (!isRecord(p.fields) || Object.keys(p.fields).length === 0) return [`${where}: set needs "fields"`]
+      if (Object.keys(p.fields).includes(FORBIDDEN_FIELD)) return [`${where}: set may not write the field "${FORBIDDEN_FIELD}"`]
       return paths(p.fields, where)
     }
     case "transform": {
@@ -93,6 +154,8 @@ const checkParams = (step: Step, hosts: ReadonlySet<string>): string[] => {
           problems.push(`${where}: ${key} is a list of field names`)
       if (p.rename !== undefined && !(isRecord(p.rename) && Object.values(p.rename).every((x) => typeof x === "string")))
         problems.push(`${where}: rename maps field names to field names`)
+      else if (isRecord(p.rename) && Object.values(p.rename).includes(FORBIDDEN_FIELD))
+        problems.push(`${where}: rename may not write the field "${FORBIDDEN_FIELD}"`)
       if (p.limit !== undefined && !(Number.isInteger(p.limit) && (p.limit as number) >= 0))
         problems.push(`${where}: limit is a whole number`)
       if (p.sortBy !== undefined && !(isRecord(p.sortBy) && typeof p.sortBy.field === "string"))
@@ -130,22 +193,23 @@ const checkParams = (step: Step, hosts: ReadonlySet<string>): string[] => {
       const method = String(p.method ?? "GET").toUpperCase()
       if (!(HTTP_METHODS as ReadonlyArray<string>).includes(method)) problems.push(`${where}: unsupported method ${method}`)
       if (typeof p.url !== "string" || p.url.length === 0) return [...problems, `${where}: http needs a "url"`]
-      if (templatePaths(p.url).length === 0) {
-        const host = hostOf(p.url)
-        if (!host) problems.push(`${where}: url must be http or https`)
-        else if (!hosts.has(host)) problems.push(`${where}: host ${host} is not declared in permissions.hosts`)
-      } else if (!/^https?:\/\/[^{}/]+\//.test(p.url) && !/^https?:\/\/[^{}/]+$/.test(p.url)) {
-        // A template may fill the path or query, never the host: the host must stay checkable.
+      const literal = templatePaths(p.url).length === 0
+      if (!literal && !/^https?:\/\/[^{}/]+\//.test(p.url) && !/^https?:\/\/[^{}/]+$/.test(p.url)) {
+        // A template may fill the path or query, never the scheme or host: both must stay checkable.
         problems.push(`${where}: a template may not decide the host of a url`)
       } else {
-        const host = hostOf(p.url.replace(/\{\{[^}]*\}\}/g, "x"))
-        if (!host || !hosts.has(host)) problems.push(`${where}: host ${host ?? "?"} is not declared in permissions.hosts`)
+        const sample = literal ? p.url : p.url.replace(/\{\{[^}]*\}\}/g, "x")
+        const bad = urlProblem(sample)
+        const host = hostOf(sample)
+        if (bad) problems.push(`${where}: ${bad}`)
+        else if (!host || !hosts.has(host)) problems.push(`${where}: host ${host ?? "?"} is not declared in permissions.hosts`)
       }
       if (p.headers !== undefined && !isRecord(p.headers)) problems.push(`${where}: headers is an object`)
       if (isRecord(p.headers))
-        for (const name of Object.keys(p.headers))
-          if (/^(authorization|cookie|proxy-authorization)$/i.test(name))
-            problems.push(`${where}: header ${name} carries a credential; credentials arrive with the vault (F2)`)
+        for (const name of Object.keys(p.headers)) {
+          const bad = headerProblem(name)
+          if (bad) problems.push(`${where}: header ${name.slice(0, 60)} ${bad}`)
+        }
       if (p.timeoutSeconds !== undefined && !(typeof p.timeoutSeconds === "number" && p.timeoutSeconds > 0 && p.timeoutSeconds <= 60))
         problems.push(`${where}: timeoutSeconds is between 1 and 60`)
       if (p.maxAttempts !== undefined && !(Number.isInteger(p.maxAttempts) && (p.maxAttempts as number) >= 1 && (p.maxAttempts as number) <= MAX_HTTP_ATTEMPTS))
