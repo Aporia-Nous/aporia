@@ -436,7 +436,7 @@ describe("coordinator recovery", () => {
           payload: { reviewer: reviewer.slug },
         })
         return { taskId: task.id }
-      }).pipe(Effect.provide(fileLayer(file)))
+      }).pipe(Effect.provide(fileLayer(file), { local: true }))
 
       expect(deliveries).toHaveLength(0)
 
@@ -447,7 +447,7 @@ describe("coordinator recovery", () => {
         // produces nothing.
         expect(yield* coordinator.drain).toBeGreaterThanOrEqual(1)
         expect(yield* coordinator.drain).toBe(0)
-      }).pipe(Effect.provide(fileLayer(file)))
+      }).pipe(Effect.provide(fileLayer(file), { local: true }))
       expect(deliveries).toHaveLength(1)
 
       // Third boot: the waker's own memory is wiped first, so nothing but the log can stop a second
@@ -461,7 +461,7 @@ describe("coordinator recovery", () => {
         expect(artifact).toBeDefined()
         if (artifact) yield* coordinator.handle(artifact)
         expect(wakeEvents(yield* events.list())).toHaveLength(1)
-      }).pipe(Effect.provide(fileLayer(file)))
+      }).pipe(Effect.provide(fileLayer(file), { local: true }))
       expect(deliveries).toHaveLength(1)
       expect(seeded.taskId).toBeDefined()
 

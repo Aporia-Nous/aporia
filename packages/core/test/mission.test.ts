@@ -120,7 +120,7 @@ describe("mission domain", () => {
           yield* mission.attachMissionSession(unit.id, "ses_reopen_me_1", alpha.slug)
           yield* mission.saveUIState({ missionId: unit.id, draft: "hello", selectedBotId: beta.id })
           return { alpha, beta, team, unit, first, second }
-        }).pipe(Effect.provide(fileLayer(file)))
+        }).pipe(Effect.provide(fileLayer(file), { local: true }))
 
         // A second, independent connection to the same file is the restart: nothing is cached in memory.
         const restored = yield* Effect.gen(function* () {
@@ -132,7 +132,7 @@ describe("mission domain", () => {
             tasks: yield* mission.listTasks(),
             ui: yield* mission.getUIState(created.unit.id),
           }
-        }).pipe(Effect.provide(fileLayer(file)))
+        }).pipe(Effect.provide(fileLayer(file), { local: true }))
 
         expect(restored.bots.map((bot) => bot.name).sort()).toEqual(["Alpha", "Beta"])
         expect(restored.teams.map((team) => team.id)).toEqual([created.team.id])
@@ -286,7 +286,7 @@ describe("backfill planner", () => {
               teams: (yield* mission.listTeams({ archived: true })).length,
               missions: (yield* mission.listMissions({ includeArchived: true })).length,
             }
-          }).pipe(Effect.provide(fileLayer(file)))
+          }).pipe(Effect.provide(fileLayer(file), { local: true }))
         expect(yield* apply()).toEqual({ bots: 2, teams: 1, missions: 1 })
         expect(yield* apply()).toEqual({ bots: 2, teams: 1, missions: 1 })
       } finally {
