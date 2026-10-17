@@ -520,15 +520,27 @@ the script, which lives outside the repo at `C:\Users\Dilla\Aporia\bots\aporetic
 evidence because the script is not committed here. The file is the only stand-alone copy — `dir /b` with a wildcard beside it
 shows no `-wal` or `-shm`.
 
-### Stage 3 — coordinator trigger, durable attention cards, attention UI — branch `an/stage-3-coordinator`
+### Stage 3 — coordinator trigger, durable attention cards, attention UI — branch `an/stage-3-coordinator` — NOT CLOSED
+
+**Stage 3 is not closed.** The first independent verifier pass FAILED at `7d8c33e3ef` (one HIGH and four LOW findings,
+see Independent verification → Stage 3). The fixes are committed below, and the stage waits on an independent PASS.
+`an/checkpoint-stage3-done` will be cut only after an independent PASS, and not by the executor that wrote the code.
 
 Branch cut from the Stage 2 tip `e922ab3972`. The plan and acceptance criteria S3-1 to S3-8 were committed first
 (`docs/an-rewrite/STAGE3-PLAN.md`). The commit list is read from `git log e922ab3972..an/stage-3-coordinator`. The code
 commits are `3510b5d9d3` (restart tests open fresh layers), `7ce7696fb5` (trigger and cards), `ed8b7f3c8c` (server routes and
 the regenerated client), `f99160a93e` (attention UI) and `45bfcbc516` (a null drain time and a poll guard found in the Dev
-check). The documentation and evidence commits follow them. Nothing pushed, nothing merged, nothing packaged, nothing installed.
-Local tags: `an/checkpoint-stage3-pre-dev` (`f99160a93e`, taken before the Dev check) and `an/checkpoint-stage3-done` (cut
-only on the verification PASS below).
+check). After the first independent pass come `a1927ea9c4` (the Dev sidecar binds 127.0.0.1, not 0.0.0.0, approved by Ali),
+`0e50f1afc3` (the HIGH backlog fix, plus the trigger's short error and its interrupt guard) and `f7299f4a15` (the bounded
+resolution note and the stale-poll fix). The documentation and evidence commits follow them. Nothing pushed, nothing merged,
+nothing packaged, nothing installed.
+
+Local tags:
+- `an/checkpoint-stage3-pre-dev` at `f99160a93e`, taken before the Dev check.
+- `an/checkpoint-stage3-selfcheck` at `7d8c33e3ef`, the tree the self-check passed. It was first cut as
+  `an/checkpoint-stage3-done`; that name was deleted locally because only an independent pass may use it. Neither tag was
+  ever pushed.
+- `an/checkpoint-stage3-pre-fix` at `a1927ea9c4`, the rollback point for the fixes.
 
 **What it does.**
 
@@ -581,9 +593,12 @@ still pass. The earlier restart tests were not wrong in their asserts, but they 
 - Two Dev cards (seq 3 and 6 in the gates file) were resolved through the API as `user` by something other than this
   run. It was most likely a person at the Dev app. That is UNKNOWN. The resolve route does not take a name, so every
   resolution over HTTP is recorded as `user`.
-- One Dev card (seq 11) is left open on purpose.
-- Two things were seen and left as they were, because both are pre-existing: the Electron sidecar on 3084 binds
-  `0.0.0.0`, and an orphan worktree server (pid 41844) runs older code on 49375.
+- Dev card seq 11 was later resolved through the API as `user` (06:54:48 CT) by someone other than this run. After the
+  fixes, Dev card #6 (seq 16) is left open on purpose.
+- The Electron sidecar on 3084 used to bind `0.0.0.0`, which was pre-existing. It binds `127.0.0.1` since `a1927ea9c4`.
+- An orphan CLI background service (pid 41844, `packages/cli … serve --service`, recorded in
+  `~/.local/state/opencode/service-local.json`) has run older worktree code on 127.0.0.1:49375 since Oct 16 5:59 PM CT.
+  It is left running.
 - `switch-dev-to-isolated.cmd` was not run, because it rebuilds the dev copy from prod.
 
 Rollback: `git switch -c <name> an/checkpoint-pre-stage3` (or `e922ab3972`). There is no migration. The extra rows in
@@ -593,7 +608,50 @@ the dev copy are inert to Stage 2 code, and `.bak-stage3` is the pre-check copy.
 
 ### Stage 3 — branch `an/stage-3-coordinator`
 
-**Pass 1 — VERDICT PASS, tree at the Stage 3 docs tip.** This pass was a fresh read of
+**Independent pass 1: VERDICT FAIL, tree at `7d8c33e3ef`** (tag `an/checkpoint-stage3-selfcheck`). Findings and fixes:
+
+- **HIGH: `Coordinator.emit` skipped older unhandled facts.** It moved the cursor to its own seq, so a fact recorded but
+  not handled by another process, the boot-drain race, or a card resolve during a backlog never got its card.
+  - Repro, now a test: append `ap-ext` unhandled, emit `ap-live`, drain. Before the fix only `ap-live` had a card.
+  - Fixed in `0e50f1afc3`. Inside the lock, emit drains the backlog first. After handling, it advances the cursor only
+    when nothing unhandled sits between the cursor and its own row. Otherwise the next drain replays the gap, which is
+    safe because every effect is keyed.
+  - Two regression tests were written first and seen failing: the verifier's case, and resolve-during-backlog
+    (`2026-10-17-stage3-gates-after-pass1.txt`, RED RUN).
+- **LOW: `lastError` returned `Cause.pretty`**, the full stack with paths, to clients.
+  - It now returns `Drain failed (<kind>); details are in the server log`. The full cause is logged on the server only.
+  - The test asserts there is no message and no stack.
+- **LOW: the resolution note was unbounded.**
+  - The protocol now caps it at 2000 characters. `openapi.json` gains `maxLength`; the generated client code is unchanged.
+  - The server test asserts that 2000 characters reach the handler (404 for an unknown card) and 2001 get a 400.
+- **LOW: a poll in flight during a resolve could bring the resolved card back.**
+  - `makeRefresher` (app) drops any answer from a request that left before an `invalidate()` and runs one fresh request
+    after it. The resolve invalidates both before and after its call.
+  - Two unit tests cover it.
+- **Shutdown check:** the trigger's `catchCause` now passes interruption through explicitly (`Cause.hasInterrupts`).
+  - A test interrupts a drain that hangs forever and asserts it is not recorded as a failed drain.
+  - Honest note: that test also passes against the old code. Effect 4.0.1 does not hand an external interruption to
+    `catchCause`, so the guard is belt-and-braces, not a red-then-green fix.
+
+Gates after the fixes, at `f7299f4a15` (`2026-10-17-stage3-gates-after-pass1.txt`):
+
+| check | result |
+| - | - |
+| coordination | 13 pass, 126 expects |
+| mission | 9 pass |
+| attention | 9 pass, 49 expects |
+| server route | 1 pass, 10 expects |
+| server full suite | 78 pass, 0 fail when run alone. A run that overlapped a Dev restart had 3 OAuth callback-port timing failures. |
+| app `src/aporia` | 59 pass |
+| desktop `src/main/aporia` | 62 pass |
+| core and server typecheck | 0 |
+| app and desktop typecheck | only the 2 pre-existing TS1128 errors |
+| protocol and client `check:generated` | exit 0 |
+
+Dev check after the fixes (screenshots 13 and 14): two facts written by another process became two cards within 0.2 s.
+One was resolved by a click. After a restart the other is still open and the resolved one stays resolved.
+
+**Self-check (not independent): VERDICT PASS, tree at `7d8c33e3ef`.** It missed the HIGH finding above. This pass was a fresh read of
 `git diff e922ab3972..HEAD`, checked against S3-1 to S3-8 and the stored gates. It was run by the same executor that
 wrote the code, not by a separate verifier agent, so it is labelled that way.
 

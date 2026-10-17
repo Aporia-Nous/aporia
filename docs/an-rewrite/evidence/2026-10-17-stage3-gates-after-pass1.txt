@@ -1,0 +1,796 @@
+============================== Stage 3 gates (branch an/stage-3-coordinator) ==============================
+generated: 2026-10-17 07:10:16 America/Chicago (box/PC local)
+HEAD: f7299f4a15  base: e922ab3972 (after verifier pass 1 fixes)
+log e922ab3972..HEAD:
+f7299f4a15 fix(attention): bound the resolution note to 2000 characters and never let a stale poll bring back a resolved card
+0e50f1afc3 fix(mission): a live emit drains the backlog first, so no recorded fact is skipped; the trigger reports a short error and leaves interruption alone
+a1927ea9c4 fix(desktop): bind the isolated dev service to 127.0.0.1, not every interface
+7d8c33e3ef docs: native flow engine design (built on the mission event log, n8n JSON import as format only)
+30ce78e9c8 docs(an-rewrite): record Stage 3 with its gates, Dev check and verification pass
+45bfcbc516 fix(attention): never show a missing drain time as 1970, and poll one request at a time
+f99160a93e feat(app): attention button and panel for the coordinator's cards
+ed8b7f3c8c feat(server): serve attention cards and run the coordinator trigger in the server
+7ce7696fb5 feat(mission): run the coordinator from a trigger and fold attention into durable cards
+3510b5d9d3 test(mission): open every restart boot on a fresh layer
+bc5a695876 docs(an-rewrite): Stage 3 plan and acceptance criteria
+status --porcelain (before evidence is committed):
+
+=== 1. coordination rules (Stage 2, 13 tests) ===
+--- dir: packages\core
+--- command: bun test test/coordination.test.ts ---
+bun test v1.4.3 (c6da4a4d3)
+
+test\coordination.test.ts:
+(pass) coordination rules > an artifact wakes the reviewer once; a replay wakes nobody [36.90ms]
+(pass) coordination rules > a replayed task.created makes one task [14.06ms]
+(pass) coordination rules > an ack never produces a wake or another ack [35.87ms]
+(pass) coordination rules > a terminal task produces no wakes [15.52ms]
+(pass) coordination rules > new failing evidence reopens the task as revision 2 [12.20ms]
+(pass) coordination rules > fifty distinct messages are all routed: the count is not a cap [98.79ms]
+(pass) coordination rules > a repeat with nothing new coalesces, then escalates exactly once [13.67ms]
+(pass) coordination rules > one approval produces one attention item, however often it is raised [9.86ms]
+(pass) coordination rules > handling the same fact twice delivers one wake [6.58ms]
+(pass) coordination rules > a passed review wakes the verifier, and no other role [7.75ms]
+(pass) coordination rules > an event with nobody in that role raises one attention instead of silence [7.51ms]
+(pass) coordination rules > a granted approval resumes the owner exactly once [8.49ms]
+(pass) coordinator recovery > a restart drains what it has not seen and never delivers twice [72.71ms]
+
+ 13 pass
+ 0 fail
+ 126 expect() calls
+Ran 13 tests across 1 file. [873.00ms]
+exit=0
+
+=== 2. Stage 1 domain tests ===
+--- dir: packages\core
+--- command: bun test test/mission.test.ts ---
+bun test v1.4.3 (c6da4a4d3)
+
+test\mission.test.ts:
+(pass) mission domain > renaming a bot keeps its tasks resolving by id [27.29ms]
+(pass) mission domain > archiving a bot with open work is refused until the work is reassigned [17.89ms]
+(pass) mission domain > restarting over the same file restores bots, teams, missions, tasks and ui state [67.64ms]
+(pass) mission domain > linking a mission to a session writes only the link table [8.39ms]
+(pass) mission domain > task dependencies refuse cycles and cross-mission links [9.02ms]
+(pass) mission domain > reopening a terminal task bumps its revision; ordinary state moves do not [11.68ms]
+(pass) backfill planner > derives stable ids from the slug so a rerun is a no-op [0.56ms]
+(pass) backfill planner > skips malformed and duplicate files instead of throwing [0.05ms]
+(pass) backfill planner > applied twice to a real database inserts rows once [53.79ms]
+
+ 9 pass
+ 0 fail
+ 62 expect() calls
+Ran 9 tests across 1 file. [692.00ms]
+exit=0
+
+=== 3. Stage 3 trigger + durable cards ===
+--- dir: packages\core
+--- command: bun test test/attention.test.ts ---
+bun test v1.4.3 (c6da4a4d3)
+
+test\attention.test.ts:
+(pass) coordinator trigger > a fact nobody handled is drained by the trigger, with no drain call [58.26ms]
+(pass) coordinator trigger > the boot drain recovers a fact recorded before the crash [95.85ms]
+(pass) coordinator trigger > a failing drain is remembered and the next tick still drains [129.79ms]
+(pass) coordinator trigger shutdown > an interrupted drain is not recorded or reported as a failed drain [101.45ms]
+(pass) attention cards > cards survive a restart, open and resolved alike [75.77ms]
+(pass) attention cards > an unknown card is an error, not a silent success [7.16ms]
+(pass) attention cards > attention.resolved is an outcome: the rules decide nothing for it [5.21ms]
+(pass) coordinator backlog > a live emit never skips an older fact nobody handled [7.17ms]
+(pass) coordinator backlog > resolving a card while a fact waits in the backlog does not lose that fact [7.97ms]
+
+ 9 pass
+ 0 fail
+ 49 expect() calls
+Ran 9 tests across 1 file. [977.00ms]
+exit=0
+
+=== 4. packages/core typecheck ===
+--- dir: packages\core
+--- command: bunx tsgo -b tsconfig.json tsconfig.tests.json ---
+exit=0
+
+=== 5. packages/server typecheck ===
+--- dir: packages\server
+--- command: bunx tsgo -b ---
+exit=0
+
+=== 6. packages/server mission routes test ===
+--- dir: packages\server
+--- command: bun test test/mission.test.ts ---
+bun test v1.4.3 (c6da4a4d3)
+
+test\mission.test.ts:
+(pass) serves attention cards and the running coordinator trigger [138.22ms]
+
+ 1 pass
+ 0 fail
+ 10 expect() calls
+Ran 1 test across 1 file. [897.00ms]
+exit=0
+
+=== 7. packages/protocol check:generated ===
+--- dir: packages\protocol
+--- command: bun run check:generated ---
+$ bun run script/generate-openapi.ts --check
+exit=0
+
+=== 8. packages/client check:generated ===
+--- dir: packages\client
+--- command: bun run check:generated ---
+$ bun run generate && git diff --exit-code -- src/promise/generated src/effect/generated src/effect/api
+$ bun run script/build.ts
+warning: in the working copy of 'packages/client/src/effect/api/.httpapi-codegen.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/client/src/effect/api/api.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/client/src/effect/generated/.httpapi-codegen.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/client/src/effect/generated/client-error.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/client/src/effect/generated/client.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/client/src/effect/generated/index.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/client/src/promise/generated/.httpapi-codegen.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/client/src/promise/generated/client-error.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/client/src/promise/generated/client.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/client/src/promise/generated/index.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/client/src/promise/generated/types.ts', LF will be replaced by CRLF the next time Git touches it
+exit=0
+
+=== 9. packages/app standing gate: bun test src/aporia ===
+--- dir: packages\app
+--- command: bun test src/aporia ---
+bun test v1.4.3 (c6da4a4d3)
+
+src\aporia\attention-util.test.ts:
+(pass) attention helpers > ago reads like a person would say it [0.05ms]
+(pass) attention helpers > the coordinator line never claims more than the status says [0.06ms]
+(pass) attention helpers > the badge is empty at zero and capped [0.02ms]
+(pass) attention helpers > a poll that left before a resolve cannot put the resolved card back [1.93ms]
+(pass) attention helpers > one request at a time: overlapping polls collapse into one follow-up [1.71ms]
+
+src\aporia\context-grounded.test.ts:
+(pass) memory prompt lists entries with ids and caps the count [0.26ms]
+(pass) empty memory leaves the task unchanged — no refusal instruction [0.03ms]
+(pass) memory prompt never tells the bot to answer only from the facts [0.03ms]
+(pass) extractCitations finds bracketed and bare ids [0.12ms]
+
+src\aporia\context-scope.test.ts:
+(pass) scopedEntries keeps only entries whose topic is in scope [0.08ms]
+(pass) undefined scopes means no scope yet — returns everything (Phase-2 fallback) [0.01ms]
+(pass) an empty scope list sees nothing
+(pass) normaliseFact ignores case, whitespace, and line endings [0.03ms]
+(pass) isDuplicate is true for the same topic and normalised text [0.04ms]
+(pass) isDuplicate is false for a different topic or text [0.02ms]
+
+src\aporia\context-stats.test.ts:
+(pass) counts entries per topic, sorted by count then name [0.11ms]
+(pass) empty input yields an empty list [0.01ms]
+
+src\aporia\dedupe.test.ts:
+(pass) fingerprint > ignores whitespace differences but not different words, senders, or targets [0.03ms]
+(pass) createDedupe > drops the second copy of the same words inside the window [1.32ms]
+(pass) createDedupe > never treats a retry of the same message as a duplicate [0.04ms]
+(pass) createDedupe > lets the same words through again once the window has passed [0.02ms]
+(pass) createDedupe > keeps distinct messages apart and forgets expired ones [0.02ms]
+
+src\aporia\dispatch-queue.test.ts:
+(pass) dispatch-queue independence > an unrelated bot is delivered while a room round is in flight [0.46ms]
+(pass) dispatch-queue independence > a slow bot does not block a different bot [0.11ms]
+(pass) per-target lock > two messages for the same bot run one after another (never overlapping) [12.44ms]
+(pass) per-target lock > a second message for an in-flight target queues behind it, not alongside [0.27ms]
+(pass) delivery semantics > priority messages are delivered before non-priority within a target [0.09ms]
+(pass) delivery semantics > a failed delivery is reported and the lock is released so the target recovers [0.10ms]
+(pass) delivery semantics > re-entrant ticks during load never schedule a target twice [16.95ms]
+(pass) delivery semantics > an empty inbox schedules nothing [0.20ms]
+(pass) dispatcher wiring > uses the per-target scheduler instead of a global running flag [0.09ms]
+
+src\aporia\expert-policy.test.ts:
+(pass) an expert with no findings must research first [0.02ms]
+(pass) an expert that already has a finding may answer
+(pass) a worker never has to research
+(pass) no kind behaves like a worker
+(pass) the research prompt names the scope and the question [0.03ms]
+(pass) the research prompt falls back when there is no scope [0.01ms]
+
+src\aporia\reactions-util.test.ts:
+(pass) reactionSignature > is stable for identical inputs so idle polls can early-out [0.04ms]
+(pass) reactionSignature > changes when the reaction list changes [0.01ms]
+(pass) reactionSignature > changes when the visible rows change (a scroll reveals new turns)
+(pass) reactionSignature > treats a missing list as empty
+
+src\aporia\reply.test.ts:
+(pass) isSilentReply > treats PASS as staying silent, with or without a full stop or padding [0.06ms]
+(pass) isSilentReply > keeps a real answer, so nothing useful is dropped [0.02ms]
+
+src\aporia\session-list-internal.test.ts:
+(pass) isInternalSession reads metadata.aporia.internal [0.03ms]
+(pass) mergeSessions drops internal (bot/dispatch) sessions [0.10ms]
+
+src\aporia\session-list.test.ts:
+(pass) sessionListOptions windowing bound > mounts a small, bounded window for 2000 rows [1.21ms]
+(pass) sessionListOptions windowing bound > bounds the window at every scroll position [0.23ms]
+(pass) row measurement > exposes the real-height measurer and a sane estimate [0.02ms]
+(pass) row measurement > a measured row overrides the estimate and shifts later rows [0.69ms]
+(pass) row measurement > a 0px read falls back to the estimate instead of collapsing the row [0.06ms]
+(pass) row measurement > the sidebar wrapper attaches the measurer (source wiring guard) [0.25ms]
+(pass) debouncedFilter > runs once for a burst of keystrokes and keeps the last query [0.20ms]
+(pass) mergeSessions > dedupes by id with the local store winning, and drops archived rows [0.11ms]
+(pass) mergeSessions > hides child sessions unless includeChildren is set [0.04ms]
+(pass) toSessionRows + filterSessionRows > precomputes title/date and sorts newest first [5.42ms]
+(pass) toSessionRows + filterSessionRows > filters on the precomputed lowercased title only (behavior parity) [0.08ms]
+(pass) toSessionRows + filterSessionRows > caps the base list at the render limit [2.54ms]
+(pass) row formatting helpers > prettyTitle rewrites the server placeholder and leaves real titles alone [0.16ms]
+(pass) row formatting helpers > projectName takes the last path segment [0.03ms]
+
+ 59 pass
+ 0 fail
+ 140 expect() calls
+Ran 59 tests across 11 files. [182.00ms]
+exit=0
+
+=== 10. packages/desktop standing gate: bun test src/main/aporia ===
+--- dir: packages\desktop
+--- command: bun test src/main/aporia ---
+bun test v1.4.3 (c6da4a4d3)
+
+src\main\aporia-bots-watch.test.ts:
+(pass) regeneration scope > regenerating one bot's change leaves other agent files untouched [24.52ms]
+(pass) regeneration scope > a change to bot.json only regenerates that bot [12.60ms]
+(pass) regeneration scope > a shared USER.md change regenerates every bot [16.62ms]
+(pass) regeneration scope > changeTargets maps paths to the affected scope [2.21ms]
+(pass) watchers > watchers are installed then closed, and a finalizer is registered [7.13ms]
+(pass) source guards > no swallowed errors on the regeneration / watcher paths [1.45ms]
+
+src\main\aporia-bots.test.ts:
+(pass) aporia bots health > starts healthy and reports the failing stage instead of swallowing it [0.24ms]
+(pass) aporia bots health > returns to healthy after a successful run [0.04ms]
+(pass) aporia bots health > exposes the health flag over the bots ipc channel [0.12ms]
+(pass) boundary validation > safeSlug accepts real slugs and rejects traversal / separators / spaces [0.12ms]
+(pass) boundary validation > safeInboxId accepts generated ids and rejects anything path-shaped [0.06ms]
+(pass) boundary validation > safeModel keeps well-formed provider/model and rejects frontmatter injection [0.01ms]
+(pass) boundary validation > the bots ipc handler rejects traversal instead of reaching the filesystem [0.06ms]
+
+src\main\aporia-config.test.ts:
+(pass) serialized global-config writer > two writes issued concurrently both land (no lost edit) [20.28ms]
+(pass) serialized global-config writer > refuses a malformed config and leaves it byte-unchanged [6.67ms]
+(pass) serialized global-config writer > keeps a single .bak and prunes older timestamped backups [14.51ms]
+(pass) serialized global-config writer > serializes edits from independent callers through one queue [48.71ms]
+
+src\main\aporia-context-import.test.ts:
+(pass) turns each message into a sourced entry tagged by topic [0.81ms]
+(pass) skips messages with no text and counts them [0.45ms]
+(pass) re-importing the same sessions plans nothing new [6.52ms]
+(pass) a session with no messages does not crash [0.82ms]
+(pass) handleImport writes the planned entries and reports added/skipped [6.48ms]
+(pass) handleImport a second time adds nothing [7.80ms]
+(pass) skips a message with no id (never writes a fabricated source) [0.93ms]
+(pass) skips a message when the session has no id [0.41ms]
+
+src\main\aporia-context.test.ts:
+(pass) add + all round-trips an entry with its source [6.64ms]
+(pass) add is idempotent for the same source+topic+text [6.60ms]
+(pass) query filters by topic and tag [11.59ms]
+(pass) entryId is stable across calls [0.05ms]
+(pass) reopening the store sees persisted entries [6.49ms]
+(pass) handleContext dispatches all/add/query and throws on an unknown op [5.91ms]
+(pass) add refuses an entry with no source ref [0.95ms]
+(pass) add refuses a non-string text or non-array tags [0.67ms]
+(pass) contextDir defaults to ~/Aporia/context when APORIA_HOME is unset [0.08ms]
+
+src\main\aporia-fyi.test.ts:
+(pass) held no-reply messages > are written beside the bot, so a restart does not lose them [6.23ms]
+(pass) held no-reply messages > are read exactly once [12.26ms]
+(pass) held no-reply messages > start empty for a bot that has never been sent one [0.14ms]
+(pass) held no-reply messages > keep the newest when a bot is flooded [372.73ms]
+(pass) held no-reply messages > refuse a slug that is not a plain folder name [0.06ms]
+
+src\main\aporia-mcp.test.ts:
+(pass) aporia mcp persist > keeps comments and other keys, backs up, writes env refs [19.93ms]
+(pass) aporia mcp persist > rejects literal secrets [0.17ms]
+(pass) aporia mcp oauth casing > accepts camelCase OAuth (live config) and emits snake_case for the schema [0.05ms]
+(pass) aporia mcp oauth casing > still accepts snake_case OAuth fields [0.03ms]
+(pass) aporia mcp oauth casing > rejects a literal OAuth client secret in either casing [0.02ms]
+
+src\main\aporia-owner.test.ts:
+(pass) incremental daily spend > sums logged spends and persists a per-day spend file [10.15ms]
+(pass) incremental daily spend > does not re-read the whole activity log on each poll [11.42ms]
+(pass) incremental daily spend > resets across a day rollover [6.95ms]
+(pass) incremental daily spend > backfills the day total from the log once when no spend file exists yet [10.87ms]
+
+src\main\aporia-routines.test.ts:
+(pass) nextRun > a pathological cron (Feb 29) resolves fast and with a correct date [0.83ms]
+(pass) nextRun > a Feb 29 cron with no match inside a year still resolves to the next one [0.22ms]
+(pass) nextRun > a normal weekday cron is correct [10.74ms]
+(pass) nextRun > matches the brute-force reference across DST spring-forward [8.17ms]
+(pass) nextRun > matches the brute-force reference across DST fall-back (repeated hour) [0.30ms]
+(pass) nextRun > returns the next minute for an every-minute cron [14.24ms]
+(pass) nextRun > agrees with brute force for a spread of crons and starts [776.19ms]
+(pass) cronMatches > keeps the existing dom/dow semantics [0.08ms]
+
+src\main\aporia-startup.test.ts:
+(pass) runAporiaStartup > registers before the window and never starts on the ready->window path [0.15ms]
+(pass) runAporiaStartup > runs the expensive start only after the caller has finished (window on screen first) [0.05ms]
+(pass) runAporiaStartup > a failing registrar is isolated: the rest still register and the window still opens [0.06ms]
+(pass) runAporiaStartup > surfaces a failing start instead of swallowing it [0.04ms]
+(pass) aporia startup wiring (index.ts) > sets the short idle TTL before the app is ready (so the server child inherits it) [0.12ms]
+(pass) aporia startup wiring (index.ts) > registers bots and routines as separate startup steps [0.01ms]
+
+ 62 pass
+ 0 fail
+ 189 expect() calls
+Ran 62 tests across 10 files. [1.92s]
+exit=0
+
+=== 11. packages/app typecheck (known: 2 pre-existing TS1128 errors) ===
+--- dir: packages\app
+--- command: bunx tsgo -b ---
+src/custom-elements.d.ts(1,1): error TS1128: Declaration or statement expected.
+src/custom-elements.d.ts(1,2): error TS1128: Declaration or statement expected.
+exit=1
+
+=== 12. packages/desktop typecheck (same 2 pre-existing errors via ../app) ===
+--- dir: packages\desktop
+--- command: bunx tsgo -b ---
+../app/src/custom-elements.d.ts(1,1): error TS1128: Declaration or statement expected.
+../app/src/custom-elements.d.ts(1,2): error TS1128: Declaration or statement expected.
+exit=1
+
+=== 13. packages/server full suite ===
+--- dir: packages\server
+--- command: bun test ---
+bun test v1.4.3 (c6da4a4d3)
+
+test\auth.test.ts:
+(pass) accepts only the fixed opencode username [0.09ms]
+(pass) session tokens expire, resist tampering, and are revoked by changing the password [0.29ms]
+
+test\config.test.ts:
+(pass) returns ordered config entries for the requested directory [246.63ms]
+(pass) updates the global shell without replacing unrelated JSONC [441.67ms]
+
+test\cors.test.ts:
+(pass) custom origins extend the defaults without allowing other origins [0.20ms]
+(pass) PTY origin checks use the same allowlist and retain same-host access [0.08ms]
+
+test\event-feed.test.ts:
+(pass) EventFeed > preserves the public SSE frame encoding [0.09ms]
+(pass) EventFeed > encodes once and delivers the same frame to every subscriber [1.95ms]
+(pass) EventFeed > fails only the subscriber that exceeds its lag capacity [1.29ms]
+(pass) EventFeed > delivers global credential events to public subscribers [0.59ms]
+(pass) EventFeed > filters internal events before they consume subscriber capacity [0.48ms]
+(pass) EventFeed > disconnects current subscribers after an encoding failure and continues for later subscribers [0.76ms]
+
+test\fetch.test.ts:
+(pass) returns LocationNotFoundError for a missing folder and recovers once it exists [1182.51ms]
+(pass) serves the HttpApi and enforces Basic auth like the Node server [16.73ms]
+(pass) activates credentials through the HttpApi [15.35ms]
+(pass) serves unauthenticated and answers CORS preflight when no password is configured [24.12ms]
+(pass) applies custom CORS origins to HTTP responses and PTY ticket checks [1120.16ms]
+(pass) returns 404 when a previously readable file is deleted [151.43ms]
+[12:10:42.650] ERROR (#16424): 1644 | /** @internal */
+1645 | export const delay = /*#__PURE__*/dual(2, (self, duration) => andThen(sleep(duration), self));
+1646 | /** @internal */
+1647 | export const timeoutOrElse = /*#__PURE__*/dual(2, (self, options) => flatMap(timeoutOption(self, options.duration), option => Option.isNone(option) ? options.orElse() : succeed(option.value)));
+1648 | /** @internal */
+1649 | const timeoutErrorFromDuration = duration => new TimeoutError(`Operation timed out after '${Duration.format(duration)}'`);
+                                                        ^
+TimeoutError: Operation timed out after '2s'
+       _tag: "TimeoutError",
+ ~effect/Cause/TimeoutError: "~effect/Cause/TimeoutError",
+
+      at timeoutErrorFromDuration (C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\internal\effect.js:1649:50)
+      at orElse (C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\internal\effect.js:1655:24)
+      at runLoop (C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\internal\effect.js:448:86)
+      at evaluate (C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\internal\effect.js:398:23)
+      at runInAsyncScope (node:async_hooks:207:23)
+      at C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\internal\effect.js:802:17
+      at C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\internal\effect.js:1125:9
+      at evaluate (C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\internal\effect.js:419:19)
+      at runInAsyncScope (node:async_hooks:207:23)
+      at C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\internal\effect.js:802:17
+
+1644 | /** @internal */
+1645 | export const delay = /*#__PURE__*/dual(2, (self, duration) => andThen(sleep(duration), self));
+1646 | /** @internal */
+1647 | export const timeoutOrElse = /*#__PURE__*/dual(2, (self, options) => flatMap(timeoutOption(self, options.duration), option => Option.isNone(option) ? options.orElse() : succeed(option.value)));
+1648 | /** @internal */
+1649 | const timeoutErrorFromDuration = duration => new TimeoutError(`Operation timed out after '${Duration.format(duration)}'`);
+                                                        ^
+error: Operation timed out after '2s'
+       _tag: "TimeoutError",
+ ~effect/Cause/TimeoutError: "~effect/Cause/TimeoutError",
+
+      at timeoutErrorFromDuration (C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\internal\effect.js:1649:50)
+      at orElse (C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\internal\effect.js:1655:24)
+      at runLoop (C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\internal\effect.js:448:86)
+      at evaluate (C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\internal\effect.js:398:23)
+      at runInAsyncScope (node:async_hooks:207:23)
+      at C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\internal\effect.js:802:17
+      at C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\internal\effect.js:1125:9
+      at evaluate (C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\internal\effect.js:419:19)
+      at runInAsyncScope (node:async_hooks:207:23)
+      at C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\internal\effect.js:802:17
+(fail) cancels a stale OpenAI OAuth callback server before falling back [2195.23ms]
+(fail) falls back to port 1457 when OpenAI OAuth port 1455 remains busy [8164.62ms]
+  ^ this test timed out after 5000ms.
+[12:10:50.818] ERROR (#22774): 103 |     )
+104 |     yield* Effect.forEach(servers, (item) =>
+105 |       Effect.callback<void, Error>((resume) => {
+106 |         const onError = (error: Error) => resume(Effect.fail(error))
+107 |         item.server.once("error", onError)
+108 |         item.server.listen(port, item.host, () => {
+      ^
+error: Failed to start server. Is port 1455 in use?
+ syscall: "listen",
+   errno: 0,
+    code: "EADDRINUSE"
+
+      at serve (unknown:1:1)
+      at node:_http_server:412:35
+      at node:_http_server:385:33
+      at C:\Tools\aporia\.worktrees\opt\packages\server\test\fetch.test.ts:108:21
+
+103 |     )
+104 |     yield* Effect.forEach(servers, (item) =>
+105 |       Effect.callback<void, Error>((resume) => {
+106 |         const onError = (error: Error) => resume(Effect.fail(error))
+107 |         item.server.once("error", onError)
+108 |         item.server.listen(port, item.host, () => {
+      ^
+error: Failed to start server. Is port 1455 in use?
+ syscall: "listen",
+   errno: 0,
+    code: "EADDRINUSE"
+
+      at serve (unknown:1:1)
+      at node:_http_server:412:35
+      at node:_http_server:385:33
+      at C:\Tools\aporia\.worktrees\opt\packages\server\test\fetch.test.ts:108:21
+      at ~effect/Effect/evaluate (C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\internal\effect.js:798:38)
+      at runLoop (C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\internal\effect.js:448:86)
+      at evaluate (C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\internal\effect.js:398:23)
+      at C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\internal\effect.js:2460:9
+      at C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\internal\effect.js:2512:19
+      at C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\internal\effect.js:2523:31
+(fail) explains how to recover when both OpenAI OAuth callback ports are busy [4.06ms]
+[12:10:51.064] INFO (#20676): event {
+  event: {
+    id: "evt_149c5a138001nvNGqZuh2wy5os",
+    created: 1792239051064,
+    type: "command.updated",
+    location: {
+      directory: "C:\\Tools\\aporia\\.worktrees\\opt\\packages\\server",
+      workspaceID: undefined,
+    },
+    data: {},
+  },
+}
+Client.listPrompts() called but server does not advertise prompts capability - returning empty list
+[12:10:51.266] INFO (#20676): event {
+  event: {
+    id: "evt_149c5a202002u3656kfTuk8Wa5",
+    created: 1792239051266,
+    type: "command.updated",
+    location: {
+      directory: "C:\\Tools\\aporia\\.worktrees\\opt\\packages\\server",
+      workspaceID: undefined,
+    },
+    data: {},
+  },
+}
+[mcp-sdk] SEP-2352: stored OAuth credential has no 'issuer' stamp (pre-upgrade storage or provider not round-tripping the value). SEP-2352 isolation is inactive for this read; ensure your provider round-trips the issuer field.
+[12:10:51.374] INFO (#20676): event {
+  event: {
+    id: "evt_149c5a26e002lPt5Xryiex1PtK",
+    created: 1792239051374,
+    type: "command.updated",
+    location: {
+      directory: "C:\\Tools\\aporia\\.worktrees\\opt\\packages\\server",
+      workspaceID: undefined,
+    },
+    data: {},
+  },
+}
+[12:10:51.475] INFO (#20676): event {
+  event: {
+    id: "evt_149c5a2d2002dE2Qwvj7O114pV",
+    created: 1792239051474,
+    type: "command.updated",
+    location: {
+      directory: "C:\\Tools\\aporia\\.worktrees\\opt\\packages\\server",
+      workspaceID: undefined,
+    },
+    data: {},
+  },
+}
+Client.listPrompts() called but server does not advertise prompts capability - returning empty list
+[12:10:51.475] INFO (#20676): event {
+  event: {
+    id: "evt_149c5a2d3002V3oOKIqu03bkr0",
+    created: 1792239051475,
+    type: "command.updated",
+    location: {
+      directory: "C:\\Tools\\aporia\\.worktrees\\opt\\packages\\server",
+      workspaceID: undefined,
+    },
+    data: {},
+  },
+}
+(pass) serves the session view operation and missing-session error [671.26ms]
+Client.listPrompts() called but server does not advertise prompts capability - returning empty list
+[12:10:51.516] INFO (#20676): event {
+  event: {
+    id: "evt_149c5a2fc002flbIGZwR9xEXkl",
+    created: 1792239051516,
+    type: "command.updated",
+    location: {
+      directory: "C:\\Tools\\aporia\\.worktrees\\opt\\packages\\server",
+      workspaceID: undefined,
+    },
+    data: {},
+  },
+}
+(pass) routes pending requests through the Session's instance [570.67ms]
+(pass) stays serviceable when the first request aborts [19.55ms]
+
+test\fs.test.ts:
+Client.listPrompts() called but server does not advertise prompts capability - returning empty list
+[12:10:52.248] INFO (#20676): event {
+  event: {
+    id: "evt_149c5a5d8002hoB6WIDpUn8xxw",
+    created: 1792239052248,
+    type: "command.updated",
+    location: {
+      directory: "C:\\Tools\\aporia\\.worktrees\\opt\\packages\\server",
+      workspaceID: undefined,
+    },
+    data: {},
+  },
+}
+[12:10:52.468] INFO (#28045): spawning process {
+  command: "C:\\Users\\Dilla\\.bun\\bin\\bun.exe",
+  args: [ "C:\\Tools\\aporia\\.worktrees\\opt\\packages\\server\\test\\fixture\\mcp-starts.cjs",
+    "C:\\Users\\Dilla\\AppData\\Local\\Temp\\opencode-core-test-J1yvpX\\starts"
+  ],
+  cwd: "C:\\Users\\Dilla\\AppData\\Local\\Temp\\opencode-core-test-J1yvpX\\root\\current",
+}
+Client.listPrompts() called but server does not advertise prompts capability - returning empty list
+[12:10:52.534] INFO (#26016): event {
+  event: {
+    id: "evt_149c5a6f6002dAI5blgA7yDCYv",
+    created: 1792239052534,
+    type: "command.updated",
+    location: {
+      directory: "C:\\Users\\Dilla\\AppData\\Local\\Temp\\opencode-core-test-J1yvpX\\root\\current",
+      workspaceID: undefined,
+    },
+    data: {},
+  },
+}
+(node:35468) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 listening listeners added to [Server]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(Use `bun --trace-warnings ...` to show where the warning was created)
+(pass) browsing parents and siblings reuses the current Location and its MCP process [813.04ms]
+(pass) streams files with Range, conditional requests, confinement, and multi-megabyte byte integrity [533.16ms]
+(pass) opens no file for HEAD and closes it when a download is aborted [0.57ms]
+
+test\generate.test.ts:
+(pass) uses base configuration without depending on process.cwd() [629.66ms]
+
+test\handler-policy.test.ts:
+(pass) yieldable session errors preserve the handler failure policy [0.40ms]
+(pass) message decode policy preserves its reference and log annotations [0.86ms]
+
+test\message.test.ts:
+(pass) filters message types before paginating in either direction through the generated client [495.94ms]
+(pass) rejects unknown message type filters at the HTTP boundary [612.69ms]
+
+test\mission.test.ts:
+(pass) serves attention cards and the running coordinator trigger [74.98ms]
+
+test\model.test.ts:
+(pass) waits for plugin initialization before listing models [394.52ms]
+
+test\options.test.ts:
+(pass) accepts ephemeral port zero [0.15ms]
+(pass) rejects ports outside the valid range [0.10ms]
+(pass) accepts optional app metadata [0.06ms]
+(pass) accepts durable event persistence configuration [0.09ms]
+(pass) accepts an optional CORS allowlist [0.11ms]
+
+test\persistent-pty.test.ts:
+(skip) reads the latest controlled terminal with optional physical line counts through the SDK
+(skip) creates two persistent terminals for one session through the client API
+(skip) isolates servers sharing a database and preserves terminals only through explicit restart handoff
+(skip) migrates a legacy runtime directory on restart and boots fresh when the registration is gone
+
+test\process.test.ts:
+(pass) authenticates API requests behind the frontend transform while allowing browser preflight [226.07ms]
+(pass) pairing links sign in browsers with a cookie and API clients with a token [70.56ms]
+(pass) server info lists remote URLs alongside local addresses while they are available [40.22ms]
+
+test\provider.test.ts:
+(pass) provider reads stay nonblocking while authentication discovery waits for plugins [328.20ms]
+
+test\pty-socket.property.test.ts:
+(pass) runPtySocket preserves ordering, detaches once, and ends correctly under random interleavings [699.12ms]
+
+test\pty-socket.test.ts:
+(pass) delivers input in order and detaches when the client closes [0.97ms]
+(pass) writes queued output through the close frame and detaches [0.46ms]
+(pass) detaches when the socket fails while the outbox drain is blocked [0.65ms]
+(pass) detaches when interrupted [0.36ms]
+
+test\pty-transport.test.ts:
+(skip) PTY websocket preserves replay, text and binary input, resize, reconnect, and exit
+
+test\request-tracing.test.ts:
+(pass) requests ignore ambient parents and continue inbound trace context [1.22ms]
+
+test\rpc-handler-errors.test.ts:
+(pass) returns HTTP 500 without exposing the handler defect [347.91ms]
+(pass) returns HTTP 500 without exposing the schema defect [317.91ms]
+
+test\service-status.test.ts:
+(pass) moves from starting to ready [0.53ms]
+(pass) keeps a startup failure until shutdown [0.42ms]
+(pass) keeps stopping after shutdown begins [0.36ms]
+
+test\session-create.test.ts:
+(pass) creates a child at its parent's location and lists it under the parent [378.63ms]
+(pass) returns not found when creating a child of a missing session [19.34ms]
+
+test\session-diff.test.ts:
+(pass) serves turn diffs by user message with range validation [700.84ms]
+
+test\session-import.test.ts:
+(pass) preserves imported parentID through HTTP import, read, and parent filter [496.04ms]
+(pass) rejects a missing parent without creating the imported session [219.63ms]
+(pass) rejects a self parent without creating the imported session [165.41ms]
+
+test\session-instances.test.ts:
+(pass) isolates same-directory Session tools, hooks, commands, and HTTP requests through one selector [663.17ms]
+
+test\session-update.test.ts:
+(pass) updates session metadata through PATCH [373.27ms]
+
+test\sse-failure.test.ts:
+[12:11:01.343] INFO (#60909) http.span=1ms: Sent HTTP response {
+  "http.method": "GET",
+  "http.url": "/api/experimental/session/ses_test/log",
+  "http.status": 200,
+}
+(pass) encodes a mid-stream session log failure as the reserved SSE failure event [4.30ms]
+[12:11:01.356] INFO (#60912) http.span=0ms: Sent HTTP response {
+  "http.method": "GET",
+  "http.url": "/api/experimental/session/ses_test/log",
+  "http.status": 200,
+}
+(pass) the generated Effect client fails the session log stream with the server's defect [13.73ms]
+
+test\vcs.test.ts:
+(pass) initializes Git in a markerless project and refreshes its location [1557.51ms]
+(pass) does not create a project directory while initializing Git [77.01ms]
+(pass) accepts an explicit Git provider and rejects unknown providers without initializing [556.10ms]
+(pass) returns 501 when a registered VCS provider has no initializer [315.45ms]
+(skip) Mercurial initialization > initializes and serves an untracked-file diff through the Hg provider
+(pass) serves lazy review bases, committed diffs, and unavailable-base errors [2456.29ms]
+(pass) maps a failing base provider to HTTP 503 instead of null metadata [151.59ms]
+
+test\workerd.test.ts:
+(pass) boots the workerd profile over durable object storage [20.26ms]
+
+test\worktree.test.ts:
+(pass) list reads saved inventory even when its checkout is missing, without booting a location [753.28ms]
+(pass) refresh discovers both clones while list alone never discovers external worktrees [3372.71ms]
+(pass) remove loads canonical strategies and enforces project ownership [2160.10ms]
+(pass) lists, creates, and removes worktrees by project ID [1199.42ms]
+(pass) uses project configuration independently of default location headers [1284.48ms]
+(pass) uses canonical plugins for shared clones and recorded strategy removal [2014.71ms]
+(pass) canonical plugin setup can create using registrations made so far [1361.17ms]
+
+6 tests skipped:
+(skip) reads the latest controlled terminal with optional physical line counts through the SDK
+(skip) creates two persistent terminals for one session through the client API
+(skip) isolates servers sharing a database and preserves terminals only through explicit restart handoff
+(skip) migrates a legacy runtime directory on restart and boots fresh when the registration is gone
+(skip) PTY websocket preserves replay, text and binary input, resize, reconnect, and exit
+(skip) Mercurial initialization > initializes and serves an untracked-file diff through the Hg provider
+
+
+3 tests failed:
+(fail) cancels a stale OpenAI OAuth callback server before falling back [2195.23ms]
+(fail) falls back to port 1457 when OpenAI OAuth port 1455 remains busy [8164.62ms]
+  ^ this test timed out after 5000ms.
+(fail) explains how to recover when both OpenAI OAuth callback ports are busy [4.06ms]
+
+ 75 pass
+ 6 skip
+ 3 fail
+ 5652 expect() calls
+Ran 84 tests across 30 files. [42.49s]
+exit=1
+
+=== post-run status --porcelain ===
+ M packages/client/src/effect/api/api.ts
+ M packages/client/src/effect/generated/client.ts
+ M packages/client/src/promise/generated/client.ts
+ M packages/client/src/promise/generated/types.ts
+GATES-DONE
+
+=== 13b. packages/server full suite, re-run alone (the run above overlapped a Dev app restart) ===
+ 78 pass
+ 0 fail
+ 5988 expect() calls
+Ran 84 tests across 30 files. [31.04s]
+
+=== RED RUN: attention.test.ts with the two backlog tests added, before the coordinator fix (at a1927ea9c4 + test only) ===
++ ... trees\opt\packages\core; bun test test/attention.test.ts 2>&1 | Tee-O ...
++                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+(pass) coordinator trigger > a fact nobody handled is drained by the trigger, with no drain call [99.20ms]
+(pass) coordinator trigger > the boot drain recovers a fact recorded before the crash [632.48ms]
+(pass) coordinator trigger > a failing drain is remembered and the next tick still drains [142.04ms]
+(pass) attention cards > cards survive a restart, open and resolved alike [92.15ms]
+(pass) attention cards > an unknown card is an error, not a silent success [9.79ms]
+(pass) attention cards > attention.resolved is an outcome: the rules decide nothing for it [7.83ms]
+error: expect(received).toEqual(expected)
+-   "attention:approval:ap-ext",
+- Expected  - 1
++ Received  + 0
+error: expect(received).toEqual(expected)
+-   "attention:approval:ap-ext",
+- Expected  - 1
++ Received  + 0
+(fail) coordinator backlog > a live emit never skips an older fact nobody handled [19.29ms]
+error: expect(received).toEqual(expected)
+-   [
+-     "attention:approval:ap-ext",
+-     "open",
+-   ],
+- Expected  - 4
++ Received  + 0
+error: expect(received).toEqual(expected)
+-   [
+-     "attention:approval:ap-ext",
+-     "open",
+-   ],
+- Expected  - 4
++ Received  + 0
+(fail) coordinator backlog > resolving a card while a fact waits in the backlog does not lose that fact [12.81ms]
+ 6 pass
+ 2 fail
+Ran 8 tests across 1 file. [3.77s]
+
+=== attention.test.ts with the coordinator fix but the OLD trigger.ts (shows the shutdown test does not discriminate) ===
+(pass) coordinator trigger > a fact nobody handled is drained by the trigger, with no drain call [60.22ms]
+(pass) coordinator trigger > the boot drain recovers a fact recorded before the crash [120.21ms]
+(fail) coordinator trigger > a failing drain is remembered and the next tick still drains [44.55ms]
+(pass) coordinator trigger shutdown > an interrupted drain is not recorded or reported as a failed drain [102.83ms]
+(pass) attention cards > cards survive a restart, open and resolved alike [113.10ms]
+(pass) attention cards > an unknown card is an error, not a silent success [7.06ms]
+(pass) attention cards > attention.resolved is an outcome: the rules decide nothing for it [5.27ms]
+(pass) coordinator backlog > a live emit never skips an older fact nobody handled [8.29ms]
+(pass) coordinator backlog > resolving a card while a fact waits in the backlog does not lose that fact [9.04ms]
+ 8 pass
+ 1 fail
+
+=== Dev check after the fixes (read-only log, UTC) ===
+cursor [{"seq":17}] max {"s":17}
+13 approval.required stage3-verify:approval:5   2026-10-17T12:11:36.058Z
+14 approval.required stage3-verify:approval:6   2026-10-17T12:11:36.088Z
+15 coordination.attention attention:approval:stage3-verify-5 Approval needed  2026-10-17T12:11:36.267Z
+16 coordination.attention attention:approval:stage3-verify-6 Approval needed  2026-10-17T12:11:36.272Z
+17 attention.resolved resolve:evt_149c651cb001atUkmtnWUb9KDq  evt_149c651cb001atUkmtnWUb9KDq 2026-10-17T12:12:01.813Z
+
+=== notes (all times CT) ===
+- §7 protocol check:generated is exit 0 in this run: the regenerated openapi.json was written with LF line endings,
+  so the byte comparison matches. The pass-1 exit 1 was line endings only (stage3-gates.txt §14).
+- §13 overlapped a Dev app restart: its 3 failures were the OpenAI OAuth callback-port tests (ports 1455/1457, timing).
+  §13b, run alone right after: 78 pass, 0 fail.
+- RED RUN: the two backlog tests fail before the fix (ap-ext card missing), exactly the verifier's repro.
+- The shutdown test passes against the old trigger too. Effect 4.0.1 does not hand an external interruption to
+  catchCause, so the old code did not log "drain failed" on shutdown in practice. The new explicit
+  Cause.hasInterrupts guard is belt-and-braces, and the test pins the behaviour, but it is not a red-then-green proof.
+- Dev check (screenshots 13 and 14 on the box, /workspace/aporetic/stage3/):
+  - seq 13 and 14 were written by a separate process at 07:11:36.058 and .088.
+  - The trigger wrote both cards (seq 15 and 16) about 0.2 s later. The badge showed 2.
+  - #5 was resolved with a click on its Resolve button (seq 17, 07:12:01.8). The panel then showed only #6.
+  - After a Dev restart, #6 is still open ("1m ago") and #5 stays resolved. Cursor 17 = max 17.
+  - Card #6 is left open in the Dev app.
+- The sidecar listens on 127.0.0.1:3084 only (commit a1927ea9c4).
