@@ -280,6 +280,8 @@ export type CorrelationID = typeof CorrelationID.Type
  *
  * `attention.resolved` is a person closing an attention card. It is recorded like any fact, but it is
  * treated as an outcome: dealing with a card never wakes anybody.
+ *
+ * `flow.*` events are the flow engine's own record and are outcomes too.
  */
 export const MissionEventType = Schema.Literals([
   "task.created",
@@ -300,6 +302,15 @@ export const MissionEventType = Schema.Literals([
   "coordination.attention",
   "attention.resolved",
   "ack",
+  // The native flow engine (src/flow). A definition version, then one run's request, step attempts
+  // and end. They share the run's correlation id and are all outcomes: a flow never wakes a bot.
+  "flow.saved",
+  "flow.run.requested",
+  "flow.step.started",
+  "flow.step.succeeded",
+  "flow.step.failed",
+  "flow.run.completed",
+  "flow.run.failed",
 ])
 export type MissionEventType = typeof MissionEventType.Type
 

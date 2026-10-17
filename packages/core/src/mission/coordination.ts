@@ -95,6 +95,14 @@ const OUTCOMES: ReadonlySet<MissionSchema.MissionEventType> = new Set<MissionSch
   "ack",
   // A person resolving a card: recorded, folded into the card, and never a cause of more work.
   "attention.resolved",
+  // The flow engine's record (src/flow). The runner acts on these; the coordinator never does.
+  "flow.saved",
+  "flow.run.requested",
+  "flow.step.started",
+  "flow.step.succeeded",
+  "flow.step.failed",
+  "flow.run.completed",
+  "flow.run.failed",
 ])
 
 /** The only events allowed to start work on an already-finished task. */
