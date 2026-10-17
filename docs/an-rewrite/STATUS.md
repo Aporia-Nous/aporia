@@ -383,12 +383,13 @@ replay above proves restoring it and rerunning reproduces the same result.
 
 Branch cut from the **Stage 1 tip** (`28859fd16e`), not from `rebrand/nousphere`. Stage 2 builds on Stage 1's `task` table, so
 cutting it from the checkpoint would have meant re-creating that table here; the deviation is recorded because it also means
-this branch carries Stage 1's commits. Commits: `07a85dfafc` (the log and its cursor), `285d02fa91` (the rules and the
-coordinator), `96ee966d94` (the first tests), `849840bb55` (two defects the first verifier pass found), `df5054e918` (three
-more tests), `225781f019` (the restart proof made to depend on the log alone), then the docs and evidence commits `2abfc71bf5`,
-`86e11bca69`, `71bcc139cb` and `a77ac8747c`, and finally the docs commit that carries this section. The branch log's own `git
-log` block is the authoritative list; every commit after its HEAD (`a77ac8747c`'s children) is by construction not in it.
-Nothing pushed, nothing merged, nothing packaged, nothing installed. The
+this branch carries Stage 1's commits. The commit list is not retyped here — a list written in prose is exactly what went stale,
+so read it from `git log an/stage-2-event-store`, which is authoritative at every tip: the log starts at `07a85dfafc` (the log
+and its cursor), `285d02fa91` (the rules and the coordinator), `96ee966d94` (the first tests), `849840bb55` (two defects the first
+verifier pass found), `df5054e918` (three more tests), `225781f019` (the restart proof made to depend on the log alone), and
+continues through the documentation and evidence commits. The snapshot in the branch log stops at its own HEAD, `71bcc139cb`;
+`a77ac8747c` and everything after it post-date that snapshot and are not in it. Nothing pushed, nothing merged, nothing
+packaged, nothing installed. The
 push state is stored, not inferred, in `docs/an-rewrite/evidence/2026-10-17-stage2-branch-log.txt`, which records each command
 line, its output and its exit code at `71bcc139cb`: `git ls-remote --heads origin refs/heads/an/*` empty at exit 0, `git
 ls-remote --tags origin refs/tags/an/*` empty at exit 0, `git branch -r --contains HEAD` empty, no upstream on the branch (exit
@@ -567,7 +568,9 @@ placeholder was itself an unevidenced claim. It confirmed the eleven rule rows a
 tests, the red run fails with `Received length: 2` and restores byte-identically, the backup's size and sha256 match, and
 nothing is pushed. It also reported one thing it could not check: "code unchanged between `a77ac8747c` and `3901d73d03`" rested
 on a commit subject, with no file-level diff readable to it. That gap is answered by
-`2026-10-17-stage2-code-diff.txt`, which prints `git diff --name-only` and `--stat` over that range with the tip it covered.
+`2026-10-17-stage2-code-diff.txt`, which prints the git **tree hash of `packages/`** at `a77ac8747c` and at the tip, plus
+`git diff --name-only` over that range. Equal tree hashes settle the question at any later tip, including one newer than the
+file, because the comparison is one line a reader can re-run; that is why the tree hash is there and a prose list is not.
 
 **A note on how this section is written.** A pass's record is written by the commit that fixes what it found, so no pass can
 observe its own record and a placeholder for the next pass is an unevidenced claim. The last paragraph here therefore states

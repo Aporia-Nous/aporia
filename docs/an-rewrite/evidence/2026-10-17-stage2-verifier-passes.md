@@ -72,6 +72,22 @@ ISSUES:
 - Unverified: "code unchanged `a77ac8747c`→`3901d73d03`" rests only on the reflog commit subject (`logs/HEAD:143`); no file-level diff is readable.
 ```
 
+## How these records are kept
+
+Each record is appended when the pass returns, and the text is the verifier's own (quotes keep its wording, including its
+numbering). A record is therefore written by the commit that follows the pass, and no record can describe the commit that
+contains it. The file's newest block is the newest pass recorded here; the branch's later commits say what was done about it.
+
 ## Pass 5
 
-Recorded in `STATUS.md` after it ran.
+```
+VERDICT: FAIL
+
+ISSUES:
+- 1/2: The commit lists are still incomplete: `REQUIREMENTS-EVIDENCE.md:35` and `STATUS.md:386-390` omit `3901d73d03` and `592834ffb2`, which exist on the branch; Row 3's "authoritative full list" therefore doesn't contain them.
+- 2: `STATUS.md:390` says "every commit after its HEAD (`a77ac8747c`'s children)" is missing, but the log's HEAD is `71bcc139cb`, so `a77ac8747c` itself is also absent from the block.
+- 4: This file said Pass 5 is "Recorded in STATUS.md after it ran" while the Stage 2 section ended at the Pass 4 record — the same kind of placeholder pass 4 objected to.
+- 5: `2026-10-17-stage2-code-diff.txt:5` covers only to `592834ffb2`, and its line "Every commit after `a77ac8747c` is listed by the tip line above" is false (two commits sit between); "no packages/ change since a77ac8747c" is proven only to `592834ffb2`.
+- Confirmed: 11 rule + 5 acceptance rows map to printed tests; 13/126; backup 1,221,545,984 / `fd19bd5c…9bf0ba9` / 693 / 70,693; nothing pushed; no secrets.
+- 3: Session figures are correctly attributed, and the red run records `Received length: 2` with a byte-identical restore.
+```
