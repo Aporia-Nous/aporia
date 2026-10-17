@@ -23,10 +23,19 @@ exit=0
 exit=0 
  
 --- command: git rev-parse HEAD --- 
-71bcc139cbe49aef263997fe19a318d0d85839a5
+e6869096f0b83f5520b3928b1422d01cc9153a8b
 exit=0 
  
 --- command: git log --oneline c2b211d313..HEAD  (every commit on this branch since the checkpoint; Stage 1's are included because the branch is based on its tip) --- 
+e6869096f0 docs(an-rewrite): Stage 2 closes on an independent PASS
+bceeb3b841 docs(an-rewrite): scope the Stage 2 pass-5 summary to what was recorded
+61d56d7af9 docs(an-rewrite): put the pass 5 record in STATUS and tree it in the passes file
+61c9c54782 docs(an-rewrite): store the packages/ tree-hash proof for Stage 2
+4609dc189e docs(an-rewrite): stop retyping the Stage 2 commit list
+3c7d13e7ed docs(an-rewrite): store the docs-only diff proof for Stage 2
+592834ffb2 docs(an-rewrite): complete the Stage 2 commit list and record pass 4
+3901d73d03 docs(an-rewrite): cite the tip the evidence was generated at
+a77ac8747c docs(an-rewrite): regenerate the Stage 2 evidence at the corrected tip
 71bcc139cb docs(an-rewrite): fix the six claims the second verifier pass failed
 225781f019 fix(mission): make the restart proof depend on the log, not the waker
 86e11bca69 docs(an-rewrite): correct the Stage 2 record after the first verifier pass
@@ -53,8 +62,6 @@ c2b211d313 docs(an-rewrite): record the DEV isolation run, the resumed-turn haza
 exit=0 
  
 --- command: git status --porcelain --- 
- M docs/an-rewrite/evidence/2026-10-17-stage2-backup.txt
  M docs/an-rewrite/evidence/2026-10-17-stage2-branch-log.txt
  M docs/an-rewrite/evidence/2026-10-17-stage2-gates.txt
-?? docs/an-rewrite/evidence/2026-10-17-stage2-red-run.txt
 exit=0 
