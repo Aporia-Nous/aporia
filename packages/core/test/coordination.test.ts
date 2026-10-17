@@ -340,6 +340,77 @@ describe("coordination rules", () => {
       expect(wakeEvents(yield* events.list())).toHaveLength(1)
     }),
   )
+
+  it.effect("a passed review wakes the verifier, and no other role", () =>
+    Effect.gen(function* () {
+      const { builder, reviewer, unit, task } = yield* setup
+      const coordinator = yield* Mission.Coordinator.Service
+      const events = yield* Mission.MissionEvents.Service
+
+      const result = yield* coordinator.emit({
+        type: "review.passed",
+        actor: { kind: "bot", id: reviewer.slug },
+        idempotencyKey: "review:passed",
+        missionId: unit.id,
+        taskId: task.id,
+        payload: { verifier: reviewer.slug, reviewer: builder.slug },
+      })
+
+      expect(result.decisions.map((decision) => decision._tag)).toEqual(["wake"])
+      expect(deliveries).toHaveLength(1)
+      const wake = wakeEvents(yield* events.list())[0]
+      expect(wake?.payload.botID).toBe(reviewer.id)
+    }),
+  )
+
+  it.effect("an event with nobody in that role raises one attention instead of silence", () =>
+    Effect.gen(function* () {
+      const { builder, unit, task } = yield* setup
+      const coordinator = yield* Mission.Coordinator.Service
+      const events = yield* Mission.MissionEvents.Service
+
+      const result = yield* coordinator.emit({
+        type: "artifact.created",
+        actor: { kind: "bot", id: builder.slug },
+        idempotencyKey: "artifact:no-reviewer",
+        missionId: unit.id,
+        taskId: task.id,
+        payload: {},
+      })
+
+      expect(result.decisions.map((decision) => decision._tag)).toEqual(["attention"])
+      expect(deliveries).toHaveLength(0)
+      const attention = attentionEvents(yield* events.list())
+      expect(attention).toHaveLength(1)
+      expect(attention[0]?.payload.title).toBe("No reviewer for this mission")
+    }),
+  )
+
+  it.effect("a granted approval resumes the owner exactly once", () =>
+    Effect.gen(function* () {
+      const { builder, unit, task } = yield* setup
+      const coordinator = yield* Mission.Coordinator.Service
+      const events = yield* Mission.MissionEvents.Service
+      const input = {
+        type: "approval.granted" as const,
+        actor: { kind: "user" as const, id: "ali" },
+        idempotencyKey: "approval:granted:deploy-stage-2",
+        missionId: unit.id,
+        taskId: task.id,
+        payload: { approvalId: "deploy-stage-2" },
+      }
+
+      yield* coordinator.emit(input)
+      expect(deliveries).toHaveLength(1)
+      const wake = wakeEvents(yield* events.list())[0]
+      expect(wake?.payload.botID).toBe(builder.id)
+
+      // The same grant, replayed, resumes nothing a second time.
+      yield* coordinator.emit(input)
+      expect(deliveries).toHaveLength(1)
+      expect(wakeEvents(yield* events.list())).toHaveLength(1)
+    }),
+  )
 })
 
 describe("coordinator recovery", () => {
