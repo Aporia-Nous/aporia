@@ -2795,6 +2795,14 @@ export type McpServerNotFoundError = {
 export const isMcpServerNotFoundError = (value: unknown): value is McpServerNotFoundError =>
   typeof value === "object" && value !== null && "_tag" in value && value["_tag"] === "McpServerNotFoundError"
 
+export type AttentionCardNotFoundError = {
+  readonly _tag: "AttentionCardNotFoundError"
+  readonly id: string
+  readonly message: string
+}
+export const isAttentionCardNotFoundError = (value: unknown): value is AttentionCardNotFoundError =>
+  typeof value === "object" && value !== null && "_tag" in value && value["_tag"] === "AttentionCardNotFoundError"
+
 export type ProjectNotFoundError = {
   readonly _tag: "ProjectNotFoundError"
   readonly projectID: string
@@ -6126,6 +6134,78 @@ export type CredentialActivateOutput = void
 export type CredentialRemoveInput = { readonly credentialID: { readonly credentialID: string }["credentialID"] }
 
 export type CredentialRemoveOutput = void
+
+export type MissionAttentionListInput = {
+  readonly state?: {
+    readonly state?: "open" | "resolved" | "all" | undefined
+    readonly missionID?: string | undefined
+  }["state"]
+  readonly missionID?: {
+    readonly state?: "open" | "resolved" | "all" | undefined
+    readonly missionID?: string | undefined
+  }["missionID"]
+}
+
+export type MissionAttentionListOutput = {
+  data: Array<{
+    id: string
+    key: string
+    title: string
+    body: string
+    state: "open" | "resolved"
+    correlationId: string
+    missionId?: string | undefined
+    taskId?: string | undefined
+    createdAt: number
+    resolvedAt?: number | undefined
+    resolvedBy?: string | undefined
+    resolution?: string | undefined
+  }>
+  coordinator: {
+    running: boolean
+    cursor: number
+    latest: number
+    drains: number
+    handled: number
+    lastDrainAt?: number | undefined
+    lastError?: string | undefined
+  }
+}
+
+export type MissionAttentionResolveInput = {
+  readonly cardID: { readonly cardID: string }["cardID"]
+  readonly resolution?: { readonly resolution?: string | undefined }["resolution"]
+}
+
+export type MissionAttentionResolveOutput = {
+  data: {
+    id: string
+    key: string
+    title: string
+    body: string
+    state: "open" | "resolved"
+    correlationId: string
+    missionId?: string | undefined
+    taskId?: string | undefined
+    createdAt: number
+    resolvedAt?: number | undefined
+    resolvedBy?: string | undefined
+    resolution?: string | undefined
+  }
+}["data"]
+
+export type MissionCoordinatorDrainOutput = {
+  handled: number
+  coordinator: {
+    running: boolean
+    cursor: number
+    latest: number
+    drains: number
+    handled: number
+    lastDrainAt?: number | undefined
+    lastError?: string | undefined
+  }
+}
 
 export type ProjectListInput = { readonly archived?: { readonly archived?: boolean | undefined }["archived"] }
 

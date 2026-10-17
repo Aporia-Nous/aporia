@@ -158,6 +158,11 @@ import type {
   CredentialActivateOutput,
   CredentialRemoveInput,
   CredentialRemoveOutput,
+  MissionAttentionListInput,
+  MissionAttentionListOutput,
+  MissionAttentionResolveInput,
+  MissionAttentionResolveOutput,
+  MissionCoordinatorDrainOutput,
   ProjectListInput,
   ProjectListOutput,
   ProjectUpdateInput,
@@ -1472,6 +1477,47 @@ export function make(options: ClientOptions) {
           },
           requestOptions,
         ),
+    },
+    mission: {
+      attention: {
+        list: (input?: MissionAttentionListInput, requestOptions?: RequestOptions) =>
+          request<MissionAttentionListOutput>(
+            {
+              method: "GET",
+              path: `/api/mission/attention`,
+              query: { state: input?.["state"], missionID: input?.["missionID"] },
+              successStatus: 200,
+              declaredStatuses: [400, 401],
+              empty: false,
+            },
+            requestOptions,
+          ),
+        resolve: (input: MissionAttentionResolveInput, requestOptions?: RequestOptions) =>
+          request<{ readonly data: MissionAttentionResolveOutput }>(
+            {
+              method: "POST",
+              path: `/api/mission/attention/${encodeURIComponent(input.cardID)}/resolve`,
+              body: { resolution: input["resolution"] },
+              successStatus: 200,
+              declaredStatuses: [400, 401, 404],
+              empty: false,
+            },
+            requestOptions,
+          ).then((value) => value.data),
+      },
+      coordinator: {
+        drain: (requestOptions?: RequestOptions) =>
+          request<MissionCoordinatorDrainOutput>(
+            {
+              method: "POST",
+              path: `/api/mission/coordinator/drain`,
+              successStatus: 200,
+              declaredStatuses: [400, 401],
+              empty: false,
+            },
+            requestOptions,
+          ),
+      },
     },
     project: {
       list: (input?: ProjectListInput, requestOptions?: RequestOptions) =>

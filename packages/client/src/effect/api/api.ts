@@ -1663,6 +1663,80 @@ export interface CredentialApi<E = never> {
   readonly remove: CredentialRemoveOperation<E>
 }
 
+export type MissionAttentionListInput = {
+  readonly state?: "open" | "resolved" | "all" | undefined
+  readonly missionID?: string | undefined
+}
+export type MissionAttentionListOutput = {
+  readonly data: ReadonlyArray<{
+    readonly id: string
+    readonly key: string
+    readonly title: string
+    readonly body: string
+    readonly state: "open" | "resolved"
+    readonly correlationId: string
+    readonly missionId?: string | undefined
+    readonly taskId?: string | undefined
+    readonly createdAt: number
+    readonly resolvedAt?: number | undefined
+    readonly resolvedBy?: string | undefined
+    readonly resolution?: string | undefined
+  }>
+  readonly coordinator: {
+    readonly running: boolean
+    readonly cursor: number
+    readonly latest: number
+    readonly drains: number
+    readonly handled: number
+    readonly lastDrainAt?: number | undefined
+    readonly lastError?: string | undefined
+  }
+}
+export type MissionAttentionListOperation<E = never> = (
+  input?: MissionAttentionListInput,
+) => Effect.Effect<MissionAttentionListOutput, E>
+
+export type MissionAttentionResolveInput = { readonly cardID: string; readonly resolution?: string | undefined }
+export type MissionAttentionResolveOutput = {
+  readonly id: string
+  readonly key: string
+  readonly title: string
+  readonly body: string
+  readonly state: "open" | "resolved"
+  readonly correlationId: string
+  readonly missionId?: string | undefined
+  readonly taskId?: string | undefined
+  readonly createdAt: number
+  readonly resolvedAt?: number | undefined
+  readonly resolvedBy?: string | undefined
+  readonly resolution?: string | undefined
+}
+export type MissionAttentionResolveOperation<E = never> = (
+  input: MissionAttentionResolveInput,
+) => Effect.Effect<MissionAttentionResolveOutput, E>
+
+export type MissionCoordinatorDrainOutput = {
+  readonly handled: number
+  readonly coordinator: {
+    readonly running: boolean
+    readonly cursor: number
+    readonly latest: number
+    readonly drains: number
+    readonly handled: number
+    readonly lastDrainAt?: number | undefined
+    readonly lastError?: string | undefined
+  }
+}
+export type MissionCoordinatorDrainOperation<E = never> = () => Effect.Effect<MissionCoordinatorDrainOutput, E>
+
+export interface MissionApi<E = never> {
+  readonly attention: {
+    readonly list: MissionAttentionListOperation<E>
+    readonly resolve: MissionAttentionResolveOperation<E>
+  }
+  readonly coordinator: { readonly drain: MissionCoordinatorDrainOperation<E> }
+}
+
 export type ProjectListInput = { readonly archived?: boolean | undefined }
 export type ProjectListOutput = ReadonlyArray<Project.Info>
 export type ProjectListOperation<E = never> = (input?: ProjectListInput) => Effect.Effect<ProjectListOutput, E>
@@ -2276,6 +2350,7 @@ export interface AppApi<E = never> {
   readonly integration: IntegrationApi<E>
   readonly mcp: McpApi<E>
   readonly credential: CredentialApi<E>
+  readonly mission: MissionApi<E>
   readonly project: ProjectApi<E>
   readonly form: FormApi<E>
   readonly permission: PermissionApi<E>

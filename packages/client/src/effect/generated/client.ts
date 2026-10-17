@@ -164,6 +164,11 @@ import type {
   CredentialActivateOutput,
   CredentialRemoveInput,
   CredentialRemoveOutput,
+  MissionAttentionListInput,
+  MissionAttentionListOutput,
+  MissionAttentionResolveInput,
+  MissionAttentionResolveOutput,
+  MissionCoordinatorDrainOutput,
   ProjectListInput,
   ProjectListOutput,
   ProjectUpdateInput,
@@ -1103,6 +1108,34 @@ const adaptGroupCredential = (raw: RawClient["server.credential"]) => ({
   remove: EndpointCredentialRemove(raw),
 })
 
+const EndpointMissionAttentionList = (raw: RawClient["server.mission"]) => (input?: MissionAttentionListInput) =>
+  preserveEffect<MissionAttentionListOutput>()(
+    raw["mission.attention.list"]({ query: { state: input?.["state"], missionID: input?.["missionID"] } }).pipe(
+      Effect.mapError(mapClientError),
+    ),
+  )
+
+const EndpointMissionAttentionResolve = (raw: RawClient["server.mission"]) => (input: MissionAttentionResolveInput) =>
+  preserveEffect<MissionAttentionResolveOutput>()(
+    raw["mission.attention.resolve"]({
+      params: { cardID: input["cardID"] },
+      payload: { resolution: input["resolution"] },
+    }).pipe(
+      Effect.mapError(mapClientError),
+      Effect.map((value) => value.data),
+    ),
+  )
+
+const EndpointMissionCoordinatorDrain = (raw: RawClient["server.mission"]) => () =>
+  preserveEffect<MissionCoordinatorDrainOutput>()(
+    raw["mission.coordinator.drain"]({}).pipe(Effect.mapError(mapClientError)),
+  )
+
+const adaptGroupMission = (raw: RawClient["server.mission"]) => ({
+  attention: { list: EndpointMissionAttentionList(raw), resolve: EndpointMissionAttentionResolve(raw) },
+  coordinator: { drain: EndpointMissionCoordinatorDrain(raw) },
+})
+
 const EndpointProjectList = (raw: RawClient["server.project"]) => (input?: ProjectListInput) =>
   preserveEffect<ProjectListOutput>()(
     raw["project.list"]({ query: { archived: input?.["archived"] } }).pipe(Effect.mapError(mapClientError)),
@@ -1620,6 +1653,7 @@ const adaptClient = (raw: RawClient) => ({
   integration: adaptGroupIntegration(raw["server.integration"]),
   mcp: adaptGroupMcp(raw["server.mcp"]),
   credential: adaptGroupCredential(raw["server.credential"]),
+  mission: adaptGroupMission(raw["server.mission"]),
   project: adaptGroupProject(raw["server.project"]),
   form: adaptGroupForm(raw["server.form"]),
   permission: adaptGroupPermission(raw["server.permission"]),

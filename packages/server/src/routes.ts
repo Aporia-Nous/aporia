@@ -31,6 +31,7 @@ import { PluginUpdate } from "@opencode/core/plugin/update"
 import { SdkPlugins } from "@opencode/core/plugin/sdk"
 import { WellKnown } from "@opencode/core/wellknown"
 import { Workspace } from "@opencode/core/workspace"
+import { Mission } from "@opencode/core/mission"
 import { Watcher } from "@opencode/core/filesystem/watcher"
 import { HttpRouter } from "effect/http"
 import { HttpApiBuilder } from "effect/http-api"
@@ -75,6 +76,13 @@ const applicationServiceNodes = [
   LocationActivity.node,
   SessionRestart.node,
   Workspace.node,
+  // Aporetic: the coordinator runs inside the server (boot drain + poll), and its cards are served.
+  Mission.node,
+  Mission.MissionEvents.node,
+  Mission.Coordinator.wakerNode,
+  Mission.Coordinator.node,
+  Mission.CoordinatorTrigger.node,
+  Mission.AttentionCards.node,
 ] as const
 const applicationServices = LayerNode.group(applicationServiceNodes)
 
@@ -170,6 +178,8 @@ function makeRoutes<AuthError, AuthServices>(
             PluginUpdate.Service,
             Project.Service,
             WellKnown.Service,
+            Mission.AttentionCards.Service,
+            Mission.CoordinatorTrigger.Service,
           )(context),
         ),
         ServerInfo.layer(serviceURLs, Context.get(context, Global.Service).tmp, options.app),
