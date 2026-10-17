@@ -607,7 +607,7 @@ still pass. The earlier restart tests were not wrong in their asserts, but they 
 Rollback: `git switch -c <name> an/checkpoint-pre-stage3` (or `e922ab3972`). There is no migration. The extra rows in
 the dev copy are inert to Stage 2 code, and `.bak-stage3` is the pre-check copy.
 
-### Flow engine stage 1 (F1) — branch `an/flow-stage-1` — independent FAIL at `54cdbd55e6` fixed in `8007ecff2c`; awaiting re-verify (NOT closed)
+### Flow engine stage 1 (F1) — branch `an/flow-stage-1` — CLOSED on an independent PASS at re-verify (done tag `an/checkpoint-flow1-done` = `2a9c5b47ca`, cut by the orchestrator)
 
 **Re-fix (latest).** The independent verifier failed `54cdbd55e6`: H1 (two runners on one DB repeat an in-flight step and
 raise false cards), M1 (Host header override), M2 (userinfo in the url), M3 (lock held across HTTP), plus LOWs.
@@ -915,6 +915,14 @@ so the Stage 1 defect is Pass 1 above, not that one.
   `America/Chicago, UTC−05:00` is.
 
 The verdict applies to `32cbce8f72`. The commit carrying this paragraph is docs-only and was not re-verified.
+
+## Flow stage 2 backlog (LOWs from the F1 re-verify PASS; none blocks F1)
+
+| # | finding | proposed handling |
+| - | - | - |
+| B1 | **Stale "may or may not have run" card after a lease stall.** If a runner stalls past its lease while an unsafe step is in flight, the next lease holder raises the card. When the stalled runner's call then returns, its late `flow.step.succeeded`/`failed` is recorded, but the card stays open. | When a result arrives for an attempt that has an open uncertain card, resolve the card automatically (a resolution like `auto: late result recorded`) and let the run continue from the recorded result. Test: lease expiry mid-POST, card raised, late success arrives, card closes, run completes, 1 hit. |
+| B2 | **Rare same-process lease-check race.** `held()` is a local check and the database re-check happens only at step start. Two fibers in one process can interleave between a lease loss and the next check. | Fence each step start on the lease row in the same transaction as the `flow.step.started` insert, or carry a lease epoch on the start and refuse it when the epoch has moved. |
+| B3 | **Lease timing on a crash or a clock jump.** The lease uses wall-clock `Date.now()`, so a crash leaves the lease to run out over 30 s, and a wall-clock jump can lengthen or shorten a lease. | Use a monotonic clock for the local `held()` margin. Keep wall time only for the cross-process expiry, and document the bound: worst-case takeover delay is one TTL after a crash. Consider a shorter TTL with renewal tied to the runner loop. |
 
 ## Blockers
 
