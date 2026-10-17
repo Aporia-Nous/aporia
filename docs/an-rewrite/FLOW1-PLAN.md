@@ -18,6 +18,8 @@ the Stage 3 trigger; steps set, transform, if, switch, merge, wait, HTTP (no cre
 | "Runner on the Stage 3 trigger" | The runner reuses the **trigger's pattern**: a boot pass for crash recovery, then a 1 s poll in the server process. It runs as its own loop rather than inside `CoordinatorTrigger`. | A `wait` step and a retry backoff need time-based wake-ups. The coordinator trigger only fires when the log grows, so it would never resume a waiting run. | Fold `FlowRunner.tick` into the trigger's tick. |
 | HTTP permissions | Pulled forward from F2 in its smallest form. A flow **declares the exact hosts** its HTTP steps may call (`permissions.hosts`, no wildcards), and every other host is refused at save time and at run time. Redirects are not followed. | The design doc's rule is "no global allow". An HTTP step without it would be an open fetcher. | Remove the check (not recommended). |
 
+| One runner per database (added after the verifier's H1) | A **`flow_runner_lease` table** (one row: owner, boot, expiry), added by the additive migration `20261017144410_flow1_runner_lease`. This replaces "no migration" above, for the lease only; run data stays in `mission_event`. | A lease has to be updated in place and expire, and an append-only log is the wrong place for that. Code that predates the migration ignores the extra table. | Drop the table and the lease, and go back to one process per database by convention (not recommended: that was H1). |
+
 ## Acceptance criteria
 
 | id | criterion | proof |
@@ -34,6 +36,16 @@ the Stage 3 trigger; steps set, transform, if, switch, merge, wait, HTTP (no cre
 | F1-10 | **HTTP API.** The `server.flow` group is in the protocol, `openapi.json` and the generated clients (`check:generated` clean), behind the server's normal authorization. An invalid definition gives 400, and an unknown flow or run gives 404. | server test |
 | F1-11 | **No regressions.** Every Stage 1–3 gate stays green: coordination, mission, attention, the server route test, the full server suite, app `src/aporia`, desktop `src/main/aporia`, core and server typecheck 0, and only the two pre-existing TS1128 errors in the app and desktop. | stored gate run |
 | F1-12 | **Hygiene.** A secret and PII scan before every commit, nothing pushed, and no done tag cut by the executor. An independent verifier reviews the result. | scan output, `git ls-remote` |
+
+## Verifier findings at `54cdbd55e6` (FAIL) and their fixes (fix commit `8007ecff2c`, re-verify pending)
+
+| id | finding | fix | proof (packages/core tests) |
+| - | - | - | - |
+| H1 | Two runners on one database repeated an in-flight step and raised false cards. | Runner lease (only the holder advances runs; renewed every 10 s, re-checked before each step start, released on a clean stop). `flow.step.started` records `owner` and `boot`. A started step with no result counts as a crash only when its owner has lost the lease. A start that was not inserted stops the run. | `flow.test.ts` "H1 one runner per database": two services, and two runner loops, on one file database (GET and POST) give exactly 1 hit and no card. A dead owner still gives a GET retry and a POST card. A live foreign owner is left alone until its lease runs out. |
+| M3 | One slow step blocked every run. | The global tick lock is gone. Each run has its own lock. Ticks run open runs side by side and skip busy ones, and the runner loop forks one tick per poll. | "M3 no lock across I/O": a 60 s-timeout step still in flight does not hold up another run, with manual ticks or with the runner loop. |
+| M1 | Host and other routing headers were allowed. | Host, hop-by-hop headers, Content-Length, Expect, Forwarded, Via, X-Real-IP, Proxy-*, X-Forwarded-* and method overrides are refused at save and at run. | "M1/M2 ..." tests and `flow-unit.test.ts` |
+| M2 | A url with userinfo sent Basic auth. | Refused at save (literal or templated) and at run. | same |
+| LOW | Scheme, docs, reload, `__proto__` | A resolved url keeps its declared scheme (defense in depth: a template cannot reach the scheme). Design doc §4.1, §8 and §11 cover the lease, the unsafe `maxAttempts` opt-in and the DNS/private-address stance. The open-run reload is incremental by sequence number. `__proto__` is refused as a set or rename target, and template resolution defines keys instead of assigning them. | unit tests; design doc |
 
 ## Out of scope for F1 (said plainly)
 

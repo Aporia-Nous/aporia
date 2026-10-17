@@ -862,3 +862,197 @@ Reading: the failures are pre-existing and environment-bound (real bash on Windo
 68 flow.run.completed flow:run-end:cor_149efe64e001QE2FkA0g4cVgt6   2026-10-17T12:57:35.113Z
 test server hits after the check: {"GET /hits":6,"GET /data":4}
 Dev listeners (worktree processes): 127.0.0.1:3084, 127.0.0.1:9222, ::1:5173 (vite), 127.0.0.1 sidecar API port; 4096 (installed app, pid 34140) untouched; 49375 (orphan pid 41844) untouched.
+
+
+==================== Re-fix after the independent verifier's FAIL at 54cdbd55e6 (still NOT closed) ====================
+generated: 2026-10-17 10:10 America/Chicago (PC local)
+pre-fix checkpoint tag: an/checkpoint-flow1-pre-fix = 54cdbd55e6
+fix commit: 8007ecff2c fix(core): one flow runner per database, no lock across I/O, and a tighter HTTP boundary
+bun: 1.4.3 (%USERPROFILE%\.bun\bin\bun.exe, matching the repo pin; the 1.4.0 npm shim was not used)
+
+--- A. the new regression tests run against the OLD engine (src/flow/{service,run,runner,http,definition,steps,expr}.ts
+       temporarily checked out from 54cdbd55e6, tests and lease files from the fix; restored afterwards, git status clean for those files) ---
+
+(fail) H1 one runner per database > two services on one file database: a slow GET in flight is called once, with no 
+card [10247.86ms]
+(fail) H1 one runner per database > two services on one file database: a slow POST in flight is called once, with no 
+card [110.09ms]
+(fail) H1 one runner per database > two runner loops on one file database: a slow GET is called once, with no card 
+[468.01ms]
+(fail) H1 one runner per database > two runner loops on one file database: a slow POST is called once, with no card 
+[467.49ms]
+(pass) H1 one runner per database > a step whose owner no longer holds the lease was cut off: a GET runs again, a POST 
+raises one card [11.59ms]
+(fail) H1 one runner per database > a step whose owner still holds the lease is left alone; once the lease runs out it 
+is a crash [46.61ms]
+(fail) M3 no lock across I/O > a slow step (60 s timeout, still in flight) in one run does not hold up another run 
+[15000.26ms]
+(fail) M3 no lock across I/O > the runner loop keeps polling while a slow step is in flight [1085.79ms]
+(fail) M1/M2 routing headers and userinfo > save refuses Host, hop-by-hop, Proxy-*, X-Forwarded-*, method overrides 
+and userinfo [252.56ms]
+(fail) M1/M2 routing headers and userinfo > a definition that slipped past save (an older version) is refused again at 
+run, with no request sent [12.03ms]
+(fail) M1/M2 routing headers and userinfo > a set step writing __proto__ is refused at save and fails at run without 
+touching the prototype [90.87ms]
+ 19 pass
+ 10 fail
+
+
+
+Reading: 10 of the 11 new engine tests fail on the old code, which is the reproduction. The one that passes on both
+("owner no longer holds the lease ... GET runs again, POST raises one card") is the guard that a genuinely dead owner
+still yields the crash behaviour; it must pass before and after.
+
+--- B. gates at 8007ecff2c (script: one command per gate, summary lines kept) ---
+bun: 1.4.3  HEAD: 8007ecff2c  started: 2026-10-17 09:59:05 America/Chicago
+
+=== 1. coordination ===
+--- cwd: packages\core ; command: bun test test/coordination.test.ts ---
+ 13 pass
+ 0 fail
+Ran 13 tests across 1 file. [941.00ms]
+exit=0
+
+=== 2. mission ===
+--- cwd: packages\core ; command: bun test test/mission.test.ts ---
+ 9 pass
+ 0 fail
+Ran 9 tests across 1 file. [1267.00ms]
+exit=0
+
+=== 3. attention ===
+--- cwd: packages\core ; command: bun test test/attention.test.ts ---
+ 9 pass
+ 0 fail
+Ran 9 tests across 1 file. [1162.00ms]
+exit=0
+
+=== 3a. flow-unit ===
+--- cwd: packages\core ; command: bun test test/flow-unit.test.ts ---
+ 22 pass
+ 0 fail
+Ran 22 tests across 1 file. [154.00ms]
+exit=0
+
+=== 3b. flow (engine + H1/M3/M1/M2 regressions) ===
+--- cwd: packages\core ; command: bun test test/flow.test.ts ---
+ 29 pass
+ 0 fail
+Ran 29 tests across 1 file. [4.56s]
+exit=0
+
+=== 4. core typecheck ===
+--- cwd: packages\core ; command: bunx tsgo -b tsconfig.json tsconfig.tests.json ---
+exit=0
+
+=== 4a. core migration check ===
+--- cwd: packages\core ; command: bun run script/migration.ts --check ---
+exit=0
+
+=== 5. server typecheck ===
+--- cwd: packages\server ; command: bunx tsgo -b ---
+exit=0
+
+=== 6. server mission + flow routes ===
+--- cwd: packages\server ; command: bun test test/mission.test.ts test/flow.test.ts ---
+ 2 pass
+ 0 fail
+Ran 2 tests across 2 files. [9.27s]
+exit=0
+
+=== 7. protocol check:generated ===
+--- cwd: packages\protocol ; command: bun run check:generated ---
+$ bun run script/generate-openapi.ts --check
+error: script "check:generated" exited with code 1
+exit=1
+
+=== 8. client check:generated ===
+--- cwd: packages\client ; command: bun run check:generated ---
+$ bun run generate && git diff --exit-code -- src/promise/generated src/effect/generated src/effect/api
+$ bun run script/build.ts
+exit=0
+
+=== 9. app bun test src/aporia ===
+--- cwd: packages\app ; command: bun test src/aporia ---
+ 63 pass
+ 0 fail
+Ran 63 tests across 12 files. [1.54s]
+exit=0
+
+=== 10. desktop bun test src/main/aporia ===
+--- cwd: packages\desktop ; command: bun test src/main/aporia ---
+ 62 pass
+ 0 fail
+Ran 62 tests across 10 files. [1.93s]
+exit=0
+
+=== 11. app typecheck (known: 2 pre-existing TS1128) ===
+--- cwd: packages\app ; command: bunx tsgo -b ---
+src/custom-elements.d.ts(1,1): error TS1128: Declaration or statement expected.
+src/custom-elements.d.ts(1,2): error TS1128: Declaration or statement expected.
+exit=1
+
+=== 12. desktop typecheck (same 2 via ../app) ===
+--- cwd: packages\desktop ; command: bunx tsgo -b ---
+../app/src/custom-elements.d.ts(1,1): error TS1128: Declaration or statement expected.
+../app/src/custom-elements.d.ts(1,2): error TS1128: Declaration or statement expected.
+exit=1
+
+=== 13. server full suite ===
+--- cwd: packages\server ; command: bun test ---
+TimeoutError: Operation timed out after '2s'
+ ~effect/Cause/TimeoutError: "~effect/Cause/TimeoutError",
+error: Operation timed out after '2s'
+ ~effect/Cause/TimeoutError: "~effect/Cause/TimeoutError",
+(fail) cancels a stale OpenAI OAuth callback server before falling back [2118.59ms]
+(fail) falls back to port 1457 when OpenAI OAuth port 1455 remains busy [6833.98ms]
+106 |         const onError = (error: Error) => resume(Effect.fail(error))
+error: Failed to start server. Is port 1455 in use?
+106 |         const onError = (error: Error) => resume(Effect.fail(error))
+error: Failed to start server. Is port 1455 in use?
+(fail) explains how to recover when both OpenAI OAuth callback ports are busy [1.18ms]
+(skip) PTY websocket preserves replay, text and binary input, resize, reconnect, and exit
+(skip) PTY websocket preserves replay, text and binary input, resize, reconnect, and exit
+(fail) cancels a stale OpenAI OAuth callback server before falling back [2118.59ms]
+(fail) falls back to port 1457 when OpenAI OAuth port 1455 remains busy [6833.98ms]
+(fail) explains how to recover when both OpenAI OAuth callback ports are busy [1.18ms]
+ 76 pass
+ 6 skip
+ 3 fail
+Ran 85 tests across 31 files. [31.81s]
+exit=1
+
+finished: 2026-10-17 10:00:19 America/Chicago
+
+Notes on B:
+- Gate 7 (protocol check:generated) failed on its first run: the check compares bytes, and the working copy of
+  packages/protocol/openapi.json had CRLF line endings (core.autocrlf=true). `bun run generate` rewrote it with no
+  content change (`git diff --exit-code -- packages/protocol packages/client` exit 0), and the re-run passed:
+  `bun run check:generated` exit=0. This commit does not touch packages/protocol or packages/client.
+- Gate 13 (server full suite) had 3 failures on its first run, all OpenAI OAuth callback tests in test/fetch.test.ts
+  ("port 1455 in use"); port 1455 showed only TIME_WAIT sockets (owning pid 0) from earlier test runs. test/fetch.test.ts
+  alone: 12 pass / 0 fail twice; full server suite re-run 60 s later: 79 pass, 6 skip, 0 fail, Ran 85 tests across 31 files, exit=0.
+- Gates 11/12: only the two pre-existing TS1128 errors in packages/app/src/custom-elements.d.ts, as before.
+
+--- C. packages/core full suite at 8007ecff2c (bun test, written to a file) ---
+ 5363 pass
+ 1221 skip
+ 159 fail
+Ran 6743 tests across 268 files. [399.30s]
+exit=1
+Compared by failing test name (unique names): 152 unique failing names now; every one of them also fails in the
+verifier's baseline full-suite log at an/checkpoint-pre-flow1 (3666b13b38). Failing now but not at baseline: 0.
+No failing test name mentions flow, lease or the F1/H1/M3 suites. Totals move from 6727 to 6743 tests (+16 new:
+11 engine, 5 unit) and from 161 to 159 failures (the earlier evidence at 72f71d551a); the remaining failures are the
+pre-existing environment-bound ones (real bash on Windows, home/XDG roots, npm cache, daemons, timing).
+Caveat: the verifier's baseline log came from a noisier run (894 failures), so "subset of it" is a weak test on its own.
+Stronger check: the 159 failures now come from 13 files: config/command-subagent 4, config/config 3, config/reload 4,
+effect/cross-spawn-spawner 1, location-filesystem 1, persistent-pty-daemon 1, preload 1, session-runner-recorded 1,
+shell-scan/arithmetic 7, bash-safety 81, bash-syntax 50, compound-parity 4, parity-regressions 1. All 13 are among the 15
+known-failing files listed in section 14 (npm and snapshot have no failures in this run). None of them imports src/flow.
+
+--- D. not re-run in this pass ---
+- The Dev check (Dev app on opencode-aporia-dev.db). Running Dev with this code would apply the additive
+  flow_runner_lease migration to the dev database; that was left for the re-verify or for Ali.
+- Untouched throughout: the installed app, port 4096, the orphan pid 41844 on 49375, switch-dev-to-isolated.cmd, the
+  verifier's worktree .worktrees\verify-flow1 and its logs (only read). Nothing pushed; no done tag.

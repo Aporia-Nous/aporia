@@ -607,7 +607,26 @@ still pass. The earlier restart tests were not wrong in their asserts, but they 
 Rollback: `git switch -c <name> an/checkpoint-pre-stage3` (or `e922ab3972`). There is no migration. The extra rows in
 the dev copy are inert to Stage 2 code, and `.bak-stage3` is the pre-check copy.
 
-### Flow engine stage 1 (F1) — branch `an/flow-stage-1` — SELF-CHECKED, awaiting an independent verifier (NOT closed)
+### Flow engine stage 1 (F1) — branch `an/flow-stage-1` — independent FAIL at `54cdbd55e6` fixed in `8007ecff2c`; awaiting re-verify (NOT closed)
+
+**Re-fix (latest).** The independent verifier failed `54cdbd55e6`: H1 (two runners on one DB repeat an in-flight step and
+raise false cards), M1 (Host header override), M2 (userinfo in the url), M3 (lock held across HTTP), plus LOWs.
+Pre-fix tag `an/checkpoint-flow1-pre-fix` = `54cdbd55e6`. Fix commit `8007ecff2c`, which covers all four findings and
+the cheap LOWs; the table is in `FLOW1-PLAN.md`. **Changed decision:** the runner lease needed one additive table
+(`flow_runner_lease`, migration `20261017144410_flow1_runner_lease`), so "no migration" no longer holds for F1. Run
+data is still only in `mission_event`. Gates at `8007ecff2c` are recorded in the evidence file (section "Re-fix"):
+- coordination / mission / attention: 13 / 9 / 9 pass
+- flow-unit: 22 pass. flow: 29 pass, including 11 new tests; 10 of those fail on the old engine, which reproduces the
+  findings.
+- core and server typecheck: exit 0. Core migration check: exit 0.
+- server route tests: 2 pass. Server full suite: 79 pass, 0 fail on the re-run. The first run had 3 OAuth port-1455
+  TIME_WAIT failures.
+- protocol and client `check:generated`: exit 0. The first protocol run failed on CRLF in the working copy only, with
+  no content change.
+- app tests: 63 pass. Desktop tests: 62 pass. App and desktop typecheck: only the 2 pre-existing TS1128 errors.
+- core full suite: 5363 pass / 159 fail out of 6743. No new failing test. The failures come from 13 of the 15 known
+  environment-bound files.
+The Dev check was not re-run.
 
 Branch cut from the Stage 3 tip `3666b13b38` (rollback tag `an/checkpoint-pre-flow1`). The plan, criteria F1-1 to F1-12 and
 the provisional decisions are in `docs/an-rewrite/FLOW1-PLAN.md` (committed first, `92bc33d7f2`). Code commits:
@@ -664,8 +683,10 @@ waiting on a 25 s `wait` survived a full Dev restart and finished on the new pro
 - The runner polls every 1 s in the server; a waiting run resumes up to ~1 s after it is due.
 - No schedules, webhooks, credentials vault, AI steps, flow-as-tool, n8n importer or editor (F2–F4).
 
-Rollback: `git switch -c <name> an/checkpoint-pre-flow1` (`3666b13b38`). No migration; the `flow.*` rows in the dev copy
-are inert to earlier code.
+Rollback: `git switch -c <name> an/checkpoint-flow1-pre-fix` (`54cdbd55e6`, before the re-fix) or `an/checkpoint-pre-flow1`
+(`3666b13b38`). Since `8007ecff2c` there is one additive migration (`flow_runner_lease`). Earlier code only applies the
+migrations it knows, so an extra table and the `flow.*` rows are inert to it. This comes from reading
+`DatabaseMigration.applyOnly`; it has not been tested.
 
 ## Independent verification
 
