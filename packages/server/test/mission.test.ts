@@ -38,6 +38,12 @@ it.live("serves attention cards and the running coordinator trigger", () =>
     const missing = yield* post("/api/mission/attention/evt_missing/resolve", {})
     expect(missing.status).toBe(404)
 
+    // The resolution note is bounded: 2000 characters pass validation (and reach the 404), 2001 do not.
+    const longest = yield* post("/api/mission/attention/evt_missing/resolve", { resolution: "x".repeat(2000) })
+    expect(longest.status).toBe(404)
+    const tooLong = yield* post("/api/mission/attention/evt_missing/resolve", { resolution: "x".repeat(2001) })
+    expect(tooLong.status).toBe(400)
+
     const anonymous = yield* get("/api/mission/attention", {})
     expect(anonymous.status).toBe(401)
   }),

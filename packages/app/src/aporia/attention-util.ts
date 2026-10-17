@@ -49,3 +49,49 @@ export function badge(count: number): string {
   if (count <= 0) return ""
   return count > 99 ? "99+" : String(count)
 }
+
+/**
+ * One list request at a time, and never a stale answer. `invalidate()` marks every request already
+ * in flight as stale (call it around a resolve): a stale answer is dropped, not applied, and one more
+ * request runs as soon as the in-flight one finishes. Without this, a poll that left before a resolve
+ * could land after it and put the resolved card back on screen.
+ */
+export function makeRefresher<T>(options: {
+  readonly load: () => Promise<T>
+  readonly apply: (value: T) => void
+  readonly fail: (error: unknown) => void
+  readonly done?: () => void
+}) {
+  let inflight = false
+  let again = false
+  let generation = 0
+  const run = async (): Promise<void> => {
+    if (inflight) {
+      again = true
+      return
+    }
+    inflight = true
+    const ticket = generation
+    try {
+      const value = await options.load()
+      if (ticket === generation) options.apply(value)
+      else again = true
+    } catch (error) {
+      if (ticket === generation) options.fail(error)
+      else again = true
+    } finally {
+      inflight = false
+    }
+    options.done?.()
+    if (again) {
+      again = false
+      await run()
+    }
+  }
+  return {
+    run,
+    invalidate: () => {
+      generation++
+    },
+  }
+}

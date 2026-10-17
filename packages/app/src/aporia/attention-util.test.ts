@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test"
-import { ago, badge, coordinatorLine } from "./attention-util"
+import { ago, badge, coordinatorLine, makeRefresher } from "./attention-util"
+
+const flush = () => new Promise((resolve) => setTimeout(resolve, 0))
 
 describe("attention helpers", () => {
   test("ago reads like a person would say it", () => {
@@ -32,5 +34,49 @@ describe("attention helpers", () => {
     expect(badge(0)).toBe("")
     expect(badge(3)).toBe("3")
     expect(badge(120)).toBe("99+")
+  })
+
+  test("a poll that left before a resolve cannot put the resolved card back", async () => {
+    const answers: Array<(value: string[]) => void> = []
+    const applied: string[][] = []
+    const refresher = makeRefresher<string[]>({
+      load: () => new Promise((resolve) => answers.push(resolve)),
+      apply: (value) => applied.push(value),
+      fail: () => {},
+    })
+    // A poll leaves while the card is still open.
+    const poll = refresher.run()
+    // The person resolves it meanwhile; the refresh the resolve asks for has to wait its turn.
+    refresher.invalidate()
+    void refresher.run()
+    expect(answers).toHaveLength(1)
+    // The stale answer lands: it must be dropped, and a fresh request must follow.
+    answers[0]!(["card-1"])
+    await flush()
+    expect(applied).toEqual([])
+    expect(answers).toHaveLength(2)
+    answers[1]!([])
+    await poll
+    expect(applied).toEqual([[]])
+  })
+
+  test("one request at a time: overlapping polls collapse into one follow-up", async () => {
+    const answers: Array<(value: number) => void> = []
+    const applied: number[] = []
+    const refresher = makeRefresher<number>({
+      load: () => new Promise((resolve) => answers.push(resolve)),
+      apply: (value) => applied.push(value),
+      fail: () => {},
+    })
+    const first = refresher.run()
+    void refresher.run()
+    void refresher.run()
+    expect(answers).toHaveLength(1)
+    answers[0]!(1)
+    await flush()
+    expect(answers).toHaveLength(2)
+    answers[1]!(2)
+    await first
+    expect(applied).toEqual([1, 2])
   })
 })

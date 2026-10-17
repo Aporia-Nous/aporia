@@ -5,7 +5,7 @@
 import { createMemo, createSignal, For, onCleanup, Show } from "solid-js"
 import { Portal } from "solid-js/web"
 import { useServerSDK } from "@/runtime/server/client"
-import { ago, badge, coordinatorLine, type AttentionCard, type CoordinatorStatus } from "./attention-util"
+import { ago, badge, coordinatorLine, makeRefresher, type AttentionCard, type CoordinatorStatus } from "./attention-util"
 
 const POLL_MS = 5000
 
@@ -19,23 +19,20 @@ export function AttentionButton() {
   const [busy, setBusy] = createSignal<string>()
   const [now, setNow] = createSignal(Date.now())
 
-  // One poll at a time: a slow server must not collect a queue of identical requests.
-  let inflight = false
-  const refresh = async () => {
-    const api = sdk?.api?.mission
-    if (!api || inflight) return
-    inflight = true
-    try {
-      const result = await api.attention.list({ state: "open" })
+  // One poll at a time, and a poll that left before a resolve never lands after it (see makeRefresher).
+  const refresher = makeRefresher({
+    load: () => sdk.api.mission.attention.list({ state: "open" }),
+    apply: (result: { data?: AttentionCard[]; coordinator?: CoordinatorStatus } | undefined) => {
       setCards([...(result?.data ?? [])])
       setStatus(result?.coordinator)
       setError("")
-    } catch (e) {
-      setError(String((e as Error)?.message ?? e))
-    } finally {
-      inflight = false
-    }
-    setNow(Date.now())
+    },
+    fail: (e) => setError(String((e as Error)?.message ?? e)),
+    done: () => setNow(Date.now()),
+  })
+  const refresh = async () => {
+    if (!sdk?.api?.mission) return
+    await refresher.run()
   }
   void refresh()
   const timer = setInterval(() => void refresh(), POLL_MS)
@@ -43,7 +40,10 @@ export function AttentionButton() {
   const resolve = async (cardID: string) => {
     setBusy(cardID)
     try {
+      refresher.invalidate()
       await sdk.api.mission.attention.resolve({ cardID })
+      // Anything that left while the resolve was on the wire is stale too.
+      refresher.invalidate()
       setCards(cards().filter((card) => card.id !== cardID))
       await refresh()
     } catch (e) {

@@ -5,6 +5,9 @@ import { AttentionCardNotFoundError } from "../errors.js"
 // Aporetic mission coordination: the attention cards the coordinator raises and the trigger that
 // runs it. Global (no location): the coordination log belongs to the whole app, not to one project.
 
+/** A person's note when resolving a card. Bounded so one request cannot write an unbounded fact into the log. */
+export const RESOLUTION_MAX_LENGTH = 2000
+
 export const AttentionCard = Schema.Struct({
   id: Schema.String,
   key: Schema.String,
@@ -50,7 +53,9 @@ export const MissionGroup = HttpApiGroup.make("server.mission")
   .add(
     HttpApiEndpoint.post("mission.attention.resolve", "/api/mission/attention/:cardID/resolve", {
       params: { cardID: Schema.String },
-      payload: Schema.Struct({ resolution: Schema.optional(Schema.String) }),
+      payload: Schema.Struct({
+        resolution: Schema.optional(Schema.String.check(Schema.isMaxLength(RESOLUTION_MAX_LENGTH))),
+      }),
       success: Schema.Struct({ data: AttentionCard }),
       error: AttentionCardNotFoundError,
     }).annotateMerge(
