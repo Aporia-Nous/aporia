@@ -4,6 +4,7 @@ import { AttentionButton } from "./attention"
 import { UpdateWatcher } from "./update"
 import { TeammatesSection } from "./bots"
 import { BotDispatcher } from "./dispatch"
+import { FlowCommands } from "./flows"
 import { RoomsSection } from "./rooms"
 import { ReactionsLayer } from "./reactions"
 // (timeline, tool runs, permission/question prompts, composer, attachments), so all agent
@@ -137,6 +138,7 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
       <VoiceCallHost directory={props.view.directory()} agent={info()?.agent} sessionID={props.view.sessionID()} />
       <UpdateWatcher />
       <BotDispatcher />
+      <FlowCommands />
       <ReactionsLayer sessionID={props.view.sessionID()} agent={info()?.agent} />
       <AporiaSidebar
         directory={props.view.directory()}

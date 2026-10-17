@@ -1,6 +1,8 @@
-// APORIA: Automations tab. Talks to local n8n through the desktop bridge (key stays in the main process).
+// APORIA: Automations tab. Native flows first (./flows, run in the server), then local n8n through the
+// desktop bridge (key stays in the main process).
 import { createResource, createSignal, For, Show } from "solid-js"
 import { EmptyState, Icon, Skeleton } from "./icons"
+import { FlowsSection } from "./flows"
 
 type Workflow = { id: string; name: string; active: boolean; lastRun?: { startedAt: string; status?: string } }
 type Bridge = { aporia?: { n8n?: (input: unknown) => Promise<unknown> } }
@@ -31,6 +33,8 @@ export function AutomationsTab() {
 
   return (
     <div class="ap-automations">
+      <FlowsSection />
+      <strong class="ap-flows-n8n">n8n workflows</strong>
       <Show when={status.error}>
         <EmptyState icon="sparkles" title="Automations unavailable" hint={String(status.error?.message ?? status.error)} />
       </Show>

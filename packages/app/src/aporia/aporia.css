@@ -548,3 +548,19 @@ button[title*="Move to background"] { display: none !important; }
 .ap-call-saved-item .ap-call-transcript { border: 0; border-top: 1px solid var(--ap-line); border-radius: 0; }
 .ap-call-voice { display: flex; align-items: center; gap: 8px; }
 .ap-call-voice select { max-width: 170px; }
+
+/* Native flows (flow engine stage 1) */
+.ap-flows { display: flex; flex-direction: column; gap: var(--ap-s2); }
+.ap-flows-head { display: flex; align-items: center; gap: var(--ap-s2); }
+.ap-flows-head .ap-muted { flex: 1; }
+.ap-flows-n8n { margin-top: var(--ap-s2); }
+.ap-flow-name { background: none; border: 0; padding: 0; color: inherit; text-align: left; cursor: pointer; flex: 1; min-width: 0; }
+.ap-flow-selected { border-color: var(--ap-teal) !important; }
+.ap-flow-json { width: 100%; box-sizing: border-box; font-family: var(--ap-mono, ui-monospace, monospace); font-size: 12px; background: var(--ap-bg, transparent); color: var(--ap-text); border: 1px solid var(--ap-line-strong); border-radius: var(--ap-r); padding: var(--ap-s2); resize: vertical; }
+.ap-flow-err { color: #fca5a5; }
+.ap-flow-history { display: flex; flex-direction: column; gap: var(--ap-s1); }
+.ap-flow-steps { margin: 0; padding-left: var(--ap-s4); display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
+.ap-step-succeeded { color: var(--ap-ok); }
+.ap-step-failed { color: #fca5a5; }
+.ap-step-needs-attention { color: var(--ap-amber, #fbbf24); }
+.ap-step-skipped, .ap-step-pending { opacity: 0.6; }
