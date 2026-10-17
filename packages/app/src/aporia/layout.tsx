@@ -1,5 +1,6 @@
 // APORIA: three-column session layout. The center column is the stock OpenCode session view
 import { aporiaAlerts, AlertBell, AlertToasts } from "./alerts"
+import { AttentionButton } from "./attention"
 import { UpdateWatcher } from "./update"
 import { TeammatesSection } from "./bots"
 import { BotDispatcher } from "./dispatch"
@@ -170,6 +171,7 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
               }}
             />
           </label>
+          <AttentionButton />
           <AlertBell />
           <button type="button" class="ap-icon-btn ap-panel-toggle" title={rightOpen() ? "Hide panel" : "Show panel"} aria-label="Toggle right panel" onClick={toggleRight}>
             {rightOpen() ? "»" : "«"}
