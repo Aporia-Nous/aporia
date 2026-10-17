@@ -1,0 +1,79 @@
+===== Stage 2 pre-migration backup, read-only ===== 
+backup file: C:\Users\Dilla\.local\share\opencode\opencode-aporia-dev.db.bak-stage2 
+ M packages/core/src/mission/coordinator.ts
+ M packages/core/src/mission/event.ts
+ M packages/core/test/coordination.test.ts
+?? docs/an-rewrite/evidence/2026-10-17-stage2-backup.txt
+backup file timestamp and size: 
+ Volume in drive C is Windows
+ Volume Serial Number is 6248-8018
+
+ Directory of C:\Users\Dilla\.local\share\opencode
+
+10/17/2026  03:52 AM        1221545984 opencode-aporia-dev.db.bak-stage2
+               1 File(s)     1221545984 bytes
+               0 Dir(s)     16363720704 bytes free
+sha256 of the backup file: 
+SHA256 hash of C:\Users\Dilla\.local\share\opencode\opencode-aporia-dev.db.bak-stage2:
+fd19bd5c404c94fa266aa41d3eb477aa9b9feda4bf915ce034832e5589bf0ba9
+CertUtil: -hashfile command completed successfully.
+ 
+--- read-only counts of the backup (stage2-devcopy-state.ts, readonly connection) --- 
+file: C:\Users\Dilla\.local\share\opencode\opencode-aporia-dev.db.bak-stage2
+bytes: 1221545984
+integrity: "ok"
+journal_mode: "delete"
+tables: 33
+domain tables present: 8/10
+mission_event columns: 
+mission_coordinator_cursor columns: 
+stage2 migration recorded: 0
+{"session_v2":693,"session_message":70693,"project":38,"migration":51,"bot":0,"team":0,"mission":0,"task":0,"mission_event":-1,"mission_coordinator_cursor":-1}
+indexes: (none)
+exit=0 
+ 
+--- the script that made the backup, from outside the repo (not committed), sha256 then full text --- 
+SHA256 hash of C:\Users\Dilla\Aporia\bots\aporetic-dev\work\backup-stage1.ts:
+e92a497a98d018c63e16d69b7345214396ab3d11d660ceaa105365cae9442b67
+CertUtil: -hashfile command completed successfully.
+// Stage-1 pre-migration backup of the DEV database.
+// Checkpoints the WAL, then VACUUM INTO a .bak-stage1 marker next to the DB, then verifies it.
+// Usage: bun backup-stage1.ts <source.db> <target.db>
+import { Database } from "bun:sqlite"
+import { existsSync, statSync } from "node:fs"
+
+const [src, dst] = process.argv.slice(2) as [string, string]
+if (!src || !dst) throw new Error("usage: backup-stage1.ts <source> <target>")
+if (existsSync(dst)) throw new Error(`target already exists: ${dst}`)
+
+// 1. Flush the WAL into the main file so the copy cannot depend on sidecar state.
+{
+  const db = new Database(src, { readwrite: true } as any)
+  const mode = db.query("pragma journal_mode").get() as { journal_mode: string }
+  console.log(`journal_mode = ${mode.journal_mode}`)
+  if (mode.journal_mode === "wal") {
+    const res = db.query("pragma wal_checkpoint(TRUNCATE)").get() as Record<string, number>
+    console.log(`wal_checkpoint(TRUNCATE) = ${JSON.stringify(res)}`)
+  }
+  db.close()
+}
+
+// 2. Consistent copy.
+{
+  const db = new Database(src, { readonly: true })
+  db.exec(`VACUUM INTO '${dst.replace(/\\/g, "/")}'`)
+  db.close()
+}
+
+const size = (p: string) => `${(statSync(p).size / 1024 ** 3).toFixed(3)} GB`
+console.log(`source ${size(src)} -> target ${size(dst)}`)
+
+const check = new Database(dst, { readonly: true })
+console.log(`integrity_check = ${JSON.stringify(check.query("pragma integrity_check").get())}`)
+for (const t of ["session_v2", "session_message", "project", "migration"]) {
+  const rows = check.query(`select count(*) c from ${t}`).get() as { c: number }
+  console.log(`${t} rows = ${rows.c.toLocaleString("en-US")}`)
+}
+const tables = check.query("select count(*) c from sqlite_master where type='table' and name not like 'sqlite_%'").get() as { c: number }
+console.log(`tables = ${tables.c}`)
+check.close()

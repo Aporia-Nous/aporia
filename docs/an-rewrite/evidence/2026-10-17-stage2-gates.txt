@@ -2,31 +2,50 @@
 branch: 
 an/stage-2-event-store
 log: 
+df5054e918 test(mission): pin the role rules and the approval resume
+849840bb55 fix(mission): make append's result honest and the wake dedupe log-backed
+2abfc71bf5 docs(an-rewrite): record Stage 2 with its stored runs and the dev-copy state
 96ee966d94 test(mission): prove the coordination rules and coordinator recovery
 285d02fa91 feat(mission): derive coordination state and the wake rules from the log
-07a85dfafc feat(mission): append-only mission event log with a replay cursor
-28859fd16e docs(an-rewrite): Stage 1 independent verification PASS, with the push state stored
-28b6f22a4d docs(an-rewrite): correct the Stage 1 commit count and cite the dev-copy counters
 status --porcelain: 
-?? docs/an-rewrite/evidence/2026-10-17-stage2-branch-log.txt
-?? docs/an-rewrite/evidence/2026-10-17-stage2-gates.txt
+ M docs/an-rewrite/evidence/2026-10-17-stage2-gates.txt
+?? docs/an-rewrite/evidence/2026-10-17-stage2-backup.txt
  
 === 1. coordination rules + restart recovery (test/coordination.test.ts) === 
+--- command: bun test test/coordination.test.ts --- 
 bun test v1.4.3 (c6da4a4d3)
 
- 10 pass
+ 13 pass
  0 fail
- 115 expect() calls
-Ran 10 tests across 1 file. [881.00ms]
+ 126 expect() calls
+Ran 13 tests across 1 file. [1100.00ms]
 exit=0 
+--- the test names in that file, so the run can be matched to the claims --- 
+71:  it.effect("an artifact wakes the reviewer once; a replay wakes nobody", () =>
+100:  it.effect("a replayed task.created makes one task", () =>
+122:  it.effect("an ack never produces a wake or another ack", () =>
+159:  it.effect("a terminal task produces no wakes", () =>
+193:  it.effect("new failing evidence reopens the task as revision 2", () =>
+233:  it.effect("fifty distinct messages are all routed: the count is not a cap", () =>
+271:  it.effect("a repeat with nothing new coalesces, then escalates exactly once", () =>
+303:  it.effect("one approval produces one attention item, however often it is raised", () =>
+322:  it.effect("handling the same fact twice delivers one wake", () =>
+344:  it.effect("a passed review wakes the verifier, and no other role", () =>
+366:  it.effect("an event with nobody in that role raises one attention instead of silence", () =>
+389:  it.effect("a granted approval resumes the owner exactly once", () =>
+417:  it.effect("a restart drains what it has not seen and never delivers twice", () =>
+--- the describe blocks --- 
+70:describe("coordination rules", () => {
+416:describe("coordinator recovery", () => {
  
 === 2. Stage 1 domain tests still green (test/mission.test.ts) === 
+--- command: bun test test/mission.test.ts --- 
 bun test v1.4.3 (c6da4a4d3)
 
  9 pass
  0 fail
  62 expect() calls
-Ran 9 tests across 1 file. [763.00ms]
+Ran 9 tests across 1 file. [937.00ms]
 exit=0 
  
 === 3. packages/core typecheck (tsgo -b tsconfig.json tsconfig.tests.json) === 
@@ -39,7 +58,7 @@ bun test v1.4.3 (c6da4a4d3)
  54 pass
  0 fail
  118 expect() calls
-Ran 54 tests across 10 files. [179.00ms]
+Ran 54 tests across 10 files. [1370.00ms]
 exit=0 
  
 === 5. packages/desktop standing gate: bun test src/main/aporia === 
@@ -48,7 +67,7 @@ bun test v1.4.3 (c6da4a4d3)
  62 pass
  0 fail
  189 expect() calls
-Ran 62 tests across 10 files. [1438.00ms]
+Ran 62 tests across 10 files. [1.79s]
 exit=0 
  
 === 6. packages/app typecheck (known: 2 pre-existing custom-elements.d.ts TS1128 errors) === 
@@ -75,7 +94,7 @@ domain tables present: 10/10
 mission_event columns: seq, id, mission_id, task_id, correlation_id, type, actor, payload, idempotency_key, time_created
 mission_coordinator_cursor columns: id, seq
 stage2 migration recorded: 1
-{"session_v2":693,"session_message":70707,"project":38,"migration":52,"bot":13,"team":1,"mission":1,"task":0,"mission_event":0,"mission_coordinator_cursor":0}
+{"session_v2":694,"session_message":70847,"project":38,"migration":52,"bot":13,"team":1,"mission":1,"task":0,"mission_event":0,"mission_coordinator_cursor":0}
 indexes: mission_event_correlation_idx, mission_event_idempotency_idx, mission_event_mission_idx, mission_event_task_idx, sqlite_autoindex_mission_coordinator_cursor_1, sqlite_autoindex_mission_event_1
 exit=0 
  
