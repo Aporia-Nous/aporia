@@ -32,6 +32,7 @@ import { SdkPlugins } from "@opencode/core/plugin/sdk"
 import { WellKnown } from "@opencode/core/wellknown"
 import { Workspace } from "@opencode/core/workspace"
 import { Mission } from "@opencode/core/mission"
+import { Flow } from "@opencode/core/flow"
 import { Watcher } from "@opencode/core/filesystem/watcher"
 import { HttpRouter } from "effect/http"
 import { HttpApiBuilder } from "effect/http-api"
@@ -83,6 +84,9 @@ const applicationServiceNodes = [
   Mission.Coordinator.node,
   Mission.CoordinatorTrigger.node,
   Mission.AttentionCards.node,
+  // Aporetic: the native flow engine and its runner loop (boot pass + 1 s poll).
+  Flow.Flows.node,
+  Flow.FlowRunner.node,
 ] as const
 const applicationServices = LayerNode.group(applicationServiceNodes)
 
@@ -180,6 +184,8 @@ function makeRoutes<AuthError, AuthServices>(
             WellKnown.Service,
             Mission.AttentionCards.Service,
             Mission.CoordinatorTrigger.Service,
+            Flow.Flows.Service,
+            Flow.FlowRunner.Service,
           )(context),
         ),
         ServerInfo.layer(serviceURLs, Context.get(context, Global.Service).tmp, options.app),
