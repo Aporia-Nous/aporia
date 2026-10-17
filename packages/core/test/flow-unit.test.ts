@@ -87,6 +87,13 @@ describe("validation", () => {
     }
     const problems = FlowDefinition.validate(cycle).join("\n")
     expect(problems).toMatch(/cycle|entry/)
+    const twice = minimal({
+      steps: [
+        { id: "a", type: "set", params: { fields: { x: 1 } } },
+        { id: "a", type: "set", params: { fields: { x: 2 } } },
+      ],
+    })
+    expect(FlowDefinition.validate(twice).join()).toContain("repeated")
     const dangling = minimal({ connections: [{ from: "a", to: "ghost" }] })
     expect(FlowDefinition.validate(dangling).join()).toContain("ghost")
     const badOutput = {

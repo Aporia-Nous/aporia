@@ -37,6 +37,7 @@ const server = Bun.serve({
       fail500--
       return new Response("busy", { status: 500 })
     }
+    if (url.pathname === "/big") return new Response("x".repeat(1_200_000), { headers: { "content-type": "text/plain" } })
     if (url.pathname === "/redirect") return new Response(null, { status: 302, headers: { location: "http://example.com/" } })
     if (url.pathname === "/data")
       return Response.json({ who: url.searchParams.get("who"), count: 3, items: [{ n: 2 }, { n: 1 }, { n: 3 }] })
@@ -393,6 +394,51 @@ describe("F1-2..F1-4 runs", () => {
       expect(failed.error).toContain("redirects are not followed")
       expect(hits["GET /redirect"]).toBe(1)
     }),
+  )
+
+  it.effect("http: a response over 1 MB, a timeout and a refused connection each end the step as documented", () =>
+    Effect.gen(function* () {
+      const flows = yield* Flow.Flows.Service
+      const one = (id: string, params: Record<string, unknown>, hosts = [HOST]) => ({
+        id,
+        name: id,
+        permissions: { hosts },
+        steps: [{ id: "call", type: "http", params }],
+        connections: [],
+      })
+      // Port 9 on loopback: nothing listens there, so the connection is refused.
+      const closed = "127.0.0.1:9"
+      yield* flows.save(one("big", { url: `${BASE}/big` }))
+      yield* flows.save(one("slow", { url: `${BASE}/slow`, timeoutSeconds: 1, maxAttempts: 1 }))
+      yield* flows.save(one("refused", { url: `http://${closed}/`, maxAttempts: 2 }, [closed]))
+
+      const big = yield* flows.requestRun({ flowId: "big", requestId: rid("big") })
+      yield* flows.tick
+      const bigRun = yield* flows.run(big.runId)
+      expect(bigRun.status).toBe("failed")
+      expect(bigRun.error).toContain("larger than")
+      expect(hits["GET /big"]).toBe(1)
+
+      hang = true
+      const slow = yield* flows.requestRun({ flowId: "slow", requestId: rid("slow") })
+      yield* flows.tick
+      hang = false
+      const slowRun = yield* flows.run(slow.runId)
+      expect(slowRun.status).toBe("failed")
+      expect(slowRun.error).toContain("timed out")
+
+      const refused = yield* flows.requestRun({ flowId: "refused", requestId: rid("refused") })
+      yield* flows.tick
+      const first = yield* flows.run(refused.runId)
+      expect(first.status).toBe("waiting")
+      expect(first.steps[0]!.error).toBe("network error")
+      yield* TestClock.adjust("1 second")
+      yield* flows.tick
+      const second = yield* flows.run(refused.runId)
+      expect(second.status).toBe("failed")
+      expect(second.steps[0]!.attempts).toBe(2)
+    }),
+    30_000,
   )
 
   it.effect("run-flow runs a child flow and hands its output back; nesting stops at the depth limit", () =>
