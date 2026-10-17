@@ -572,17 +572,17 @@ on a commit subject, with no file-level diff readable to it. That gap is answere
 `git diff --name-only` over that range. Equal tree hashes settle the question at any later tip, including one newer than the
 file, because the comparison is one line a reader can re-run; that is why the tree hash is there and a prose list is not.
 
-**Pass 5 — VERDICT FAIL, tree at `3c7d13e7ed`.** No code or test objection. It found the committee-of-one problem this
-section had created for itself: four passes in a row failed on a prose commit list that went stale every time it was written,
-so the list is now `git log`, not prose; the branch-log snapshot's own HEAD (`71bcc139cb`) is stated so nobody reads it as
-current; the passes file stopped promising a future record and gained a "how these records are kept" paragraph; and the
-code-diff evidence was replaced with the `packages/` tree hash, which a reader can re-run at any later tip. It also noted the
-two records did not agree — STATUS ended at Pass 4 while the passes file already had Pass 5 — which the note below now covers.
+**Pass 5 — VERDICT FAIL, tree at `3c7d13e7ed`.** No code or test objection. It found a problem this section had created for
+itself: passes 3, 4 and 5 each failed on a prose commit list that went stale every time it was written, so the list is now
+`git log`, not prose; the branch-log snapshot's own HEAD (`71bcc139cb`) is stated so nobody reads it as current; the passes file
+stopped promising a future record and gained a "how these records are kept" paragraph; and the code-diff evidence was replaced
+with the `packages/` tree hash, which a reader can re-run at any later tip. It also noted the two records did not agree —
+STATUS ended at Pass 4 while the passes file already had Pass 5 — which the note below now covers.
 
 **A note on how this section is written.** A pass's record is written by the commit that fixes what it found, so no record can
-describe the commit that contains it, and the newest record in this section and in
-`2026-10-17-stage2-verifier-passes.md` are kept in step: this paragraph and the file's newest block name the same pass and the
-same tree. Where they ever disagree, the stored verifier text is the one to trust.
+describe the commit that contains it, and the newest record in this section names the same pass and the same tree as the newest
+block in `2026-10-17-stage2-verifier-passes.md`. Where they ever disagree, the stored verifier text is the one to trust. The
+record added after the final pass is a docs-only commit and is not itself re-verified, as on Stage 1.
 
 ### Stage 1 — branch `an/stage-1-domain-model`
 
