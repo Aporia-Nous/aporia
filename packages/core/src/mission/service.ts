@@ -90,6 +90,13 @@ export interface Interface {
     missionID: MissionID,
     sessionID: string,
   ) => Effect.Effect<Mission, MissionSchema.MissionNotFoundError>
+  /**
+   * Sessions attached to a mission, oldest first, with the participant that owns each one.
+   * The participant of a bot's session is the bot slug, which is how a wake finds the right session.
+   */
+  readonly listMissionSessions: (
+    missionID: MissionID,
+  ) => Effect.Effect<ReadonlyArray<{ readonly sessionID: string; readonly participant?: string }>>
   readonly setMissionState: (
     missionID: MissionID,
     state: MissionSchema.MissionState,
@@ -617,6 +624,16 @@ const layer = Layer.effect(
       return (yield* loadMission(missionID))!
     })
 
+    const listMissionSessions = Effect.fn("Mission.listMissionSessions")(function* (missionID: MissionID) {
+      const rows = yield* db
+        .select()
+        .from(MissionSessionTable)
+        .where(eq(MissionSessionTable.mission_id, missionID))
+        .orderBy(asc(MissionSessionTable.time_created))
+        .pipe(Effect.orDie)
+      return rows.map((row) => ({ sessionID: row.session_id, participant: row.participant ?? undefined }))
+    })
+
     const setMissionState = Effect.fn("Mission.setMissionState")(function* (
       missionID: MissionID,
       state: MissionSchema.MissionState,
@@ -865,6 +882,7 @@ const layer = Layer.effect(
       createMission,
       attachMissionSession,
       detachMissionSession,
+      listMissionSessions,
       setMissionState,
       listTasks,
       getTask,
