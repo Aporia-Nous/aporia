@@ -18,6 +18,10 @@ describe("attention helpers", () => {
     const base = { running: true, cursor: 7, latest: 7, drains: 1, handled: 2 }
     expect(coordinatorLine({ ...base, running: false }, now)).toBe("Coordinator is not running")
     expect(coordinatorLine(base, now)).toBe("Coordinator running · caught up · no drain yet this run")
+    // A null from the wire is "not yet", never "56 years ago".
+    expect(coordinatorLine({ ...base, lastDrainAt: null }, now)).toBe(
+      "Coordinator running · caught up · no drain yet this run",
+    )
     expect(coordinatorLine({ ...base, latest: 8, lastDrainAt: now - 3_000 }, now)).toBe(
       "Coordinator running · 1 event behind · last drain just now",
     )

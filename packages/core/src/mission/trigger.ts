@@ -78,16 +78,18 @@ export const make = (options?: { readonly interval?: Duration.Input }) =>
     // `repeat` runs the first tick immediately: that is the boot drain.
     yield* guarded.pipe(Effect.repeat(Schedule.spaced(options?.interval ?? POLL_INTERVAL)), Effect.forkScoped)
 
+    // Absent fields are left out rather than set to undefined, so no encoder can turn them into null.
     const status = Effect.gen(function* () {
-      return {
+      const value: Status = {
         running: true,
         cursor: yield* events.cursor,
         latest: yield* events.latestSequence,
         drains: memory.drains,
         handled: memory.handled,
-        lastDrainAt: memory.lastDrainAt,
-        lastError: memory.lastError,
-      } satisfies Status
+        ...(memory.lastDrainAt === undefined ? {} : { lastDrainAt: memory.lastDrainAt }),
+        ...(memory.lastError === undefined ? {} : { lastError: memory.lastError }),
+      }
+      return value
     })
 
     return Service.of({ tick: guarded, status })

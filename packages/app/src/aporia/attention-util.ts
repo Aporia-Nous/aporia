@@ -16,8 +16,9 @@ export type CoordinatorStatus = {
   readonly latest: number
   readonly drains: number
   readonly handled: number
-  readonly lastDrainAt?: number
-  readonly lastError?: string
+  // The wire may carry null for an absent value; both mean "not yet".
+  readonly lastDrainAt?: number | null
+  readonly lastError?: string | null
 }
 
 /** "just now", "42s ago", "5m ago", "3h ago", "2d ago". Future times read as "just now". */
@@ -39,7 +40,7 @@ export function coordinatorLine(status: CoordinatorStatus | undefined, now: numb
   if (status.lastError) return "Coordinator: last drain failed, retrying"
   const backlog = Math.max(0, status.latest - status.cursor)
   const caught = backlog === 0 ? "caught up" : `${backlog} event${backlog === 1 ? "" : "s"} behind`
-  const last = status.lastDrainAt === undefined ? "no drain yet this run" : `last drain ${ago(status.lastDrainAt, now)}`
+  const last = status.lastDrainAt == null ? "no drain yet this run" : `last drain ${ago(status.lastDrainAt, now)}`
   return `Coordinator running · ${caught} · ${last}`
 }
 

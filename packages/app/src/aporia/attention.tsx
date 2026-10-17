@@ -19,9 +19,12 @@ export function AttentionButton() {
   const [busy, setBusy] = createSignal<string>()
   const [now, setNow] = createSignal(Date.now())
 
+  // One poll at a time: a slow server must not collect a queue of identical requests.
+  let inflight = false
   const refresh = async () => {
     const api = sdk?.api?.mission
-    if (!api) return
+    if (!api || inflight) return
+    inflight = true
     try {
       const result = await api.attention.list({ state: "open" })
       setCards([...(result?.data ?? [])])
@@ -29,6 +32,8 @@ export function AttentionButton() {
       setError("")
     } catch (e) {
       setError(String((e as Error)?.message ?? e))
+    } finally {
+      inflight = false
     }
     setNow(Date.now())
   }
@@ -39,6 +44,7 @@ export function AttentionButton() {
     setBusy(cardID)
     try {
       await sdk.api.mission.attention.resolve({ cardID })
+      setCards(cards().filter((card) => card.id !== cardID))
       await refresh()
     } catch (e) {
       setError(String((e as Error)?.message ?? e))
