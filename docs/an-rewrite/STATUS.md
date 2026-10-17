@@ -1,8 +1,8 @@
 # Aporetic rewrite — STATUS
 
 Checkout: `C:\Tools\aporia\.worktrees\opt`, on `rebrand/nousphere` up to the checkpoint tag `an/checkpoint-pre-stage1`
-(`c2b211d313`), and on stage branches cut from it from there on (currently `an/stage-1-domain-model`, which is not merged
-back). Source of truth for the order of work:
+(`c2b211d313`), and on stage branches from there on (Stage 1 on `an/stage-1-domain-model`; Stage 2 on
+`an/stage-2-event-store`, cut from the Stage 1 tip). Neither is merged back. Source of truth for the order of work:
 `APORETIC-DEV-BUILD-LIST.md` (a copy of it is not kept here; the brief is `APORETIC-DEV-REWRITE-HANDOFF.md`, sections A–K).
 
 Nothing is pushed. Nothing is merged. The installed app (`%LOCALAPPDATA%\Programs\Aporetic`) is untouched by this
@@ -378,6 +378,109 @@ Rollback: `git revert 19f4e7cf24 414d159845 8a4724ff36 4d1de66eb5 e2be3f6b1b` (n
 alone conflicts rather than returning the tree). The migration file and both generated registries go with `e2be3f6b1b`. For
 data, `opencode-aporia-dev.db.bak-stage1` is the pre-stage copy (`integrity_check` ok, 691 sessions, 69,990 messages) and the
 replay above proves restoring it and rerunning reproduces the same result.
+
+### Stage 2 — append-only event log and coordinator — branch `an/stage-2-event-store`
+
+Branch cut from the **Stage 1 tip** (`28859fd16e`), not from `rebrand/nousphere`. Stage 2 builds on Stage 1's `task` table, so
+cutting it from the checkpoint would have meant re-creating that table here; the deviation is recorded because it also means
+this branch carries Stage 1's commits. Commits: `07a85dfafc` (the log and its cursor), `285d02fa91` (the rules and the
+coordinator), `96ee966d94` (the tests), plus the docs commit that carries this section. Nothing pushed, nothing merged,
+nothing packaged, nothing installed. The push state is stored, not inferred, in
+`docs/an-rewrite/evidence/2026-10-17-stage2-branch-log.txt`: `git ls-remote --heads origin refs/heads/an/*` empty at exit 0,
+`git ls-remote --tags origin refs/tags/an/*` empty at exit 0, `git branch -r --contains HEAD` empty, no upstream on the branch,
+and `rebrand/nousphere` holding none of the Stage 2 commits.
+
+| # | commit | subject | tests |
+| - | - | - | - |
+| 1 | `07a85dfafc` | `feat(mission): append-only mission event log with a replay cursor` | covered by the Stage 2 tests below; `packages/core` typecheck exit 0 (gates §3) |
+| 2 | `285d02fa91` | `feat(mission): derive coordination state and the wake rules from the log` | same file; gates §1–3 |
+| 3 | `96ee966d94` | `test(mission): prove the coordination rules and coordinator recovery` | 10 pass / 0 fail, 115 `expect()` calls, exit 0 (gates §1) |
+
+Evidence: `docs/an-rewrite/evidence/2026-10-17-stage2-gates.txt` (all test runs, all four typechecks, the dev copy read
+read-only, and the generated migration) and `…-stage2-branch-log.txt` (push state). The gates file opens with
+`git log`/`git status --porcelain` for the tree the runs were made on.
+
+Standing gates at `96ee966d94`, stored: `packages/core/test/coordination.test.ts` **10 pass / 0 fail** (§1),
+`packages/core/test/mission.test.ts` **9 pass / 0 fail** (§2, so Stage 1 still holds), `bun test src/aporia` in `packages/app`
+**54 pass / 0 fail** across 10 files (§4), `bun test src/main/aporia` in `packages/desktop` **62 pass / 0 fail** across 10 files
+(§5), `packages/core` typecheck exit 0 (§3), and the two `packages/app` `custom-elements.d.ts:1` TS1128 errors which pre-date
+this branch (§6–7, same two errors Stage 1 stored).
+
+**What is actually built.**
+
+- **`mission_event`, append-only.** Columns `seq` (integer primary key, autoincrement), `id` (unique), `mission_id`, `task_id`,
+  `correlation_id`, `type`, `actor`, `payload`, `idempotency_key` (unique), `time_created`; four indexes (mission, task,
+  correlation, idempotency). `MissionEvents.append` runs in a transaction, finds the row by idempotency key first, and inserts
+  only when it is absent, returning `{event, inserted}`. Nothing updates or deletes a row. No foreign keys on purpose: history
+  must survive a bot or mission being archived.
+- **A single-row cursor**, `mission_coordinator_cursor` (id `"mission"`, `seq`), records how far the coordinator has replayed.
+  It only moves forward.
+- **`Coordination.fold`** is a pure function from a correlation's events to a view (purpose, open/closed, closure reason, who
+  opened it and who it is addressed to, the message count, and the no-progress counter). State is derived, never stored, so it
+  cannot drift from the facts and a restart needs no repair.
+- **`Coordination.decide`** is pure and total (no Effect, no database): event + task + folded view + roster -> decisions of the
+  form `wake | task | transition | close | attention`. The coordinator is the only thing that writes.
+- **`Coordinator`** (`Service` = `emit`, `handle`, `drain`, `cursor`) serialises everything behind the repo's
+  `KeyedMutex.make<"mission">()`. The waker is injected (`WakerService`), and the production layer delivers through the existing
+  session inbox (`SessionInbox.admit`) using a key of `wake:<event id>:<bot>:<purpose>`.
+- `Mission.listMissionSessions` was added to the service (interface + implementation + returned object) so a mission's sessions
+  can be read without touching the store directly.
+
+**The rules, and what makes each one hold.**
+
+| rule | how it is enforced | test |
+| - | - | - |
+| `artifact.created` wakes the reviewer | roster resolution: explicit `payload.reviewer`/`verifier`/`owner` (slug or id) wins, else the first expert on the team who is not the owner, else the team's coordinator; a missing role produces one attention item instead of silence | `an artifact wakes the reviewer once; a replay wakes nobody` |
+| `review.passed` wakes the verifier | same roster; no verifier -> one attention | Stage 1 + Stage 2 rules; attention path covered by the missing-role branch |
+| `review.failed` sends the task back with the finding | `transition` to `in_progress` through `setTaskState`, which already bumps `revision` when leaving a terminal state -> revision 2, no new API | `new failing evidence reopens the task as revision 2` |
+| `approval.required` is one attention item | the decision's dedupe key is `attention:approval:<approvalId>`, and the append ignores a key it already holds | `one approval produces one attention item, however often it is raised` |
+| `approval.granted` resumes once | same keyed shape; the granted event is a cause, its wake is an outcome | covered by the rule table + replay test |
+| ack never triggers an ack | `ack` is in the outcome set: `decide` returns no decisions for any outcome, and an ack also counts as "no information" so a stream of them cannot reset the no-progress counter | `an ack never produces a wake or another ack` (20 acks, 0 extra wakes, 0 attention) |
+| a terminal task produces no wakes | `isTerminalTask` short-circuits `decide` except for the reopen set (`task.reopened`, `review.failed`) | `a terminal task produces no wakes` |
+| no message cap | `messages` is a count for humans; the only thing that escalates is the same content repeated `NO_PROGRESS_LIMIT = 3` times | `fifty distinct messages are all routed: the count is not a cap` (51 wakes, thread still open) |
+| repeat with nothing new -> no progress -> coalesce, then escalate | consecutive identical content fingerprints (FNV-1a over purpose + text + target, **not** the event type) coalesce silently; the third identical message raises one attention and closes the thread with `no-progress` | `a repeat with nothing new coalesces, then escalates exactly once` |
+| exactly-once wake | the waker is called **first** with the key, then the `coordination.wake` row is appended with the same key, so a record that claims delivery cannot exist before delivery was attempted, and a replay is refused by the inbox's own dedupe as well as by the log | `handling the same fact twice delivers one wake` |
+
+**Acceptance for brief section E (the parts that do not need the UI).**
+
+| item | status | evidence |
+| - | - | - |
+| renderer killed after Builder finishes -> on reopen the Reviewer runs once | PASS at the coordinator level; **the app does not start the coordinator yet** | `a restart drains what it has not seen and never delivers twice`: a fact is recorded and left unhandled (the crash window), then two more independent boots over the same file database — the second drains it and delivers 1 wake, a second drain returns 0, a third boot re-handling the stored fact directly still delivers 1. The renderer plays no part by design: the coordinator is core-side |
+| replaying the same event twice -> 1 task | PASS | `a replayed task.created makes one task`: the task id is derived from the idempotency key (`"task_" + fingerprint(...)`), so the same occurrence asks for the same id and `createTask` is skipped when it is already there; three emits (two identical, one re-keyed to the same key) leave exactly one task with that title |
+| an ack-loop fixture cannot loop | PASS | the ack test above; structurally, `OUTCOMES` are `coordination.wake`, `coordination.attention`, `coordination.closed` and `ack`, and `decide` returns `[]` for all of them |
+| a terminal task produces zero wakes | PASS | the terminal test above |
+| new failing-test evidence reopens T as revision 2 | PASS | the reopen test above; the same finding replayed does not reopen it again |
+
+**Deviations and decisions worth carrying forward.**
+
+- Branch base is the Stage 1 tip (above).
+- The pure `fold` does not brand the target: a payload names a bot by slug, and `BotID` requires a `bot` prefix, so branding a
+  slug there would throw. The fold keeps `openerRef`/`targetRef` as strings and the coordinator resolves them against the bots
+  it can read; `decide` receives the resolved `BotID`. A target that resolves to nobody records one
+  `attention:missing-target:<ref>` instead of dropping the message silently.
+- The no-progress fingerprint deliberately leaves the event type out. The first message of a thread that repeats the opening
+  question verbatim is the same information, not new information.
+- `drain()` returns the number of events it replayed, which includes the coordinator's own outcome rows appended during that
+  pass — so the first drain after a record-but-not-handled fact reports 2 (the fact, then the wake it wrote), and the next
+  reports 0. The count is "events seen", not "wakes delivered".
+- `mission_event` has no foreign keys and the `payload` column is JSON text typed to the event schema; both follow from history
+  outliving what it refers to.
+
+**Limitations, stated plainly.**
+
+- The production waker (`SessionInbox.admit`) is compiled and typechecked but **not covered by a test**: every test replaces
+  `Coordinator.wakerNode` with a recording waker. What is proven is the coordinator's side of exactly-once; that a real inbox
+  row reaches a real bot session is Stage 3's job, together with the trigger.
+- Nothing in the app calls `Coordinator.drain` yet. No timer, no hook from the session event bus, no UI: the coordinator is a
+  node that exists and is tested, not a running part of the app. Stage 3 wires the trigger and the cards.
+- The dev copy has the two new tables and the migration recorded, with **0 rows in `mission_event`** (gates §8) because nothing
+  in the running app emits yet. That is the honest state, not a failure.
+- `switch-dev-to-isolated.cmd` rebuilds the dev copy from prod, so a later switch replaces this copy with an unmigrated one; the
+  first app start then applies both migrations and `script/mission-backfill.ts` has to run again, exactly as Stage 1 says.
+
+Rollback: `git revert 96ee966d94 285d02fa91 07a85dfafc` (newest first). The migration file and both generated registries
+(`migration.gen.ts`, `schema.gen.ts`, `schema.json`) go with `07a85dfafc`. For data, `opencode-aporia-dev.db.bak-stage2` is the
+pre-stage copy (1,138 MB, `integrity_check` ok, 693 sessions, 70,693 messages, 51 migrations, 33 tables).
 
 ## Independent verification
 

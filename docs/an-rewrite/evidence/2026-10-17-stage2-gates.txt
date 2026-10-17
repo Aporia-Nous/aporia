@@ -1,0 +1,118 @@
+============================== Stage 2 gates (branch an/stage-2-event-store) ============================== 
+branch: 
+an/stage-2-event-store
+log: 
+96ee966d94 test(mission): prove the coordination rules and coordinator recovery
+285d02fa91 feat(mission): derive coordination state and the wake rules from the log
+07a85dfafc feat(mission): append-only mission event log with a replay cursor
+28859fd16e docs(an-rewrite): Stage 1 independent verification PASS, with the push state stored
+28b6f22a4d docs(an-rewrite): correct the Stage 1 commit count and cite the dev-copy counters
+status --porcelain: 
+?? docs/an-rewrite/evidence/2026-10-17-stage2-branch-log.txt
+?? docs/an-rewrite/evidence/2026-10-17-stage2-gates.txt
+ 
+=== 1. coordination rules + restart recovery (test/coordination.test.ts) === 
+bun test v1.4.3 (c6da4a4d3)
+
+ 10 pass
+ 0 fail
+ 115 expect() calls
+Ran 10 tests across 1 file. [881.00ms]
+exit=0 
+ 
+=== 2. Stage 1 domain tests still green (test/mission.test.ts) === 
+bun test v1.4.3 (c6da4a4d3)
+
+ 9 pass
+ 0 fail
+ 62 expect() calls
+Ran 9 tests across 1 file. [763.00ms]
+exit=0 
+ 
+=== 3. packages/core typecheck (tsgo -b tsconfig.json tsconfig.tests.json) === 
+$ tsgo -b tsconfig.json tsconfig.tests.json
+exit=0 
+ 
+=== 4. packages/app standing gate: bun test src/aporia === 
+bun test v1.4.3 (c6da4a4d3)
+
+ 54 pass
+ 0 fail
+ 118 expect() calls
+Ran 54 tests across 10 files. [179.00ms]
+exit=0 
+ 
+=== 5. packages/desktop standing gate: bun test src/main/aporia === 
+bun test v1.4.3 (c6da4a4d3)
+
+ 62 pass
+ 0 fail
+ 189 expect() calls
+Ran 62 tests across 10 files. [1438.00ms]
+exit=0 
+ 
+=== 6. packages/app typecheck (known: 2 pre-existing custom-elements.d.ts TS1128 errors) === 
+$ tsgo -b
+src/custom-elements.d.ts(1,1): error TS1128: Declaration or statement expected.
+src/custom-elements.d.ts(1,2): error TS1128: Declaration or statement expected.
+error: script "typecheck" exited with code 1
+exit=1 
+ 
+=== 7. packages/desktop typecheck (same 2 pre-existing errors, reached through ../app) === 
+$ tsgo -b
+../app/src/custom-elements.d.ts(1,1): error TS1128: Declaration or statement expected.
+../app/src/custom-elements.d.ts(1,2): error TS1128: Declaration or statement expected.
+error: script "typecheck" exited with code 1
+exit=1 
+ 
+=== 8. DEV copy state, read-only (migration applied to opencode-aporia-dev.db only) === 
+file: C:\Users\Dilla\.local\share\opencode\opencode-aporia-dev.db
+bytes: 1226915840
+integrity: "ok"
+journal_mode: "wal"
+tables: 36
+domain tables present: 10/10
+mission_event columns: seq, id, mission_id, task_id, correlation_id, type, actor, payload, idempotency_key, time_created
+mission_coordinator_cursor columns: id, seq
+stage2 migration recorded: 1
+{"session_v2":693,"session_message":70707,"project":38,"migration":52,"bot":13,"team":1,"mission":1,"task":0,"mission_event":0,"mission_coordinator_cursor":0}
+indexes: mission_event_correlation_idx, mission_event_idempotency_idx, mission_event_mission_idx, mission_event_task_idx, sqlite_autoindex_mission_coordinator_cursor_1, sqlite_autoindex_mission_event_1
+exit=0 
+ 
+=== 9. the Stage 2 migration as generated === 
+import { Effect } from "effect"
+import type { DatabaseMigration } from "../migration.js"
+
+const migration: DatabaseMigration.Migration = {
+  id: "20261017084824_stage2_mission_event",
+  up(tx) {
+    return Effect.gen(function* () {
+      yield* tx.run(`
+        CREATE TABLE \`mission_coordinator_cursor\` (
+          \`id\` text PRIMARY KEY,
+          \`seq\` integer DEFAULT 0 NOT NULL
+        );
+      `)
+      yield* tx.run(`
+        CREATE TABLE \`mission_event\` (
+          \`seq\` integer PRIMARY KEY AUTOINCREMENT,
+          \`id\` text NOT NULL UNIQUE,
+          \`mission_id\` text,
+          \`task_id\` text,
+          \`correlation_id\` text NOT NULL,
+          \`type\` text NOT NULL,
+          \`actor\` text NOT NULL,
+          \`payload\` text NOT NULL,
+          \`idempotency_key\` text NOT NULL,
+          \`time_created\` integer NOT NULL
+        );
+      `)
+      yield* tx.run(`CREATE UNIQUE INDEX \`mission_event_idempotency_idx\` ON \`mission_event\` (\`idempotency_key\`);`)
+      yield* tx.run(`CREATE INDEX \`mission_event_correlation_idx\` ON \`mission_event\` (\`correlation_id\`,\`seq\`);`)
+      yield* tx.run(`CREATE INDEX \`mission_event_task_idx\` ON \`mission_event\` (\`task_id\`,\`seq\`);`)
+      yield* tx.run(`CREATE INDEX \`mission_event_mission_idx\` ON \`mission_event\` (\`mission_id\`,\`seq\`);`)
+    })
+  },
+}
+
+export default migration

@@ -1,0 +1,46 @@
+=== branch and push state, C:\Tools\aporia\.worktrees\opt === 
+current branch: 
+an/stage-2-event-store
+upstream of HEAD (line below is an error when the branch has no upstream, which is the case here): 
+fatal: no upstream configured for branch 'an/stage-2-event-store'
+remotes configured: 
+origin	https://github.com/Aporia-Nous/aporia.git (fetch)
+origin	https://github.com/Aporia-Nous/aporia.git (push)
+ 
+remote branch refs that match this stage (empty output = the branch exists only locally): 
+exit=0 
+remote tracking branches that contain HEAD (empty = no remote copy of any of these commits): 
+exit=0 
+remote tags matching the checkpoint tag (empty = the tag is local too): 
+exit=0 
+fetch refspecs (a branch with no upstream can still have been pushed with git push origin HEAD): 
++refs/heads/*:refs/remotes/origin/*
+ 
+commits since the checkpoint tag c2b211d313: 
+96ee966d94 test(mission): prove the coordination rules and coordinator recovery
+285d02fa91 feat(mission): derive coordination state and the wake rules from the log
+07a85dfafc feat(mission): append-only mission event log with a replay cursor
+28859fd16e docs(an-rewrite): Stage 1 independent verification PASS, with the push state stored
+28b6f22a4d docs(an-rewrite): correct the Stage 1 commit count and cite the dev-copy counters
+6167b94db4 docs(an-rewrite): back Stage 1's numbers with stored runs, fix the claims the verifier failed
+19f4e7cf24 test(mission): pin both tasks across a refused and a completed archive
+414d159845 fix(mission): bump each reassigned task's own revision on archive
+8a4724ff36 docs(an-rewrite): record Stage 1 and its replay evidence
+4d1de66eb5 fix(mission): let the backfill runner read counts before the domain tables exist
+e2be3f6b1b feat(mission): durable bot, team, mission and task domain
+ 
+base branch rebrand/nousphere: 
+c2b211d313 docs(an-rewrite): record the DEV isolation run, the resumed-turn hazard and the switch script
+602004a2f7 docs(an-rewrite): record the independent verifier verdict for Stage 0
+32cbce8f72 docs(an-rewrite): commit the evidence logs and correct the amended commit hash
+ 
+does rebrand/nousphere contain any Stage 2 commit? (empty = no, the stage is only on its branch): 
+ 
+merge-base of the stage branch and rebrand/nousphere: 
+c2b211d313b14a15d3b14c1d225647cd19096844
+ 
+=== the main checkout C:\Tools\aporia stays on its own branch and was not written to by this stage === 
+its branch: 
+aporia/teammates
+its status (short): 
+?? dev-isolated.log
