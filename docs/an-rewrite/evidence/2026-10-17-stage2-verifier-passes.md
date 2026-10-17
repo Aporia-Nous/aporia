@@ -44,6 +44,20 @@ ISSUES:
 backup block's missing invocation, unlabelled timezone and "read-only" heading. Both are fixed and described in STATUS.md.]
 ```
 
-## Pass 3
+## Pass 3 — tree at `a77ac8747c` — VERDICT: FAIL
+
+```
+VERDICT: FAIL
+
+ISSUES:
+- 1: Says gates §8 stores `695 / 70,919`; the stored run says `"session_message":70937` (STATUS.md:491; REQUIREMENTS-EVIDENCE.md:36; evidence/2026-10-17-stage2-gates.txt:116).
+- 1: Branch-log is cited as recorded "at `86e11bca69`", but its own HEAD line is `71bcc139cbe…` (STATUS.md:391; evidence/2026-10-17-stage2-branch-log.txt:26).
+- 1: Standing gates are cited "at `86e11bca69`", but the stored gates file's log top is `71bcc139cb` (STATUS.md:410; evidence/2026-10-17-stage2-gates.txt:5).
+- 8: Stage 2 commit list omits `225781f019` and `71bcc139cb`, calling the docs commits only `2abfc71bf5`, `86e11bca69` and this one (STATUS.md:388; evidence/2026-10-17-stage2-branch-log.txt:30-31).
+
+Confirmed from files: red-run is consistent with the test as written — third boot clears `delivered` but keeps `deliveries`, so only the log check at coordinator.ts:149-152 prevents the second delivery, and the recorded failure is exactly line 465 with `Received length: 2` (test:455-465). Backup arithmetic is right: 33 listed tables + `mission_event` + `mission_coordinator_cursor` + `sqlite_sequence` = 36 (backup:45-77; gates:120-156). Backup invocation, local-time label and stand-alone listing are present (backup:7,15,21,81), and size/sha match the docs (backup:22,26; STATUS.md:499). Gates script logs 20 commits (stage2-gates.cmd:16) and the log includes `07a85dfafc` (gates:13). Stage 2 rule/acceptance tests all exist in the printed test list (gates:43-55), the 13/126 count matches §1 (gates:37-40), and no unevidenced 10/115 count survives. "Nothing pushed" still holds at `71bcc139cb` (branch-log:16-26, 49-53). No secret found in the docs.
+```
+
+## Pass 4
 
 Recorded in `STATUS.md` after it ran.

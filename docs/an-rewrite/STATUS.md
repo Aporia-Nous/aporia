@@ -385,12 +385,13 @@ Branch cut from the **Stage 1 tip** (`28859fd16e`), not from `rebrand/nousphere`
 cutting it from the checkpoint would have meant re-creating that table here; the deviation is recorded because it also means
 this branch carries Stage 1's commits. Commits: `07a85dfafc` (the log and its cursor), `285d02fa91` (the rules and the
 coordinator), `96ee966d94` (the first tests), `849840bb55` (two defects the first verifier pass found), `df5054e918` (three
-more tests), then the docs commits `2abfc71bf5`, `86e11bca69` and the one that carries this section — which by construction
-cannot appear in a log written before it. Nothing pushed, nothing merged, nothing packaged, nothing installed. The push state
-is stored, not inferred, in `docs/an-rewrite/evidence/2026-10-17-stage2-branch-log.txt`, which records each command line, its
-output and its exit code at `86e11bca69`: `git ls-remote --heads origin refs/heads/an/*` empty at exit 0, `git ls-remote
---tags origin refs/tags/an/*` empty at exit 0, `git branch -r --contains HEAD` empty, no upstream on the branch (exit 128), and
-`rebrand/nousphere` holding none of the Stage 2 commits.
+more tests), `225781f019` (the restart proof made to depend on the log alone), `71bcc139cb` (the six claims the second pass
+failed), `a77ac8747c` (the evidence regenerated at `71bcc139cb`), then the docs commit that carries this section — which by
+construction cannot appear in a log written before it. Nothing pushed, nothing merged, nothing packaged, nothing installed. The
+push state is stored, not inferred, in `docs/an-rewrite/evidence/2026-10-17-stage2-branch-log.txt`, which records each command
+line, its output and its exit code at `71bcc139cb`: `git ls-remote --heads origin refs/heads/an/*` empty at exit 0, `git
+ls-remote --tags origin refs/tags/an/*` empty at exit 0, `git branch -r --contains HEAD` empty, no upstream on the branch (exit
+128), and `rebrand/nousphere` holding none of the Stage 2 commits.
 
 | # | commit | subject | tests |
 | - | - | - | - |
@@ -407,7 +408,7 @@ disables the log check and shows the restart test failing, then restores the fil
 `git log`/`git status --porcelain` for the tree the runs were made on, and says in its own words that the evidence files this
 run writes appear in that status as modified or untracked because they are committed after it.
 
-Standing gates at `86e11bca69`, stored: `packages/core/test/coordination.test.ts` **13 pass / 0 fail** (§1, with the test
+Standing gates at `71bcc139cb`, stored: `packages/core/test/coordination.test.ts` **13 pass / 0 fail** (§1, with the test
 names printed underneath so each rule can be matched to a run), `packages/core/test/mission.test.ts` **9 pass / 0 fail** (§2,
 so Stage 1 still holds), `bun test src/aporia` in `packages/app` **54 pass / 0 fail** across 10 files (§4), `bun test
 src/main/aporia` in `packages/desktop` **62 pass / 0 fail** across 10 files (§5), `packages/core` typecheck exit 0 (§3), and
@@ -488,8 +489,10 @@ stored).
   `mission_coordinator_cursor` 0) because nothing in the running app emits yet. That is the honest state, not a failure.
 - The dev copy is **live**: the running DEV app writes its own sessions into `opencode-aporia-dev.db` (its newest rows are this
   morning's own bot and verifier sessions), so the session counts drift between evidence runs — 693 sessions / 70,693 messages
-  in the pre-migration backup, 695 / 70,919 in the latest gates §8 run. Every number quoted here is the snapshot that run took,
-  read-only; the domain counts are what the claims rest on and they have not moved (13 / 1 / 1, `mission_event` 0).
+  in the pre-migration backup, and a higher pair in whichever gates §8 run is read. That is why the session counts are quoted
+  from a named file rather than here: the file holds the snapshot its own run took, read-only, and it moved again between the
+  last two runs. The domain counts are what the claims rest on and they are stable (13 bots / 1 team / 1 mission, `task` 0,
+  `mission_event` 0, migration 52, `integrity_check` ok).
 - `switch-dev-to-isolated.cmd` rebuilds the dev copy from prod, so a later switch replaces this copy with an unmigrated one; the
   first app start then applies both migrations and `script/mission-backfill.ts` has to run again, exactly as Stage 1 says.
 
@@ -546,6 +549,16 @@ is stored in `docs/an-rewrite/evidence/2026-10-17-stage2-verifier-passes.md`. Wh
 - the backup evidence gave no invocation, labelled its `dir` timestamp as if it were UTC, and headed a section "read-only" when
   the script that *made* the backup opened the source read-write to checkpoint the WAL. All three corrected, and the file now
   proves the copy stands alone (33 tables, no `-wal`/`-shm` beside it).
+
+**Pass 3 — VERDICT FAIL, tree at `a77ac8747c`.** Four stale citations, no code fault: a session count quoted from the wrong
+run (the dev copy is live, so it moves between runs — the docs now quote it from the file instead of repeating it), the branch
+log and the gates run cited at `86e11bca69` when both record `71bcc139cb`, and a commit list missing `225781f019` and
+`71bcc139cb`. It confirmed from the files that the red run is consistent with the test as written (with `delivered` cleared and
+`deliveries` kept, only the log check can stop the second delivery, and the recorded failure is the line it names with
+`Received length: 2`), that the table arithmetic holds against both lists, that the backup's invocation, timezone label and
+stand-alone listing are present, and that nothing is pushed.
+
+**Pass 4 — recorded here after it ran.**
 
 ### Stage 1 — branch `an/stage-1-domain-model`
 
