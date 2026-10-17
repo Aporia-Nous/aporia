@@ -13,20 +13,34 @@ const Summary = Schema.Struct({
 })
 type Summary = typeof Summary.Type
 
-const entries = (skills: ReadonlyArray<Summary>) =>
-  skills.flatMap((skill) => [
-    "  <skill>",
-    `    <id>${skill.id}</id>`,
-    `    <name>${skill.name}</name>`,
-    `    <description>${skill.description}</description>`,
-    "  </skill>",
-  ])
+// The index only has to make a skill discoverable; the full description and content load with it.
+// Keep the opening sentence, then prefer the first trigger sentence, so the listing stays a search key.
+const SUMMARY_LIMIT = 220
+const Trigger =
+  /\b(?:use when|use this|use for|load when|applies when|applies to|triggers?|must use|you must|only when)\b/i
+
+const summarize = (description: string) => {
+  const text = description.replace(/\s+/g, " ").trim()
+  if (text.length <= SUMMARY_LIMIT) return text
+  const sentences = text.split(/(?<=[.!?])\s+/)
+  const opening = sentences[0] ?? text
+  const trigger = sentences.slice(1).find((sentence) => Trigger.test(sentence))
+  const candidate =
+    trigger !== undefined && opening.length + trigger.length + 1 <= SUMMARY_LIMIT ? `${opening} ${trigger}` : opening
+  if (candidate.length <= SUMMARY_LIMIT) return candidate
+  const clipped = candidate.slice(0, SUMMARY_LIMIT)
+  const boundary = clipped.lastIndexOf(" ")
+  return `${(boundary > SUMMARY_LIMIT - 30 ? clipped.slice(0, boundary) : clipped).trimEnd()}...`
+}
+
+const entry = (skill: Summary) =>
+  `- ${skill.id}${skill.name === String(skill.id) ? "" : ` (${skill.name})`}: ${summarize(skill.description)}`
+
+const entries = (skills: ReadonlyArray<Summary>) => skills.map(entry)
 
 const render = (skills: ReadonlyArray<Summary>) =>
   [
-    "Skills provide specialized instructions and workflows for specific tasks.",
-    "Use the skill tool to load a skill when a task matches its description.",
-    "The user may also invoke a skill directly. When that happens, its instructions appear in the conversation as a <skill_content> block, the same shape the skill tool returns. A skill that is already present this way does not need to be invoked again.",
+    "Skills provide specialized instructions for specific tasks. Use the skill tool to load one when a task matches its description; a skill already present as <skill_content> in the conversation needs no reload.",
     ...(skills.length === 0
       ? ["No skills are currently available."]
       : ["<available_skills>", ...entries(skills), "</available_skills>"]),

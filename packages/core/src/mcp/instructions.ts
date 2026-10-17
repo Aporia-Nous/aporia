@@ -15,18 +15,20 @@ const Summary = Schema.Struct({
 type Summary = typeof Summary.Type
 
 const entries = (servers: ReadonlyArray<Summary>) =>
-  servers.flatMap((server) => {
-    const result = [`  <server name="${server.server}">`]
-    if (server.codemode !== false)
-      result.push(
-        `    Use tools from this server through \`execute\` under \`tools[${JSON.stringify(McpTool.namespace(server.server))}]\`.`,
-      )
-    result.push(...server.instructions.split("\n").map((line) => `    ${line}`), "  </server>")
-    return result
-  })
+  servers.flatMap((server) => [
+    `  <server name="${server.server}">`,
+    ...(server.codemode === false ? ["    Tools from this server are callable directly, not through `execute`."] : []),
+    ...server.instructions.split("\n").map((line) => `    ${line}`),
+    "  </server>",
+  ])
 
 const render = (servers: ReadonlyArray<Summary>) =>
-  ["<mcp_instructions>", ...entries(servers), "</mcp_instructions>"].join("\n")
+  [
+    "<mcp_instructions>",
+    'Call each server\'s tools through `execute` under `tools["<server>"]`, where <server> is the block name with characters other than letters, digits, `_`, and `-` replaced by `_`.',
+    ...entries(servers),
+    "</mcp_instructions>",
+  ].join("\n")
 
 const update = (previous: ReadonlyArray<Summary>, current: ReadonlyArray<Summary>) => {
   const diff = Instructions.diffByKey(
@@ -90,8 +92,7 @@ export const layer = Layer.effect(
             if (codemode && !canExecute) return []
             if (
               !owned.some(
-                (tool) =>
-                  Permission.evaluate(McpTool.name(tool.server, tool.name), "*", permissions).effect !== "deny",
+                (tool) => Permission.evaluate(McpTool.name(tool.server, tool.name), "*", permissions).effect !== "deny",
               )
             )
               return []

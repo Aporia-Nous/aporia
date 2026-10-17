@@ -162,15 +162,16 @@ describe("CodeModeInstructions.render", () => {
     expect(instructions).toContain(`  - ${cheapBeta.signature} // Cheap`)
   })
 
-  test("charges inline JSDoc in signatures against the catalog token budget", () => {
+  test("drops signature JSDoc so it does not consume the catalog token budget", () => {
     const documented = entry(
       "records.lookup",
       "Look up a record",
       `tools.records.lookup({\n  /** ${"A detailed identifier description. ".repeat(20).trim()} */\n  id: string,\n}): Promise<string>`,
     )
     const instructions = render([documented], 40)
-    expect(instructions).toContain("- records (1 tool, none shown)")
-    expect(instructions).not.toContain("tools.records.lookup(input:")
+    expect(instructions).toContain("- records (1 tool)")
+    expect(instructions).toContain("  - tools.records.lookup({\n  id: string,\n}): Promise<string> // Look up a record")
+    expect(instructions).not.toContain("detailed identifier description")
   })
 
   test("renders only the no-tools notice for an empty catalog", () => {
