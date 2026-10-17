@@ -65,12 +65,17 @@ describe("mission domain", () => {
       expect(refusal._tag).toBe("Mission.BotHasOpenTasks")
       if (refusal._tag === "Mission.BotHasOpenTasks") {
         expect(refusal.botID).toBe(leaving.id)
-        expect([...refusal.taskIDs]).toEqual([open.id, reopened.id])
+        expect([...refusal.taskIDs].sort()).toEqual([open.id, reopened.id].sort())
       }
       // Nothing moved yet: the refusal is not a partial archive.
       const stillThere = yield* mission.getBot(leaving.id)
       expect(stillThere.time.archived).toBeUndefined()
-      expect((yield* mission.getTask(open.id)).ownerId).toBe(leaving.id)
+      const untouched = yield* mission.getTask(open.id)
+      expect(untouched.ownerId).toBe(leaving.id)
+      expect(untouched.revision).toBe(1)
+      const untouchedReopened = yield* mission.getTask(reopened.id)
+      expect(untouchedReopened.ownerId).toBe(leaving.id)
+      expect(untouchedReopened.revision).toBe(2)
 
       const archived = yield* mission.archiveBot(leaving.id, { reassignTo: staying.id })
       expect(archived.time.archived).toBeDefined()
