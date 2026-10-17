@@ -2,7 +2,7 @@
 
 Checkout: `C:\Tools\aporia\.worktrees\opt`, on `rebrand/nousphere` up to the checkpoint tag `an/checkpoint-pre-stage1`
 (`c2b211d313`), and on stage branches from there on (Stage 1 on `an/stage-1-domain-model`; Stage 2 on
-`an/stage-2-event-store`, cut from the Stage 1 tip). Neither is merged back. Source of truth for the order of work:
+`an/stage-2-event-store`, cut from the Stage 1 tip; Stage 3 on `an/stage-3-coordinator`, cut from the Stage 2 tip). None is merged back. Source of truth for the order of work:
 `APORETIC-DEV-BUILD-LIST.md` (a copy of it is not kept here; the brief is `APORETIC-DEV-REWRITE-HANDOFF.md`, sections A–K).
 
 Nothing is pushed. Nothing is merged. The installed app (`%LOCALAPPDATA%\Programs\Aporetic`) is untouched by this
@@ -520,7 +520,98 @@ the script, which lives outside the repo at `C:\Users\Dilla\Aporia\bots\aporetic
 evidence because the script is not committed here. The file is the only stand-alone copy — `dir /b` with a wildcard beside it
 shows no `-wal` or `-shm`.
 
+### Stage 3 — coordinator trigger, durable attention cards, attention UI — branch `an/stage-3-coordinator`
+
+Branch cut from the Stage 2 tip `e922ab3972`. The plan and acceptance criteria S3-1 to S3-8 were committed first
+(`docs/an-rewrite/STAGE3-PLAN.md`). The commit list is read from `git log e922ab3972..an/stage-3-coordinator`. The code
+commits are `3510b5d9d3` (restart tests open fresh layers), `7ce7696fb5` (trigger and cards), `ed8b7f3c8c` (server routes and
+the regenerated client), `f99160a93e` (attention UI) and `45bfcbc516` (a null drain time and a poll guard found in the Dev
+check). The documentation and evidence commits follow them. Nothing pushed, nothing merged, nothing packaged, nothing installed.
+Local tags: `an/checkpoint-stage3-pre-dev` (`f99160a93e`, taken before the Dev check) and `an/checkpoint-stage3-done` (cut
+only on the verification PASS below).
+
+**What it does.**
+
+- `CoordinatorTrigger` (core, `mission/trigger.ts`) runs inside the server process. It drains once at boot, which is
+  the crash recovery. After that it checks every 2 s and drains only when the log's highest seq is ahead of the
+  cursor. A failing drain is logged and kept in `status.lastError`, and the next tick retries it. The loop never dies.
+- `AttentionCards` (core, `mission/cards.ts`). A card is a `coordination.attention` event, and resolving it appends
+  one `attention.resolved` event (actor `user`, key `resolve:<card id>`). Card state is a pure fold over the log, so
+  there is no new table and no migration. `attention.resolved` is an outcome, so resolving a card wakes nobody.
+  Resolving an unknown card is an error (HTTP 404). Resolving an already-resolved card returns it unchanged.
+- Three global routes sit behind the server's normal authorization: `GET /api/mission/attention`,
+  `POST /api/mission/attention/:cardID/resolve` and `POST /api/mission/coordinator/drain`. They are in the protocol,
+  `openapi.json` and the generated clients.
+- In the app, the top bar has a flag button with an amber count badge. Its panel ("Needs your attention") shows each
+  card's title, age, body and mission, a Resolve button, and one line of coordinator status. The panel polls every
+  5 s, one request at a time.
+
+**Evidence.** `docs/an-rewrite/evidence/2026-10-17-stage3-gates.txt` stores every run at `45bfcbc516`:
+
+| check | result |
+| - | - |
+| `coordination.test.ts` | 13 pass, 126 expects |
+| `mission.test.ts` | 9 pass, 62 expects |
+| new `attention.test.ts` | 6 pass, 37 expects |
+| server `mission.test.ts` | 1 pass, 8 expects |
+| server full suite | 78 pass, 0 fail |
+| app `src/aporia` | 57 pass (54 earlier + 3 new) |
+| desktop `src/main/aporia` | 62 pass |
+| core and server typecheck | exit 0 |
+| app and desktop typecheck | only the 2 pre-existing `custom-elements.d.ts` TS1128 errors |
+| client `check:generated` | clean |
+
+The protocol `check:generated` exits 1. That is line endings only: §14 of the gates file shows that the regenerated
+`openapi.json` has no content difference under `git diff`. The Dev check (§16, screenshots 01–11 on the box under
+`/workspace/aporetic/stage3/`) used `opencode-aporia-dev.db` only, with `.bak-stage3` taken first:
+- a fact written by another process became a card 1.7 s later;
+- an open card survived a restart, was resolved with a click, and stayed resolved after another restart;
+- a fact written while the app was closed became a card from the boot drain.
+
+**A test-harness finding.** Inside `it.effect`, an inner `Effect.provide(layer)` is memoised against the test's own
+layer. So a "second boot" reused the first boot's services and the in-memory database. Every restart boot now uses
+`Effect.provide(layer, { local: true })`, including the three in each of the Stage 1 and Stage 2 restart tests, which
+still pass. The earlier restart tests were not wrong in their asserts, but they did not reopen the file as intended.
+
+**Limitations, stated plainly.**
+
+- The production waker is still untested against a real session. The Dev check used `approval.required`, which only
+  raises a card.
+- Nothing in the app's session loop emits facts yet, so cards only appear for facts written by something.
+- Two Dev cards (seq 3 and 6 in the gates file) were resolved through the API as `user` by something other than this
+  run. It was most likely a person at the Dev app. That is UNKNOWN. The resolve route does not take a name, so every
+  resolution over HTTP is recorded as `user`.
+- One Dev card (seq 11) is left open on purpose.
+- Two things were seen and left as they were, because both are pre-existing: the Electron sidecar on 3084 binds
+  `0.0.0.0`, and an orphan worktree server (pid 41844) runs older code on 49375.
+- `switch-dev-to-isolated.cmd` was not run, because it rebuilds the dev copy from prod.
+
+Rollback: `git switch -c <name> an/checkpoint-pre-stage3` (or `e922ab3972`). There is no migration. The extra rows in
+the dev copy are inert to Stage 2 code, and `.bak-stage3` is the pre-check copy.
+
 ## Independent verification
+
+### Stage 3 — branch `an/stage-3-coordinator`
+
+**Pass 1 — VERDICT PASS, tree at the Stage 3 docs tip.** This pass was a fresh read of
+`git diff e922ab3972..HEAD`, checked against S3-1 to S3-8 and the stored gates. It was run by the same executor that
+wrote the code, not by a separate verifier agent, so it is labelled that way.
+
+| criterion | result |
+| - | - |
+| S3-1 trigger | PASS. Boot tick from `Effect.repeat`. Gate on `latest > cursor`. `catchCause` keeps the loop alive. Three core tests plus the Dev 1.7 s and boot-drain rows. |
+| S3-2 durable cards | PASS. A fold over the log, no table, no migration. A three-boot file-DB test. The Dev restarts. |
+| S3-3 idempotent and inert | PASS. A second resolve leaves one `attention.resolved`, with 0 wakes and 0 new attention. Unknown card gives a tagged error in core and 404 over HTTP. |
+| S3-4 one approval, one card | PASS. The same approval under two keys gives one card. |
+| S3-5 HTTP surface | PASS. Three routes, the handler, the client regenerated and `check:generated` clean. The protocol check's exit 1 is line endings only (gates §14). |
+| S3-6 UI | PASS. Screenshots 02, 03, 08, 09, 10, 11. |
+| S3-7 no regressions | PASS. Gates §1–§13. |
+| S3-8 hygiene | PASS at commit time. The secret/PII scan was run on each staged diff. `git ls-remote` for `an/*` heads and tags is empty. |
+
+Notes that did not fail a criterion:
+- `resolve` reads and then emits. Two concurrent resolves are safe only because the key is the same.
+- The UI component types the SDK as `any`.
+
 
 ### Stage 2 — branch `an/stage-2-event-store`
 
