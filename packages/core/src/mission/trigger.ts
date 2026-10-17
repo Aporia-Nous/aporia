@@ -34,6 +34,19 @@ export interface Status {
   readonly lastError?: string
 }
 
+/** What a client may see about a failed drain: the error's kind, never its message, stack or paths. */
+export const summary = (cause: Cause.Cause<unknown>): string => {
+  const error = Cause.squash(cause)
+  const tag =
+    typeof error === "object" && error !== null && "_tag" in error && typeof error._tag === "string"
+      ? error._tag
+      : error instanceof Error
+        ? error.name
+        : "Error"
+  const kind = /^[A-Za-z][\w.]{0,63}$/.test(tag) ? tag : "Error"
+  return `Drain failed (${kind}); details are in the server log`
+}
+
 export interface Interface {
   /** Drain now if the log is ahead of the cursor; otherwise do nothing. Returns events handled. */
   readonly tick: Effect.Effect<number>
@@ -68,8 +81,11 @@ export const make = (options?: { readonly interval?: Duration.Input }) =>
     const guarded = tick.pipe(
       Effect.catchCause((cause) =>
         Effect.gen(function* () {
-          memory.lastError = Cause.pretty(cause)
-          yield* Effect.logError("Mission coordinator drain failed", { cause: memory.lastError })
+          // Shutdown interrupts the loop. That is not a failed drain: let it end the fiber quietly.
+          if (Cause.hasInterrupts(cause)) return yield* Effect.failCause(cause)
+          // Clients get a short, fixed-shape line; the full cause (stack, paths) stays in the server log.
+          memory.lastError = summary(cause)
+          yield* Effect.logError("Mission coordinator drain failed", { cause: Cause.pretty(cause) })
           return 0
         }),
       ),

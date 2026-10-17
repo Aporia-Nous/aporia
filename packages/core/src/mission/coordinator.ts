@@ -251,37 +251,41 @@ export const make = Effect.fn("MissionCoordinator.make")(function* () {
     return decisions
   })
 
+  // Replays everything above the cursor, in order. Callers must hold the coordinator lock.
+  const drainBacklog = Effect.gen(function* () {
+    let handled = 0
+    for (;;) {
+      const from = yield* events.cursor
+      const batch = yield* events.list({ afterSeq: from, limit: 100 })
+      if (batch.length === 0) return handled
+      for (const event of batch) {
+        yield* handle(event)
+        yield* events.advanceCursor(event.seq)
+        handled++
+      }
+    }
+  })
+
   const emit = Effect.fn("MissionCoordinator.emit")(function* (input: MissionSchema.AppendEventInput) {
     return yield* serialized(
       Effect.gen(function* () {
+        // Facts recorded by anyone else and not handled yet come first. Moving the cursor past them
+        // would skip them for good (Stage 3 verifier finding), and handling them first keeps log order.
+        yield* drainBacklog
         const appended = yield* events.append(input)
         if (!appended.inserted)
           return { event: appended.event, inserted: false, decisions: [] as ReadonlyArray<Coordination.Decision> }
         const decisions = yield* handle(appended.event)
-        // Handled live, so the replay cursor moves past it. It only ever moves forward.
-        yield* events.advanceCursor(appended.event.seq)
+        // Handled live, so the cursor moves past it, but only when nothing unhandled sits between the
+        // cursor and this row (another process may have appended after the backlog drain). Otherwise the
+        // next drain handles the gap and replays this row too, which is safe: every effect is keyed.
+        if ((yield* events.cursor) === appended.event.seq - 1) yield* events.advanceCursor(appended.event.seq)
         return { event: appended.event, inserted: true, decisions }
       }),
     )
   })
 
-  const drain = Effect.suspend(() =>
-    serialized(
-      Effect.gen(function* () {
-        let handled = 0
-        for (;;) {
-          const from = yield* events.cursor
-          const batch = yield* events.list({ afterSeq: from, limit: 100 })
-          if (batch.length === 0) return handled
-          for (const event of batch) {
-            yield* handle(event)
-            yield* events.advanceCursor(event.seq)
-            handled++
-          }
-        }
-      }),
-    ),
-  )
+  const drain = Effect.suspend(() => serialized(drainBacklog))
 
   return { emit, handle, drain, cursor: events.cursor }
 })
