@@ -27,6 +27,23 @@ faults it named: the rule table and `REQUIREMENTS-EVIDENCE.md` row E claimed tes
 reopened task was the only way back when `review.failed` also reopens, and the push evidence predated
 the tip and stored output without the command line.
 
-## Pass 2
+## Pass 2 — tree at `86e11bca69` — VERDICT: FAIL
 
-Recorded in `STATUS.md` (section "Independent verification", Stage 2) after it ran.
+Received as a compact list. The transport again truncated the tail; the text that reached me is quoted exactly, and the
+findings it names are the ones addressed above and in the docs:
+
+```
+VERDICT: FAIL
+
+ISSUES:
+- 1: `10 pass / 0 fail, 115 expect() calls` for `96ee966d94` appears in no stored run — the regenerated gates file only has the 13/126 tip run (docs/an-rewrite/STATUS.md:399; evidence/2026-10-17-stage2-gates.txt:18-21).
+- 8: The third-boot claim is not observable in the test it cites: the recording waker's `delivered` Set is process-wide, so it returns `duplicate` whether or not the log check runs, and the assertion is made on the list read before `handle` (packages/core/test/coordination.test.ts:14-25,457-463 vs STATUS.md:456). The code does implement the log check (coordinator.ts:146-152) — the doc's "reads the recorded wake key from the log" is not what the test shows.
+- 1: `8 of the 10 Stage 1 domain tables` is mislabelled — Stage 1 defined 8 domain tables, all present; the `8/10` in the evidence also counts the two Stage 2 tables (docs/an-rewrite/STATUS.md:493; evidence/2026-10-17-stage2-backup.txt:27; STATUS.md:286).
+- 1: Table counts do not reconcile: backup 33 tables + a migration that creates 2 (gates §9) should be 35, but gates §8 reports 36, unexplained (evidence/2026-10-17-stage2-backup.txt:26; …-stage2-gates.txt:92,110-128).
+[TRUNCATED BY THE TRANSPORT HERE — the remaining items were the dirty-tree/`git log` cut-off of the gates file and the
+backup block's missing invocation, unlabelled timezone and "read-only" heading. Both are fixed and described in STATUS.md.]
+```
+
+## Pass 3
+
+Recorded in `STATUS.md` after it ran.

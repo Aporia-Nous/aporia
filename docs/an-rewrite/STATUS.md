@@ -384,28 +384,30 @@ replay above proves restoring it and rerunning reproduces the same result.
 Branch cut from the **Stage 1 tip** (`28859fd16e`), not from `rebrand/nousphere`. Stage 2 builds on Stage 1's `task` table, so
 cutting it from the checkpoint would have meant re-creating that table here; the deviation is recorded because it also means
 this branch carries Stage 1's commits. Commits: `07a85dfafc` (the log and its cursor), `285d02fa91` (the rules and the
-coordinator), `96ee966d94` (the first ten tests), `849840bb55` (two defects the verifier found), `df5054e918` (three more
-tests), then `2abfc71bf5` and the docs commit that carries this section — which by construction cannot appear in a log written
-before it. Nothing pushed, nothing merged, nothing packaged, nothing installed. The push state is stored, not inferred, in
-`docs/an-rewrite/evidence/2026-10-17-stage2-branch-log.txt`, which records each command line, its output and its exit code at
-`df5054e918`: `git ls-remote --heads origin refs/heads/an/*` empty at exit 0, `git ls-remote --tags origin refs/tags/an/*`
-empty at exit 0, `git branch -r --contains HEAD` empty, no upstream on the branch (exit 128), and `rebrand/nousphere` holding
-none of the Stage 2 commits.
+coordinator), `96ee966d94` (the first tests), `849840bb55` (two defects the first verifier pass found), `df5054e918` (three
+more tests), then the docs commits `2abfc71bf5`, `86e11bca69` and the one that carries this section — which by construction
+cannot appear in a log written before it. Nothing pushed, nothing merged, nothing packaged, nothing installed. The push state
+is stored, not inferred, in `docs/an-rewrite/evidence/2026-10-17-stage2-branch-log.txt`, which records each command line, its
+output and its exit code at `86e11bca69`: `git ls-remote --heads origin refs/heads/an/*` empty at exit 0, `git ls-remote
+--tags origin refs/tags/an/*` empty at exit 0, `git branch -r --contains HEAD` empty, no upstream on the branch (exit 128), and
+`rebrand/nousphere` holding none of the Stage 2 commits.
 
 | # | commit | subject | tests |
 | - | - | - | - |
 | 1 | `07a85dfafc` | `feat(mission): append-only mission event log with a replay cursor` | covered by the Stage 2 tests below; `packages/core` typecheck exit 0 (gates §3) |
 | 2 | `285d02fa91` | `feat(mission): derive coordination state and the wake rules from the log` | same file; gates §1–3 |
-| 3 | `96ee966d94` | `test(mission): prove the coordination rules and coordinator recovery` | 10 pass / 0 fail, 115 `expect()` calls at that commit (gates §1 at the tip stores 13 / 126) |
+| 3 | `96ee966d94` | `test(mission): prove the coordination rules and coordinator recovery` | no run of that commit is stored; the stored run is the tip's 13 pass / 0 fail, 126 `expect()` calls (gates §1) |
 | 4 | `849840bb55` | `fix(mission): make append's result honest and the wake dedupe log-backed` | gates §1–3 |
 | 5 | `df5054e918` | `test(mission): pin the role rules and the approval resume` | 13 pass / 0 fail, 126 `expect()` calls, exit 0 (gates §1) |
 
 Evidence: `docs/an-rewrite/evidence/2026-10-17-stage2-gates.txt` (all test runs, the test names, the three typecheck runs —
 core, app, desktop —, the dev copy read read-only, and the generated migration), `…-stage2-backup.txt` (the pre-migration
-backup, counted read-only) and `…-stage2-branch-log.txt` (push state). The gates file opens with `git log`/`git status
---porcelain` for the tree the runs were made on.
+backup, counted read-only) and `…-stage2-branch-log.txt` (push state), plus `…-stage2-red-run.txt` (a mutation run that
+disables the log check and shows the restart test failing, then restores the file byte-for-byte). The gates file opens with
+`git log`/`git status --porcelain` for the tree the runs were made on, and says in its own words that the evidence files this
+run writes appear in that status as modified or untracked because they are committed after it.
 
-Standing gates at `df5054e918`, stored: `packages/core/test/coordination.test.ts` **13 pass / 0 fail** (§1, with the test
+Standing gates at `86e11bca69`, stored: `packages/core/test/coordination.test.ts` **13 pass / 0 fail** (§1, with the test
 names printed underneath so each rule can be matched to a run), `packages/core/test/mission.test.ts` **9 pass / 0 fail** (§2,
 so Stage 1 still holds), `bun test src/aporia` in `packages/app` **54 pass / 0 fail** across 10 files (§4), `bun test
 src/main/aporia` in `packages/desktop` **62 pass / 0 fail** across 10 files (§5), `packages/core` typecheck exit 0 (§3), and
@@ -453,7 +455,7 @@ stored).
 
 | item | status | evidence |
 | - | - | - |
-| renderer killed after Builder finishes -> on reopen the Reviewer runs once | PASS at the coordinator level; **the app does not start the coordinator yet** | `a restart drains what it has not seen and never delivers twice`: a fact is recorded and left unhandled (the crash window), then two more independent boots over the same file database — the second drains it and delivers 1 wake, a second drain returns 0, a third boot re-handling the stored fact directly reads the recorded wake key from the log and delivers nothing further, so the total stays 1 and there is 1 `coordination.wake` row. The three boots are three separate layers; the recording waker's dedupe set is shared between them inside one test process, which is why the log check was added: it is what makes the third boot a no-op with no memory of the first. The renderer plays no part by design: the coordinator is core-side |
+| renderer killed after Builder finishes -> on reopen the Reviewer runs once | PASS at the coordinator level; **the app does not start the coordinator yet** | `a restart drains what it has not seen and never delivers twice`: a fact is recorded and left unhandled (the crash window), then two more independent boots over the same file database — the second drains it and delivers 1 wake, a second drain returns 0, and a third boot re-handles the stored fact after the recording waker's own `delivered` set is **cleared**, so nothing but the log can stop a second delivery: the reviewer is still woken once, the total stays 1 and there is 1 `coordination.wake` row. That the test is the log's doing and not the waker's memory is shown by `2026-10-17-stage2-red-run.txt`: with `if (recorded) return` disabled the same test fails with `Expected length: 1, Received length: 2`, and the file is restored byte-identically (same sha256 before and after). The renderer plays no part by design: the coordinator is core-side |
 | replaying the same event twice -> 1 task | PASS | `a replayed task.created makes one task`: the task id is derived from the idempotency key (`"task_" + fingerprint(...)`), so the same occurrence asks for the same id and `createTask` is skipped when it is already there; three emits (two identical, one re-keyed to the same key) leave exactly one task with that title |
 | an ack-loop fixture cannot loop | PASS | the ack test above; structurally, `OUTCOMES` are `coordination.wake`, `coordination.attention`, `coordination.closed` and `ack`, and `decide` returns `[]` for all of them |
 | a terminal task produces zero wakes | PASS | the terminal test above |
@@ -481,8 +483,13 @@ stored).
   row reaches a real bot session is Stage 3's job, together with the trigger.
 - Nothing in the app calls `Coordinator.drain` yet. No timer, no hook from the session event bus, no UI: the coordinator is a
   node that exists and is tested, not a running part of the app. Stage 3 wires the trigger and the cards.
-- The dev copy has the two new tables and the migration recorded, with **0 rows in `mission_event`** (gates §8) because nothing
-  in the running app emits yet. That is the honest state, not a failure.
+- The dev copy has the two new tables and the migration recorded, with **0 rows in `mission_event`** (gates §8: `session_v2`,
+  `session_message`, `project`, `migration`, `bot` 13, `team` 1, `mission` 1, `task` 0, `mission_event` 0,
+  `mission_coordinator_cursor` 0) because nothing in the running app emits yet. That is the honest state, not a failure.
+- The dev copy is **live**: the running DEV app writes its own sessions into `opencode-aporia-dev.db` (its newest rows are this
+  morning's own bot and verifier sessions), so the session counts drift between evidence runs — 693 sessions / 70,693 messages
+  in the pre-migration backup, 695 / 70,919 in the latest gates §8 run. Every number quoted here is the snapshot that run took,
+  read-only; the domain counts are what the claims rest on and they have not moved (13 / 1 / 1, `mission_event` 0).
 - `switch-dev-to-isolated.cmd` rebuilds the dev copy from prod, so a later switch replaces this copy with an unmigrated one; the
   first app start then applies both migrations and `script/mission-backfill.ts` has to run again, exactly as Stage 1 says.
 
@@ -490,11 +497,14 @@ Rollback: `git revert df5054e918 849840bb55 96ee966d94 285d02fa91 07a85dfafc` (n
 generated registries (`migration.gen.ts`, `schema.gen.ts`, `schema.json`) go with `07a85dfafc`. For data,
 `opencode-aporia-dev.db.bak-stage2` is the pre-stage copy, counted read-only in `2026-10-17-stage2-backup.txt`:
 **1,221,545,984 bytes** (1.14 GiB), sha256 `fd19bd5c…9bf0ba9`, `integrity_check` `ok`, journal mode `delete`, 693 `session_v2`,
-70,693 `session_message`, 38 `project`, 51 `migration`, **33 tables** (8 of the 10 Stage 1 domain tables — `mission_event` and
-`mission_coordinator_cursor` do not exist yet — and the Stage 2 migration not recorded). That file also stores the sha256 and the
-full text of the script that made the backup, which lives outside the repo at
-`C:\Users\Dilla\Aporia\bots\aporetic-dev\work\backup-stage1.ts`; the text is in the evidence because the script is not committed
-here.
+70,693 `session_message`, 38 `project`, 51 `migration`, **33 tables** in that copy. The count reconciles with the dev copy's 36:
+the migration adds `mission_event` and `mission_coordinator_cursor`, and `mission_event`'s `AUTOINCREMENT` adds SQLite's own
+`sqlite_sequence` (33 + 3 = 36, and both lists are stored — the backup file lists the 33, gates §8 lists the 36). All 8 of the
+Stage 1 domain tables are in the backup; `mission_event` and `mission_coordinator_cursor` do not exist yet and the Stage 2
+migration is not recorded. That file also records the command that made the backup and stores the sha256 and the full text of
+the script, which lives outside the repo at `C:\Users\Dilla\Aporia\bots\aporetic-dev\work\backup-stage1.ts`; the text is in the
+evidence because the script is not committed here. The file is the only stand-alone copy — `dir /b` with a wildcard beside it
+shows no `-wal` or `-shm`.
 
 ## Independent verification
 
@@ -518,7 +528,24 @@ is stored in `docs/an-rewrite/evidence/2026-10-17-stage2-verifier-passes.md`. Wh
   the escalation one message early (it is three repeats after the opener); and the push evidence, which now records each
   command line with its output and exit code at `df5054e918`.
 
-**Pass 2 — recorded at the end of this section once it has run.**
+**Pass 2 — VERDICT FAIL, tree at `86e11bca69`.** Recorded in the same passes file. Six findings, all fixed:
+
+- a test-count claim for `96ee966d94` that no stored run contains (the row now says no run of that commit is stored and points
+  at the tip's run);
+- the third-boot claim was not observable: the recording waker's `delivered` set is process-wide, so it refused the replay
+  whether or not the coordinator's log check ran. The test now **clears that set before the third boot** and reads the wake
+  rows after the handle, and `2026-10-17-stage2-red-run.txt` shows the test failing (`Received length: 2`) with the log check
+  disabled and the file restored byte-identically;
+- "8 of the 10 Stage 1 domain tables" mislabelled the counter (Stage 1 defined 8, all present; the `8/10` counts the two Stage 2
+  tables as absent) — rewritten;
+- the table counts did not reconcile (33 + 2 ≠ 36): the missing third table is SQLite's `sqlite_sequence`, created by
+  `mission_event`'s `AUTOINCREMENT`. Both lists are now stored (the backup's 33, gates §8's 36) and the arithmetic is written
+  out;
+- the gates file was generated on a dirty docs tree and its `git log` cut off `07a85dfafc` — the script now logs 20 commits and
+  states in its own output that the evidence files it writes appear as modified because they are committed after it;
+- the backup evidence gave no invocation, labelled its `dir` timestamp as if it were UTC, and headed a section "read-only" when
+  the script that *made* the backup opened the source read-write to checkpoint the WAL. All three corrected, and the file now
+  proves the copy stands alone (33 tables, no `-wal`/`-shm` beside it).
 
 ### Stage 1 — branch `an/stage-1-domain-model`
 
