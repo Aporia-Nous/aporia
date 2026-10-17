@@ -5,6 +5,26 @@ const schema: Omit<DatabaseMigration.Migration, "id"> = {
   up(tx) {
     return Effect.gen(function* () {
       yield* tx.run(`
+        CREATE TABLE \`mission_coordinator_cursor\` (
+          \`id\` text PRIMARY KEY,
+          \`seq\` integer DEFAULT 0 NOT NULL
+        );
+      `)
+      yield* tx.run(`
+        CREATE TABLE \`mission_event\` (
+          \`seq\` integer PRIMARY KEY AUTOINCREMENT,
+          \`id\` text NOT NULL UNIQUE,
+          \`mission_id\` text,
+          \`task_id\` text,
+          \`correlation_id\` text NOT NULL,
+          \`type\` text NOT NULL,
+          \`actor\` text NOT NULL,
+          \`payload\` text NOT NULL,
+          \`idempotency_key\` text NOT NULL,
+          \`time_created\` integer NOT NULL
+        );
+      `)
+      yield* tx.run(`
         CREATE TABLE \`account_state\` (
           \`id\` integer PRIMARY KEY,
           \`active_account_id\` text,
@@ -337,6 +357,10 @@ const schema: Omit<DatabaseMigration.Migration, "id"> = {
           CONSTRAINT \`fk_worktree_project_id_project_id_fk\` FOREIGN KEY (\`project_id\`) REFERENCES \`project\`(\`id\`) ON DELETE CASCADE
         );
       `)
+      yield* tx.run(`CREATE UNIQUE INDEX \`mission_event_idempotency_idx\` ON \`mission_event\` (\`idempotency_key\`);`)
+      yield* tx.run(`CREATE INDEX \`mission_event_correlation_idx\` ON \`mission_event\` (\`correlation_id\`,\`seq\`);`)
+      yield* tx.run(`CREATE INDEX \`mission_event_task_idx\` ON \`mission_event\` (\`task_id\`,\`seq\`);`)
+      yield* tx.run(`CREATE INDEX \`mission_event_mission_idx\` ON \`mission_event\` (\`mission_id\`,\`seq\`);`)
       yield* tx.run(`CREATE UNIQUE INDEX \`event_aggregate_seq_idx\` ON \`event\` (\`aggregate_id\`,\`seq\`);`)
       yield* tx.run(`CREATE INDEX \`event_aggregate_type_seq_idx\` ON \`event\` (\`aggregate_id\`,\`type\`,\`seq\`);`)
       yield* tx.run(`CREATE INDEX \`bot_archived_idx\` ON \`bot\` (\`time_archived\`);`)

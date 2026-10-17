@@ -248,6 +248,114 @@ export const SaveUIStateInput = Schema.Struct({
 }).annotate({ identifier: "Mission.SaveUIStateInput" })
 export interface SaveUIStateInput extends Schema.Schema.Type<typeof SaveUIStateInput> {}
 
+// ---- events and coordination ----------------------------------------------------------------
+
+export const MissionEventID = Schema.String.check(Schema.isStartingWith("evt")).pipe(
+  Schema.brand("MissionEventID"),
+  Schema.annotate({ identifier: "Mission.EventID" }),
+  statics((schema) => {
+    const create = () => schema.make("evt_" + Identifier.ascending())
+    return { create, ascending: (id?: string) => (id === undefined ? create() : schema.make(id)) }
+  }),
+)
+export type MissionEventID = typeof MissionEventID.Type
+
+/** One causal chain: the events a single piece of work and its follow-ups share. */
+export const CorrelationID = Schema.String.check(Schema.isStartingWith("cor")).pipe(
+  Schema.brand("CorrelationID"),
+  Schema.annotate({ identifier: "Mission.CorrelationID" }),
+  statics((schema) => {
+    const create = () => schema.make("cor_" + Identifier.ascending())
+    return { create, ascending: (id?: string) => (id === undefined ? create() : schema.make(id)) }
+  }),
+)
+export type CorrelationID = typeof CorrelationID.Type
+
+/**
+ * Every kind of fact the coordination layer records. The split matters:
+ *   * causes are work facts (`artifact.created`, `review.failed`, ...) and coordination messages;
+ *   * outcomes are what the coordinator produced (`coordination.wake`, `coordination.attention`,
+ *     `coordination.closed`) and `ack`, which is by definition not news.
+ * An outcome never causes another outcome, so a wake cannot wake a wake.
+ */
+export const MissionEventType = Schema.Literals([
+  "task.created",
+  "task.started",
+  "task.review_requested",
+  "task.verified",
+  "task.cancelled",
+  "task.reopened",
+  "artifact.created",
+  "review.passed",
+  "review.failed",
+  "approval.required",
+  "approval.granted",
+  "coordination.opened",
+  "coordination.message",
+  "coordination.closed",
+  "coordination.wake",
+  "coordination.attention",
+  "ack",
+])
+export type MissionEventType = typeof MissionEventType.Type
+
+export const ActorKind = Schema.Literals(["bot", "user", "system"])
+export type ActorKind = typeof ActorKind.Type
+
+export const Actor = Schema.Struct({
+  kind: ActorKind,
+  /** Bot slug when kind is "bot"; a person when kind is "user"; a service name when kind is "system". */
+  id: optional(Schema.String),
+}).annotate({ identifier: "Mission.Actor" })
+export interface Actor extends Schema.Schema.Type<typeof Actor> {}
+
+export const MissionEvent = Schema.Struct({
+  /** Monotonic position in the log. The coordinator replays from here, so it is never rewritten. */
+  seq: NonNegativeInt,
+  id: MissionEventID,
+  missionId: optional(MissionID),
+  taskId: optional(TaskID),
+  correlationId: CorrelationID,
+  type: MissionEventType,
+  actor: Actor,
+  payload: Schema.Record(Schema.String, Schema.Json),
+  /** Unique per logical occurrence: replaying the same input inserts nothing and wakes nobody. */
+  idempotencyKey: Schema.String,
+  createdAt: NonNegativeInt,
+}).annotate({ identifier: "Mission.Event" })
+export interface MissionEvent extends Schema.Schema.Type<typeof MissionEvent> {}
+
+export const AppendEventInput = Schema.Struct({
+  type: MissionEventType,
+  actor: Actor,
+  idempotencyKey: Schema.String,
+  id: optional(MissionEventID),
+  missionId: optional(MissionID),
+  taskId: optional(TaskID),
+  correlationId: optional(CorrelationID),
+  payload: optional(Schema.Record(Schema.String, Schema.Json)),
+}).annotate({ identifier: "Mission.AppendEventInput" })
+export interface AppendEventInput extends Schema.Schema.Type<typeof AppendEventInput> {}
+
+/** What a coordination message is for. A record always states one of these. */
+export const CoordinationPurpose = Schema.Literals(["request", "question", "result", "blocker", "handoff", "decision"])
+export type CoordinationPurpose = typeof CoordinationPurpose.Type
+
+/** Why a coordination thread ended. There is no "hit a message cap" reason: the count is not a limit. */
+export const ClosureReason = Schema.Literals([
+  "completed",
+  "answered",
+  "no-progress",
+  "escalated",
+  "duplicate",
+  "superseded",
+  "cancelled",
+])
+export type ClosureReason = typeof ClosureReason.Type
+
+export const CoordinationState = Schema.Literals(["open", "closed"])
+export type CoordinationState = typeof CoordinationState.Type
+
 // ---- errors ---------------------------------------------------------------------------------
 
 export class BotNotFoundError extends Schema.TaggedError<BotNotFoundError>()("Mission.BotNotFound", {
