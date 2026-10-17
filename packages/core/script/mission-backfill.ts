@@ -65,7 +65,14 @@ function counts() {
   // Read-only, separate from the app's connection: a migration is not allowed to disturb these.
   const db = new SQLite(resolved, { readonly: true })
   try {
-    const one = (sql: string) => (db.query(sql).get() as { n: number }).n
+    const one = (sql: string) => {
+      // Before the migration runs the domain tables do not exist yet; that is not an error here.
+      try {
+        return (db.query(sql).get() as { n: number }).n
+      } catch {
+        return -1
+      }
+    }
     return {
       session: one("SELECT count(*) AS n FROM session_v2"),
       message: one("SELECT count(*) AS n FROM session_message"),
