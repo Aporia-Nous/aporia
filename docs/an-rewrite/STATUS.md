@@ -2,7 +2,7 @@
 
 Checkout: `C:\Tools\aporia\.worktrees\opt`, on `rebrand/nousphere` up to the checkpoint tag `an/checkpoint-pre-stage1`
 (`c2b211d313`), and on stage branches from there on (Stage 1 on `an/stage-1-domain-model`; Stage 2 on
-`an/stage-2-event-store`, cut from the Stage 1 tip; Stage 3 on `an/stage-3-coordinator`, cut from the Stage 2 tip). None is merged back. Source of truth for the order of work:
+`an/stage-2-event-store`, cut from the Stage 1 tip; Stage 3 on `an/stage-3-coordinator`, cut from the Stage 2 tip; flow stage 1 on `an/flow-stage-1`, cut from the Stage 3 tip). None is merged back. Source of truth for the order of work:
 `APORETIC-DEV-BUILD-LIST.md` (a copy of it is not kept here; the brief is `APORETIC-DEV-REWRITE-HANDOFF.md`, sections A–K).
 
 Nothing is pushed. Nothing is merged. The installed app (`%LOCALAPPDATA%\Programs\Aporetic`) is untouched by this
@@ -606,6 +606,66 @@ still pass. The earlier restart tests were not wrong in their asserts, but they 
 
 Rollback: `git switch -c <name> an/checkpoint-pre-stage3` (or `e922ab3972`). There is no migration. The extra rows in
 the dev copy are inert to Stage 2 code, and `.bak-stage3` is the pre-check copy.
+
+### Flow engine stage 1 (F1) — branch `an/flow-stage-1` — SELF-CHECKED, awaiting an independent verifier (NOT closed)
+
+Branch cut from the Stage 3 tip `3666b13b38` (rollback tag `an/checkpoint-pre-flow1`). The plan, criteria F1-1 to F1-12 and
+the provisional decisions are in `docs/an-rewrite/FLOW1-PLAN.md` (committed first, `92bc33d7f2`). Code commits:
+`4f3775f2ff` (core engine and tests), `7c597c5839` (server.flow routes, regenerated openapi and clients, additive only),
+`722d11eb08` (app Flows section and slash commands), `c8ec97edb7` (app fix found in the Dev check: the generated client
+unwraps `{ data }`), `72f71d551a` (extra tests: HTTP size cap, timeout, refused connection, repeated step id). No done tag
+is cut; only an independent pass may cut one. Nothing pushed (`git ls-remote` for `an/*` is empty), nothing merged, nothing
+packaged, nothing installed.
+
+**Provisional decisions (Ali can overturn any):** flows live in `mission_event` as `flow.*` types (definitions are
+`flow.saved` events, one per version), so there is no migration; no visual editor, only an "Add flow from JSON" box; no
+n8n workflow ported; the runner is its own loop on the trigger's pattern (boot pass + 1 s poll) because waits and retries
+need time-based wake-ups; HTTP hosts must be declared exactly (pulled forward from F2), no redirects, no credential
+headers.
+
+**What it does.**
+- Core `src/flow/`: definition validation and canonical versions; a path-and-condition expression language with no
+  JavaScript; pure steps `set`, `transform`, `if`, `switch`, `merge`; `wait`, `http`, `run-flow` (depth limit 5) carried
+  out by the runner; a run is folded from its own `flow.*` events and planned one action at a time.
+- Crash window: a pure or idempotent step that was started without a result is run again as attempt n+1; an unsafe step
+  (POST/PUT/PATCH/DELETE not declared idempotent) raises one `coordination.attention` card, and only the resolution
+  `run-again` repeats it; any other resolution fails the run.
+- `flow.*` are coordinator outcomes: a flow never wakes a bot. Every step records `tokens: 0`.
+- Server: `GET/POST /api/flow`, `GET /api/flow/:flowID`, `POST /api/flow/:flowID/run` (idempotent per `requestId`),
+  `GET /api/flow-runs`, `GET /api/flow-runs/:runID`; 400 for an invalid definition or request id, 404 for an unknown
+  flow or run, 401 without the password.
+- App: native Flows section at the top of the Flows tab (list, Run, recent runs, step timeline, add from JSON); the n8n
+  section below is unchanged. `/<flow id> [input]` in the composer runs the flow client-side with no model call; input is
+  a JSON object or `{ text }`.
+
+**Evidence.** `docs/an-rewrite/evidence/2026-10-17-flow1-gates.txt`, gates at `c8ec97edb7`:
+
+| check | result |
+| - | - |
+| coordination / mission / attention | 13 / 9 / 9 pass |
+| new `flow-unit.test.ts` / `flow.test.ts` | 17 / 17 pass (35 total after `72f71d551a`: 17 / 18) |
+| core and server typecheck | exit 0 |
+| server `mission.test.ts` + new `flow.test.ts` | 2 pass |
+| protocol and client `check:generated` | exit 0 |
+| app `src/aporia` | 63 pass (59 + 4 new) |
+| desktop `src/main/aporia` | 62 pass |
+| app and desktop typecheck | only the 2 pre-existing TS1128 errors |
+| server full suite | 79 pass, 0 fail |
+| core full suite | 5345 pass, 161 fail; the same 15 files fail the same way at the baseline `3666b13b38` (160 fail there, 159 at HEAD), all environment-bound (real bash, home/XDG, npm, daemons) and none touches `src/flow` |
+
+Dev check (screenshots `/workspace/aporetic/flow1/00`–`09` on the box; `opencode-aporia-dev.db` only; a loopback test
+server on 127.0.0.1:48123): a flow added through the JSON box; Run gives a 5-step timeline (set → http → if → transform →
+merge) with 0 tokens; `/five {"who":"ali"}` in the composer started one run with a toast and sent no message; a flow
+waiting on a 25 s `wait` survived a full Dev restart and finished on the new process, every step started once.
+
+**Limitations, stated plainly.**
+- The unsafe-step card is proven in core tests (a real POST cut off mid-request, server hit counts), not in the Dev app.
+- A flow whose id equals an existing slash command is shadowed by whichever command is listed first.
+- The runner polls every 1 s in the server; a waiting run resumes up to ~1 s after it is due.
+- No schedules, webhooks, credentials vault, AI steps, flow-as-tool, n8n importer or editor (F2–F4).
+
+Rollback: `git switch -c <name> an/checkpoint-pre-flow1` (`3666b13b38`). No migration; the `flow.*` rows in the dev copy
+are inert to earlier code.
 
 ## Independent verification
 
