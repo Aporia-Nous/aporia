@@ -335,16 +335,21 @@ const layer = Layer.effect(
         .transaction((tx) =>
           Effect.gen(function* () {
             if (reassignTo && open.length > 0) {
-              yield* tx
-                .update(TaskTable)
-                .set({ owner_id: reassignTo, revision: (open[0]?.revision ?? 1) + 1, time_updated: now })
-                .where(
-                  and(
-                    eq(TaskTable.owner_id, botID),
-                    notInArray(TaskTable.state, [...MissionSchema.TERMINAL_TASK_STATES]),
-                  ),
-                )
-                .run()
+              // One row at a time: each task's revision is its own, so an inherited task that was already at
+              // revision 3 must move to 4, never back to 2. Same rule as reassignTask below.
+              for (const task of open) {
+                yield* tx
+                  .update(TaskTable)
+                  .set({ owner_id: reassignTo, revision: task.revision + 1, time_updated: now })
+                  .where(
+                    and(
+                      eq(TaskTable.id, task.id),
+                      eq(TaskTable.owner_id, botID),
+                      notInArray(TaskTable.state, [...MissionSchema.TERMINAL_TASK_STATES]),
+                    ),
+                  )
+                  .run()
+              }
             }
             yield* tx
               .update(BotTable)

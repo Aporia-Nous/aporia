@@ -55,12 +55,17 @@ describe("mission domain", () => {
       const staying = yield* mission.createBot({ name: "Staying" })
       const unit = yield* mission.createMission({ title: "Hand over" })
       const open = yield* mission.createTask({ missionId: unit.id, title: "pending work", ownerId: leaving.id })
+      const reopened = yield* mission.createTask({ missionId: unit.id, title: "pending work, second pass", ownerId: leaving.id })
+      // An inherited task can already be past revision 1: reopen this one so the two tasks differ.
+      yield* mission.setTaskState(reopened.id, "verified")
+      yield* mission.setTaskState(reopened.id, "pending")
+      expect((yield* mission.getTask(reopened.id)).revision).toBe(2)
 
       const refusal = yield* Effect.flip(mission.archiveBot(leaving.id))
       expect(refusal._tag).toBe("Mission.BotHasOpenTasks")
       if (refusal._tag === "Mission.BotHasOpenTasks") {
         expect(refusal.botID).toBe(leaving.id)
-        expect([...refusal.taskIDs]).toEqual([open.id])
+        expect([...refusal.taskIDs]).toEqual([open.id, reopened.id])
       }
       // Nothing moved yet: the refusal is not a partial archive.
       const stillThere = yield* mission.getBot(leaving.id)
@@ -75,6 +80,10 @@ describe("mission domain", () => {
       const moved = yield* mission.getTask(open.id)
       expect(moved.ownerId).toBe(staying.id)
       expect(moved.revision).toBe(2)
+      // Per task, not one number for the set: the already-reopened task goes 2 -> 3, never back to 2.
+      const movedReopened = yield* mission.getTask(reopened.id)
+      expect(movedReopened.ownerId).toBe(staying.id)
+      expect(movedReopened.revision).toBe(3)
       expect((yield* mission.openTasksForBot(leaving.id)).length).toBe(0)
 
       // A bot whose only work is terminal can be archived without a successor.
