@@ -1,0 +1,152 @@
+============================== Stage 1 gates, run 2026-10-17 (branch an/stage-1-domain-model) ============================== 
+19f4e7cf24 test(mission): pin both tasks across a refused and a completed archive
+414d159845 fix(mission): bump each reassigned task's own revision on archive
+8a4724ff36 docs(an-rewrite): record Stage 1 and its replay evidence
+4d1de66eb5 fix(mission): let the backfill runner read counts before the domain tables exist
+e2be3f6b1b feat(mission): durable bot, team, mission and task domain
+ M docs/an-rewrite/STATUS.md
+?? docs/an-rewrite/evidence/2026-10-17-stage1-gates.txt
+ 
+=== 1. mission domain tests in the working tree (== HEAD after 19f4e7cf24) === 
+bun test v1.4.3 (c6da4a4d3)
+
+ 9 pass
+ 0 fail
+ 62 expect() calls
+Ran 9 tests across 1 file. [831.00ms]
+exit=0 
+ 
+=== 2. the same test file against service.ts as of 8a4724ff36 (the code before the archiveBot fix): the red run === 
+bun test v1.4.3 (c6da4a4d3)
+
+test\mission.test.ts:
+[07:49:40.431] ERROR (#21): 86 |       expect(moved.ownerId).toBe(staying.id)
+87 |       expect(moved.revision).toBe(2)
+88 |       // Per task, not one number for the set: the already-reopened task goes 2 -> 3, never back to 2.
+89 |       const movedReopened = yield* mission.getTask(reopened.id)
+90 |       expect(movedReopened.ownerId).toBe(staying.id)
+91 |       expect(movedReopened.revision).toBe(3)
+     ^
+error: expect(received).toBe(expected)
+
+Expected: 3
+Received: 2
+
+      at toBe (unknown:1:1)
+      at C:\Tools\aporia\.worktrees\opt\packages\core\test\mission.test.ts:91:38
+
+86 |       expect(moved.ownerId).toBe(staying.id)
+87 |       expect(moved.revision).toBe(2)
+88 |       // Per task, not one number for the set: the already-reopened task goes 2 -> 3, never back to 2.
+89 |       const movedReopened = yield* mission.getTask(reopened.id)
+90 |       expect(movedReopened.ownerId).toBe(staying.id)
+91 |       expect(movedReopened.revision).toBe(3)
+     ^
+error: expect(received).toBe(expected)
+
+Expected: 3
+Received: 2
+
+      at toBe (unknown:1:1)
+      at C:\Tools\aporia\.worktrees\opt\packages\core\test\mission.test.ts:91:38
+      at ~effect/Effect/successCont (C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\internal\effect.js:973:28)
+      at runLoop (C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\internal\effect.js:448:86)
+      at evaluate (C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\internal\effect.js:398:23)
+      at runInAsyncScope (node:async_hooks:207:23)
+      at C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\internal\effect.js:722:13
+      at runTasks (C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\Scheduler.js:169:15)
+      at afterScheduled (C:\Tools\aporia\.worktrees\opt\node_modules\.bun\effect@4.0.1\node_modules\effect\dist\Scheduler.js:159:10)
+(fail) mission domain > archiving a bot with open work is refused until the work is reassigned [17.17ms]
+
+ 8 pass
+ 1 fail
+ 60 expect() calls
+Ran 9 tests across 1 file. [811.00ms]
+exit=1 
+working-tree service.ts restored; diff against HEAD follows (empty = restored exactly): 
+ 
+=== 3. packages/core typecheck === 
+$ tsgo -b tsconfig.json tsconfig.tests.json
+exit=0 
+ 
+=== 4. packages/app test src/aporia === 
+bun test v1.4.3 (c6da4a4d3)
+
+ 54 pass
+ 0 fail
+ 118 expect() calls
+Ran 54 tests across 10 files. [213.00ms]
+exit=0 
+ 
+=== 5. packages/desktop test src/main/aporia === 
+bun test v1.4.3 (c6da4a4d3)
+
+ 62 pass
+ 0 fail
+ 189 expect() calls
+Ran 62 tests across 10 files. [1.58s]
+exit=0 
+ 
+=== 6. packages/app typecheck === 
+$ tsgo -b
+src/custom-elements.d.ts(1,1): error TS1128: Declaration or statement expected.
+src/custom-elements.d.ts(1,2): error TS1128: Declaration or statement expected.
+error: script "typecheck" exited with code 1
+exit=1 
+ 
+=== 7. packages/desktop typecheck === 
+$ tsgo -b
+../app/src/custom-elements.d.ts(1,1): error TS1128: Declaration or statement expected.
+../app/src/custom-elements.d.ts(1,2): error TS1128: Declaration or statement expected.
+error: script "typecheck" exited with code 1
+exit=1 
+ 
+=== 8. proof the two TS1128 errors pre-exist this branch: the file is byte-identical to the checkpoint === 
+diff --stat c2b211d313..HEAD -- packages/app/src/custom-elements.d.ts (empty means untouched): 
+first three lines of that file at c2b211d313: 
+../../ui/src/custom-elements.d.ts 
+=== 9. scope of the whole stage: files touched since the checkpoint tag === 
+docs/an-rewrite/evidence/2026-10-17-stage1-migration-backfill.txt
+docs/an-rewrite/REQUIREMENTS-EVIDENCE.md
+docs/an-rewrite/STATUS.md
+packages/core/schema.json
+packages/core/script/migration.ts
+packages/core/script/mission-backfill.ts
+packages/core/src/database/migration.gen.ts
+packages/core/src/database/migration/20261017073336_stage1_bot_team_mission.ts
+packages/core/src/database/schema.gen.ts
+packages/core/src/mission.ts
+packages/core/src/mission/backfill.ts
+packages/core/src/mission/index.ts
+packages/core/src/mission/schema.ts
+packages/core/src/mission/service.ts
+packages/core/src/mission/sql.ts
+packages/core/test/mission.test.ts
+ 
+diff --stat: 
+ docs/an-rewrite/REQUIREMENTS-EVIDENCE.md           |  12 +-
+ docs/an-rewrite/STATUS.md                          | 103 +++
+ .../2026-10-17-stage1-migration-backfill.txt       |  81 ++
+ packages/core/schema.json                          | 953 +++++++++++++++++++--
+ packages/core/script/migration.ts                  |   4 +-
+ packages/core/script/mission-backfill.ts           | 159 ++++
+ packages/core/src/database/migration.gen.ts        |   2 +
+ .../20261017073336_stage1_bot_team_mission.ts      | 117 +++
+ packages/core/src/database/schema.gen.ts           | 105 +++
+ packages/core/src/mission.ts                       |   3 +
+ packages/core/src/mission/backfill.ts              | 202 +++++
+ packages/core/src/mission/index.ts                 |   9 +
+ packages/core/src/mission/schema.ts                | 283 ++++++
+ packages/core/src/mission/service.ts               | 882 +++++++++++++++++++
+ packages/core/src/mission/sql.ts                   | 147 ++++
+ packages/core/test/mission.test.ts                 | 297 +++++++
+ 16 files changed, 3298 insertions(+), 61 deletions(-)
+ 
+=== 10. working tree status at the moment this file was written (docs edits are this section's own work) === 
+ M docs/an-rewrite/STATUS.md
+?? docs/an-rewrite/evidence/2026-10-17-stage1-gates.txt
+ 
+=== 11. read-only check of the two room session ids against the LIVE store === 
+ses_ed4519175ffeIJqO1BOT0v9BY7 2026-10-11T15:56:54.287Z "Room: Setup test"
+ses_ed4517237ffeUzNXSk9w5o8geS MISSING in live
+exit=0 

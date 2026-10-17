@@ -244,21 +244,31 @@ Re-run any of them: `bun work/run-and-log.ts <outfile> <cwd> <command…>` and `
 read-only).
 
 
-### Stage 1 — durable domain model: bots, teams, missions, tasks — 2 commits on `an/stage-1-domain-model`
+### Stage 1 — durable domain model: bots, teams, missions, tasks — 5 commits on `an/stage-1-domain-model`, plus the docs commit this text lands in
 
 Branch `an/stage-1-domain-model` from tag `an/checkpoint-pre-stage1` (`c2b211d313`). Nothing pushed, nothing merged,
 nothing packaged, nothing installed.
 
 | # | commit | subject | tests |
 | - | - | - | - |
-| 1 | `e2be3f6b1b` | `feat(mission): durable bot, team, mission and task domain` | 9 new tests in `packages/core/test/mission.test.ts` (9 pass / 0 fail); `packages/core` typecheck exit 0 |
-| 2 | `4d1de66eb5` | `fix(mission): let the backfill runner read counts before the domain tables exist` | the run that found it is in the evidence file: the pre-migration count query hit `no such table: bot` and killed the runner before it migrated anything |
+| 1 | `e2be3f6b1b` | `feat(mission): durable bot, team, mission and task domain` | 9 tests in `packages/core/test/mission.test.ts`; `packages/core` typecheck exit 0 (gates §1, §3) |
+| 2 | `4d1de66eb5` | `fix(mission): let the backfill runner read counts before the domain tables exist` | the first run against the dev copy died in its own pre-migration count query (`no such table: bot`) before it migrated anything — observed then, not stored; what is stored is the pre-migration read of a pre-stage file reporting `bot: -1` (replay §1) and the post-fix runner exiting 0 (replay §2) |
+| 3 | `8a4724ff36` | `docs(an-rewrite): record Stage 1 and its replay evidence` | docs only, not re-verified |
+| 4 | `414d159845` | `fix(mission): bump each reassigned task's own revision on archive` | the first independent verification pass caught this (see **Independent verification** below); red/green in gates §1–2 |
+| 5 | `19f4e7cf24` | `test(mission): pin both tasks across a refused and a completed archive` | same test file, 9 pass / 62 `expect()` calls, exit 0 (gates §1) |
+| 6 | this commit | `docs(an-rewrite): …` | docs only, not re-verified — a commit cannot carry its own verification |
 
-Standing gates after both commits, run in this worktree: `bun test src/aporia` in `packages/app` = **54 pass / 0 fail** across
-10 files, exit 0; `bun test src/main/aporia` in `packages/desktop` = **62 pass / 0 fail** across 10 files, exit 0;
-`bun run typecheck` exit 0 in `packages/core`; `bun run typecheck` in `packages/app` and `packages/desktop` exits 1 with
-**only** the two known pre-existing errors in `packages/app/src/custom-elements.d.ts:1` (same two before this stage — the
-file is untouched by it).
+Evidence for every number below: `docs/an-rewrite/evidence/2026-10-17-stage1-gates.txt` (the test runs, both typechecks, the
+scope diff and the live-store check) and `docs/an-rewrite/evidence/2026-10-17-stage1-migration-backfill.txt` (the migration and
+backfill replay). The gates file opens with `git log` for the branch and its working tree, so a reader can see which commits
+existed when the runs were made; §1 is the tree at `19f4e7cf24` and §2 re-runs the same test against `service.ts` as of
+`8a4724ff36` to show the fail it was written for.
+
+Standing gates at `19f4e7cf24`, stored in the gates file: `bun test src/aporia` in `packages/app` = **54 pass / 0 fail** across
+10 files, exit 0 (§4); `bun test src/main/aporia` in `packages/desktop` = **62 pass / 0 fail** across 10 files, exit 0 (§5);
+`bun run typecheck` exit 0 in `packages/core` (§3); `bun run typecheck` in `packages/app` and `packages/desktop` exits 1 with
+**only** the two `custom-elements.d.ts:1` TS1128 errors (§6–7), and §8 shows that file is byte-identical to `c2b211d313`, so
+the two errors pre-date this branch rather than being introduced by it.
 
 **What is actually built.** Eight tables — `bot`, `team`, `team_member`, `mission`, `mission_session`, `task`,
 `task_dependency`, `mission_ui_state` — created by generated migration
@@ -281,7 +291,7 @@ Four decisions worth stating because they are the ones later stages lean on:
   view of the work, not the work, so it never lands in `mission` and never affects a mission's state machine. `mission.origin`
   (`manual|room|import`) keeps a backfilled container from being mistaken for user-created work.
 
-The service (`packages/core/src/mission/service.ts`) exposes 28 methods over branded ids (`BotID`/`TeamID`/`MissionID`/
+The service (`packages/core/src/mission/service.ts`) exposes 29 methods over branded ids (`BotID`/`TeamID`/`MissionID`/
 `TaskID`), and `Mission.node` depends only on `Database.node`, matching how `project`, `kv` and `saved` are wired.
 
 **Backfill adapter.** `src/mission/backfill.ts` is a pure planner (files + what the database already holds -> rows to insert,
@@ -292,8 +302,11 @@ and one `mission_session` row per member (the participant slug is kept, so attri
 or `session_message`: a session is linked by id, and the two counts printed around every run are the check that this holds.
 
 **Evidence — `docs/an-rewrite/evidence/2026-10-17-stage1-migration-backfill.txt`.** The dev copy took the migration and the
-backfill first; the file then replays both on a **byte copy of `opencode-aporia-dev.db.bak-stage1`** (the pre-stage backup), so
-the "before" state is reproducible rather than remembered. Numbers, from the file:
+backfill first; the replay then ran both on a **byte copy of `opencode-aporia-dev.db.bak-stage1`** (the pre-stage backup), so
+the "before" state is reproducible rather than remembered. The dev copy itself is counted, read-only, in
+`2026-10-17-stage1-devcopy-state.txt` (33 tables, 8/8 domain tables, `session_v2` 691, `session_message` 69,990, 13 bots,
+1 team, 1 mission, 0 tasks, migration 51, `integrity_check` ok, and the three sessions below read in a fresh process).
+Numbers from the replay file:
 
 | step | tables | `session_v2` | `session_message` | `project` | `migration` | domain rows |
 | - | - | - | - | - | - | - |
@@ -311,7 +324,7 @@ messages), `ses_ebbb15fe…` ("Extract Votel state facts", 11 messages). The roo
 | item | status | evidence |
 | - | - | - |
 | rename a bot, its old tasks still resolve | PASS | test `renaming a bot keeps its tasks resolving by id`: after a rename the task's `ownerId`/`missionId` are unchanged, `revision` stays 1, and `getBotBySlug` still resolves |
-| archive a bot with a pending task -> explicit reassign or blocked | PASS | test `archiving a bot with open work is refused until the work is reassigned`: the refusal names `botID` + `taskIDs`, leaves the bot live and the task where it was; with `reassignTo` the task moves, its revision becomes 2, and the bot drops out of `listBots()` while staying in `listBots({archived:true})` |
+| archive a bot with a pending task -> explicit reassign or blocked | PASS | test `archiving a bot with open work is refused until the work is reassigned`: the bot has two open tasks, one already reopened to revision 2; the refusal names `botID` + both `taskIDs`, leaves the bot live and both tasks where they were; with `reassignTo` each task moves on its own revision (`2 -> 3` for the reopened one, `1 -> 2` for the other) and the bot drops out of `listBots()` while staying in `listBots({archived:true})` |
 | restart -> all rows restored | PASS at the store level, **app restart still Ali's** | test `restarting over the same file …`: a second, independent layer over the same file restores bots, team membership, coordinator, mission, both tasks, the dependency edge, the session link and the saved UI state; plus the replay file above read in fresh processes |
 | old sessions still open | PASS by read, app-open still Ali's | the three sessions above read with their message counts in a fresh process; `session_v2`/`session_message` counts unchanged by both the migration and the backfill |
 
@@ -333,25 +346,62 @@ messages), `ses_ebbb15fe…` ("Extract Votel state facts", 11 messages). The roo
 **Limitations, stated plainly.**
 
 - The one reference that does not resolve — `ses_ed4517237ffeUzNXSk9w5o8geS` for `projects-manager` in `room.json` — is
-  missing from the **live** store too (checked read-only), so the backfill copied a dangling reference faithfully rather than
-  creating one. There is deliberately no foreign key from `mission_session` to the session tables; the resolver shows "no
-  session row" instead of failing.
+  missing from the **live** store too, so the backfill copied a dangling reference faithfully rather than creating one (gates
+  file §11 is the read-only query against `opencode-aporia.db`: the id returns `MISSING in live`, while
+  `ses_ed4519175ffe…` returns "Room: Setup test"). There is deliberately no foreign key from `mission_session` to the session
+  tables; the resolver shows "no session row" instead of failing.
 - Stage 1 has no UI. The domain is reachable from code and tests, not yet from the app; the Bot Team roster and mission
   switching are Stage 4.
-- The migration has not yet been applied by an app *start* under Ali's window: the switch-over to `opencode-aporia-dev.db`
-  (Stage 0a) still waits on his one action, and this stage deliberately did not touch the running DEV app, the installed app,
-  port 4096, or any CLI cache. When he switches, the first start applies the same migration to whatever copy the switch
-  rebuilds, which is the same DDL replayed above.
+- The migration has not yet been applied by an app *start* under Ali's window: the switch-over to the dev copy (Stage 0a)
+  still waits on his one action, and this stage deliberately did not touch the running DEV app, the installed app, port 4096,
+  or any CLI cache. Note what the switch does to this stage's data: `switch-dev-to-isolated.cmd` **rebuilds**
+  `opencode-aporia-dev.db` from prod and swaps it in, so the copy that exists today (already migrated and backfilled) is
+  replaced by a fresh, unmigrated one. The first app start after the switch applies this migration to that rebuilt copy, and
+  `script/mission-backfill.ts` has to be run again there to repopulate the 13 bots / 1 team / 1 mission / 2 links. That is the
+  same DDL and the same runner proven above, but it is a second run, not a carried-over result.
 
-Rollback: `git revert e2be3f6b1b 4d1de66eb5` returns the tree (the migration file and the two generated registries go with
-`e2be3f6b1b`); for data, `opencode-aporia-dev.db.bak-stage1` is the pre-stage copy (`integrity_check` ok, 691 sessions,
-69,990 messages) and the replay above proves restoring it and rerunning reproduces the same result.
+Rollback: `git revert 19f4e7cf24 414d159845 8a4724ff36 4d1de66eb5 e2be3f6b1b` (newest first; `414d159845` and
+`19f4e7cf24` touch the same `service.ts` hunk and the same test that `e2be3f6b1b` creates, so reverting the feature commit
+alone conflicts rather than returning the tree). The migration file and both generated registries go with `e2be3f6b1b`. For
+data, `opencode-aporia-dev.db.bak-stage1` is the pre-stage copy (`integrity_check` ok, 691 sessions, 69,990 messages) and the
+replay above proves restoring it and rerunning reproduces the same result.
 
 ## Independent verification
 
-`verifier` subagent, read-only, against the tree at `32cbce8f72`. It read the files and quoted them; it was not permitted
-to run the test command, so it compared the stored evidence files against the claims. A self-check and a verification are
-not the same thing, and this is the only independent one recorded here so far.
+Three passes, all by the `verifier` subagent, read-only, each reported as it came. The full text of each is stored in
+`docs/an-rewrite/evidence/2026-10-17-stage1-verifier-passes.md`.
+
+**Pass 1 — VERDICT FAIL, Stage 1 tree at `8a4724ff36`.** The defect it found was real: `archiveBot` wrote one revision for the
+whole set, derived from the oldest open task (`open[0].revision + 1`), so a task already at revision 3 would have been lowered
+to 2 on reassignment, and two tasks at different revisions collapsed onto one number. The test could not see it because it
+moved a single task at revision 1. Fixed in `414d159845` (each row moves on its own `revision + 1`, inside the same
+transaction, matching `reassignTask`), and the test now carries two open tasks at revisions 1 and 2 and asserts 2 and 3
+(`19f4e7cf24`); gates file §2 re-runs that test against the pre-fix `service.ts` and shows it failing with `Expected: 3 /
+Received: 2`, so the assertion is not vacuous. The same pass also caught doc claims without stored runs (the test counts, the
+two typechecks, the 54/62 suite numbers) — those now live in `docs/an-rewrite/evidence/2026-10-17-stage1-gates.txt` — a wrong
+method count (33 was the `Effect.fn` definitions including four private loaders; the interface exposes 29), an incomplete
+commit table, and a rollback command that would have conflicted.
+
+**Pass 2 — VERDICT FAIL, same tree plus the first doc fixes.** It confirmed the code fix itself (per-row revision with no
+`open[0]` derivation, the red run failing at exactly the new assertion with `Expected: 3 / Received: 2`, and red/green
+`expect()` counts consistent), and confirmed claims 1, 2 and 4–9 unchanged. Everything it failed on was documentation: "33
+service functions" (29 is right), a pointer to a Stage 0 section as if it had caught the Stage 1 defect, a commit table missing
+`8a4724ff36`, a rollback command missing `414d159845`, two "pre-existing"/"checked read-only" claims with no stored artifact,
+`REQUIREMENTS-EVIDENCE.md` row 3 omitting two commits, and an acceptance row asserting for one task what it said for both.
+All were fixed before Pass 3.
+
+**What no pass could check from the repo, disclosed rather than claimed.** The verifier has no shell in its runtime, so it
+cannot confirm push/merge state or the per-commit file scope from git itself — gates §9 (`git diff --name-only`/`--stat` from
+the checkpoint) and §10 (working tree status) are the stored substitutes. The replay database was a temporary copy and is
+deleted, so the replay's table and row counts stand on the stored text; the dev copy's own state is counted separately in
+`2026-10-17-stage1-devcopy-state.txt`, and the same runner can be re-run against it or against `.bak-stage1`. The gates file
+is produced by `C:\Users\Dilla\Aporia\bots\aporetic-dev\work\stage1-gates.cmd` and §11 by `work\check-room-sessions.ts`, both
+outside the repo, and that script opens the live store `{ readonly: true }` and writes nothing.
+
+Pass 1 of the earlier stage, for completeness, was `verifier` at tree `32cbce8f72` (Stage 0) — it never looked at `archiveBot`,
+so the Stage 1 defect is Pass 1 above, not that one.
+
+### Stage 0 — verifier at `32cbce8f72` (PASS)
 
 - **VERDICT PASS.** Every item it failed on its first pass is now confirmed from files: the amended hash is right and no
   live claim cites `7e44cba2c1`; the `252 pass / 0 fail` and typecheck `exit 0` evidence files match the claims word for
