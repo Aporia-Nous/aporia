@@ -244,6 +244,109 @@ Re-run any of them: `bun work/run-and-log.ts <outfile> <cwd> <command…>` and `
 read-only).
 
 
+### Stage 1 — durable domain model: bots, teams, missions, tasks — 2 commits on `an/stage-1-domain-model`
+
+Branch `an/stage-1-domain-model` from tag `an/checkpoint-pre-stage1` (`c2b211d313`). Nothing pushed, nothing merged,
+nothing packaged, nothing installed.
+
+| # | commit | subject | tests |
+| - | - | - | - |
+| 1 | `e2be3f6b1b` | `feat(mission): durable bot, team, mission and task domain` | 9 new tests in `packages/core/test/mission.test.ts` (9 pass / 0 fail); `packages/core` typecheck exit 0 |
+| 2 | `4d1de66eb5` | `fix(mission): let the backfill runner read counts before the domain tables exist` | the run that found it is in the evidence file: the pre-migration count query hit `no such table: bot` and killed the runner before it migrated anything |
+
+Standing gates after both commits, run in this worktree: `bun test src/aporia` in `packages/app` = **54 pass / 0 fail** across
+10 files, exit 0; `bun test src/main/aporia` in `packages/desktop` = **62 pass / 0 fail** across 10 files, exit 0;
+`bun run typecheck` exit 0 in `packages/core`; `bun run typecheck` in `packages/app` and `packages/desktop` exits 1 with
+**only** the two known pre-existing errors in `packages/app/src/custom-elements.d.ts:1` (same two before this stage — the
+file is untouched by it).
+
+**What is actually built.** Eight tables — `bot`, `team`, `team_member`, `mission`, `mission_session`, `task`,
+`task_dependency`, `mission_ui_state` — created by generated migration
+`packages/core/src/database/migration/20261017073336_stage1_bot_team_mission.ts`, which the generator also folded into
+`src/database/migration.gen.ts` and the fresh-install bootstrap `src/database/schema.gen.ts` (a new database bootstraps the
+same DDL and then marks the migration complete; without both files a fresh install and an existing store would diverge).
+
+Four decisions worth stating because they are the ones later stages lean on:
+
+- **`id` and `slug` are separate.** `id` (`bot_…`, time-ordered, never reused) is what work points at; `slug` is the
+  immutable natural key carried from the file store. A rename therefore changes only `name`, and no task, mission or session
+  reference has to be rewritten. Backfilled ids derive from the slug (`bot_<slug>`, `team_<slug>`, `mis_room_<slug>`), which
+  is what makes a repeated backfill an upsert rather than a duplicate.
+- **Archiving a bot with open work is refused, not silently allowed.** `archiveBot` returns `Mission.BotHasOpenTasks` with
+  the task ids and the bot still live; with `reassignTo` it moves the tasks, bumps each task's `revision`, and archives the
+  bot in one transaction. A bot whose work is all terminal archives without a successor.
+- **Dependencies are rows, not JSON.** `task_dependency` makes "what blocks X" and a cycle check queryable; self-links,
+  cross-mission links and cycles are rejected with `Mission.Link`.
+- **UI state is its own table keyed by mission** (`mission_ui_state`: draft, scroll, selected bot/artifact). A draft is a
+  view of the work, not the work, so it never lands in `mission` and never affects a mission's state machine. `mission.origin`
+  (`manual|room|import`) keeps a backfilled container from being mistaken for user-created work.
+
+The service (`packages/core/src/mission/service.ts`) exposes 28 methods over branded ids (`BotID`/`TeamID`/`MissionID`/
+`TaskID`), and `Mission.node` depends only on `Database.node`, matching how `project`, `kv` and `saved` are wired.
+
+**Backfill adapter.** `src/mission/backfill.ts` is a pure planner (files + what the database already holds -> rows to insert,
+plus warnings); `script/mission-backfill.ts` is the runner that owns I/O. It requires an explicit `--db` path, **refuses any
+file named `opencode-aporia.db`**, supports `--dry-run`, maps `bots/<slug>/bot.json` -> `bot`, `rooms/<slug>/room.json` ->
+`team` + `team_member`, and each room's per-member `sessions` map -> one mission titled `Room: <name>` with `origin: room`
+and one `mission_session` row per member (the participant slug is kept, so attribution survives). It never writes `session`
+or `session_message`: a session is linked by id, and the two counts printed around every run are the check that this holds.
+
+**Evidence — `docs/an-rewrite/evidence/2026-10-17-stage1-migration-backfill.txt`.** The dev copy took the migration and the
+backfill first; the file then replays both on a **byte copy of `opencode-aporia-dev.db.bak-stage1`** (the pre-stage backup), so
+the "before" state is reproducible rather than remembered. Numbers, from the file:
+
+| step | tables | `session_v2` | `session_message` | `project` | `migration` | domain rows |
+| - | - | - | - | - | - | - |
+| before (byte copy of `.bak-stage1`, `integrity_check` ok, 1,214,136,320 B) | 25 (0/8 domain) | 691 | 69,990 | 40 | 50 | none |
+| after first run (`exit=0`) | 33 (8/8 domain) | 691 | 69,990 | 40 | 51 | 13 bots, 1 team, 1 mission, 2 links |
+| after second run (`exit=0`) | 33 | 691 | 69,990 | 40 | 51 | nothing inserted; `skipped 13/1/1` |
+
+The three most recent old sessions open and read in a **fresh process** after the migration: `ses_eb9a719b…` ("Compaction
+architecture inventory", 42 messages, last row `idle` at 20:15:26Z), `ses_ebb9e9bc…` ("Map CLI build and dispatch", 32
+messages), `ses_ebbb15fe…` ("Extract Votel state facts", 11 messages). The room mission's links resolve
+`ses_ed4519175f…` -> `copy-humanizer` (title "Room: Setup test") and `ses_ed4517237f…` -> no session row.
+
+**Acceptance for brief section B (the parts that do not need the UI yet).**
+
+| item | status | evidence |
+| - | - | - |
+| rename a bot, its old tasks still resolve | PASS | test `renaming a bot keeps its tasks resolving by id`: after a rename the task's `ownerId`/`missionId` are unchanged, `revision` stays 1, and `getBotBySlug` still resolves |
+| archive a bot with a pending task -> explicit reassign or blocked | PASS | test `archiving a bot with open work is refused until the work is reassigned`: the refusal names `botID` + `taskIDs`, leaves the bot live and the task where it was; with `reassignTo` the task moves, its revision becomes 2, and the bot drops out of `listBots()` while staying in `listBots({archived:true})` |
+| restart -> all rows restored | PASS at the store level, **app restart still Ali's** | test `restarting over the same file …`: a second, independent layer over the same file restores bots, team membership, coordinator, mission, both tasks, the dependency edge, the session link and the saved UI state; plus the replay file above read in fresh processes |
+| old sessions still open | PASS by read, app-open still Ali's | the three sessions above read with their message counts in a fresh process; `session_v2`/`session_message` counts unchanged by both the migration and the backfill |
+
+**Deviations, recorded so the next stage does not rediscover them.**
+
+- The domain lives in `packages/core/src/mission/` (`schema.ts` = Effect Schema, `sql.ts` = drizzle tables, `service.ts`,
+  `backfill.ts`) plus a top-level `packages/core/src/mission.ts` that re-exports it as `Mission.*`. The package exports map is
+  `./*` -> `./src/*.ts`, so a bare directory is not importable, and this repo keeps Effect Schema and drizzle declarations in
+  separate files (`project/` does the same). The build list says "tables + Effect services"; the shape is the same, the file
+  names are not.
+- `packages/core/script/migration.ts` needed a Windows fix to run at all: `Bun.Glob` yields backslash paths, and
+  `.split("/")[0]` then returned the whole path, so generation died with `ENOENT …\migration.sql\migration.sql`. It now does
+  `.replaceAll("\\", "/")` first. Without this the migration could not be generated on this machine.
+- The generated DDL creates `mission_session` before `mission` (alphabetical table order). Migrations run with foreign keys
+  off and SQLite resolves them at run time, so inserts are unaffected; it is noted because it looks wrong at a glance.
+- Per-bot chat sessions are **not** promoted to missions. They stay reachable as sessions; only rooms become missions. A
+  second backfill pass can add them once Stage 2 defines what a single-bot mission means.
+
+**Limitations, stated plainly.**
+
+- The one reference that does not resolve — `ses_ed4517237ffeUzNXSk9w5o8geS` for `projects-manager` in `room.json` — is
+  missing from the **live** store too (checked read-only), so the backfill copied a dangling reference faithfully rather than
+  creating one. There is deliberately no foreign key from `mission_session` to the session tables; the resolver shows "no
+  session row" instead of failing.
+- Stage 1 has no UI. The domain is reachable from code and tests, not yet from the app; the Bot Team roster and mission
+  switching are Stage 4.
+- The migration has not yet been applied by an app *start* under Ali's window: the switch-over to `opencode-aporia-dev.db`
+  (Stage 0a) still waits on his one action, and this stage deliberately did not touch the running DEV app, the installed app,
+  port 4096, or any CLI cache. When he switches, the first start applies the same migration to whatever copy the switch
+  rebuilds, which is the same DDL replayed above.
+
+Rollback: `git revert e2be3f6b1b 4d1de66eb5` returns the tree (the migration file and the two generated registries go with
+`e2be3f6b1b`); for data, `opencode-aporia-dev.db.bak-stage1` is the pre-stage copy (`integrity_check` ok, 691 sessions,
+69,990 messages) and the replay above proves restoring it and rerunning reproduces the same result.
+
 ## Independent verification
 
 `verifier` subagent, read-only, against the tree at `32cbce8f72`. It read the files and quoted them; it was not permitted
