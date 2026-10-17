@@ -78,7 +78,7 @@ Each record is appended when the pass returns, and the text is the verifier's ow
 numbering). A record is therefore written by the commit that follows the pass, and no record can describe the commit that
 contains it. The file's newest block is the newest pass recorded here; the branch's later commits say what was done about it.
 
-## Pass 5
+## Pass 5 — tree at `3c7d13e7ed` — VERDICT: FAIL
 
 ```
 VERDICT: FAIL
