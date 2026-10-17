@@ -520,11 +520,13 @@ the script, which lives outside the repo at `C:\Users\Dilla\Aporia\bots\aporetic
 evidence because the script is not committed here. The file is the only stand-alone copy — `dir /b` with a wildcard beside it
 shows no `-wal` or `-shm`.
 
-### Stage 3 — coordinator trigger, durable attention cards, attention UI — branch `an/stage-3-coordinator` — NOT CLOSED
+### Stage 3 — coordinator trigger, durable attention cards, attention UI — branch `an/stage-3-coordinator` — CLOSED on an independent PASS
 
-**Stage 3 is not closed.** The first independent verifier pass FAILED at `7d8c33e3ef` (one HIGH and four LOW findings,
-see Independent verification → Stage 3). The fixes are committed below, and the stage waits on an independent PASS.
-`an/checkpoint-stage3-done` will be cut only after an independent PASS, and not by the executor that wrote the code.
+**Stage 3 is closed.**
+- The first independent verifier pass FAILED at `7d8c33e3ef`, with one HIGH and four LOW findings.
+- The fixes are committed below.
+- The second independent pass PASSED at `bb6e1228c4` on all of S3-1 to S3-8.
+- `an/checkpoint-stage3-done` is cut locally at `bb6e1228c4` and is not pushed.
 
 Branch cut from the Stage 2 tip `e922ab3972`. The plan and acceptance criteria S3-1 to S3-8 were committed first
 (`docs/an-rewrite/STAGE3-PLAN.md`). The commit list is read from `git log e922ab3972..an/stage-3-coordinator`. The code
@@ -541,6 +543,7 @@ Local tags:
   `an/checkpoint-stage3-done`; that name was deleted locally because only an independent pass may use it. Neither tag was
   ever pushed.
 - `an/checkpoint-stage3-pre-fix` at `a1927ea9c4`, the rollback point for the fixes.
+- `an/checkpoint-stage3-done` at `bb6e1228c4`, cut after the independent PASS.
 
 **What it does.**
 
@@ -607,6 +610,9 @@ the dev copy are inert to Stage 2 code, and `.bak-stage3` is the pre-check copy.
 ## Independent verification
 
 ### Stage 3 — branch `an/stage-3-coordinator`
+
+**Independent pass 2: VERDICT PASS, tree at `bb6e1228c4`.** The independent verifier passed all of S3-1 to S3-8 on the
+fixed tree. The local tag `an/checkpoint-stage3-done` was cut at that commit afterwards. This docs commit sits on top of it.
 
 **Independent pass 1: VERDICT FAIL, tree at `7d8c33e3ef`** (tag `an/checkpoint-stage3-selfcheck`). Findings and fixes:
 
