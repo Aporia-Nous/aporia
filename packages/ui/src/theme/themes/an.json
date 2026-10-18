@@ -1,0 +1,65 @@
+{
+  "$schema": "https://opencode.ai/desktop-theme.json",
+  "name": "AN Black/Gold",
+  "id": "an",
+  "light": {
+    "palette": {
+      "neutral": "#f7f2e8",
+      "ink": "#1a1408",
+      "primary": "#d79a2e",
+      "accent": "#f0c66d",
+      "success": "#15803d",
+      "warning": "#b45309",
+      "error": "#b91c1c",
+      "info": "#0369a1",
+      "diffAdd": "#bbf7d0",
+      "diffDelete": "#fecaca"
+    },
+    "overrides": {
+      "syntax-comment": "#7a6f5c",
+      "syntax-keyword": "#d79a2e",
+      "syntax-string": "#15803d",
+      "syntax-primitive": "#0369a1",
+      "syntax-property": "#b45309",
+      "syntax-type": "#d79a2e",
+      "syntax-constant": "#b91c1c"
+    }
+  },
+  "dark": {
+    "palette": {
+      "neutral": "#020509",
+      "ink": "#f0e6d2",
+      "primary": "#f0c66d",
+      "accent": "#d79a2e",
+      "success": "#3be78c",
+      "warning": "#f0c66d",
+      "error": "#f87171",
+      "info": "#7dd3fc",
+      "diffAdd": "#3be78c",
+      "diffDelete": "#f87171"
+    },
+    "overrides": {
+      "syntax-comment": "#7b8aa3",
+      "syntax-keyword": "#f0c66d",
+      "syntax-string": "#3be78c",
+      "syntax-primitive": "#7dd3fc",
+      "syntax-property": "#d79a2e",
+      "syntax-type": "#e5c57f",
+      "syntax-constant": "#f87171",
+      "background-strong": "#03070b",
+      "background-base": "#020509",
+      "background-weak": "#0a1016",
+      "surface-base": "#050a0e",
+      "surface-raised": "#0a1218",
+      "border-weak": "rgba(240, 198, 109, 0.18)",
+      "border-base": "rgba(240, 198, 109, 0.32)",
+      "border-strong": "rgba(240, 198, 109, 0.55)",
+      "text-strong": "#f0e6d2",
+      "text-base": "#e5c57f",
+      "text-weak": "#cfac62",
+      "icon-strong": "#f0c66d",
+      "button-primary-base": "#d79a2e",
+      "button-primary-hover": "#f0c66d"
+    }
+  }
+}
