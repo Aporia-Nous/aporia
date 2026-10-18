@@ -8,6 +8,7 @@ Work date: October 18, 2026 (America/Chicago). Board task `AP-CURSOR-05`.
 | --- | --- |
 | cwd | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic` |
 | branch | `compaction-cancel-recovery` (cut from `compaction-bound-summary` @ `179856cb51`) |
+| commit | `4d32fc04cc` — `test(compaction): J fixture 3 cancel/error recovery` |
 | ownership | this worktree only — not `C:\Tools\aporia` and not `C:\Tools\aporia\.worktrees\opt` |
 | push | none |
 | merge | none |

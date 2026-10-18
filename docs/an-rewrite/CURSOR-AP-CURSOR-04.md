@@ -9,6 +9,7 @@ Work date: October 18, 2026 (America/Chicago). Board task `AP-CURSOR-04`.
 | cwd | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic` |
 | branch | `compaction-bound-summary` (cut from `compaction-honest-counters` @ `93b5acb2df`) |
 | base verified | tip `93b5acb2df` / code `25d351ed1f` |
+| commit | `179856cb51` — `fix(compaction): bound summary output to SUMMARY_BUDGET` |
 | ownership | this worktree only — not `C:\Tools\aporia` and not `C:\Tools\aporia\.worktrees\opt` |
 | push | none |
 | merge | none |
