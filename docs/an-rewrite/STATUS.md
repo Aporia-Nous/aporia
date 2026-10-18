@@ -105,10 +105,22 @@ exit 0 — prior Stage 0 suite was 252; +1 is the S2 regression) and `docs/an-re
 
 Running-DEV proof was not manufactured: no app restart, no DB mutation, no live session load of this build.
 
-#### Still open in Stage 0 (S3–S4, and the rest of J)
+#### S3 — honest UI counters (AP-CURSOR-03) — implemented at source/unit; independent review OPEN
 
-- S3: honest and clearly separated counters — active context vs cumulative totals — in the app footer, the Details
-  panel and the compaction row label (three unambiguous numbers: prompt sent, summary written, resulting context).
+Branch `compaction-honest-counters` cut from `compaction-reclaim-guard` @ `36167ddfa5`. Report:
+`docs/an-rewrite/CURSOR-AP-CURSOR-03.md`.
+
+| surface | change |
+| - | - |
+| App footer (`packages/app/src/aporia/layout.tsx`) | Labels **Active context** (last assistant prompt) vs **Lifetime total** (cumulative session usage) |
+| Details panel (`packages/app/src/aporia/right-panel.tsx`) | Same two quantities as separate rows (was a single ambiguous "Tokens") |
+| Compaction row (`packages/session-ui`) | Label is `prompt sent · summary written · resulting context` via `compaction-usage.ts`; resulting context comes from the next assistant prompt when present, otherwise omitted (not invented) |
+
+Tests stored: `docs/an-rewrite/evidence/2026-10-18-compaction-usage-s3.txt`, `…-session-stats-s3.txt`, typecheck evidence under the same date prefix. No merge/push; running-DEV not claimed. Design mode 3 vs 4 stays OPEN.
+
+#### Still open in Stage 0 (S4, and the rest of J)
+
+- S3: source/unit implemented on `compaction-honest-counters` — **independent PASS not claimed**; running-DEV OPEN.
 - S4: bound the summary's own output across successive compactions.
 - J fixtures 2, 3 and 6 (mid-turn compaction, cancel/error recovery, restart recovery) and the runner-level
   continuation test.

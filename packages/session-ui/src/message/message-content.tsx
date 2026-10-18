@@ -28,6 +28,7 @@ import type {
 } from "@opencode/client/promise"
 import type { SessionUserActions, SessionUserAttachmentReference, SessionUserComment } from "../actions"
 import { attached, typeLabel } from "../components/message-file"
+import { formatCompactionUsageLabel } from "./compaction-usage"
 
 export async function writeClipboard(text: string): Promise<boolean> {
   const body = typeof document === "undefined" ? undefined : document.body
@@ -514,7 +515,12 @@ function CompactionDivider(props: { label: string }) {
   )
 }
 
-export function SessionCompactionMessage(props: { message: SessionMessageCompaction; error: string }) {
+export function SessionCompactionMessage(props: {
+  message: SessionMessageCompaction
+  error: string
+  /** Active context after this compaction, from the next assistant prompt when known. */
+  resultingContext?: number
+}) {
   const i18n = useI18n()
   const summary = () => (props.message.status === "failed" ? "" : props.message.summary)
 
@@ -530,18 +536,14 @@ export function SessionCompactionMessage(props: { message: SessionMessageCompact
     () => new Intl.NumberFormat(i18n.locale(), { notation: "compact", maximumFractionDigits: 1 }),
   )
 
-  // Usage of the compaction request itself; the resulting context size only shows on the next assistant step.
+  // Prompt/summary are usage of the compaction request itself. Resulting context is the next assistant
+  // prompt when available — never the ambiguous "X in · Y out" cumulative-looking pair.
   const usage = () => {
     if (props.message.status === "running" || !props.message.tokens) return ""
-    const tokens = props.message.tokens
-    const input = tokens.input + tokens.cache.read + tokens.cache.write
-    const output = tokens.output + tokens.reasoning
-
-    if (input + output <= 0) return ""
-
-    return i18n.t("ui.messagePart.compaction.usage", {
-      input: compact().format(input),
-      output: compact().format(output),
+    return formatCompactionUsageLabel({
+      tokens: props.message.tokens,
+      resultingContext: props.resultingContext,
+      format: (value) => compact().format(value),
     })
   }
 

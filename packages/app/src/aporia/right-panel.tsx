@@ -2,7 +2,7 @@
 import { createEffect, createMemo, createSignal, For, lazy, Match, onMount, Show, Switch } from "solid-js"
 import type { AporiaView } from "./layout"
 import { aporiaPrefs } from "./prefs"
-import { formatTokens, tokenTotal, touchedFiles } from "./session-stats"
+import { contextTokens, formatTokens, tokenTotal, touchedFiles } from "./session-stats"
 import { Avatar } from "./avatar"
 import { EmptyState, Icon, type IconName } from "./icons"
 import { agentFor, bots } from "./bots"
@@ -26,7 +26,10 @@ export function AporiaRightPanel(props: { view: AporiaView; onClose?: () => void
     if (tab() === "browser") setBrowserUsed(true)
   })
   const info = () => props.view.info()
-  const files = createMemo(() => touchedFiles(props.view.messages()))
+  const messages = () => props.view.messages()
+  const activeContext = createMemo(() => contextTokens(messages()))
+  const lifetimeTotal = createMemo(() => tokenTotal(info()?.tokens))
+  const files = createMemo(() => touchedFiles(messages()))
   const agentName = () => info()?.agent ?? "build"
 
   // APORIA voice: read the latest reply aloud with a local, offline engine (faces shown as Aporia voices).
@@ -123,8 +126,10 @@ export function AporiaRightPanel(props: { view: AporiaView; onClose?: () => void
               <dd class="ap-break">{props.view.directory()}</dd>
               <dt>Created</dt>
               <dd>{info() ? new Date(info()!.time.created).toLocaleString() : ""}</dd>
-              <dt>Tokens</dt>
-              <dd>{formatTokens(tokenTotal(info()?.tokens))}</dd>
+              <dt title="Last completed assistant prompt (input + cache)">Active context</dt>
+              <dd>{formatTokens(activeContext())}</dd>
+              <dt title="Cumulative session token usage across the session lifetime">Lifetime total</dt>
+              <dd>{formatTokens(lifetimeTotal())}</dd>
               <dt>Files touched</dt>
               <dd>{files().length}</dd>
               <dt>Voice</dt>

@@ -180,12 +180,17 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
           </button>
         </header>
         <div class="ap-chat-body">{props.children}</div>
-        <footer class="ap-context-bar" title="From real session usage reported by the server">
-          <span class="ap-context-pill">
+        <footer
+          class="ap-context-bar"
+          title="Active context is the last model prompt size. Lifetime total is cumulative session usage — they are not the same quantity."
+        >
+          <span class="ap-context-pill" title="Last completed assistant prompt (input + cache)">
             <Icon name="gauge" size={12} />
-            Context <strong>{formatTokens(context())}</strong> tokens
+            Active context <strong>{formatTokens(context())}</strong>
           </span>
-          <span class="ap-muted">Session total {formatTokens(total())}</span>
+          <span class="ap-muted" title="Cumulative session token usage across the session lifetime">
+            Lifetime total {formatTokens(total())}
+          </span>
           <Show when={(info()?.cost ?? 0) > 0}>
             <span class="ap-muted">${(info()?.cost ?? 0).toFixed(4)}</span>
           </Show>

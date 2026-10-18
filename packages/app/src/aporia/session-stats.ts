@@ -1,12 +1,14 @@
 // APORIA: derive real numbers from the session's own messages (no estimates).
+// Active context (last assistant prompt) and lifetime totals are different quantities — never conflate them in UI.
 import type { SessionMessageInfo, TokenUsageInfo } from "@opencode/client/promise"
 
+/** Session lifetime usage sum (all recorded token fields). Not the active model context. */
 export function tokenTotal(tokens: TokenUsageInfo | undefined) {
   if (!tokens) return 0
   return tokens.input + tokens.output + tokens.reasoning + tokens.cache.read + tokens.cache.write
 }
 
-/** Tokens the last completed model call actually sent as context. */
+/** Tokens the last completed model call actually sent as context (active context). */
 export function contextTokens(messages: SessionMessageInfo[]) {
   for (let i = messages.length - 1; i >= 0; i--) {
     const message = messages[i]
