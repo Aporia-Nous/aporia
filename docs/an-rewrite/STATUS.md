@@ -1,4 +1,4 @@
-# Aporetic rewrite — STATUS
+﻿# Aporetic rewrite — STATUS
 
 Checkout: `C:\Tools\aporia\.worktrees\opt`, on `rebrand/nousphere` up to the checkpoint tag `an/checkpoint-pre-stage1`
 (`c2b211d313`), and on stage branches from there on (Stage 1 on `an/stage-1-domain-model`; Stage 2 on
@@ -11,7 +11,7 @@ work, and the live database is only ever read (Stage 0a takes a read-only copy o
 
 ## Stage log
 
-### Stage 0 — compaction (brief J) — prior 2 commits + AP-CURSOR-02 S2 (J stays PARTIAL: S3–S4 and recovery fixtures open)
+### Stage 0 — compaction (brief J) — prior 2 commits + AP-CURSOR-02/03/04 (J stays PARTIAL: fixtures 2/3/6 open)
 
 | # | commit | subject | tests |
 | - | - | - | - |
@@ -105,10 +105,10 @@ exit 0 — prior Stage 0 suite was 252; +1 is the S2 regression) and `docs/an-re
 
 Running-DEV proof was not manufactured: no app restart, no DB mutation, no live session load of this build.
 
-#### S3 — honest UI counters (AP-CURSOR-03) — implemented at source/unit; independent review OPEN
+#### S3 — honest UI counters (AP-CURSOR-03) — INDEPENDENT PASS (source/unit); running-DEV OPEN
 
 Branch `compaction-honest-counters` cut from `compaction-reclaim-guard` @ `36167ddfa5`; code commit
-`25d351ed1f`. Report: `docs/an-rewrite/CURSOR-AP-CURSOR-03.md`.
+`25d351ed1f`; tip `93b5acb2df`. Report: `docs/an-rewrite/CURSOR-AP-CURSOR-03.md`.
 
 | surface | change |
 | - | - |
@@ -118,10 +118,22 @@ Branch `compaction-honest-counters` cut from `compaction-reclaim-guard` @ `36167
 
 Tests stored: `docs/an-rewrite/evidence/2026-10-18-compaction-usage-s3.txt`, `…-session-stats-s3.txt`, typecheck evidence under the same date prefix. No merge/push; running-DEV not claimed. Design mode 3 vs 4 stays OPEN.
 
-#### Still open in Stage 0 (S4, and the rest of J)
+#### S4 — bound summary output (AP-CURSOR-04) — implemented at source/unit; independent review OPEN
 
-- S3: source/unit implemented on `compaction-honest-counters` — **independent PASS not claimed**; running-DEV OPEN.
-- S4: bound the summary's own output across successive compactions.
+Branch `compaction-bound-summary` cut from `compaction-honest-counters` @ `93b5acb2df`. Report:
+`docs/an-rewrite/CURSOR-AP-CURSOR-04.md`.
+
+| item | value |
+| - | - |
+| change | `SUMMARY_BUDGET` (= `RESERVE_MIN`, 16_000 estimated tokens) caps stored summary text via `boundSummaryOutput`; `SUMMARY_OUTPUT_MAX` in model-request lowered from 32_000 to 16_000 so the request does not ask for more than we keep |
+| successive | S4 fixture: oversized hook summaries on first and update pass each store ≤ budget; one checkpoint remains |
+| overflow / keep / S2 | unchanged |
+
+Evidence: `docs/an-rewrite/evidence/2026-10-18-session-suites-s4.txt` (`Ran 255 tests across 5 files`, 255 pass / 0 fail — prior S2 suite was 253; +2 are S4 unit + successive fixture), `…-session-compaction-s4.txt`, `…-session-runner-s4-output-limit.txt`, `…-typecheck-s4.txt` (exit 0). Code files: `packages/core/src/session/compaction.ts`, `packages/core/src/session/model-request.ts`, matching tests. No merge/push; running-DEV not claimed.
+
+#### Still open in Stage 0 (rest of J)
+
+- S4: source/unit implemented on `compaction-bound-summary` — **independent PASS not claimed**; running-DEV OPEN.
 - J fixtures 2, 3 and 6 (mid-turn compaction, cancel/error recovery, restart recovery) and the runner-level
   continuation test.
 - Known bound gap, recorded not hidden: a single message whose own text exceeds `keep` is still kept whole

@@ -49,8 +49,9 @@ const GENERATION_KEYS = new Set(Object.keys(GenerationOptions.fields))
 const OUTPUT_TOKEN_FALLBACK = 32_000
 // No reply needs more, however much the model allows.
 const OUTPUT_TOKEN_MAX = 256_000
-// A summary never needs more, and a request asking for more cannot be shrunk to fit a window the catalog overstates.
-const SUMMARY_OUTPUT_MAX = 32_000
+// A summary never needs more than the stored summary budget (RESERVE_MIN / SessionCompaction.SUMMARY_BUDGET). Asking
+// for more wastes tokens and lets successive updates grow the checkpoint past what we keep.
+const SUMMARY_OUTPUT_MAX = 16_000
 // Prompt text is estimated at about 4 characters per token, which can run low on dense text such as code.
 const ESTIMATE_ERROR = 0.15
 // Never ask for less; only reachable with automatic compaction off, since it keeps the window from filling this far.

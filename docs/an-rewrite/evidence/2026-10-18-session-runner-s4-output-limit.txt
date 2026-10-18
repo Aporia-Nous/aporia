@@ -1,0 +1,19 @@
+bun test v1.4.0 (34cbb9a40)
+bun.exe : 
+At C:\Users\Dilla\AppData\Roaming\npm\bun.ps1:14 char:3
++   & "$basedir/node_modules/bun/bin/bun.exe"   $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+test\session-runner.test.ts:
+(pass) SessionRunnerLLM > caps the output limit a large model advertises [108.49ms]
+(pass) SessionRunnerLLM > gives the summary its full output limit when the conversation overshot the threshold 
+[60.31ms]
+(pass) SessionRunnerLLM > keeps the summary its room on a small window [48.60ms]
+
+ 3 pass
+ 220 filtered out
+ 0 fail
+ 9 expect() calls
+Ran 3 tests across 1 file. [997.00ms]

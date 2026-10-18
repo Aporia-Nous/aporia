@@ -107,6 +107,21 @@ test("compaction prompt preserves detailed work state and relevant files", () =>
   expect(prompt).toContain("## Relevant Files")
 })
 
+test("S4: boundSummaryOutput caps estimated tokens at SUMMARY_BUDGET", () => {
+  const short = "## Objective\n- keep this"
+  expect(SessionCompaction.boundSummaryOutput(short)).toBe(short)
+  expect(Token.estimate(short)).toBeLessThanOrEqual(SessionCompaction.SUMMARY_BUDGET)
+
+  const oversized =
+    "## Objective\n- root task\n\n## Requirements\n- keep the reference\n\n## Important Context\n- " + "x".repeat(80_000)
+  expect(Token.estimate(oversized)).toBeGreaterThan(SessionCompaction.SUMMARY_BUDGET)
+  const bounded = SessionCompaction.boundSummaryOutput(oversized)
+  expect(Token.estimate(bounded)).toBeLessThanOrEqual(SessionCompaction.SUMMARY_BUDGET)
+  expect(bounded).toContain("## Objective")
+  expect(bounded).toContain("[summary truncated to budget]")
+  expect(bounded.length).toBeLessThan(oversized.length)
+})
+
 it.effect("compaction describes tool media without embedding base64", () =>
   Effect.gen(function* () {
     const base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB"
@@ -539,7 +554,7 @@ it.effect("manual compaction summarizes short context instead of no-op", () =>
       "x-opencode-session": parentID,
       "x-opencode-client": "opencode",
     })
-    expect(requests[0]?.generation).toEqual(GenerationOptions.make({ maxTokens: 20_000 }))
+    expect(requests[0]?.generation).toEqual(GenerationOptions.make({ maxTokens: 16_000 }))
     expect(JSON.stringify(requests[0]?.messages)).toContain("Manual compaction should include this short conversation.")
     expect(JSON.stringify(requests[0]?.messages)).toContain("Use Effect services and generators.")
     expect(JSON.stringify(requests[0]?.messages)).toContain("User shell pwd completed: /project")
@@ -901,6 +916,78 @@ it.effect("J fixture 5: successive compactions keep one checkpoint, drop covered
     const after2 = SessionCompaction.estimateContext(loaded(session, context2))
     expect(after2).toBeLessThan(before2)
     expect(after2).toBeLessThanOrEqual(20_000)
+  }),
+)
+
+/**
+ * S4. Bound summary output across successive comps: a hook that returns far more than SUMMARY_BUDGET still stores a
+ * checkpoint whose summary estimate stays at or under the budget on both the first pass and the update pass. Without
+ * the bound, successive updates could grow the stored summary without limit. Manual trigger — this slice bounds output,
+ * not the auto due() path.
+ */
+it.effect("S4: successive comps store summary text within SUMMARY_BUDGET", () =>
+  Effect.gen(function* () {
+    requests = []
+    const sessionID = Session.ID.make("ses_s4_bound_summary")
+    const session = yield* insertSession(sessionID)
+    const compaction = yield* SessionCompaction.Service
+    const store = yield* SessionStore.Service
+    const hooks = yield* PluginHooks.Service
+    const oversized =
+      "## Objective\n- rebuild the shell\n\n## Requirements\n- keep v11\n\n## Important Context\n- " + "y".repeat(90_000)
+    expect(Token.estimate(oversized)).toBeGreaterThan(SessionCompaction.SUMMARY_BUDGET)
+    yield* hooks.register("session", "compaction", (event) =>
+      Effect.sync(() => {
+        event.result = { summary: oversized }
+      }),
+    )
+
+    const first = [
+      turn("Task A: rebuild the shell."),
+      reply("Decision: keep the v11 mockup."),
+      turn("Keep the v11 mockup."),
+      reply("Pending: bound the summary."),
+    ]
+    expect(
+      yield* compaction.compact({
+        reason: "manual",
+        context: loaded(session, first),
+        inputID: SessionMessage.ID.create(),
+      }),
+    ).toEqual({ status: "completed" })
+    expect(requests).toHaveLength(0)
+
+    const context1 = yield* store.context(sessionID)
+    const checkpoint1 = context1.find((message) => message.type === "compaction")
+    expect(checkpoint1).toMatchObject({ status: "completed" })
+    if (checkpoint1?.type !== "compaction" || checkpoint1.status !== "completed") {
+      throw new Error("expected a completed checkpoint after the first pass")
+    }
+    expect(Token.estimate(checkpoint1.summary)).toBeLessThanOrEqual(SessionCompaction.SUMMARY_BUDGET)
+    expect(checkpoint1.summary).toContain("[summary truncated to budget]")
+
+    const second = [
+      ...context1,
+      turn("Also record the summary budget in STATUS."),
+      reply("Progress: S4 fixture written."),
+    ]
+    expect(
+      yield* compaction.compact({
+        reason: "manual",
+        context: loaded(session, second),
+        inputID: SessionMessage.ID.create(),
+      }),
+    ).toEqual({ status: "completed" })
+    expect(requests).toHaveLength(0)
+
+    const context2 = yield* store.context(sessionID)
+    expect(context2.filter((message) => message.type === "compaction")).toHaveLength(1)
+    const checkpoint2 = context2.find((message) => message.type === "compaction")
+    if (checkpoint2?.type !== "compaction" || checkpoint2.status !== "completed") {
+      throw new Error("expected one completed checkpoint after the update pass")
+    }
+    expect(Token.estimate(checkpoint2.summary)).toBeLessThanOrEqual(SessionCompaction.SUMMARY_BUDGET)
+    expect(checkpoint2.summary).toContain("[summary truncated to budget]")
   }),
 )
 

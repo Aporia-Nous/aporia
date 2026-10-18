@@ -102,6 +102,12 @@ const SHRINK_STEPS = [0.7, 0.5, 0.35]
 // The least of the window kept free for the last reply before compaction and for the summary itself.
 const RESERVE_MIN = 16_000
 /**
+ * Firm ceiling on the stored summary's estimated tokens. Matches the reserve used for the summary request's output
+ * room: across successive updates a checkpoint summary cannot grow past this, even when a hook or model returns more.
+ * Character budget uses the same 4 chars/token estimate as `Token.estimate`.
+ */
+export const SUMMARY_BUDGET = RESERVE_MIN
+/**
  * The working context automatic compaction aims at when `compaction.max_context` is unset. Deliberately far below
  * any current model's window: cost is context size times request count, and a session that stays open makes a lot of
  * requests. DeepSeek V4.1 Flash advertises a 1,000,000-token window, so an unbounded ceiling let one 18-day session
@@ -120,6 +126,7 @@ const minReclaim = (ceiling: number) => Math.min(MIN_RECLAIM, Math.max(1, Math.f
 const TOOL_OUTPUT_MAX_CHARS = 1_250
 const IMAGE_TOKEN_ESTIMATE = 1_500
 const PDF_TOKEN_ESTIMATE = 2_000
+const SUMMARY_TRUNCATION_MARK = "\n\n[summary truncated to budget]"
 
 const SUMMARY_TEMPLATE = `You MUST use this format for your response (you may omit sections that aren't applicable). Do not include the <template> tags in your response.
 <template>
@@ -163,6 +170,24 @@ const SUMMARY_RULES = `Rules:
 - Carry forward only user questions or requests that remain unanswered or require further action. Do not repeat ones that newer history has answered or resolved. Preserve exact wording when carrying one forward.
 - Preserve consequential workflow state, including whether changes are uncommitted, committed, pushed, under review, or merged.
 - Do not mention the summary process or that context was compacted.`
+
+/**
+ * Cap stored summary text at `SUMMARY_BUDGET` estimated tokens. Prefers cutting on a `##` section boundary so the
+ * remaining prefix stays a usable template; otherwise cuts on a line boundary. Native compaction stores an empty
+ * summary and is unchanged.
+ */
+export const boundSummaryOutput = (text: string) => {
+  if (!text) return text
+  if (Token.estimate(text) <= SUMMARY_BUDGET) return text
+  const chars = SUMMARY_BUDGET * 4
+  if (text.length <= chars) return text
+  const room = Math.max(0, chars - SUMMARY_TRUNCATION_MARK.length)
+  const cut = text.slice(0, room)
+  const section = cut.lastIndexOf("\n## ")
+  const line = cut.lastIndexOf("\n")
+  const end = section > room * 0.5 ? section : line > room * 0.5 ? line : room
+  return cut.slice(0, end).trimEnd() + SUMMARY_TRUNCATION_MARK
+}
 
 export const buildPrompt = (update: boolean, legacy = false) => {
   const shared = [
@@ -637,7 +662,7 @@ export const layer = Layer.effect(
       }
       return spend(context.session.id, usage).pipe(
         Effect.as<Result>({
-          text: supplied.summary,
+          text: boundSummaryOutput(supplied.summary),
           recent,
           providerState: supplied.providerState,
           metadata: supplied.metadata,
@@ -686,7 +711,8 @@ export const layer = Layer.effect(
           model: context.model.ref,
           providerState: outcome.providerState,
           providerContext: outcome.providerContext,
-          text: outcome.text,
+          // Bound again here so model-streamed text (not only hooks) cannot store more than SUMMARY_BUDGET.
+          text: boundSummaryOutput(outcome.text),
           recent: outcome.recent,
           ...usage,
         },
