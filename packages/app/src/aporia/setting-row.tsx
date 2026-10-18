@@ -22,10 +22,23 @@ export function AporiaThemeSettingRow() {
   return (
     <SettingsRow
       title="Aporetic theme"
-      description="Keep the navy Aporetic theme applied. Turn off to choose any other theme in Appearance."
+      description="Keep the navy Aporetic theme applied when AN shell is off. Turn off to choose any other theme in Appearance."
     >
       <div data-action="settings-aporia-theme">
         <Switch checked={aporiaPrefs.aporiaTheme()} onChange={(checked) => aporiaPrefs.setAporiaTheme(checked)} />
+      </div>
+    </SettingsRow>
+  )
+}
+
+export function AnShellSettingRow() {
+  return (
+    <SettingsRow
+      title="AN shell"
+      description="Stage 4 black/gold shell: nav, roster, mission header, attention. Sticky an theme. Turn off for the navy Aporetic three-column layout."
+    >
+      <div data-action="settings-an-shell">
+        <Switch checked={aporiaPrefs.anShellEnabled()} onChange={(checked) => aporiaPrefs.setAnShellEnabled(checked)} />
       </div>
     </SettingsRow>
   )

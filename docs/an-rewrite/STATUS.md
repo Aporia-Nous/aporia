@@ -982,18 +982,22 @@ The verdict applies to `32cbce8f72`. The commit carrying this paragraph is docs-
 
 None. Every stage attempted so far is committed and green.
 
-### Stage 4 start — AN shell + black/gold tokens (AP-STAGE4-01) — source/unit OPEN; not full Stage 4
+### Stage 4 start — AN shell + black/gold tokens (AP-STAGE4-01) — INDEPENDENT PASS (scaffold)
 
-Worktree `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` on branch `stage4-an-shell` @ `23be34ceaf`,
-cut from `6751eb44a7` (isolated from Stage 0 writer on `cursor-aporetic`). Design authority: approved original AN
-black/gold packet; Lagoon Night not adopted; three-state Conversation/View/Takeover framing only (Stage 5 four-mode
-reconciliation still OPEN).
+Worktree `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` on branch `stage4-an-shell` @ `23be34ceaf`
+(tip `e98c8ea40a`). Report: `docs/an-rewrite/CURSOR-AP-STAGE4-01.md`.
+
+### Stage 4 wire — AnShell session path (AP-STAGE4-02) — source/unit OPEN; not full Stage 4
+
+Worktree `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` on branch `stage4-an-shell`, continues from
+`e98c8ea40a` (isolated from Stage 0 writer on `cursor-aporetic`). Sticky theme id `an` (black/gold); Lagoon Night not
+adopted; Conversation/View/Takeover framing only.
 
 | item | value |
 | - | - |
-| landed | `an` desktop theme + glass CSS tokens; `packages/app/src/shell/an` scaffold (nav rail, roster, mission header, stream slot, attention rail) |
-| deferred | route wire into `AporiaSessionLayout`, New teammate lifecycle, real bot/mission binding, screenshots vs `original-normal.png`, Stage 4b social |
-| tests | `packages/ui` an-theme 2 pass; `packages/app` shell/an tokens+model 6 pass — evidence `2026-10-18-an-theme-stage4.txt`, `2026-10-18-an-shell-stage4.txt` |
+| landed | AnShell wired via `AporiaSessionLayout`/`Draft`/`Home` when `anShellEnabled`; sticky `an`; roster from bots bridge; attention from `mission.attention.list`; stream = real session children; mission-switch via existing tabs/composer persistence |
+| deferred | New teammate lifecycle in AN chrome, mission progress %, screenshots vs `original-normal.png`, Stage 4b social, Stage 5 modes |
+| tests | `packages/app` shell/an tokens+bind 12 pass; `packages/ui` an-theme 2 pass — evidence `2026-10-18-an-shell-wire-stage4.txt`, `2026-10-18-an-theme-wire-stage4.txt` |
 | not claimed | independent PASS, running-DEV, merge, push, Stage 4 complete |
 
-Report: `docs/an-rewrite/CURSOR-AP-STAGE4-01.md`.
+Report: `docs/an-rewrite/CURSOR-AP-STAGE4-02.md`.

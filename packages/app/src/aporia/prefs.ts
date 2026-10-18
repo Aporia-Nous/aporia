@@ -35,6 +35,9 @@ const [leftRailOpen, setLeftRailOpenSignal] = createSignal(read(LEFT_KEY) !== "o
 // Only an explicit "off" disables these; missing or imported values mean ON.
 const THEME_KEY = "aporia.theme.enabled"
 const [aporiaTheme, setAporiaThemeSignal] = createSignal(read(THEME_KEY) !== "off")
+// Stage 4 AN shell: wraps session children in AnShell + sticky `an` theme. Default ON.
+const AN_SHELL_KEY = "aporia.an.shell.enabled"
+const [anShellEnabled, setAnShellEnabledSignal] = createSignal(read(AN_SHELL_KEY) !== "off")
 
 export const aporiaPrefs = {
   layoutEnabled,
@@ -72,5 +75,10 @@ export const aporiaPrefs = {
     write(THEME_KEY, value ? "on" : "off")
     setAporiaThemeSignal(value)
   },
-
+  /** Stage 4 AN shell + sticky `an` black/gold theme (overrides navy Aporetic chrome when on). */
+  anShellEnabled,
+  setAnShellEnabled(value: boolean) {
+    write(AN_SHELL_KEY, value ? "on" : "off")
+    setAnShellEnabledSignal(value)
+  },
 }

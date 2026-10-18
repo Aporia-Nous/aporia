@@ -40,6 +40,7 @@ import {
   toSessionRows,
   type SessionRow,
 } from "./session-list"
+import { AnShellDraftLayout, AnShellHomeLayout, AnShellSessionLayout } from "@/shell/an/session-layout"
 import logo from "./logo.png"
 
 // Loaded on first open so the catalog and modal stay out of the startup bundle.
@@ -55,6 +56,7 @@ export type AporiaView = {
 }
 
 export function AporiaSessionLayout(props: ParentProps<{ session: SessionModel }>) {
+  // Stage 4: AnShell is the session chrome when enabled (sticky `an` theme + roster/attention).
   const view: AporiaView = {
     directory: () => props.session.workspace.directory(),
     sessionID: () => props.session.identity.sessionID(),
@@ -62,7 +64,11 @@ export function AporiaSessionLayout(props: ParentProps<{ session: SessionModel }
     working: () => props.session.data.working(),
     messages: () => props.session.history.messages(),
   }
-  return <AporiaFrame view={view}>{props.children}</AporiaFrame>
+  return (
+    <Show when={aporiaPrefs.anShellEnabled()} fallback={<AporiaFrame view={view}>{props.children}</AporiaFrame>}>
+      <AnShellSessionLayout session={props.session}>{props.children}</AnShellSessionLayout>
+    </Show>
+  )
 }
 
 const noMessages: SessionMessageInfo[] = []
@@ -75,7 +81,11 @@ export function AporiaDraftLayout(props: ParentProps<{ directory: string }>) {
     working: () => false,
     messages: () => noMessages,
   }
-  return <AporiaFrame view={view}>{props.children}</AporiaFrame>
+  return (
+    <Show when={aporiaPrefs.anShellEnabled()} fallback={<AporiaFrame view={view}>{props.children}</AporiaFrame>}>
+      <AnShellDraftLayout directory={props.directory}>{props.children}</AnShellDraftLayout>
+    </Show>
+  )
 }
 
 function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connectOpen, setConnectOpen] = createSignal(false)
@@ -618,5 +628,9 @@ export function AporiaHomeLayout(props: ParentProps) {
     working: () => false,
     messages: () => noMessages,
   }
-  return <AporiaFrame view={view}>{props.children}</AporiaFrame>
+  return (
+    <Show when={aporiaPrefs.anShellEnabled()} fallback={<AporiaFrame view={view}>{props.children}</AporiaFrame>}>
+      <AnShellHomeLayout>{props.children}</AnShellHomeLayout>
+    </Show>
+  )
 }
