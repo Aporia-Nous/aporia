@@ -107,8 +107,8 @@ Running-DEV proof was not manufactured: no app restart, no DB mutation, no live 
 
 #### S3 — honest UI counters (AP-CURSOR-03) — implemented at source/unit; independent review OPEN
 
-Branch `compaction-honest-counters` cut from `compaction-reclaim-guard` @ `36167ddfa5`. Report:
-`docs/an-rewrite/CURSOR-AP-CURSOR-03.md`.
+Branch `compaction-honest-counters` cut from `compaction-reclaim-guard` @ `36167ddfa5`; code commit
+`25d351ed1f`. Report: `docs/an-rewrite/CURSOR-AP-CURSOR-03.md`.
 
 | surface | change |
 | - | - |

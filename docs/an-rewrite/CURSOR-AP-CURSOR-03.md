@@ -8,6 +8,7 @@ Work date: October 18, 2026 (America/Chicago). Board task `AP-CURSOR-03`.
 | --- | --- |
 | cwd | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic` |
 | branch | `compaction-honest-counters` (cut from `compaction-reclaim-guard` @ `36167ddfa5`) |
+| commit | `25d351ed1f` — `fix(ui): label active context vs lifetime and compaction counters` |
 | ownership | this worktree only — not `C:\Tools\aporia` and not `C:\Tools\aporia\.worktrees\opt` |
 | push | none |
 | merge | none |
