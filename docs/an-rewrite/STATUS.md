@@ -88,8 +88,8 @@ summary request, not the active context. Some rows carry no usage at all, so the
 
 #### S2 — minimum-reclaim guard (AP-CURSOR-02) — PASS at source/unit; running-DEV acceptance OPEN
 
-Branch `compaction-reclaim-guard` in worktree `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic` (isolated from
-`C:\Tools\aporia` and `.worktrees\opt`). Base HEAD observed at launch: `0229ce1f2d`.
+Branch `compaction-reclaim-guard` @ `fdd716de12` in worktree `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic`
+(isolated from `C:\Tools\aporia` and `.worktrees\opt`). Base HEAD observed at launch: `0229ce1f2d`.
 
 | item | value |
 | - | - |

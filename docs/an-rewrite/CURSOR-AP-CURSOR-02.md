@@ -85,7 +85,7 @@ No model/provider calls, benchmarks, network integrations, or new dependencies. 
 
 ## Commit / checkpoint
 
-Local commit on `compaction-reclaim-guard` after checks (message: `fix(compaction): skip auto after near-zero reclaim`). No push.
+Local commit `fdd716de12` on `compaction-reclaim-guard` (`fix(compaction): skip auto after near-zero reclaim`). No push.
 
 ## Source proof vs running-DEV proof
 
