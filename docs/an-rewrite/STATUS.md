@@ -989,9 +989,9 @@ Worktree `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` on branch
 
 ### Stage 4 wire — AnShell session path (AP-STAGE4-02) — source/unit OPEN; not full Stage 4
 
-Worktree `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` on branch `stage4-an-shell`, continues from
-`e98c8ea40a` (isolated from Stage 0 writer on `cursor-aporetic`). Sticky theme id `an` (black/gold); Lagoon Night not
-adopted; Conversation/View/Takeover framing only.
+Worktree `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` on branch `stage4-an-shell` @ `32ab0971ff`
+(docs tip `8a555642ef`), continues from `e98c8ea40a` (isolated from Stage 0 writer on `cursor-aporetic`). Sticky theme
+id `an` (black/gold); Lagoon Night not adopted; Conversation/View/Takeover framing only.
 
 | item | value |
 | - | - |
