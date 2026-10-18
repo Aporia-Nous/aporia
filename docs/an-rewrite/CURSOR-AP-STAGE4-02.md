@@ -8,6 +8,7 @@ Work date: October 18, 2026 (America/Chicago). Board task `AP-STAGE4-02`.
 | --- | --- |
 | cwd | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | branch | `stage4-an-shell` (continues from AP-STAGE4-01 tip `e98c8ea40a`) |
+| commit | `32ab0971ff` — `feat(an-shell): wire AnShell into session path with sticky an theme` |
 | base | `e98c8ea40a` — `docs(an-rewrite): record AP-STAGE4-01 commit hash` |
 | ownership | this worktree only — not `cursor-aporetic` (Stage 0) and not `C:\Tools\aporia` |
 | push | none |
