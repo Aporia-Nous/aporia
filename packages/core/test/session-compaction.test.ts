@@ -34,6 +34,27 @@ import { asc, eq } from "drizzle-orm"
 import { testEffect } from "./lib/effect"
 
 let requests: LLMRequest[] = []
+const defaultSummaryStream = () =>
+  Stream.make(
+    LLMEvent.textDelta({ id: "summary", text: "## Objective\n- manual summary" }),
+    LLMEvent.stepFinish({
+      index: 0,
+      reason: { normalized: "stop" },
+      usage: {
+        inputTokens: 15,
+        outputTokens: 6,
+        nonCachedInputTokens: 10,
+        cacheReadInputTokens: 3,
+        cacheWriteInputTokens: 2,
+        reasoningTokens: 2,
+      },
+    }),
+    LLMEvent.finish({
+      reason: { normalized: "stop" },
+    }),
+  )
+/** When set, the next compaction stream uses this factory once, then clears it. */
+let streamOnce: ((request: LLMRequest) => Stream.Stream<unknown>) | undefined
 const model = LanguageModel.make({
   id: "summary-model",
   provider: "test",
@@ -52,24 +73,9 @@ const cost = [
 const client = Layer.mock(LLMClient.Service)({
   stream: (request: LLMRequest) => {
     requests.push(request)
-    return Stream.make(
-      LLMEvent.textDelta({ id: "summary", text: "## Objective\n- manual summary" }),
-      LLMEvent.stepFinish({
-        index: 0,
-        reason: { normalized: "stop" },
-        usage: {
-          inputTokens: 15,
-          outputTokens: 6,
-          nonCachedInputTokens: 10,
-          cacheReadInputTokens: 3,
-          cacheWriteInputTokens: 2,
-          reasoningTokens: 2,
-        },
-      }),
-      LLMEvent.finish({
-        reason: { normalized: "stop" },
-      }),
-    )
+    const once = streamOnce
+    streamOnce = undefined
+    return (once ? once(request) : defaultSummaryStream()) as ReturnType<typeof defaultSummaryStream>
   },
   generate: () => Effect.die("unused"),
 })
@@ -988,6 +994,100 @@ it.effect("S4: successive comps store summary text within SUMMARY_BUDGET", () =>
     }
     expect(Token.estimate(checkpoint2.summary)).toBeLessThanOrEqual(SessionCompaction.SUMMARY_BUDGET)
     expect(checkpoint2.summary).toContain("[summary truncated to budget]")
+  }),
+)
+
+/**
+ * J fixture 3 (core). Summary-provider error leaves the prior completed checkpoint recoverable, records a truthful
+ * failed status, and a later retry replaces history with one completed checkpoint (no duplicate summaries). Cancel and
+ * runner-level queued-input recovery are covered in session-runner ("J fixture 3"); renderer reconnect is covered by
+ * session-compaction-transport.
+ */
+it.effect("J fixture 3: provider error keeps prior checkpoint; retry does not duplicate summaries", () =>
+  Effect.gen(function* () {
+    requests = []
+    streamOnce = undefined
+    const sessionID = Session.ID.make("ses_j3_cancel_error")
+    const session = yield* insertSession(sessionID)
+    const compaction = yield* SessionCompaction.Service
+    const store = yield* SessionStore.Service
+
+    const seed = [
+      turn("Task: rebuild the shell."),
+      reply("Decision: keep the v11 mockup."),
+      turn("Keep the v11 mockup as the design reference."),
+      reply("Pending: recovery fixtures."),
+    ]
+    expect(
+      yield* compaction.compact({
+        reason: "manual",
+        context: loaded(session, seed),
+        inputID: SessionMessage.ID.create(),
+      }),
+    ).toEqual({ status: "completed" })
+    expect(requests).toHaveLength(1)
+
+    const afterOk = yield* store.context(sessionID)
+    const prior = afterOk.find((message) => message.type === "compaction" && message.status === "completed")
+    expect(prior).toMatchObject({
+      type: "compaction",
+      status: "completed",
+      summary: "## Objective\n- manual summary",
+    })
+    if (prior?.type !== "compaction" || prior.status !== "completed") {
+      throw new Error("expected a completed prior checkpoint")
+    }
+
+    streamOnce = () => Stream.make(LLMEvent.providerError({ message: "summary provider timed out" }))
+    const attempt = [
+      ...afterOk,
+      turn("Steer after the checkpoint."),
+      reply("Continue the pending fixtures."),
+    ]
+    expect(
+      yield* compaction.compact({
+        reason: "manual",
+        context: loaded(session, attempt),
+        inputID: SessionMessage.ID.create(),
+      }),
+    ).toEqual({
+      status: "failed",
+      error: { type: "provider.error", message: "summary provider timed out" },
+    })
+    expect(requests).toHaveLength(2)
+
+    const afterFail = yield* store.context(sessionID)
+    // Prior completed checkpoint remains the recoverable boundary; failed attempt is truthful and separate.
+    const completed = afterFail.filter((message) => message.type === "compaction" && message.status === "completed")
+    const failed = afterFail.filter((message) => message.type === "compaction" && message.status === "failed")
+    expect(completed).toHaveLength(1)
+    expect(completed[0]).toMatchObject({ id: prior.id, summary: "## Objective\n- manual summary" })
+    expect(failed).toHaveLength(1)
+    expect(failed[0]).toMatchObject({
+      error: { type: "provider.error", message: "summary provider timed out" },
+    })
+
+    // Retry succeeds: still exactly one completed checkpoint (update replaces, does not stack duplicates).
+    streamOnce = undefined
+    const retry = [
+      ...afterFail.filter((message) => !(message.type === "compaction" && message.status === "failed")),
+      turn("Retry compaction after the provider recovered."),
+      reply("Pending: still the fixtures."),
+    ]
+    expect(
+      yield* compaction.compact({
+        reason: "manual",
+        context: loaded(session, retry),
+        inputID: SessionMessage.ID.create(),
+      }),
+    ).toEqual({ status: "completed" })
+    expect(requests).toHaveLength(3)
+
+    const afterRetry = yield* store.context(sessionID)
+    expect(afterRetry.filter((message) => message.type === "compaction" && message.status === "completed")).toHaveLength(
+      1,
+    )
+    expect(afterRetry.filter((message) => message.type === "compaction" && message.status === "failed")).toHaveLength(0)
   }),
 )
 

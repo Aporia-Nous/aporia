@@ -131,11 +131,23 @@ Branch `compaction-bound-summary` cut from `compaction-honest-counters` @ `93b5a
 
 Evidence: `docs/an-rewrite/evidence/2026-10-18-session-suites-s4.txt` (`Ran 255 tests across 5 files`, 255 pass / 0 fail — prior S2 suite was 253; +2 are S4 unit + successive fixture), `…-session-compaction-s4.txt`, `…-session-runner-s4-output-limit.txt`, `…-typecheck-s4.txt` (exit 0). Code files: `packages/core/src/session/compaction.ts`, `packages/core/src/session/model-request.ts`, matching tests. No merge/push; running-DEV not claimed.
 
+#### J fixture 3 — cancel/error recovery (AP-CURSOR-05) — implemented at source/unit; independent review OPEN
+
+Branch `compaction-cancel-recovery` cut from `compaction-bound-summary` @ `179856cb51`. Report:
+`docs/an-rewrite/CURSOR-AP-CURSOR-05.md`.
+
+| item | value |
+| - | - |
+| core | Provider timeout/error leaves prior completed checkpoint recoverable; failed status truthful; retry leaves one completed checkpoint (no duplicate summaries) |
+| runner | Same plus queued input released after failure and delivered after retry |
+| cancel / reconnect | Existing runner cancel + steer tests; transport reconnect suite cross-referenced (not re-implemented) |
+
+Evidence: `docs/an-rewrite/evidence/2026-10-18-session-suites-j3.txt` (`Ran 257 tests across 5 files`, 257 pass / 0 fail — prior S4 suite was 255; +2 are J3 core + runner), `…-typecheck-j3.txt` (exit 0). No merge/push; running-DEV not claimed.
+
 #### Still open in Stage 0 (rest of J)
 
-- S4: source/unit implemented on `compaction-bound-summary` — **independent PASS not claimed**; running-DEV OPEN.
-- J fixtures 2, 3 and 6 (mid-turn compaction, cancel/error recovery, restart recovery) and the runner-level
-  continuation test.
+- S4 and J fixture 3: source/unit implemented — **independent PASS not claimed**; running-DEV OPEN.
+- J fixtures 2 and 6 (mid-turn compaction, restart recovery) and the runner-level continuation test.
 - Known bound gap, recorded not hidden: a single message whose own text exceeds `keep` is still kept whole
   (`messageToText` truncates tool output at 1,250 chars but not assistant or user text).
 - Gap: the retry count of a compaction request is not persisted anywhere, so it can only be observed live, not

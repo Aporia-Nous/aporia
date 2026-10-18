@@ -1,0 +1,9 @@
+bun test v1.4.0 (34cbb9a40)
+bun.exe : Failed to scan non-existent root directory for tests: 
+"C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic\do-not-run-tests-from-root"
+At C:\Users\Dilla\AppData\Roaming\npm\bun.ps1:14 char:3
++   & "$basedir/node_modules/bun/bin/bun.exe"   $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Failed to scan ...ests-from-root":String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 

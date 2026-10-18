@@ -2490,6 +2490,74 @@ describe("SessionRunnerLLM", () => {
     })
   })
 
+  /**
+   * J fixture 3 (runner). After a completed checkpoint: provider error leaves it recoverable with truthful failed
+   * status and releases queued input; a later successful retry leaves one completed checkpoint (no duplicate
+   * summaries). Cancellation with queued input is covered by "preserves both earlier steers when prioritized
+   * compaction is cancelled" and "records cancelled manual compaction…"; reconnect by session-compaction-transport.
+   */
+  scenario("J fixture 3: error recovery keeps prior checkpoint, queued input, and no duplicate summary", function* (s) {
+    s.currentModel = recoveryModel
+    yield* s.llm.push(
+      TestLLM.text("Earlier answer", "text-j3-history"),
+      TestLLM.text("## Objective\n- prior checkpoint", "text-j3-summary"),
+    )
+    yield* s.runPrompt("Earlier question")
+    const first = yield* s.session.compact({ sessionID })
+    yield* s.resume
+    expect((yield* s.messages).find((message) => message.id === first.id)).toMatchObject({
+      type: "compaction",
+      status: "completed",
+      summary: "## Objective\n- prior checkpoint",
+    })
+
+    yield* s.llm.push([], TestLLM.text("Queued after failure", "text-j3-after-fail"))
+    const failed = yield* s.session.compact({ sessionID })
+    yield* s.session.prompt({
+      sessionID,
+      text: "Continue after failure",
+      delivery: "queue",
+      resume: false,
+    })
+    yield* s.resume
+
+    expect((yield* s.messages).find((message) => message.id === failed.id)).toMatchObject({
+      type: "compaction",
+      status: "failed",
+    })
+    expect((yield* s.messages).find((message) => message.id === first.id)).toMatchObject({
+      status: "completed",
+      summary: "## Objective\n- prior checkpoint",
+    })
+    const afterFail = s.requests.at(-1)
+    expect(afterFail).toBeDefined()
+    expect(userTexts(afterFail!)).toContain("Continue after failure")
+    expect(yield* SessionInbox.find(s.db, failed.id)).toBeUndefined()
+
+    s.requests.length = 0
+    yield* s.llm.push(
+      TestLLM.text("## Objective\n- recovered checkpoint", "text-j3-retry-summary"),
+      TestLLM.text("After retry", "text-j3-after-retry"),
+    )
+    const retry = yield* s.session.compact({ sessionID })
+    yield* s.session.prompt({ sessionID, text: "Continue after retry", delivery: "queue", resume: false })
+    yield* s.resume
+
+    expect((yield* s.messages).find((message) => message.id === retry.id)).toMatchObject({
+      type: "compaction",
+      status: "completed",
+      summary: "## Objective\n- recovered checkpoint",
+    })
+    const completed = (yield* s.context).filter(
+      (message) => message.type === "compaction" && message.status === "completed",
+    )
+    expect(completed).toHaveLength(1)
+    expect(completed[0]).toMatchObject({ summary: "## Objective\n- recovered checkpoint" })
+    const afterRetry = s.requests.at(-1)
+    expect(afterRetry).toBeDefined()
+    expect(userTexts(afterRetry!)).toContain("Continue after retry")
+  })
+
   for (const route of [OpenAIChat.route, OpenAIResponses.route, AnthropicMessages.route]) {
     for (const reason of ["manual", "auto"] as const) {
       scenario(`preserves the session request prefix during ${reason} compaction (${route.id})`, function* (s) {
