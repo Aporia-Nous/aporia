@@ -903,3 +903,83 @@ it.effect("J fixture 5: successive compactions keep one checkpoint, drop covered
     expect(after2).toBeLessThanOrEqual(20_000)
   }),
 )
+
+/**
+ * S2. A compaction that reclaims almost nothing must not immediately auto-fire again. Overflow still runs, and a
+ * session that grew past the post-compaction floor by a meaningful amount can auto-compact. A good reclaim that later
+ * refills to the ceiling (J5 path) is unchanged.
+ */
+it.effect("S2: a near-zero reclaim cannot immediately auto-compact again", () =>
+  Effect.gen(function* () {
+    requests = []
+    const sessionID = Session.ID.make("ses_s2_min_reclaim")
+    const session = yield* insertSession(sessionID)
+    const compaction = yield* SessionCompaction.Service
+    const ceiling = 100_000
+    // Matches SessionCompaction's live threshold: min(5_000, 5% of the auto ceiling).
+    const needed = Math.min(5_000, Math.floor(ceiling * 0.05))
+
+    const checkpointFor = (summary: string) =>
+      Schema.decodeUnknownSync(SessionMessage.CompactionCompleted)({
+        id: SessionMessage.ID.create(),
+        type: "compaction",
+        status: "completed",
+        reason: "auto",
+        summary,
+        recent: "",
+        time: { created: 0, completed: 0 },
+      })
+
+    // Size the checkpoint so its estimated floor sits within `needed` of the auto ceiling (almost no headroom).
+    let low = 360_000
+    let high = 420_000
+    let nearZero = checkpointFor("x".repeat(low))
+    let floor = SessionCompaction.estimateContext(loaded(session, [nearZero]))
+    for (let step = 0; step < 24; step++) {
+      const mid = Math.floor((low + high) / 2)
+      nearZero = checkpointFor("x".repeat(mid))
+      floor = SessionCompaction.estimateContext(loaded(session, [nearZero]))
+      if (floor < ceiling - needed + 1) low = mid + 1
+      else if (floor >= ceiling) high = mid - 1
+      else break
+    }
+    expect(floor).toBeGreaterThanOrEqual(ceiling - needed)
+    expect(floor).toBeLessThan(ceiling)
+
+    const stuck = loaded(session, [nearZero, reply("Still over the fire point.", ceiling)])
+    expect(SessionCompaction.estimateContext(stuck)).toBeGreaterThanOrEqual(ceiling)
+    expect(yield* compaction.compact({ reason: "auto", context: stuck })).toEqual({ status: "skipped" })
+    expect(requests).toHaveLength(0)
+
+    // Overflow still recovers; the guard only holds the auto trigger.
+    expect(yield* compaction.compact({ reason: "overflow", context: stuck })).toEqual({ status: "completed" })
+    expect(requests).toHaveLength(1)
+
+    // Enough new growth past the floor clears the guard without needing overflow.
+    requests = []
+    const grown = loaded(session, [
+      nearZero,
+      reply("Still over the fire point.", ceiling),
+      turn("y".repeat(needed * 4)),
+    ])
+    expect(SessionCompaction.estimateContext(grown) - floor).toBeGreaterThanOrEqual(needed)
+    expect(yield* compaction.compact({ reason: "auto", context: grown })).toEqual({ status: "completed" })
+    expect(requests).toHaveLength(1)
+
+    // A good reclaim that later refills still auto-compacts (same shape as J5's second pass).
+    requests = []
+    const good = Schema.decodeUnknownSync(SessionMessage.CompactionCompleted)({
+      id: SessionMessage.ID.create(),
+      type: "compaction",
+      status: "completed",
+      reason: "auto",
+      summary: "Objective: rebuild the shell.",
+      recent: "",
+      time: { created: 0, completed: 0 },
+    })
+    expect(SessionCompaction.estimateContext(loaded(session, [good]))).toBeLessThan(ceiling - needed)
+    const refill = loaded(session, [good, turn("Record the threshold."), reply("Pending fixtures.", 101_000)])
+    expect(yield* compaction.compact({ reason: "auto", context: refill })).toEqual({ status: "completed" })
+    expect(requests).toHaveLength(1)
+  }),
+)

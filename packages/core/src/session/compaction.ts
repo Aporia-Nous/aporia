@@ -110,6 +110,13 @@ const RESERVE_MIN = 16_000
 const AUTO_COMPACT_CONTEXT = 100_000
 /** A common window size, assumed for the compaction request when the model's window is unknown. */
 const UNKNOWN_WINDOW = 200_000
+/**
+ * Upper bound on the auto minimum-reclaim guard. The live threshold is `min(this, 5% of the auto ceiling)` so a
+ * near-zero pass cannot loop on a 100k working context, while small-window models (a few thousand tokens) keep their
+ * existing successive-auto behavior. Overflow and manual compaction still run either way.
+ */
+const MIN_RECLAIM = 5_000
+const minReclaim = (ceiling: number) => Math.min(MIN_RECLAIM, Math.max(1, Math.floor(ceiling * 0.05)))
 const TOOL_OUTPUT_MAX_CHARS = 1_250
 const IMAGE_TOKEN_ESTIMATE = 1_500
 const PDF_TOKEN_ESTIMATE = 2_000
@@ -262,7 +269,17 @@ export const layer = Layer.effect(
       // An encrypted native window estimates as nothing, so wait for a response to measure it.
       const measured = messages.findLastIndex((message) => hasMeasuredPrompt(message, context.model.ref))
       if (measured < messages.findLastIndex(SessionProviderContext.isCheckpoint)) return false
-      if (estimateContext(context) < ceiling) return false
+      const current = estimateContext(context)
+      if (current < ceiling) return false
+      // A prior pass that left almost no headroom under the fire point must not immediately auto-fire again: wait
+      // until the session has grown by at least `minReclaim(ceiling)` past that floor, or until overflow/manual. Cap
+      // the floor at `current` so a text estimate that overshoots a later measured prompt cannot permanently suppress auto.
+      const checkpoint = previousCompaction(messages)
+      if (checkpoint) {
+        const needed = minReclaim(ceiling)
+        const floor = Math.min(estimateContext({ ...context, messages: [checkpoint] }), current)
+        if (ceiling - floor < needed && current - floor < needed) return false
+      }
       // `max_context` can make a session due that the model's own window would have left alone. Compaction only
       // replaces conversation, so if the system prompt, tool definitions, and instructions alone already reach the
       // ceiling it cannot bring the session under it: the next step would be due again and summarize over and over.

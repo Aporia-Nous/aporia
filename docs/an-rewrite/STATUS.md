@@ -11,7 +11,7 @@ work, and the live database is only ever read (Stage 0a takes a read-only copy o
 
 ## Stage log
 
-### Stage 0 — compaction (brief J) — 2 commits, committed (J stays PARTIAL: S2–S4 open)
+### Stage 0 — compaction (brief J) — prior 2 commits + AP-CURSOR-02 S2 (J stays PARTIAL: S3–S4 and recovery fixtures open)
 
 | # | commit | subject | tests |
 | - | - | - | - |
@@ -86,9 +86,27 @@ largest label output is **8,311**. So "~300k out" is not reproducible from store
 plus reasoning, which never exceeded 31,806 tokens in a single request. "~200k in" is the input+read+write label of a
 summary request, not the active context. Some rows carry no usage at all, so the label can read `0 in · 0 out`.
 
-#### Still open in Stage 0 (S2–S4, and the rest of J)
+#### S2 — minimum-reclaim guard (AP-CURSOR-02) — PASS at source/unit; running-DEV acceptance OPEN
 
-- S2: a minimum-reclaim guard so a compaction that frees almost nothing cannot immediately fire again.
+Branch `compaction-reclaim-guard` in worktree `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic` (isolated from
+`C:\Tools\aporia` and `.worktrees\opt`). Base HEAD observed at launch: `0229ce1f2d`.
+
+| item | value |
+| - | - |
+| change | `due()` skips auto compaction when the latest completed checkpoint left less than `min(5_000, 5% of ceiling)` tokens of headroom under the fire point and the session has not yet grown by that same amount past the post-compaction floor |
+| overflow / manual | unchanged — they do not consult `due()` |
+| small-window | preserved — a 4k-context model keeps successive auto compact (runner regression still green) |
+| keep / recent instructions | unchanged |
+
+Evidence: `docs/an-rewrite/evidence/2026-10-18-session-suites-s2.txt` (`Ran 253 tests across 5 files`, 253 pass / 0 fail,
+exit 0 — prior Stage 0 suite was 252; +1 is the S2 regression) and `docs/an-rewrite/evidence/2026-10-18-typecheck-s2.txt`
+(`bun run typecheck` in `packages/core`, exit 0). Code files: `packages/core/src/session/compaction.ts`,
+`packages/core/test/session-compaction.test.ts`. Report: `docs/an-rewrite/CURSOR-AP-CURSOR-02.md`.
+
+Running-DEV proof was not manufactured: no app restart, no DB mutation, no live session load of this build.
+
+#### Still open in Stage 0 (S3–S4, and the rest of J)
+
 - S3: honest and clearly separated counters — active context vs cumulative totals — in the app footer, the Details
   panel and the compaction row label (three unambiguous numbers: prompt sent, summary written, resulting context).
 - S4: bound the summary's own output across successive compactions.
