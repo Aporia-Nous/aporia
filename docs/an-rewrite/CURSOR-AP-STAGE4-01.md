@@ -8,6 +8,7 @@ Work date: October 18, 2026 (America/Chicago). Board task `AP-STAGE4-01`.
 | --- | --- |
 | cwd | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | branch | `stage4-an-shell` (cut from Stage 0 tip `6751eb44a7`) |
+| commit | `23be34ceaf` — `feat(an-shell): Stage 4 start — AN black/gold tokens + shell scaffold` |
 | base | `6751eb44a7` — `docs(an-rewrite): record AP-CURSOR-04/05 commit hashes` |
 | ownership | this worktree only — not `cursor-aporetic` (Stage 0 writer) and not `C:\Tools\aporia` |
 | push | none |
