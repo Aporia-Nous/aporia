@@ -22,6 +22,11 @@ import { Portal } from "solid-js/web"
 import { AnShell } from "./an-shell"
 import { buildStreamCards } from "./cards"
 import {
+  buildContextCards,
+  buildConversationStreamItems,
+  buildMissionStackCards,
+} from "./conversation-stream-items"
+import {
   beginComputerConsent,
   cancelComputerConsent,
   computerAttachEmptyCopy,
@@ -438,6 +443,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     else if (id === "missions") command.trigger("tab.new")
   }
 
+  /** Flat card list retained for non-owned / tests; Conversation uses streamItems. */
   const streamCards = createMemo(() =>
     buildStreamCards({
       attention: attention.bound().attention,
@@ -454,6 +460,29 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       computerUserControl: computerUserInput(),
       includeTeam: true,
     }),
+  )
+
+  /** Context cards (task/approval/computer/team) — tool cards interleaved from messages. */
+  const contextCards = createMemo(() =>
+    buildContextCards({
+      attention: attention.bound().attention,
+      roster: roster.bound().roster,
+      session: {
+        sessionID: props.view.sessionID(),
+        title: info()?.title ? prettyTitle(info()!.title) : undefined,
+        agent: currentAgent(),
+        working: props.view.working(),
+      },
+      computerLive: computerLive(),
+      computerFeedActive: computerFeedActive(),
+      computerUserControl: computerUserInput(),
+      includeTeam: true,
+    }),
+  )
+
+  /** Collapsed Mission stack — empty when Conversation owns in-stream cards (AP-STAGE4-15). */
+  const missionStackCards = createMemo(() =>
+    buildMissionStackCards({ conversationOwnsCards: !!props.view.sessionID() }),
   )
 
   const onComputerConnect = () => {
@@ -579,6 +608,16 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     return messagesToConversationTurns(props.view.messages())
   })
 
+  /** In-conversation turns + Task/Approval/Proof/Computer cards (mockup). */
+  const streamItems = createMemo(() => {
+    if (!props.view.sessionID()) return undefined
+    return buildConversationStreamItems({
+      messages: props.view.messages(),
+      turns: conversationTurns() ?? [],
+      contextCards: contextCards(),
+    })
+  })
+
   const onNewTeammate = () => {
     aporiaAlerts.push({
       title: "New teammate",
@@ -616,6 +655,8 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         attention={attention.bound().attention}
         attentionEmpty={attention.bound().emptyMessage}
         streamCards={streamCards()}
+        missionStackCards={missionStackCards()}
+        streamItems={streamItems()}
         conversationTurns={conversationTurns()}
         conversationEmpty="No messages yet — send from the composer below. Conversation is owned by AnShell."
         computerEmpty={computerAttachEmptyCopy(computerAttach())}

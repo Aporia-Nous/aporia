@@ -20,6 +20,7 @@ export {
   toolPartToCard,
   messagesToPartCards,
   messageProofUnavailableCard,
+  shouldSurfaceToolCard,
   buildStreamCards,
   missionChromePills,
 } from "./map"

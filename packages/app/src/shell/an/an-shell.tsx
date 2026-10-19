@@ -3,6 +3,7 @@ import { AnCard, AnStreamCards } from "./cards"
 import { attentionToApprovalCards } from "./cards/map"
 import type { AnCardModel } from "./cards/types"
 import { AnConversationStream } from "./conversation-stream"
+import type { AnStreamItem } from "./conversation-stream-items"
 import type { AnConversationTurn } from "./conversation-turns"
 import { AN_COMPUTER_ATTACH_SURFACE, type ComputerAttachPath } from "./computer-attach"
 import {
@@ -30,22 +31,41 @@ import "./an-shell.css"
 
 function StreamRegion(
   props: ParentProps<{
-    cards: AnCardModel[]
+    /** Collapsed Mission stack above Conversation (empty when cards are in-stream). */
+    missionStackCards?: AnCardModel[]
+    /** Legacy flat cards when Conversation is not owned (home / non-session). */
+    cards?: AnCardModel[]
     turns?: AnConversationTurn[]
+    /** Interleaved Conversation items (turns + cards) — AP-STAGE4-15. */
+    streamItems?: AnStreamItem[]
     conversationEmpty?: string
     /** When true, AN owns message list; children keep composer / home chrome. */
     ownConversation?: boolean
     onCardAction?: (actionId: string, card: AnCardModel) => void
   }>,
 ) {
+  const onAction = (action: { id: string }, card: AnCardModel) =>
+    props.onCardAction?.(action.id, card)
   return (
     <>
-      <AnStreamCards
-        cards={props.cards}
-        onAction={(action, card) => props.onCardAction?.(action.id, card)}
-      />
+      {/* Collapsed Mission stack — not the primary card surface when Conversation owns cards. */}
       <Show when={props.ownConversation}>
-        <AnConversationStream turns={props.turns ?? []} emptyHint={props.conversationEmpty} />
+        <AnStreamCards
+          cards={props.missionStackCards ?? []}
+          collapsed
+          onAction={onAction}
+        />
+      </Show>
+      <Show when={!props.ownConversation}>
+        <AnStreamCards cards={props.cards ?? []} onAction={onAction} />
+      </Show>
+      <Show when={props.ownConversation}>
+        <AnConversationStream
+          items={props.streamItems}
+          turns={props.turns ?? []}
+          emptyHint={props.conversationEmpty}
+          onCardAction={onAction}
+        />
       </Show>
       <div
         class="an-stream-legacy"
@@ -429,6 +449,8 @@ export function AnShell(props: AnShellProps): JSX.Element {
   const attention = () => props.attention ?? []
   const roster = () => props.roster ?? []
   const streamCards = () => props.streamCards ?? []
+  const missionStackCards = () => props.missionStackCards ?? []
+  const streamItems = () => props.streamItems
   const conversationTurns = () => props.conversationTurns
   const ownConversation = () => conversationTurns() !== undefined
   const attentionCards = () => attentionToApprovalCards(attention())
@@ -522,22 +544,30 @@ export function AnShell(props: AnShellProps): JSX.Element {
       </aside>
 
       <section class="an-main" aria-label="Mission conversation">
-        <header class="an-mission">
+        <header class="an-mission" data-an-mission="compact" data-collapsed="true">
           <div class="an-mission-copy">
             <strong>{props.mission?.title ?? "Mission"}</strong>
             <Show when={props.mission?.subtitle}>
-              <span>{props.mission!.subtitle}</span>
+              <span class="an-mission-subtitle">{props.mission!.subtitle}</span>
             </Show>
             <Show when={(props.mission?.pills?.length ?? 0) > 0}>
-              <div class="an-mission-pills">
-                <For each={props.mission!.pills!}>
-                  {(pill) => (
-                    <span class="an-pill" data-tone={pill.tone ?? "neutral"}>
-                      {pill.label}
-                    </span>
-                  )}
-                </For>
-              </div>
+              <details class="an-mission-pills-details">
+                <summary class="an-mission-pills-summary">
+                  {props.mission!.pills![0]?.label ?? "Status"}
+                  {(props.mission!.pills!.length ?? 0) > 1
+                    ? ` · +${props.mission!.pills!.length - 1}`
+                    : ""}
+                </summary>
+                <div class="an-mission-pills">
+                  <For each={props.mission!.pills!}>
+                    {(pill) => (
+                      <span class="an-pill" data-tone={pill.tone ?? "neutral"}>
+                        {pill.label}
+                      </span>
+                    )}
+                  </For>
+                </div>
+              </details>
             </Show>
           </div>
           <Show when={progress() !== undefined}>
@@ -625,9 +655,15 @@ export function AnShell(props: AnShellProps): JSX.Element {
         </Show>
 
         <Show when={!layout().computerPrimary}>
-          <div class="an-stream" data-an-own-conversation={ownConversation() ? "true" : "false"}>
+          <div
+            class="an-stream"
+            data-an-own-conversation={ownConversation() ? "true" : "false"}
+            data-an-cards-in-stream={ownConversation() ? "true" : "false"}
+          >
             <StreamRegion
               cards={streamCards()}
+              missionStackCards={missionStackCards()}
+              streamItems={streamItems()}
               turns={conversationTurns()}
               conversationEmpty={props.conversationEmpty}
               ownConversation={ownConversation()}
@@ -645,9 +681,12 @@ export function AnShell(props: AnShellProps): JSX.Element {
           <div
             class="an-stream an-stream--rail"
             data-an-own-conversation={ownConversation() ? "true" : "false"}
+            data-an-cards-in-stream={ownConversation() ? "true" : "false"}
           >
             <StreamRegion
               cards={streamCards()}
+              missionStackCards={missionStackCards()}
+              streamItems={streamItems()}
               turns={conversationTurns()}
               conversationEmpty={props.conversationEmpty}
               ownConversation={ownConversation()}

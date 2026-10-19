@@ -86,6 +86,13 @@ export { AnShellSessionLayout, AnShellDraftLayout, AnShellHomeLayout } from "./s
 export { AnConversationStream } from "./conversation-stream"
 export { messagesToConversationTurns, type AnConversationTurn } from "./conversation-turns"
 export {
+  buildContextCards,
+  buildConversationStreamItems,
+  buildMissionStackCards,
+  flattenStreamItems,
+  type AnStreamItem,
+} from "./conversation-stream-items"
+export {
   anComposerBotLabel,
   anComposerPlaceholder,
   isAnOwnedComposerHost,

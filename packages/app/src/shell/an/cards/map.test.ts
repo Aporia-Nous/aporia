@@ -11,6 +11,7 @@ import {
   questionToDecisionCard,
   rosterToTeamCard,
   sessionToTaskCard,
+  shouldSurfaceToolCard,
   toolPartToCard,
 } from "./map"
 import { AN_CARD_TYPES, isAnCardType } from "./types"
@@ -117,6 +118,31 @@ describe("AN card mapping", () => {
     expect(pills.some((p) => p.label === "Local" && p.tone === "ok")).toBe(true)
     expect(pills.filter((p) => p.label.includes("unavailable")).length).toBe(3)
     expect(JSON.stringify(pills)).not.toContain("Verified\"")
+  })
+
+  test("shouldSurfaceToolCard keeps active tools and edits; skips quiet reads", () => {
+    expect(
+      shouldSurfaceToolCard(
+        tool({
+          id: "r1",
+          name: "read",
+          state: {
+            status: "completed",
+            input: { path: "x" },
+            content: [{ type: "text", text: "…" }],
+          },
+        }),
+      ),
+    ).toBe(false)
+    expect(
+      shouldSurfaceToolCard(
+        tool({
+          id: "b1",
+          name: "bash",
+          state: { status: "running", input: {}, metadata: {} },
+        }),
+      ),
+    ).toBe(true)
   })
 
   test("running tool maps to Task; completed edit maps to Proof", () => {

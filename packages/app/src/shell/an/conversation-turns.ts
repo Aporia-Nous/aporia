@@ -27,8 +27,8 @@ function assistantText(msg: Extract<SessionMessageInfo, { type: "assistant" }>):
 
 /**
  * Map session messages → AN conversation turns.
- * Owns presentation of user + assistant text; tools stay on Mission cards.
- * Skips empty / non-text message kinds.
+ * Owns presentation of user + assistant text; tools map to in-conversation cards
+ * via buildConversationStreamItems (AP-STAGE4-15). Skips empty / non-text message kinds.
  */
 export function messagesToConversationTurns(
   messages: readonly SessionMessageInfo[],

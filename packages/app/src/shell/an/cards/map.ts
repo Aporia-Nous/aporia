@@ -93,14 +93,14 @@ export function toolPartToCard(tool: SessionMessageAssistantTool): AnCardModel {
         label: asProof ? "Open proof" : "Open in stream",
         variant: "secondary",
         stub: true,
-        stubReason: "Part stays interactive in the stream below — Mission card is language chrome.",
+        stubReason: "Part stays interactive in Conversation — card is AN language chrome.",
       },
     ],
   }
 }
 
-/** Surface in Mission stack: active tools, errors, and completed edits (not every quiet read). */
-function shouldSurfaceToolInMission(tool: SessionMessageAssistantTool): boolean {
+/** Surface in Conversation (or legacy Mission stack): active tools, errors, completed edits — not quiet reads. */
+export function shouldSurfaceToolCard(tool: SessionMessageAssistantTool): boolean {
   const status = tool.state.status
   if (status === "streaming" || status === "running" || status === "error") return true
   if (status === "completed" && isEditTool(tool.name)) return true
@@ -119,7 +119,7 @@ export function messagesToPartCards(
     for (let j = msg.content.length - 1; j >= 0; j--) {
       const part = msg.content[j]
       if (!part || part.type !== "tool") continue
-      if (!shouldSurfaceToolInMission(part)) continue
+      if (!shouldSurfaceToolCard(part)) continue
       tools.push(part)
       if (tools.length >= limit) break
     }

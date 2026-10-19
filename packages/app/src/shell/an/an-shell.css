@@ -349,6 +349,56 @@
   box-shadow: var(--an-specular);
 }
 
+/* AP-STAGE4-15: shrink Mission chrome — Conversation is the primary card surface */
+.an-mission[data-an-mission="compact"] {
+  align-items: center;
+  min-height: 40px;
+  padding: 6px 14px;
+  gap: 8px;
+}
+
+.an-mission[data-an-mission="compact"] .an-mission-copy {
+  gap: 0;
+}
+
+.an-mission[data-an-mission="compact"] .an-mission-copy strong {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.an-mission[data-an-mission="compact"] .an-mission-subtitle {
+  display: none;
+}
+
+.an-mission-pills-details {
+  margin: 0;
+}
+
+.an-mission-pills-summary {
+  list-style: none;
+  cursor: pointer;
+  color: var(--an-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 2px 0;
+  user-select: none;
+}
+
+.an-mission-pills-summary::-webkit-details-marker {
+  display: none;
+}
+
+.an-mission-pills-details[open] .an-mission-pills {
+  margin-top: 4px;
+}
+
+.an-mission[data-an-mission="compact"] .an-mission-progress {
+  width: 96px;
+  height: 4px;
+}
+
 .an-mission-copy {
   display: flex;
   flex-direction: column;
@@ -471,21 +521,42 @@
   overflow: hidden;
 }
 
-/* Cards must NOT steal flex:1 — that was collapsing Conversation / messages (AP-STAGE4-11).
-   Cap card stack so Conversation keeps usable height when Task/Team/Computer stack grows. */
+/* Collapsed Mission stack above Conversation — not primary card surface (AP-STAGE4-15).
+   Cards live inside .an-conversation; stack stays empty or thin. */
 .an-stream > .an-stream-cards {
-  flex: 0 1 auto;
+  flex: 0 0 auto;
   min-height: 0;
   min-width: 0;
-  max-height: 28%;
+  max-height: 12%;
   overflow-x: hidden;
   overflow-y: auto;
+}
+
+.an-stream > .an-stream-cards.an-stream-cards--collapsed {
+  max-height: 72px;
+  padding-bottom: 4px;
+}
+
+.an-stream[data-an-cards-in-stream="true"] > .an-conversation {
+  flex: 1 1 auto;
+  min-height: 180px;
+  min-width: 0;
 }
 
 .an-stream > .an-conversation {
   flex: 1 1 auto;
   min-height: 140px;
   min-width: 0;
+}
+
+/* In-conversation cards (mockup) — sit in the turn list, not a Mission stack */
+.an-conversation-card {
+  margin: 8px 4px 12px;
+  max-width: 100%;
+}
+
+.an-conversation-card .an-card {
+  width: 100%;
 }
 
 .an-stream > .an-stream-legacy {

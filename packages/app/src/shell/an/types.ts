@@ -1,5 +1,6 @@
 import type { AnPresence, AnShellMode } from "./tokens"
 import type { AnCardModel } from "./cards/types"
+import type { AnStreamItem } from "./conversation-stream-items"
 import type { AnConversationTurn } from "./conversation-turns"
 import type { JSX, ParentProps } from "solid-js"
 
@@ -47,8 +48,17 @@ export type AnShellProps = ParentProps<{
   mission?: AnMissionHeader
   attentionTitle?: string
   attention?: AnAttentionItem[]
-  /** Mapped AN cards shown at top of the conversation stream (Task/Approval/…). */
+  /** Legacy / home: mapped AN cards above stream when Conversation is not owned. */
   streamCards?: AnCardModel[]
+  /**
+   * Collapsed Mission stack above Conversation (AP-STAGE4-15).
+   * Empty when Task/Approval/Proof/Computer live in-stream.
+   */
+  missionStackCards?: AnCardModel[]
+  /**
+   * Interleaved Conversation items (turns + cards) — mockup in-conversation cards.
+   */
+  streamItems?: AnStreamItem[]
   /**
    * AN-owned conversation turns (user + assistant text).
    * When provided (including empty array on a live session), AnShell renders Conversation —
