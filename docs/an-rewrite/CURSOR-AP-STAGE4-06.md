@@ -9,7 +9,7 @@ Work date: October 19, 2026 (America/Chicago). Board task `AP-STAGE4-06`.
 | cwd | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | branch | `stage4-an-shell` (continues from AP-STAGE4-05 tip `39bf053c7b`) |
 | commit | `8f92dad076` — `feat(an-shell): AN glass cards in stream (AP-STAGE4-06)` |
-| tip | `8f92dad076` (docs tip commit follows if needed) |
+| tip | `80970f74f3` — docs tip after code |
 | ownership | this worktree only — not Stage 0 / not installed Aporetic |
 | push / merge | none |
 | Stage 4 complete | not claimed |
