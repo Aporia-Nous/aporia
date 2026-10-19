@@ -38,6 +38,35 @@
   background: var(--v2-background-bg-layer-01);
 }
 
+/* AP-STAGE4-03: when AnShell / sticky `an` hosts the session, force void — not navy layer-01. */
+[data-color-scheme="dark"] [data-component="an-shell"] [data-component="composer"],
+[data-color-scheme="dark"] [data-an-theme="an"] [data-component="composer"],
+[data-color-scheme="dark"] [data-component="an-shell"] [data-component="session-composer-dock"] [data-component="composer"],
+[data-color-scheme="dark"] [data-an-theme="an"] [data-component="session-composer-dock"] [data-component="composer"],
+[data-color-scheme="dark"] [data-component="an-shell"] [data-component="new-session"] [data-component="composer"],
+[data-color-scheme="dark"] [data-an-theme="an"] [data-component="new-session"] [data-component="composer"],
+[data-color-scheme="dark"] [data-component="an-shell"] [data-component="composer"][data-dock-border-underlay="true"],
+[data-color-scheme="dark"] [data-an-theme="an"] [data-component="composer"][data-dock-border-underlay="true"] {
+  background: var(--an-void, #020509) !important;
+  border: 1px solid var(--an-border-soft, rgba(240, 198, 109, 0.18));
+}
+
+[data-color-scheme="dark"] [data-component="an-shell"] [data-component="composer"]:focus-within,
+[data-color-scheme="dark"] [data-an-theme="an"] [data-component="composer"]:focus-within {
+  border-color: var(--an-border, rgba(240, 198, 109, 0.34));
+  box-shadow: var(--an-focus, 0 0 0 2px #020509, 0 0 0 4px rgba(240, 198, 109, 0.55));
+}
+
+[data-color-scheme="dark"] [data-component="an-shell"] [data-action="composer-submit"]:not(:disabled),
+[data-color-scheme="dark"] [data-an-theme="an"] [data-action="composer-submit"]:not(:disabled) {
+  --submit-highlight: rgba(240, 198, 109, 0.4);
+  --submit-hover: rgba(2, 5, 9, 0.12);
+  background-image:
+    linear-gradient(180deg, var(--submit-highlight) 0%, rgba(240, 198, 109, 0) 100%),
+    linear-gradient(90deg, var(--an-gold-deep, #d79a2e), var(--an-gold-deep, #d79a2e)) !important;
+  color: var(--an-void, #020509) !important;
+}
+
 [data-color-scheme="dark"] [data-component="composer-suggestions"] [data-active] {
   background: var(--v2-alpha-light-10);
 }

@@ -60,6 +60,12 @@
       "icon-strong": "#f0c66d",
       "button-primary-base": "#d79a2e",
       "button-primary-hover": "#f0c66d"
+    },
+    "v2Overrides": {
+      "v2-background-bg-base": "#020509",
+      "v2-background-bg-deep": "#020509",
+      "v2-background-bg-layer-01": "#020509",
+      "v2-background-bg-icon-button-contrast": "#d79a2e"
     }
   }
 }

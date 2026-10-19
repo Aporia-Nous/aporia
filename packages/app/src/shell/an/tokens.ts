@@ -30,6 +30,19 @@ export const AN_TOKENS = {
 
 export type AnTokenName = keyof typeof AN_TOKENS
 
+/**
+ * Composer surface pin when AnShell / theme `an` is active (AP-STAGE4-03).
+ * Kills leftover navy/indigo OpenCode input (#121b37-class) in favor of void + gold.
+ */
+export const AN_COMPOSER_SURFACE = {
+  fill: AN_TOKENS.void,
+  send: AN_TOKENS.goldDeep,
+  sendHover: AN_TOKENS.gold,
+  focusGold: AN_TOKENS.gold,
+  /** CSS attribute hosts that must own the composer override (AnShell frame or sticky an). */
+  hosts: ['[data-component="an-shell"]', '[data-an-theme="an"]'] as const,
+} as const
+
 /** Three-state framing from approved mockups — Stage 5 four-mode work stays separate. */
 export const AN_SHELL_MODES = ["conversation", "view", "takeover"] as const
 export type AnShellMode = (typeof AN_SHELL_MODES)[number]

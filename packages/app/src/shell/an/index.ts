@@ -2,6 +2,7 @@ export { AnShell } from "./an-shell"
 export {
   AN_DESIGN_SOURCE,
   AN_TOKENS,
+  AN_COMPOSER_SURFACE,
   AN_SHELL_MODES,
   AN_SHELL_MODE_LABEL,
   AN_PRESENCE,

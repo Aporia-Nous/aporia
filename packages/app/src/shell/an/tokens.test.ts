@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import {
+  AN_COMPOSER_SURFACE,
   AN_DESIGN_SOURCE,
   AN_SHELL_MODES,
   AN_TOKENS,
@@ -39,6 +40,22 @@ describe("AN Stage 4 tokens", () => {
   test("presence classes never invent a fourth mode token", () => {
     expect(presenceDotClass("working")).toContain("an-presence-working")
     expect(presenceDotClass("unknown")).toContain("an-presence-unknown")
+  })
+
+  test("composer surface pins void fill and gold send/focus (AP-STAGE4-03)", () => {
+    expect(AN_COMPOSER_SURFACE.fill).toBe("#020509")
+    expect(AN_COMPOSER_SURFACE.fill).toBe(AN_TOKENS.void)
+    expect(AN_COMPOSER_SURFACE.send).toBe("#d79a2e")
+    expect(AN_COMPOSER_SURFACE.send).toBe(AN_TOKENS.goldDeep)
+    expect(AN_COMPOSER_SURFACE.sendHover).toBe("#f0c66d")
+    expect(AN_COMPOSER_SURFACE.focusGold).toBe(AN_TOKENS.gold)
+    expect([...AN_COMPOSER_SURFACE.hosts]).toEqual([
+      '[data-component="an-shell"]',
+      '[data-an-theme="an"]',
+    ])
+    // Must not resurrect navy/indigo OpenCode composer samples from DESIGN-GAPS.md
+    expect(AN_COMPOSER_SURFACE.fill.toLowerCase()).not.toBe("#121b37")
+    expect(AN_COMPOSER_SURFACE.fill.toLowerCase()).not.toBe("#151e3e")
   })
 })
 
