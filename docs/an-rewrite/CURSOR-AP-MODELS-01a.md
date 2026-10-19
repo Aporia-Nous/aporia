@@ -6,7 +6,8 @@
 **Base tip before slice:** `4f1fe0fea9` (AP-STAGE4-10 tip)  
 **Code commit:** `37e0851fc4`  
 **Docs tip (author):** `fb0058dd99`  
-**Author sync tip:** `5691df3ffc` (HEAD at independent review)  
+**Author sync tip:** `5691df3ffc`  
+**Verifier tip:** `6d60a0ccd4` (this independent PASS section)  
 **Scope:** Honest free-model i18n + Ollama/LM Studio discoverability in unpaid picker + Settings popular list. No billing, no OmniRoute, no secrets, no shell/an presence edits, no merge/push.
 
 ## Goal
@@ -55,7 +56,7 @@ Verdict: **PASS** (honest free-model i18n + local discoverability scope only).
 
 | check | result |
 | --- | --- |
-| Tip | code `37e0851fc4`; HEAD `5691df3ffc`; base `4f1fe0fea9` (ancestor OK) |
+| Tip | code `37e0851fc4`; author tip `5691df3ffc`; verifier tip `6d60a0ccd4`; base `4f1fe0fea9` (ancestor OK) |
 | Author tests re-run | `bun test` order + free-models-honesty → **4 pass / 0 fail** (135 expect) |
 | Sampled locales (no Aporetic-provides-free) | en/de/fr/es/ja/zh/ko/ar/ru/br/hi/tr `freeModels.title` all attribute to **OpenCode**; zero leftover Aporetic/Aporian on that key |
 | Featured local | `unpaidFeaturedProviders` + `popularProviders` contain `ollama`, `lmstudio` after OpenCode entries |
