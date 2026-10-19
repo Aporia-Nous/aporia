@@ -4,6 +4,8 @@
 |-------|-------|
 | status | **OPEN implemented+live-DEV** — **not** INDEPENDENT PASS; **not** Stage 4 complete |
 | branch | `stage4-an-shell` |
+| tip | `f153ce1936` (code; docs tip may follow) |
+| code | `f153ce1936` |
 | base | `5167449bd7` (AP-STAGE4-15 INDEPENDENT PASS tip) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | scope | Design-audit high: stronger blur / translucency / specular on AnShell panels, composer dock, Contraptions drawer — match approved AN ice-glass (not OpenCode void charcoal) |
