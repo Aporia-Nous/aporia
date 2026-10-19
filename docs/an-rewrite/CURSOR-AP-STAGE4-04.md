@@ -8,6 +8,7 @@ Work date: October 19, 2026 (America/Chicago). Board task `AP-STAGE4-04`.
 | --- | --- |
 | cwd | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | branch | `stage4-an-shell` (continues from AP-STAGE4-03 tip `369a549991`) |
+| commit | `05b0142d73` — `feat(an-shell): glass, always-on rail, three-state modes (AP-STAGE4-04)` |
 | ownership | this worktree only — not `cursor-aporetic` (Stage 0) and not `C:\Tools\aporia` |
 | push | none |
 | merge | none |

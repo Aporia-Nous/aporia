@@ -1017,7 +1017,7 @@ Worktree `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` on branch
 ### Stage 4 visual/behavior — Glass + rail + three-state (AP-STAGE4-04) — OPEN for review (no PASS claim)
 
 Worktree `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` on branch `stage4-an-shell`
-(continues from tip `369a549991`). Report: `docs/an-rewrite/CURSOR-AP-STAGE4-04.md`.
+@ `05b0142d73` (continues from tip `369a549991`). Report: `docs/an-rewrite/CURSOR-AP-STAGE4-04.md`.
 
 | item | value |
 | - | - |
