@@ -4,9 +4,9 @@
 |-------|-------|
 | status | **OPEN for independent review** — implemented + live-DEV verified (executor); **not** Stage 4 complete; **not** INDEPENDENT PASS until verifier |
 | branch | `stage4-an-shell` |
-| tip | *(set after commit)* |
-| code | *(set after commit)* |
-| base | `3c42a81c0e` (AP-STAGE4-4E tip docs) / code base `af9ab9943a` |
+| tip | `997aaf54c0` |
+| code | `997aaf54c0` |
+| base | `13a31f0fbd` (after AP-STAGE4-4E tip sync; code base `af9ab9943a`) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | scope | Consent → attach local browser workspace; `computerLive` true only when attached; labeled cursor overlay; disconnect clears Live; browser-first not VM |
 | merge/push/install | **No** |
