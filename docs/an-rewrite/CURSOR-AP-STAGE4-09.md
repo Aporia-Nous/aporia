@@ -9,7 +9,7 @@ Work date: October 19, 2026 (America/Chicago). Board task `AP-STAGE4-09`.
 | cwd | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4-dock` |
 | branch | `stage4-dock-glass` (branched from `stage4-an-shell` tip `e742188554`) |
 | commits | `9da1be6a51` — Session/composer dock ice-glass CSS + hooks |
-| tip | (docs tip commit after this report) |
+| tip | `44ecfe106c` — docs + shot 13 (code `9da1be6a51`) |
 | ownership | **separate worktree** — does not edit `cursor-aporetic-stage4` (other agent ice polish) |
 | push / merge | **none** — not merged into stage4 tip / Stage 0 / installed Aporetic |
 | Stage 4 complete | not claimed |
