@@ -4,8 +4,8 @@
 |-------|-------|
 | status | **INDEPENDENT PASS** (page feed into Computer View scope) — **not** Stage 4 complete; control lock remains **AP-BF-03** |
 | branch | `stage4-an-shell` |
-| tip | _(tip-sync after code)_ |
-| code | _(filled after code commit)_ |
+| tip | `e24b6352cd` |
+| code | `adb4ddb23c` |
 | base | `a6dd3ebbaa` (AP-BF-01 tip; code `997aaf54c0`) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | scope | Watch-only page feed when Live; labeled Bot cursor overlay outside captures; consent/attach honesty preserved |
