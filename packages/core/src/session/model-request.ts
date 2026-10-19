@@ -244,11 +244,28 @@ export const layer = Layer.effect(
         definitions: [],
         execute: () => new Tool.Error({ message: "Tools are not available for this request" }),
       }
+      // primary→context, compaction→compaction, generate→generate. Title has no tools.
+      // Clone schemas only when that hook family is registered; otherwise pass by reference
+      // so large MCP/code-mode toolsets do not allocate on every prepare (E06).
+      const toolHook =
+        kind === "primary" ? "context" : kind === "compaction" ? "compaction" : kind === "generate" ? "generate" : undefined
+      const hasToolHooks =
+        toolHook !== undefined && (yield* hooks.has("session", toolHook, model.ref.providerID))
       // Remember which tool each definition object came from. Hooks rename a tool by moving
       // its definition to a new key, so after the hook we find the tool by object identity.
-      const given = new Map(
-        tools.definitions.map((t) => [{ description: t.description, input: { ...t.inputSchema } }, t] as const),
-      )
+      type HookDef = Definitions[string]
+      let given: Map<HookDef, (typeof tools.definitions)[number]> | undefined
+      let toolsForHook: Definitions
+      if (hasToolHooks) {
+        given = new Map(
+          tools.definitions.map((t) => [{ description: t.description, input: { ...t.inputSchema } }, t] as const),
+        )
+        toolsForHook = Object.fromEntries(Array.from(given, ([d, t]) => [t.name, d]))
+      } else {
+        toolsForHook = Object.fromEntries(
+          tools.definitions.map((t) => [t.name, { description: t.description, input: t.inputSchema }]),
+        )
+      }
       // Hooks see the default output limit and may change or remove it. Titles and generate keep the provider default,
       // because their reasoning is hard to budget.
       const shaped = yield* shape(
@@ -262,14 +279,14 @@ export const layer = Layer.effect(
               ? { maxTokens: outputLimit(model.limit, kind, input.inputTokens) }
               : {},
         },
-        Object.fromEntries(Array.from(given, ([d, t]) => [t.name, d])),
+        toolsForHook,
       )
       // Match by identity first, then by key. Entries matching neither were invented by a
       // hook and are dropped. `t.name` stays the real name so execution can map renames back.
       const byName = new Map(tools.definitions.map((t) => [t.name, t]))
       const hooked = new Map(
         Object.entries(shaped.tools ?? {}).flatMap(([name, d]) => {
-          const t = given.get(d) ?? byName.get(name)
+          const t = given?.get(d) ?? byName.get(name)
           return t ? [[name, { ...t, description: d.description, inputSchema: d.input }] as const] : []
         }),
       )

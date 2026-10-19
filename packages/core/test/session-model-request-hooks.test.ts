@@ -1,4 +1,5 @@
 import { describe, expect } from "bun:test"
+import { ToolDefinition } from "@opencode/ai"
 import { OpenAIChat } from "@opencode/ai/protocols"
 import { Agent } from "@opencode/schema/agent"
 import { Money } from "@opencode/schema/money"
@@ -11,6 +12,7 @@ import { AbsolutePath } from "@opencode/core/schema"
 import { SessionModelRequest } from "@opencode/core/session/model-request"
 import { SessionModelTransport } from "@opencode/core/session/model-transport"
 import { SessionRunnerModel } from "@opencode/core/session/runner/model"
+import { Tool } from "@opencode/core/tool"
 import { DateTime, Effect, Stream } from "effect"
 import { HttpClientRequest, HttpClientResponse } from "effect/http"
 import { testEffect } from "./lib/effect"
@@ -152,5 +154,88 @@ describe("SessionModelRequest HTTP hooks", () => {
         "receive:primary:created",
       ])
     }),
+  )
+})
+
+describe("SessionModelRequest tool-schema clone (E06)", () => {
+  const makeSnapshot = () => {
+    const definition = ToolDefinition.make({
+      name: "lookup",
+      description: "Lookup",
+      inputSchema: {
+        type: "object",
+        properties: { q: { type: "string" } },
+        extra: "marker",
+      } as ToolDefinition["inputSchema"],
+    })
+    const tools: Tool.Snapshot = {
+      definitions: [definition],
+      execute: () => Effect.die(new Error("unused")),
+    }
+    return { definition, tools }
+  }
+
+  it.effect("passes inputSchema by reference when no context hooks are registered", () =>
+    Effect.gen(function* () {
+      const { definition, tools } = makeSnapshot()
+      const requests = yield* SessionModelRequest.Service.pipe(Effect.provide(SessionModelRequest.layer))
+      const prepared = yield* requests.primary({
+        session,
+        agent: Agent.ID.make("build"),
+        model,
+        system: [],
+        messages: [],
+        tools,
+      })
+      // LLM.request remaps ToolEntry; identity is visible on the shaped event tools map.
+      expect(prepared.event.tools.lookup!.input).toBe(definition.inputSchema)
+      expect(prepared.request.tools!.map((t) => t.name)).toEqual(["lookup"])
+    }).pipe(Effect.provideService(SessionModelTransport.Service, transport)),
+  )
+
+  it.effect("clones inputSchema and honors rename when a context hook is registered", () =>
+    Effect.gen(function* () {
+      const { definition, tools } = makeSnapshot()
+      const hooks = yield* PluginHooks.Service
+      yield* hooks.register("session", "context", (event) =>
+        Effect.sync(() => {
+          // Mutate the hook-facing schema; registry must stay isolated.
+          ;(event.tools.lookup!.input as { extra?: string }).extra = "mutated"
+          event.tools.renamed_lookup = event.tools.lookup!
+          delete event.tools.lookup
+        }),
+      )
+      const requests = yield* SessionModelRequest.Service.pipe(Effect.provide(SessionModelRequest.layer))
+      const prepared = yield* requests.primary({
+        session,
+        agent: Agent.ID.make("build"),
+        model,
+        system: [],
+        messages: [],
+        tools,
+      })
+      expect((definition.inputSchema as { extra?: string }).extra).toBe("marker")
+      expect(prepared.event.tools.renamed_lookup!.input).not.toBe(definition.inputSchema)
+      expect((prepared.event.tools.renamed_lookup!.input as { extra?: string }).extra).toBe("mutated")
+      expect(prepared.request.tools!.map((t) => t.name)).toEqual(["renamed_lookup"])
+    }).pipe(Effect.provideService(SessionModelTransport.Service, transport)),
+  )
+
+  it.effect("still skips clone for primary when only compaction hooks are registered", () =>
+    Effect.gen(function* () {
+      const { definition, tools } = makeSnapshot()
+      const hooks = yield* PluginHooks.Service
+      yield* hooks.register("session", "compaction", () => Effect.void)
+      const requests = yield* SessionModelRequest.Service.pipe(Effect.provide(SessionModelRequest.layer))
+      const prepared = yield* requests.primary({
+        session,
+        agent: Agent.ID.make("build"),
+        model,
+        system: [],
+        messages: [],
+        tools,
+      })
+      expect(prepared.event.tools.lookup!.input).toBe(definition.inputSchema)
+    }).pipe(Effect.provideService(SessionModelTransport.Service, transport)),
   )
 })
