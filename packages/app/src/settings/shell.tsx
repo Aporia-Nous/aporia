@@ -51,7 +51,11 @@ import { settingsViewRedirect } from "./route"
 import { pageIcons } from "./pages"
 import { revealSettingsSearch } from "./search-reveal"
 import { ExtensionSettingsPages } from "@/runtime/extension/settings-page-view"
+import { aporiaPrefs } from "@/aporia/prefs"
+import { anSettingsOwnedAttrs } from "@/shell/an/settings-chrome"
+import { useTheme } from "@opencode/ui/theme/context"
 import "@/settings/settings.css"
+import "@/shell/an/settings-an.css"
 
 const GuiExtensionsSettings = import.meta.env.DEV
   ? lazy(() =>
@@ -103,9 +107,17 @@ export function SettingsScreen() {
   const servers = useSettingsServers()
   const loaded = useSettingsServersLoaded()
   const global = useGlobal()
+  const theme = useTheme()
   let root: HTMLDivElement | undefined
   let viewType = surface.view().type
   let activation = 0
+
+  // AP-STAGE4-19: keep sticky `an` theme while Settings is open (AnShell unmounts on /settings).
+  createEffect(() => {
+    if (!aporiaPrefs.anShellEnabled()) return
+    if (theme.themeId() !== "an") theme.setTheme("an")
+    if (theme.colorScheme() !== "dark") theme.setColorScheme("dark")
+  })
 
   onMount(() => root?.focus({ preventScroll: true }))
   createEffect(() => {
@@ -193,6 +205,7 @@ export function SettingsScreen() {
       ref={root}
       data-testid="settings-screen"
       class="settings-screen"
+      {...anSettingsOwnedAttrs(aporiaPrefs.anShellEnabled())}
       tabIndex={-1}
       onKeyDown={(event) => {
         if (event.key !== "Escape" || event.defaultPrevented || dialog.active) return

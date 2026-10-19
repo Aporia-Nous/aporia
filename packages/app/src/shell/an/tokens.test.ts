@@ -10,8 +10,10 @@ import {
   AN_DESIGN_SOURCE,
   AN_ICE_MATERIAL,
   AN_MOTION_SURFACE,
+  AN_PRESENCE_PERSONALITY,
   AN_REVIEW_CONTENT_SURFACE,
   AN_REVIEW_SURFACE,
+  AN_SETTINGS_SURFACE,
   AN_PRODUCT_BYLINE,
   AN_PRODUCT_NAME,
   AN_SHELL_MODES,
@@ -161,8 +163,7 @@ describe("AN Stage 4 tokens", () => {
     expect(AN_COMPOSER_SURFACE.ownedAttr).toBe('data-an-owned="composer"')
   })
 
-  test("Review content bind + deeper holo motion (AP-STAGE4-18)", () => {
-    expect(AN_MOTION_SURFACE.slice).toBe("AP-STAGE4-18")
+  test("Review content bind + deeper holo motion (AP-STAGE4-18 retained / 19 extends)", () => {
     expect(AN_MOTION_SURFACE.depth).toBe("jarvis-adjacent-ice-glass")
     expect(AN_MOTION_SURFACE.continuousLight).toBe(true)
     expect(AN_MOTION_SURFACE.intentionalMotions).toContain("holo-sheen-sweep")
@@ -173,6 +174,25 @@ describe("AN Stage 4 tokens", () => {
     expect(AN_REVIEW_CONTENT_SURFACE.documentPart).toBe("review-document-preview")
     expect(AN_COMPOSER_SURFACE.ownedAttr).toBe('data-an-owned="composer"')
     expect(AN_REVIEW_SURFACE.navId).toBe("review")
+  })
+
+  test("Presence personality + fuller docs + Settings AN (AP-STAGE4-19)", () => {
+    expect(AN_MOTION_SURFACE.slice).toBe("AP-STAGE4-19")
+    expect(AN_MOTION_SURFACE.personality).toBe("micro-spring-companion")
+    expect(AN_MOTION_SURFACE.intentionalMotions).toContain("presence-micro-spring")
+    expect(AN_MOTION_SURFACE.intentionalMotions).toContain("roster-companion-aura")
+    expect(AN_MOTION_SURFACE.intentionalMotions).toContain("settings-ice-settle")
+    expect(AN_PRESENCE_PERSONALITY.slice).toBe("AP-STAGE4-19")
+    expect(AN_PRESENCE_PERSONALITY.notGrokCopy).toBe(true)
+    expect(AN_PRESENCE_PERSONALITY.markers.personality).toBe("stage4-19")
+    expect(AN_REVIEW_CONTENT_SURFACE.slice).toBe("AP-STAGE4-19")
+    expect(AN_REVIEW_CONTENT_SURFACE.fullerDocuments).toBe(true)
+    expect(AN_REVIEW_CONTENT_SURFACE.docxTextExtract).toBe(true)
+    expect(AN_SETTINGS_SURFACE.ownedAttr).toBe('data-an-owned="settings"')
+    expect(AN_SETTINGS_SURFACE.hideOcProductChrome).toBe(true)
+    expect(AN_SETTINGS_SURFACE.aporeticAbout).toBe(true)
+    // Preserve STAGE4-12/13 composer ownership bar
+    expect(AN_COMPOSER_SURFACE.ownedAttr).toBe('data-an-owned="composer"')
   })
 
   test("Computer attach surface markers (AP-BF-01)", () => {

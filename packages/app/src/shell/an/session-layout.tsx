@@ -85,9 +85,12 @@ import {
   type ComputerControlState,
 } from "./computer-control"
 import { AnContraptionsPanel } from "./contraptions-panel"
+import { extractDocxPlainText, officePreviewResidual } from "./docx-text"
 import {
   binaryReviewContent,
   errorReviewContent,
+  extensionOf,
+  isOfficeReviewPath,
   loadingReviewContent,
   readyReviewContent,
   type AnReviewLoadedContent,
@@ -478,6 +481,24 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       const data = await reviewSdk.api.file.read(request)
       const content = fileContentFromBytes(path, data)
       if (content.type === "binary") {
+        // STAGE4-19: free-path .docx text extract; other Office → honest residual (no paid deps).
+        const ext = extensionOf(path)
+        if (ext === "docx" && content.encoding === "base64" && content.content) {
+          const raw = Uint8Array.from(atob(content.content), (c) => c.charCodeAt(0))
+          const text = await extractDocxPlainText(raw)
+          if (text) {
+            setContent(readyReviewContent(path, text, { mimeType: content.mimeType, previewKind: "docx-text" }))
+            return
+          }
+          setContent(binaryReviewContent(path, { mimeType: content.mimeType, error: officePreviewResidual("docx") }))
+          return
+        }
+        if (isOfficeReviewPath(path)) {
+          setContent(
+            binaryReviewContent(path, { mimeType: content.mimeType, error: officePreviewResidual(ext) }),
+          )
+          return
+        }
         setContent(binaryReviewContent(path, { mimeType: content.mimeType }))
         return
       }

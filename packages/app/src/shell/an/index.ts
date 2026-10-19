@@ -13,6 +13,8 @@ export {
   AN_REVIEW_SURFACE,
   AN_REVIEW_CONTENT_SURFACE,
   AN_MOTION_SURFACE,
+  AN_PRESENCE_PERSONALITY,
+  AN_SETTINGS_SURFACE,
   AN_SHELL_MODES,
   AN_SHELL_MODE_LABEL,
   AN_PRESENCE,
@@ -125,6 +127,13 @@ export {
   anComposerPlaceholder,
   isAnOwnedComposerHost,
 } from "./composer-chrome"
+export {
+  anSettingsAboutIntro,
+  anSettingsOwnedAttrs,
+  isAnOwnedSettingsHost,
+  shouldOwnAnSettings,
+} from "./settings-chrome"
+export { docxXmlToPlainText, extractDocxPlainText, officePreviewResidual } from "./docx-text"
 export type {
   AnShellProps,
   AnNavItem,

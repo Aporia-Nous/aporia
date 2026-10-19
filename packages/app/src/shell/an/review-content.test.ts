@@ -9,11 +9,13 @@ import {
   REVIEW_MAX_LINES,
 } from "./review-content"
 
-describe("review-content (AP-STAGE4-18)", () => {
+describe("review-content (AP-STAGE4-18/19)", () => {
   test("classifies code vs documents by extension", () => {
     expect(classifyReviewPath("src/shell/an/tokens.ts")).toBe("code")
     expect(classifyReviewPath("README.md")).toBe("documents")
     expect(classifyReviewPath("notes.markdown")).toBe("documents")
+    expect(classifyReviewPath("brief.docx")).toBe("documents")
+    expect(classifyReviewPath("sheet.xlsx")).toBe("documents")
     expect(reviewTabForPath("app.tsx")).toBe("code")
     expect(reviewTabForPath("docs/plan.md")).toBe("documents")
   })
@@ -39,6 +41,43 @@ describe("review-content (AP-STAGE4-18)", () => {
     expect(html).not.toContain("<script>")
     expect(html).toContain("<ul")
     expect(html).toContain("<li>")
+  })
+
+  test("fuller MD: fences, quotes, tables, ordered lists (AP-STAGE4-19)", () => {
+    const md = [
+      "## Plan",
+      "",
+      "> note",
+      "",
+      "```ts",
+      "const x = 1",
+      "```",
+      "",
+      "| A | B |",
+      "| --- | --- |",
+      "| 1 | 2 |",
+      "",
+      "1. first",
+      "2. second",
+      "",
+      "[link](https://example.com)",
+    ].join("\n")
+    const html = documentPreviewHtml(md, { path: "plan.md" })
+    expect(html).toContain("<h2")
+    expect(html).toContain("an-review-doc-bq")
+    expect(html).toContain("an-review-doc-pre")
+    expect(html).toContain("const x = 1")
+    expect(html).toContain("an-review-doc-table")
+    expect(html).toContain("<th>")
+    expect(html).toContain("<ol")
+    expect(html).toContain('href="https://example.com"')
+  })
+
+  test("CSV preview renders table", () => {
+    const html = documentPreviewHtml("name,role\nGrok,Lead\nOrion,Scout", { path: "team.csv" })
+    expect(html).toContain("an-review-doc-csv")
+    expect(html).toContain("<th>name</th>")
+    expect(html).toContain("<td>Grok</td>")
   })
 
   test("readyReviewContent binds path + text", () => {

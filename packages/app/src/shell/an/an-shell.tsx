@@ -23,6 +23,7 @@ import {
   type ComputerScreencastPhase,
 } from "./computer-screencast"
 import {
+  AN_PRESENCE_PERSONALITY,
   AN_PRODUCT_NAME,
   AN_SHELL_MODES,
   anPresenceLabel,
@@ -547,6 +548,7 @@ export function AnShell(props: AnShellProps): JSX.Element {
       data-an-theme="an"
       data-mode={mode()}
       data-attention-always-on=""
+      data-presence-personality={AN_PRESENCE_PERSONALITY.markers.personality}
     >
       <nav class="an-nav" aria-label="AN navigation">
         <div class="an-nav-brand" title={props.brandTitle ?? AN_PRODUCT_NAME} aria-label={props.brandTitle ?? AN_PRODUCT_NAME}>
@@ -587,9 +589,15 @@ export function AnShell(props: AnShellProps): JSX.Element {
                 aria-label={`${member.name}, ${member.role}, ${anPresenceLabel(member.presence)}`}
                 onClick={() => props.onSelectMember?.(member.id)}
               >
-                <span class="an-roster-avatar" aria-hidden="true">
+                <span
+                  class="an-roster-avatar"
+                  aria-hidden="true"
+                  data-presence={member.presence}
+                  data-companion={member.selected ? "true" : "false"}
+                >
+                  <span class="an-roster-companion-aura" data-an-part={AN_PRESENCE_PERSONALITY.markers.selectedAura} />
                   {member.avatar || initials(member.name)}
-                  <i class={presenceDotClass(member.presence)} />
+                  <i class={presenceDotClass(member.presence)} data-personality="micro-spring" />
                 </span>
                 <span class="an-roster-text">
                   <strong>{member.name}</strong>

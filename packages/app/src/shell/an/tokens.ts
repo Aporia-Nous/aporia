@@ -155,17 +155,20 @@ export const AN_REVIEW_SURFACE = {
 } as const
 
 /**
- * AP-STAGE4-17/18 motion: holographic ice transitions (Grok/Cursor/Antigravity-class bar within AN brand).
- * STAGE4-18 deepens light/depth + continuous sheen (Jarvis-adjacent ice glass) — not a skin copy.
+ * AP-STAGE4-17/18/19 motion: holographic ice + companion micro-spring personality (AN brand, not Grok copy).
+ * STAGE4-19 adds presence character springs + settings ice skin.
  */
 export const AN_MOTION_SURFACE = {
-  slice: "AP-STAGE4-18",
+  slice: "AP-STAGE4-19",
   feel: "holographic-ice-companion",
   depth: "jarvis-adjacent-ice-glass",
+  personality: "micro-spring-companion",
   easePanel: "520ms cubic-bezier(0.16, 1, 0.3, 1)",
   easeTab: "280ms cubic-bezier(0.22, 1, 0.36, 1)",
   easeLive: "560ms cubic-bezier(0.16, 1, 0.3, 1)",
   easeHolo: "420ms cubic-bezier(0.16, 1, 0.3, 1)",
+  /** Presence state transitions — springy settle (overshoot then rest). */
+  easePresence: "480ms cubic-bezier(0.34, 1.45, 0.32, 1)",
   easeDock: AN_TOKENS.easeDock,
   intentionalMotions: [
     "panel-open-close",
@@ -176,6 +179,9 @@ export const AN_MOTION_SURFACE = {
     "holo-sheen-sweep",
     "ice-depth-parallax",
     "preview-surface-settle",
+    "presence-micro-spring",
+    "roster-companion-aura",
+    "settings-ice-settle",
   ] as const,
   continuousLight: true,
   avoidPurpleNebula: true,
@@ -184,16 +190,49 @@ export const AN_MOTION_SURFACE = {
 } as const
 
 /**
- * AP-STAGE4-18: Review Code/Documents bind to real viewable content (not empty shells).
+ * AP-STAGE4-19: presence character / micro-spring personality within AN ice-glass (Grok-bot-class feel, not copy).
+ */
+export const AN_PRESENCE_PERSONALITY = {
+  slice: "AP-STAGE4-19",
+  feel: "micro-spring-companion",
+  brand: "an-ice-glass",
+  notGrokCopy: true,
+  states: ["listening", "thinking", "speaking", "working", "waiting"] as const,
+  markers: {
+    personality: "stage4-19",
+    selectedAura: "an-roster-companion-aura",
+  },
+} as const
+
+/**
+ * AP-STAGE4-18/19: Review Code/Documents bind + fuller document preview path.
  */
 export const AN_REVIEW_CONTENT_SURFACE = {
-  slice: "AP-STAGE4-18",
+  slice: "AP-STAGE4-19",
   codePart: "review-code-editor",
   documentPart: "review-document-preview",
   codeBodyPart: "review-code-body",
   documentBodyPart: "review-document-body",
   bindFromWorkspaceRead: true,
   emptyShellsForbidden: true,
+  /** Fuller MD (fences/tables/quotes) + CSV table; docx text extract free-path; xlsx/pptx residual. */
+  fullerDocuments: true,
+  docxTextExtract: true,
+  officeBinaryResidual: true,
+} as const
+
+/**
+ * AP-STAGE4-19: Settings surface reads AN ice-glass (same ownership bar as STAGE4-13 composer), not OpenCode chrome.
+ */
+export const AN_SETTINGS_SURFACE = {
+  slice: "AP-STAGE4-19",
+  ownedValue: "settings" as const,
+  ownedAttr: 'data-an-owned="settings"' as const,
+  themeAttr: 'data-an-theme="an"' as const,
+  feel: AN_TOKENS.feel,
+  hideOcProductChrome: true,
+  aporeticAbout: true,
+  keepComposerOwnershipBar: true,
 } as const
 
 /**

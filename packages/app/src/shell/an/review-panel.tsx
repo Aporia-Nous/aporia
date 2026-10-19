@@ -114,17 +114,25 @@ function CodeEditorSurface(props: { content?: AnReviewLoadedContent; emptyHint: 
 
 function DocumentPreviewSurface(props: { content?: AnReviewLoadedContent; emptyHint: string }): JSX.Element {
   const html = createMemo(() =>
-    props.content?.status === "ready" && props.content.text != null ? documentPreviewHtml(props.content.text) : "",
+    props.content?.status === "ready" && props.content.text != null
+      ? documentPreviewHtml(props.content.text, { path: props.content.path })
+      : "",
   )
   return (
     <div
       class="an-review-doc"
       data-an-part="review-document-preview"
       data-status={props.content?.status ?? "idle"}
+      data-preview={props.content?.previewKind ?? "idle"}
     >
       <Show when={props.content?.path}>
         <div class="an-review-editor-meta" data-an-part="review-document-title">
           <code class="an-review-path">{props.content!.path}</code>
+          <Show when={props.content?.previewKind}>
+            <span class="an-review-via" data-an-part="review-preview-kind">
+              · {props.content!.previewKind}
+            </span>
+          </Show>
           <Show when={props.content?.truncated}>
             <span class="an-review-via" data-an-part="review-truncated">
               truncated for Review
@@ -143,7 +151,7 @@ function DocumentPreviewSurface(props: { content?: AnReviewLoadedContent; emptyH
         </p>
       </Show>
       <Show when={props.content?.status === "binary"}>
-        <p class="an-review-hint" data-an-part="review-document-binary">
+        <p class="an-review-hint" data-an-part="review-document-binary" data-office-residual="true">
           {props.content?.error}
         </p>
       </Show>
@@ -158,7 +166,7 @@ function DocumentPreviewSurface(props: { content?: AnReviewLoadedContent; emptyH
           </Show>
         }
       >
-        <div class="an-review-doc-body" data-an-part="review-document-body" innerHTML={html()} />
+        <div class="an-review-doc-body" data-an-part="review-document-body" data-fuller="stage4-19" innerHTML={html()} />
       </Show>
     </div>
   )
@@ -217,7 +225,8 @@ export function AnReviewPanel(props: AnReviewPanelProps): JSX.Element {
       data-an-part={AN_REVIEW_SURFACE.part}
       data-review-tab={tab()}
       data-collapsed="false"
-      data-holo="stage4-18"
+      data-holo="stage4-19"
+      data-docs="stage4-19"
       aria-label={`${AN_REVIEW_SURFACE.label} — ${AN_REVIEW_SURFACE.subtitle}`}
     >
       <div class="an-review-holo-sweep" aria-hidden="true" />
@@ -402,7 +411,7 @@ export function AnReviewPanel(props: AnReviewPanelProps): JSX.Element {
             </form>
             <DocumentPreviewSurface
               content={props.documentContent}
-              emptyHint="Open a markdown/text path or pick a document from Files — in-panel preview."
+              emptyHint="Open markdown, CSV, text, or .docx (text extract) — fuller in-panel preview. xlsx/pptx open externally."
             />
           </div>
         </Show>
