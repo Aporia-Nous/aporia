@@ -1,13 +1,21 @@
 /**
- * AP-BF-05 DEV relay: loopback-only CDP Page.captureScreenshot for Computer View.
+ * AP-BF-05/06 DEV relay: loopback CDP pixels + open-tab windowing for Computer View.
  * Electron renderer can fetch HTTP to Edge/Chrome debugging but WebSocket is blocked —
- * this Node middleware opens the CDP socket and returns JPEG bytes.
+ * this Node middleware opens the CDP socket and returns JPEG bytes / opens tabs.
+ * AP-BF-06: Prefer Target.createTarget({ newWindow: false }); spawn only if no browser.
  */
 import { Buffer } from "node:buffer"
+import { spawn } from "node:child_process"
+import { accessSync, constants as fsConstants } from "node:fs"
+import { execFile } from "node:child_process"
+import { promisify } from "node:util"
 import WebSocket from "ws"
+
+const execFileAsync = promisify(execFile)
 
 const FRAME_PATH = "/__an/computer-cdp/frame"
 const NAVIGATE_PATH = "/__an/computer-cdp/navigate"
+const OPEN_TAB_PATH = "/__an/computer-cdp/open-tab"
 
 function normalizeEndpoint(input) {
   const raw = String(input || "").trim()
@@ -156,6 +164,230 @@ async function navigatePage(endpoint, regionId, url) {
   }
 }
 
+function normalizeNavigateUrl(input) {
+  const raw = String(input || "").trim() || "about:blank"
+  if (raw === "about:blank") return { ok: true, url: "about:blank" }
+  if (!/^https?:\/\//i.test(raw)) {
+    return { ok: false, error: "Only http(s) or about:blank open-tab targets." }
+  }
+  try {
+    const u = new URL(raw)
+    if (u.username || u.password) return { ok: false, error: "URLs with credentials are not supported." }
+    return { ok: true, url: u.href }
+  } catch {
+    return { ok: false, error: "URL could not be parsed." }
+  }
+}
+
+async function probeCdp(endpoint) {
+  try {
+    const res = await fetch(`${endpoint}/json/version`, {
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(2000),
+    })
+    if (!res.ok) return { ok: false, error: `HTTP ${res.status}` }
+    const body = await res.json()
+    const wsUrl = typeof body.webSocketDebuggerUrl === "string" ? body.webSocketDebuggerUrl : ""
+    if (!/^wss?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\//i.test(wsUrl)) {
+      return { ok: false, error: "Browser WebSocket must stay on loopback." }
+    }
+    return { ok: true, wsUrl, browser: typeof body.Browser === "string" ? body.Browser : undefined }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "probe failed" }
+  }
+}
+
+async function detectBrowserProcessRunning(family = "edge") {
+  if (process.platform !== "win32") {
+    // Non-Windows DEV: treat unknown as not running so spawn path stays available in CI stubs.
+    return { running: false, family: "unknown" }
+  }
+  const names =
+    family === "chrome" || family === "chromium"
+      ? ["chrome.exe", "chromium.exe"]
+      : ["msedge.exe", "msedgewebview2.exe"]
+  try {
+    const { stdout } = await execFileAsync("tasklist", ["/FO", "CSV", "/NH"], {
+      windowsHide: true,
+      timeout: 4000,
+      maxBuffer: 2_000_000,
+    })
+    const lower = String(stdout).toLowerCase()
+    const running = names.some((n) => lower.includes(n.toLowerCase()))
+    return { running, family: running ? family : "unknown" }
+  } catch {
+    return { running: false, family: "unknown" }
+  }
+}
+
+function decideWindowing(cdpReachable, browserProcessRunning) {
+  if (cdpReachable) {
+    return {
+      action: "open-tab-existing",
+      reason: "cdp-reachable",
+      detail: "Debugging endpoint answered — open a tab in that existing Edge/Chrome window (not a second window).",
+    }
+  }
+  if (browserProcessRunning) {
+    return {
+      action: "refuse-second-window",
+      reason: "browser-running-without-cdp",
+      detail:
+        "Edge/Chrome is already open without a loopback debugging port. Will not spawn a second window — restart that browser with remote debugging for Aporetic, or attach an existing debug endpoint.",
+    }
+  }
+  return {
+    action: "spawn-window",
+    reason: "no-browser-running",
+    detail: "No Edge/Chrome process detected — spawning one window with local debugging is allowed.",
+  }
+}
+
+function browserExeCandidates(family) {
+  if (family === "chrome") {
+    return [
+      process.env.AN_CHROME_PATH,
+      "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+      "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+    ].filter(Boolean)
+  }
+  if (family === "chromium") {
+    return [process.env.AN_CHROMIUM_PATH, "C:\\Program Files\\Chromium\\Application\\chrome.exe"].filter(Boolean)
+  }
+  return [
+    process.env.AN_EDGE_PATH,
+    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
+    "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe",
+  ].filter(Boolean)
+}
+
+function resolveBrowserExe(family) {
+  for (const candidate of browserExeCandidates(family)) {
+    try {
+      accessSync(candidate, fsConstants.X_OK)
+      return candidate
+    } catch {
+      try {
+        accessSync(candidate, fsConstants.R_OK)
+        return candidate
+      } catch {
+        // try next
+      }
+    }
+  }
+  return null
+}
+
+async function createTargetTab(browserWsUrl, url) {
+  const cdp = await connectCdp(browserWsUrl, 4000)
+  try {
+    const created = await cdp.send("Target.createTarget", { url, newWindow: false })
+    if (created.error) {
+      return { ok: false, error: created.error.message || "Target.createTarget failed." }
+    }
+    const targetId = created.result?.targetId
+    if (!targetId || typeof targetId !== "string") {
+      return { ok: false, error: "Target.createTarget returned no targetId." }
+    }
+    return { ok: true, regionId: targetId }
+  } finally {
+    cdp.close()
+  }
+}
+
+async function waitForCdp(endpoint, attempts = 20, delayMs = 250) {
+  for (let i = 0; i < attempts; i++) {
+    const probe = await probeCdp(endpoint)
+    if (probe.ok) return probe
+    await new Promise((r) => setTimeout(r, delayMs))
+  }
+  return { ok: false, error: `Debugging endpoint ${endpoint} did not come up after spawn.` }
+}
+
+async function spawnBrowserWithDebug(family, endpoint, url) {
+  const ep = normalizeEndpoint(endpoint)
+  if (!ep.ok) return ep
+  const exe = resolveBrowserExe(family)
+  if (!exe) {
+    return { ok: false, error: `Could not find a local ${family} executable to spawn.` }
+  }
+  // No --new-window: one window is the fallback when nothing is running.
+  const args = [`--remote-debugging-port=${ep.port}`, "--remote-allow-origins=*", url]
+  try {
+    const child = spawn(exe, args, {
+      detached: true,
+      stdio: "ignore",
+      windowsHide: false,
+    })
+    child.unref()
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Spawn failed." }
+  }
+  const probe = await waitForCdp(ep.endpoint)
+  if (!probe.ok) return probe
+  return { ok: true, endpoint: ep.endpoint, wsUrl: probe.wsUrl, spawned: true }
+}
+
+async function openTabInBrowser({ endpoint, url, family, allowSpawn }) {
+  const ep = normalizeEndpoint(endpoint)
+  if (!ep.ok) return { ok: false, error: ep.error }
+  const target = normalizeNavigateUrl(url)
+  if (!target.ok) return { ok: false, error: target.error }
+  const fam = ["edge", "chrome", "chromium"].includes(family) ? family : "edge"
+
+  const processState = await detectBrowserProcessRunning(fam)
+  let probe = await probeCdp(ep.endpoint)
+  let decision = decideWindowing(probe.ok, processState.running)
+  let spawned = false
+
+  if (decision.action === "refuse-second-window") {
+    return { ok: false, error: decision.detail, decision }
+  }
+
+  if (decision.action === "spawn-window") {
+    if (allowSpawn === false) {
+      return {
+        ok: false,
+        error: "No debugging browser on that endpoint, and spawn was not allowed.",
+        decision,
+      }
+    }
+    const spawnedRes = await spawnBrowserWithDebug(fam, ep.endpoint, target.url)
+    if (!spawnedRes.ok) return { ok: false, error: spawnedRes.error, decision }
+    spawned = true
+    probe = { ok: true, wsUrl: spawnedRes.wsUrl }
+    decision = {
+      action: "spawn-window",
+      reason: "no-browser-running",
+      detail: "Spawned one Edge/Chrome window (none was running) and opened the workspace tab.",
+    }
+  }
+
+  if (!probe.ok || !probe.wsUrl) {
+    return { ok: false, error: probe.error || "No browser WebSocket.", decision }
+  }
+
+  const created = await createTargetTab(probe.wsUrl, target.url)
+  if (!created.ok) return { ok: false, error: created.error, decision }
+
+  if (!spawned) {
+    decision = {
+      action: "open-tab-existing",
+      reason: "cdp-reachable",
+      detail: "Opened a tab in the existing Edge/Chrome window via CDP (newWindow:false).",
+    }
+  }
+
+  return {
+    ok: true,
+    decision,
+    endpoint: ep.endpoint,
+    regionId: created.regionId,
+    url: target.url,
+    spawned,
+  }
+}
+
 function readJson(req) {
   return new Promise((resolve, reject) => {
     const chunks = []
@@ -186,7 +418,9 @@ export function computerCdpRelayPlugin() {
         try {
           const url = new URL(req.url || "/", "http://127.0.0.1")
           if (
-            (url.pathname === FRAME_PATH || url.pathname === NAVIGATE_PATH) &&
+            (url.pathname === FRAME_PATH ||
+              url.pathname === NAVIGATE_PATH ||
+              url.pathname === OPEN_TAB_PATH) &&
             req.method === "OPTIONS"
           ) {
             setCors(res)
@@ -251,6 +485,20 @@ export function computerCdpRelayPlugin() {
             res.statusCode = nav.ok ? 200 : 502
             res.setHeader("Content-Type", "application/json")
             res.end(JSON.stringify(nav))
+            return
+          }
+          if (url.pathname === OPEN_TAB_PATH && req.method === "POST") {
+            setCors(res)
+            const body = await readJson(req)
+            const opened = await openTabInBrowser({
+              endpoint: body.endpoint,
+              url: body.url,
+              family: body.family,
+              allowSpawn: body.allowSpawn !== false,
+            })
+            res.statusCode = opened.ok ? 200 : opened.decision?.action === "refuse-second-window" ? 409 : 502
+            res.setHeader("Content-Type", "application/json")
+            res.end(JSON.stringify(opened))
             return
           }
         } catch (err) {

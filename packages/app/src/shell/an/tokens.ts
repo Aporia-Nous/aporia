@@ -130,6 +130,54 @@ export const AN_CONTRAPTIONS_SURFACE = {
 } as const
 
 /**
+ * AP-STAGE4-17: Collapsible in-app Review panel (ChatGPT/Cursor-style side surface).
+ * Hosts browser / code / files / documents inside the main AnShell window — never a new Electron window.
+ */
+export const AN_REVIEW_TABS = ["browser", "code", "files", "documents"] as const
+export type AnReviewTab = (typeof AN_REVIEW_TABS)[number]
+
+export const AN_REVIEW_SURFACE = {
+  part: "review",
+  partAttr: 'data-an-part="review"',
+  navId: "review",
+  label: "Review",
+  subtitle: "Browser · code · files · documents",
+  tabs: AN_REVIEW_TABS,
+  tabLabel: {
+    browser: "Browser",
+    code: "Code",
+    files: "Files",
+    documents: "Documents",
+  } as const satisfies Record<AnReviewTab, string>,
+  /** Prefer this panel for in-app browse/review over spawning OS windows. */
+  preferInAppOverOsWindow: true,
+  collapsible: true,
+} as const
+
+/**
+ * AP-STAGE4-17 motion: deliberate holographic ice transitions (Grok-bot-class bar within AN brand).
+ * Not a skin copy — timing/depth/light only; no purple AI-slop.
+ */
+export const AN_MOTION_SURFACE = {
+  slice: "AP-STAGE4-17",
+  feel: "holographic-ice-companion",
+  easePanel: "380ms cubic-bezier(0.16, 1, 0.3, 1)",
+  easeTab: "240ms cubic-bezier(0.22, 1, 0.36, 1)",
+  easeLive: "480ms cubic-bezier(0.16, 1, 0.3, 1)",
+  easeDock: AN_TOKENS.easeDock,
+  intentionalMotions: [
+    "panel-open-close",
+    "review-tab-switch",
+    "computer-live-attach",
+    "card-enter",
+    "composer-settle",
+  ] as const,
+  avoidPurpleNebula: true,
+  avoidCreamSerif: true,
+  avoidBroadsheet: true,
+} as const
+
+/**
  * AP-BF-01/02/03/04: Computer View consent/attach + feed + control lock + external Edge/Chrome (browser-first, not VM).
  * Re-export markers for shell token discoverability.
  */

@@ -10,6 +10,8 @@ export {
   AN_COMPUTER_FEED_SURFACE,
   AN_COMPUTER_CONTROL_SURFACE,
   AN_CONTRAPTIONS_SURFACE,
+  AN_REVIEW_SURFACE,
+  AN_MOTION_SURFACE,
   AN_SHELL_MODES,
   AN_SHELL_MODE_LABEL,
   AN_PRESENCE,
@@ -25,6 +27,12 @@ export {
   type AnTokenName,
 } from "./tokens"
 export { AnContraptionsPanel } from "./contraptions-panel"
+export { AnReviewPanel } from "./review-panel"
+export {
+  AN_COMPUTER_EXTERNAL_WINDOW_SURFACE,
+  decideExternalBrowserWindowing,
+  openExternalBrowserTab,
+} from "./computer-external-window"
 export {
   beginComputerConsent,
   cancelComputerConsent,

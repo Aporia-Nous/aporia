@@ -87,6 +87,7 @@ const DEFAULT_NAV = [
   { id: "home", label: "Home", icon: "home", active: true },
   { id: "missions", label: "Missions", icon: "missions" },
   { id: "contraptions", label: "Contraptions", icon: "contraptions" },
+  { id: "review", label: "Review", icon: "review" },
   { id: "knowledge", label: "Knowledge", icon: "knowledge" },
   { id: "settings", label: "Settings", icon: "settings" },
 ] as const
@@ -129,6 +130,15 @@ function NavIcon(props: { name?: string }) {
           <path d="M9 3.5v1.2M9 13.3v1.2M4.4 5.8l.9.9M12.7 12.3l.9.9M3.5 9h1.2M13.3 9h1.2M4.4 12.2l.9-.9M12.7 5.7l.9-.9" />
           <circle cx="16.5" cy="15.5" r="2" />
           <path d="M16.5 11.8v.9M16.5 18.3v.9M13.2 13.3l.7.7M19.1 17l.7.7M12.8 15.5h.9M19.3 15.5h.9M13.2 17.7l.7-.7M19.1 14l.7-.7" />
+        </svg>
+      )
+    case "review":
+      return (
+        <svg {...common}>
+          <rect x="4" y="4" width="10" height="16" rx="1.5" />
+          <path d="M7 8h4M7 11h4M7 14h2.5" />
+          <path d="M16 7h4v10h-4" />
+          <path d="M16 10h4M16 13h3" />
         </svg>
       )
     case "knowledge":
@@ -198,6 +208,8 @@ function LiveComputerPanel(props: {
   onAttachPathChange?: (path: ComputerAttachPath) => void
   onExternalDraftChange?: (draft: { endpoint?: string; region?: string; family?: string }) => void
   onExternalProbe?: () => void
+  /** AP-BF-06: open tab in existing Edge/Chrome (spawn only if none). */
+  onExternalOpenTab?: () => void
 }) {
   const badge = () => (props.live ? "Live" : "Unavailable")
   const phase = () => props.attachPhase ?? (props.live ? "attached" : "disconnected")
@@ -298,7 +310,7 @@ function LiveComputerPanel(props: {
                         class="an-computer-feed-frame"
                         title="Computer View page feed"
                         src={props.feedUrl || "about:blank"}
-                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+                        sandbox="allow-scripts allow-same-origin allow-forms"
                         tabindex={watchOnly() ? -1 : 0}
                         data-an-part="computer-feed-frame"
                         data-feed-mode="src"
@@ -431,6 +443,16 @@ function LiveComputerPanel(props: {
                 onClick={() => props.onExternalProbe?.()}
               >
                 Check endpoint
+              </button>
+              <button
+                type="button"
+                class="an-computer-btn"
+                data-action="computer-external-open-tab"
+                data-an-part="computer-external-window"
+                title="Open a tab in the existing Edge/Chrome window when debugging is up; spawn only if none is running"
+                onClick={() => props.onExternalOpenTab?.()}
+              >
+                Open tab in browser
               </button>
             </div>
           </Show>
@@ -679,6 +701,7 @@ export function AnShell(props: AnShellProps): JSX.Element {
               onAttachPathChange={props.onComputerAttachPathChange}
               onExternalDraftChange={props.onComputerExternalDraftChange}
               onExternalProbe={props.onComputerExternalProbe}
+              onExternalOpenTab={props.onComputerExternalOpenTab}
             />
             <div class="an-takeover-bar" role="toolbar" aria-label="Takeover controls">
               <button
@@ -784,6 +807,7 @@ export function AnShell(props: AnShellProps): JSX.Element {
             onAttachPathChange={props.onComputerAttachPathChange}
             onExternalDraftChange={props.onComputerExternalDraftChange}
             onExternalProbe={props.onComputerExternalProbe}
+            onExternalOpenTab={props.onComputerExternalOpenTab}
           />
         </Show>
 

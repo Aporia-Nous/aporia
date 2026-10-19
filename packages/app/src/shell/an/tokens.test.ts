@@ -9,6 +9,8 @@ import {
   AN_CONTRAPTIONS_SURFACE,
   AN_DESIGN_SOURCE,
   AN_ICE_MATERIAL,
+  AN_MOTION_SURFACE,
+  AN_REVIEW_SURFACE,
   AN_PRODUCT_BYLINE,
   AN_PRODUCT_NAME,
   AN_SHELL_MODES,
@@ -143,6 +145,18 @@ describe("AN Stage 4 tokens", () => {
     expect(AN_CONTRAPTIONS_SURFACE.partAttr).toBe('data-an-part="contraptions"')
     expect(AN_CONTRAPTIONS_SURFACE.redstoneTitle).toContain("redstone")
     // STAGE4-11/12 ownership markers must not be redefined by Contraptions mount
+    expect(AN_COMPOSER_SURFACE.ownedAttr).toBe('data-an-owned="composer"')
+  })
+
+  test("Review panel + motion surface markers (AP-STAGE4-17)", () => {
+    expect(AN_REVIEW_SURFACE.navId).toBe("review")
+    expect(AN_REVIEW_SURFACE.partAttr).toBe('data-an-part="review"')
+    expect(AN_REVIEW_SURFACE.collapsible).toBe(true)
+    expect(AN_REVIEW_SURFACE.preferInAppOverOsWindow).toBe(true)
+    expect(AN_REVIEW_SURFACE.tabs).toEqual(["browser", "code", "files", "documents"])
+    expect(AN_MOTION_SURFACE.feel).toBe("holographic-ice-companion")
+    expect(AN_MOTION_SURFACE.intentionalMotions.length).toBeGreaterThanOrEqual(3)
+    expect(AN_MOTION_SURFACE.avoidPurpleNebula).toBe(true)
     expect(AN_COMPOSER_SURFACE.ownedAttr).toBe('data-an-owned="composer"')
   })
 

@@ -133,4 +133,6 @@ export type AnShellProps = ParentProps<{
     family?: string
   }) => void
   onComputerExternalProbe?: () => void
+  /** AP-BF-06: open tab in existing Edge/Chrome window (spawn only if none). */
+  onComputerExternalOpenTab?: () => void
 }>

@@ -6,6 +6,8 @@ import { normalizeExternalBrowserEndpoint, normalizeExternalBrowserRegion } from
 export const AN_COMPUTER_CDP_RELAY = {
   framePath: "/__an/computer-cdp/frame",
   navigatePath: "/__an/computer-cdp/navigate",
+  /** AP-BF-06: open tab in existing Edge/Chrome window (spawn only if none). */
+  openTabPath: "/__an/computer-cdp/open-tab",
   pollMs: 450,
 } as const
 
@@ -27,6 +29,10 @@ export function buildComputerCdpFrameUrl(
 
 export function buildComputerCdpNavigateUrl(origin = ""): string {
   return `${origin}${AN_COMPUTER_CDP_RELAY.navigatePath}`
+}
+
+export function buildComputerCdpOpenTabUrl(origin = ""): string {
+  return `${origin}${AN_COMPUTER_CDP_RELAY.openTabPath}`
 }
 
 export function parseComputerCdpRelayQuery(searchParams: URLSearchParams):

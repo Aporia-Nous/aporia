@@ -6,6 +6,7 @@ import { BotDispatcher } from "@/aporia/dispatch"
 import { FlowCommands } from "@/aporia/flows"
 import { ReactionsLayer } from "@/aporia/reactions"
 import { prettyTitle, projectName } from "@/aporia/session-list"
+import { touchedFiles } from "@/aporia/session-stats"
 import { UpdateWatcher } from "@/aporia/update"
 import { useData, useServer } from "@/runtime/server/current"
 import { useServerSDK } from "@/runtime/server/client"
@@ -43,6 +44,7 @@ import {
   type ComputerAttachState,
 } from "./computer-attach"
 import { probeExternalBrowserEndpoint } from "./computer-external"
+import { openExternalBrowserTab } from "./computer-external-window"
 import {
   clearComputerFeed,
   isComputerFeedActive,
@@ -80,6 +82,7 @@ import {
   type ComputerControlState,
 } from "./computer-control"
 import { AnContraptionsPanel } from "./contraptions-panel"
+import { AnReviewPanel } from "./review-panel"
 import { messagesToConversationTurns } from "./conversation-turns"
 import {
   attentionBindResult,
@@ -89,7 +92,7 @@ import {
   type AnBindBot,
   type AnPresenceSignal,
 } from "./bind"
-import { AN_CONTRAPTIONS_SURFACE, isAnShellMode, type AnShellMode } from "./tokens"
+import { AN_CONTRAPTIONS_SURFACE, AN_REVIEW_SURFACE, isAnShellMode, type AnShellMode } from "./tokens"
 import type { AnNavItem } from "./types"
 
 const ATTENTION_POLL_MS = 5000
@@ -294,6 +297,8 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   const openSettings = useSettingsDialog()
   const [mode, setMode] = createSignal<AnShellMode>("conversation")
   const [contraptionsOpen, setContraptionsOpen] = createSignal(false)
+  const [reviewOpen, setReviewOpen] = createSignal(false)
+  const [reviewInitialTab, setReviewInitialTab] = createSignal<"browser" | "code" | "files" | "documents">("browser")
   const [computerAttach, setComputerAttach] = createSignal<ComputerAttachState>(
     initialComputerAttachState(props.view.sessionID()),
   )
@@ -423,19 +428,34 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     })
   }
 
+  const reviewFiles = createMemo(() =>
+    touchedFiles(props.view.messages()).map((file) => ({ path: file.path, via: file.via })),
+  )
+
   const navItems = (): AnNavItem[] => [
-    { id: "home", label: "Home", icon: "home", active: !props.view.sessionID() && !contraptionsOpen() },
+    {
+      id: "home",
+      label: "Home",
+      icon: "home",
+      active: !props.view.sessionID() && !contraptionsOpen() && !reviewOpen(),
+    },
     {
       id: "missions",
       label: "Missions",
       icon: "missions",
-      active: !!props.view.sessionID() && !contraptionsOpen(),
+      active: !!props.view.sessionID() && !contraptionsOpen() && !reviewOpen(),
     },
     {
       id: AN_CONTRAPTIONS_SURFACE.navId,
       label: AN_CONTRAPTIONS_SURFACE.label,
       icon: "contraptions",
       active: contraptionsOpen(),
+    },
+    {
+      id: AN_REVIEW_SURFACE.navId,
+      label: AN_REVIEW_SURFACE.label,
+      icon: "review",
+      active: reviewOpen(),
     },
     { id: "knowledge", label: "Knowledge", icon: "knowledge" },
     { id: "settings", label: "Settings", icon: "settings" },
@@ -496,13 +516,59 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
 
   const onSelectNav = (id: string) => {
     if (id === AN_CONTRAPTIONS_SURFACE.navId) {
+      setReviewOpen(false)
       setContraptionsOpen((open) => !open)
       return
     }
+    if (id === AN_REVIEW_SURFACE.navId) {
+      setContraptionsOpen(false)
+      setReviewInitialTab("browser")
+      setReviewOpen((open) => !open)
+      return
+    }
     setContraptionsOpen(false)
+    setReviewOpen(false)
     if (id === "home") navigate("/")
     else if (id === "settings") openSettings()
     else if (id === "missions") command.trigger("tab.new")
+  }
+
+  const onComputerExternalOpenTab = async () => {
+    const attach = computerAttach()
+    const endpoint = attach.externalDraftEndpoint ?? attach.externalEndpoint ?? ""
+    const family = attach.externalDraftFamily ?? attach.externalFamily ?? "edge"
+    const result = await openExternalBrowserTab({
+      endpoint,
+      family,
+      url: "about:blank",
+      allowSpawn: true,
+    })
+    if (!result.ok) {
+      aporiaAlerts.push({
+        title: "Browser windowing",
+        detail: result.error,
+        level: "warn",
+      })
+      return
+    }
+    setComputerAttach((prev) =>
+      setExternalAttachDraft(prev, {
+        endpoint: result.endpoint,
+        region: result.regionId,
+        family,
+      }),
+    )
+    setReviewInitialTab("browser")
+    setReviewOpen(true)
+    setContraptionsOpen(false)
+    aporiaAlerts.push({
+      title: "Browser tab",
+      detail:
+        result.decision.action === "spawn-window"
+          ? `Spawned one ${family} window (none was running) · region ${result.regionId}. Confirm attach for Live. Computer View / Review stay in-app.`
+          : `Opened a tab in the existing ${family} window · region ${result.regionId}. Confirm attach for Live. Review panel stays in AnShell.`,
+      level: "info",
+    })
   }
 
   /** Flat card list retained for non-owned / tests; Conversation uses streamItems. */
@@ -612,6 +678,12 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         })
         return next
       }
+      // Prefer in-app Review panel for browse/review (AP-STAGE4-17) — not a separate OS window.
+      if (next.backend === "local-browser") {
+        setReviewInitialTab("browser")
+        setReviewOpen(true)
+        setContraptionsOpen(false)
+      }
       aporiaAlerts.push({
         title:
           next.backend === "external-chromium"
@@ -619,8 +691,8 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
             : "Browser workspace attached",
         detail:
           next.backend === "external-chromium"
-            ? `Live on ${next.externalEndpoint} · region ${next.externalRegionId}. Watch-only until Takeover.`
-            : "Computer View is Live with watch-only page feed. Disconnect clears Live and feed.",
+            ? `Live on ${next.externalEndpoint} · region ${next.externalRegionId}. Watch-only until Takeover. Review stays in AnShell.`
+            : "Computer View is Live with watch-only page feed. Review Browser opened in-app (collapsible). Disconnect clears Live and feed.",
         level: "info",
       })
       return next
@@ -776,6 +848,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         onComputerAttachPathChange={onComputerAttachPathChange}
         onComputerExternalDraftChange={onComputerExternalDraftChange}
         onComputerExternalProbe={onComputerExternalProbe}
+        onComputerExternalOpenTab={() => void onComputerExternalOpenTab()}
         onSelectNav={onSelectNav}
         onSelectMember={(id) => void openMember(id)}
         onStreamCardAction={(actionId, card) => {
@@ -790,6 +863,15 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       </AnShell>
       <Show when={contraptionsOpen()}>
         <AnContraptionsPanel onClose={() => setContraptionsOpen(false)} />
+      </Show>
+      <Show when={reviewOpen()}>
+        <AnReviewPanel
+          initialTab={reviewInitialTab()}
+          files={reviewFiles()}
+          computerLive={computerLive()}
+          computerFeedUrl={computerFeed().url || undefined}
+          onClose={() => setReviewOpen(false)}
+        />
       </Show>
     </div>
   )
