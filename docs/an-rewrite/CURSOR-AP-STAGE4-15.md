@@ -4,8 +4,8 @@
 |-------|-------|
 | status | **OPEN — implemented+live-DEV** (not INDEPENDENT PASS; not Stage 4 complete) |
 | branch | `stage4-an-shell` |
-| tip | *(see git HEAD after docs sync)* |
-| code | *(feat commit)* |
+| tip | `e87ff135c0` (code; docs sync may follow) |
+| code | `e87ff135c0` |
 | base | `93d29c01b4` (AP-STAGE4-14 INDEPENDENT PASS tip) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | scope | Design-audit high: Task/Approval/Proof/Computer cards render **in** Conversation stream (mockup); Mission stack above stream collapsed empty; Mission header compact |
