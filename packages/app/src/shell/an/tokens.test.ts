@@ -7,6 +7,7 @@ import {
   AN_COMPUTER_FEED_SURFACE,
   AN_CONTRAPTIONS_SURFACE,
   AN_DESIGN_SOURCE,
+  AN_ICE_MATERIAL,
   AN_PRODUCT_BYLINE,
   AN_PRODUCT_NAME,
   AN_SHELL_MODES,
@@ -79,15 +80,34 @@ describe("AN Stage 4 tokens", () => {
   })
 
   test("glass panel tokens are ice-translucent (AP-STAGE4-08)", () => {
-    expect(AN_TOKENS.panel).toContain("0.44")
-    expect(AN_TOKENS.panelRaised).toContain("0.52")
-    expect(AN_TOKENS.panelGlass).toContain("0.32")
-    expect(AN_TOKENS.glow).toContain("0.22")
+    // STAGE4-16 punched alphas further; keep feel + AN black/gold
+    expect(AN_TOKENS.panel).toContain("0.28")
+    expect(AN_TOKENS.panelRaised).toContain("0.36")
+    expect(AN_TOKENS.panelGlass).toContain("0.2")
+    expect(AN_TOKENS.glow).toContain("0.24")
     expect(AN_TOKENS.feel).toBe("frictionless-ice-glass")
     // Cooler ice depth — not Lagoon Night theme swap; gold/void stay AN
     expect(AN_TOKENS.panel).toContain("6, 14, 22")
     expect(AN_TOKENS.gold).toBe("#f0c66d")
     expect(AN_TOKENS.void).toBe("#020509")
+  })
+
+  test("ice material punch tokens (AP-STAGE4-16)", () => {
+    expect(AN_ICE_MATERIAL.slice).toBe("AP-STAGE4-16")
+    expect(AN_ICE_MATERIAL.blur).toBe("40px")
+    expect(AN_ICE_MATERIAL.blurStrong).toBe("64px")
+    expect(AN_ICE_MATERIAL.saturate).toBe("1.32")
+    expect(AN_ICE_MATERIAL.iceSheen).toContain("0.14")
+    expect(AN_ICE_MATERIAL.iceEdge).toContain("0.28")
+    expect(AN_ICE_MATERIAL.panel).toBe(AN_TOKENS.panel)
+    expect(AN_ICE_MATERIAL.keepComposerVoidGold).toBe(true)
+    expect(AN_ICE_MATERIAL.avoidPurpleNebula).toBe(true)
+    // Must stay more translucent than STAGE4-08 opaque charcoal residual
+    expect(Number(AN_TOKENS.panel.match(/0\.\d+/)?.[0])).toBeLessThan(0.4)
+    expect(Number(AN_TOKENS.panelRaised.match(/0\.\d+/)?.[0])).toBeLessThan(0.45)
+    expect(AN_COMPOSER_SURFACE.fill).toBe(AN_TOKENS.void)
+    expect(AN_COMPOSER_SURFACE.send).toBe(AN_TOKENS.goldDeep)
+    expect(AN_COMPOSER_SURFACE.ownedAttr).toBe('data-an-owned="composer"')
   })
 
   test("session dock ease token present (AP-STAGE4-09)", () => {

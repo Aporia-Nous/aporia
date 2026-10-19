@@ -20,7 +20,7 @@ Compared DEV screenshots to:
 7. **Nav icons:** ~~placeholder glyphs (⌂ ▦ ▣ ⚙)~~ → **Partial AP-STAGE4-07**: line SVG icons + stronger gold active punch; not yet full illustrated mockup set.
 
 ## Atmosphere / material
-8. **Flat void vs cinematic glass:** ~~matte void only~~ → **AP-STAGE4-04 glass** then **feel polish AP-STAGE4-08** (OPEN review, **no PASS**): Ali 2026-10-19 frictionless ice/glass — cooler translucent depth, blur 28/42 + saturate, specular ice edge, softer shadows, mode/rail/card motion; shot `12-ice-glass-feel.png`. Still not photographic nebula underlay (gradients only by design).
+8. **Flat void vs cinematic glass:** ~~matte void only~~ → **AP-STAGE4-04/08** then **ice material punch AP-STAGE4-16** (OPEN implemented+live-DEV, **no PASS claimed**): blur 40/64, panel α 0.28/0.36/0.2, stronger sheen/specular; Contraptions drawer no longer 0.72/0.88 charcoal; shots `52`–`55`. Residual OK: frost still subtle on near-void underlay; no photographic nebula (gradients only; no purple/nebula AI-slop).
 9. **Selected roster gold muted:** ~~#aa8d52~~ → **Punch-up AP-STAGE4-07** (token gold `#f0c66d` border + stronger glow; CDP `selectedBorder=rgb(240, 198, 109)`); AP-STAGE4-08 softens punch slightly toward ice-glass (border-strong + softer glow).
 10. **Typography:** shell CSS still Segoe UI Variable/system; approved sheet reads more custom/premium.
 

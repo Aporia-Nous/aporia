@@ -13,7 +13,7 @@ export const AN_DESIGN_SOURCE = {
 } as const
 
 /** Exact CSS custom-property values mirrored from the approved packet.
- *  Panel translucency: ice/glass feel (Ali 2026-10-19) — still black/gold AN. */
+ *  Panel translucency: ice/glass punch (AP-STAGE4-16) — frosted vs opaque charcoal; still AN black/gold. */
 export const AN_TOKENS = {
   gold: "#f0c66d",
   goldDeep: "#d79a2e",
@@ -22,13 +22,18 @@ export const AN_TOKENS = {
   green: "#3be78c",
   ink: "#03070b",
   void: "#020509",
-  panel: "rgba(6, 14, 22, 0.44)",
-  panelRaised: "rgba(8, 16, 24, 0.52)",
-  panelGlass: "rgba(10, 20, 30, 0.32)",
-  border: "rgba(240, 198, 109, 0.26)",
-  borderSoft: "rgba(240, 198, 109, 0.12)",
-  borderStrong: "rgba(240, 198, 109, 0.42)",
-  glow: "rgba(231, 154, 29, 0.22)",
+  panel: "rgba(6, 14, 22, 0.28)",
+  panelRaised: "rgba(8, 16, 24, 0.36)",
+  panelGlass: "rgba(10, 20, 30, 0.2)",
+  iceSheen: "rgba(186, 220, 255, 0.14)",
+  iceEdge: "rgba(210, 232, 255, 0.28)",
+  blur: "40px",
+  blurStrong: "64px",
+  saturate: "1.32",
+  border: "rgba(240, 198, 109, 0.28)",
+  borderSoft: "rgba(240, 198, 109, 0.16)",
+  borderStrong: "rgba(240, 198, 109, 0.45)",
+  glow: "rgba(231, 154, 29, 0.24)",
   text: "#f0e6d2",
   textMuted: "#cfac62",
   danger: "#f87171",
@@ -37,6 +42,27 @@ export const AN_TOKENS = {
   feel: "frictionless-ice-glass",
   /** Session/composer floating dock motion (AP-STAGE4-09). */
   easeDock: "320ms cubic-bezier(0.22, 1, 0.36, 1)",
+} as const
+
+/**
+ * AP-STAGE4-16: ice material punch — stronger blur/translucency/specular on AnShell panels.
+ * Match approved AN ice-glass mockup; not OpenCode void charcoal.
+ */
+export const AN_ICE_MATERIAL = {
+  slice: "AP-STAGE4-16",
+  feel: AN_TOKENS.feel,
+  panel: AN_TOKENS.panel,
+  panelRaised: AN_TOKENS.panelRaised,
+  panelGlass: AN_TOKENS.panelGlass,
+  blur: AN_TOKENS.blur,
+  blurStrong: AN_TOKENS.blurStrong,
+  saturate: AN_TOKENS.saturate,
+  iceSheen: AN_TOKENS.iceSheen,
+  iceEdge: AN_TOKENS.iceEdge,
+  /** Composer void fill + gold send must stay readable after punch. */
+  keepComposerVoidGold: true,
+  /** No purple/nebula AI-slop; AN black/gold only. */
+  avoidPurpleNebula: true,
 } as const
 
 /** Layout flags for approved three-state chrome (not Stage 5 four-mode). */
