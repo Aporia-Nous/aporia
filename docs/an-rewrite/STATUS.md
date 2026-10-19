@@ -1028,8 +1028,8 @@ Worktree `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` on branch
 
 ### Stage 4 branding — Aporetic product name (AP-STAGE4-05) — OPEN for review
 
-Worktree `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` on branch `stage4-an-shell`.
-Report: `docs/an-rewrite/CURSOR-AP-STAGE4-05.md`. Ali 2026-10-19: product **Aporetic**; company **Aporia Nous**; ownership form **Aporetic by Aporia Nous**.
+Worktree `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` on branch `stage4-an-shell`
+@ `584fcda036`. Report: `docs/an-rewrite/CURSOR-AP-STAGE4-05.md`. Ali 2026-10-19: product **Aporetic**; company **Aporia Nous**; ownership form **Aporetic by Aporia Nous**.
 
 | item | value |
 | - | - |
