@@ -4,7 +4,7 @@
 |-------|-------|
 | status | **OPEN — implemented + live-DEV verified** (screencast / page-pixel scope) — **not** INDEPENDENT PASS; **not** Stage 4 complete |
 | branch | `stage4-an-shell` |
-| tip | `ca279b5593` (code; docs tip sync may follow) |
+| tip | `1cedb0416f` (docs sync; code `ca279b5593`) |
 | code | `ca279b5593` |
 | base | `bf6e89c418` (AP-STAGE4-16 tip; ice punch — do not rework) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
