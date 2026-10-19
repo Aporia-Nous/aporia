@@ -51,6 +51,10 @@ const layer = Layer.effect(
     // Title generation starts once input is visible and must not delay model execution.
     const titles = yield* FiberMap.make<SessionSchema.ID, void, never>()
 
+    // AP-ENGINE-E10: observe instructions once per drain unless SessionContext dirty epoch bumps.
+    // Fresh Map per drain forces observe after location move (new drain entry).
+    let instructionPrepared: Map<string, number> | undefined
+
     const drain = Effect.fn("SessionRunner.drain")(function* (input: Parameters<Interface["drain"]>[0]) {
       const sessionID = input.sessionID
       let force = input.force
@@ -66,9 +70,12 @@ const layer = Layer.effect(
       }
       yield* plugins.awaitActivation
       yield* context.beginDrain
+      instructionPrepared = new Map()
       return yield* Effect.ensuring(
         drainBody({ sessionID, force, continuing, step, entering, promotable }),
-        context.endDrain,
+        Effect.sync(() => {
+          instructionPrepared = undefined
+        }).pipe(Effect.andThen(context.endDrain)),
       )
     })
 
@@ -215,7 +222,15 @@ const layer = Layer.effect(
     const prepareContext = Effect.fn("SessionRunner.prepareContext")(function* (sessionID: SessionSchema.ID) {
       const selected = yield* context.select(sessionID)
       // A blocked initial instruction baseline must leave admitted input pending.
-      yield* InstructionState.prepare(db, bus, selected.instructions, sessionID)
+      // E10: skip re-observe on later steps while instructionDirtyEpoch is unchanged.
+      const prepared = instructionPrepared
+      const gate = prepared
+        ? {
+            epoch: () => context.instructionDirtyEpoch(sessionID),
+            prepared,
+          }
+        : undefined
+      yield* InstructionState.prepare(db, bus, selected.instructions, sessionID, gate)
       return selected
     })
 

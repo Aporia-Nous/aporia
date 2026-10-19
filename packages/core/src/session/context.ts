@@ -76,6 +76,12 @@ export interface Interface {
   readonly endDrain: Effect.Effect<void>
   /** Test/observability: hits and misses since the current or last drain. */
   readonly selectionCacheStats: () => { readonly hits: number; readonly misses: number }
+  /**
+   * Dirty epoch for instruction observe-once-per-drain (E10). Bumps with the same
+   * catalog/entries invalidation that clears the select cache (discovery/skills/
+   * references/MCP/agent + InstructionsUpdated / session instruction entries).
+   */
+  readonly instructionDirtyEpoch: (sessionID: SessionSchema.ID) => number
   readonly request: SessionModelRequest.Interface
 }
 
@@ -284,6 +290,9 @@ const layer = Layer.effect(
       drain = undefined
     })
 
+    const instructionDirtyEpoch = (sessionID: SessionSchema.ID) =>
+      catalogGeneration * 1_000_000 + (entriesEpoch.get(sessionID) ?? 0)
+
     return Service.of({
       select,
       load,
@@ -292,6 +301,7 @@ const layer = Layer.effect(
       beginDrain,
       endDrain,
       selectionCacheStats: () => (drain ? { hits: drain.hits, misses: drain.misses } : lastStats),
+      instructionDirtyEpoch,
       request,
     })
   }),

@@ -154,3 +154,24 @@ it.effect("AP-ENGINE-E01: select outside drain always rebuilds", () =>
     expect(snapshotCalls).toBe(2)
   }),
 )
+
+it.effect("AP-ENGINE-E10: instructionDirtyEpoch stays stable until catalog invalidation", () =>
+  Effect.gen(function* () {
+    const context = yield* setup
+    const bus = yield* Bus.Service
+    yield* context.beginDrain
+    const first = context.instructionDirtyEpoch(sessionID)
+    const second = context.instructionDirtyEpoch(sessionID)
+    expect(second).toBe(first)
+    yield* bus.publish(InstructionDiscovery.Event.Updated, {})
+    // PubSub delivery is async; poll briefly for the catalog bump.
+    let bumped = first
+    for (let i = 0; i < 40; i++) {
+      bumped = context.instructionDirtyEpoch(sessionID)
+      if (bumped !== first) break
+      yield* Effect.sleep("25 millis")
+    }
+    yield* context.endDrain
+    expect(bumped).not.toBe(first)
+  }),
+)
