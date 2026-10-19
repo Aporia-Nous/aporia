@@ -47,4 +47,6 @@
   --an-ease: 280ms cubic-bezier(0.22, 1, 0.36, 1);
   --an-ease-rail: 360ms cubic-bezier(0.22, 1, 0.36, 1);
   --an-ease-card: 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  /* Session/composer floating dock settle (AP-STAGE4-09) */
+  --an-ease-dock: 320ms cubic-bezier(0.22, 1, 0.36, 1);
 }

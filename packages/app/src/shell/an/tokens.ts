@@ -35,6 +35,8 @@ export const AN_TOKENS = {
   themeId: "an",
   /** Design feel authority — frictionless ice/glass; not matte plastic / OpenCode chrome. */
   feel: "frictionless-ice-glass",
+  /** Session/composer floating dock motion (AP-STAGE4-09). */
+  easeDock: "320ms cubic-bezier(0.22, 1, 0.36, 1)",
 } as const
 
 /** Layout flags for approved three-state chrome (not Stage 5 four-mode). */

@@ -763,18 +763,81 @@
   color: var(--an-gold);
 }
 
-/* AP-STAGE4-03/08: composer void/gold on ice dock — not navy OpenCode chrome. */
+/* AP-STAGE4-09: floating Session dock + composer chrome — frictionless ice/glass.
+   Keeps AP-STAGE4-03 void/gold composer tokens; kills leftover OpenCode raised plastic. */
+@keyframes an-dock-settle {
+  from {
+    opacity: 0.72;
+    transform: translateY(10px) scale(0.992);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Floating Session panel frame (SessionPanelFrame under AnShell) — kills v2 raised plastic */
+[data-component="an-shell"] [data-slot="session-chat-panel"] > div,
+[data-component="an-shell"] [data-an-part="session-panel-frame"] {
+  --an-dock-radius: var(--an-radius-lg, 18px);
+  border: 1px solid var(--an-border-soft, rgba(240, 198, 109, 0.12)) !important;
+  border-radius: var(--an-dock-radius) !important;
+  background:
+    linear-gradient(165deg, var(--an-ice-sheen, rgba(186, 220, 255, 0.1)), transparent 44%),
+    linear-gradient(180deg, rgba(240, 198, 109, 0.05) 0%, transparent 38%),
+    linear-gradient(180deg, rgba(10, 22, 34, 0.38), rgba(2, 6, 12, 0.5)) !important;
+  backdrop-filter: blur(var(--an-blur-strong, 42px)) saturate(var(--an-saturate, 1.18)) !important;
+  -webkit-backdrop-filter: blur(var(--an-blur-strong, 42px)) saturate(var(--an-saturate, 1.18)) !important;
+  box-shadow:
+    var(--an-shadow-soft, 0 4px 18px rgba(0, 0, 0, 0.18)),
+    0 18px 48px rgba(0, 0, 0, 0.28),
+    0 0 28px var(--an-glow-soft, rgba(231, 154, 29, 0.1)),
+    var(--an-specular, inset 0 1px 0 rgba(210, 232, 255, 0.14)),
+    inset 0 0 0 1px rgba(210, 232, 255, 0.04) !important;
+  overflow: hidden;
+  transition:
+    border-color var(--an-ease-dock, 320ms cubic-bezier(0.22, 1, 0.36, 1)),
+    box-shadow var(--an-ease-dock, 320ms cubic-bezier(0.22, 1, 0.36, 1)),
+    background var(--an-ease-dock, 320ms cubic-bezier(0.22, 1, 0.36, 1)),
+    transform var(--an-ease-dock, 320ms cubic-bezier(0.22, 1, 0.36, 1));
+  animation: an-dock-settle var(--an-ease-dock, 320ms cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
+/* Session title strip — quiet ice bar, not OpenCode header chrome */
+[data-component="an-shell"] [data-slot="session-chat-panel"] .flex.h-12.w-full.items-center {
+  border-bottom: 1px solid rgba(210, 232, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(186, 220, 255, 0.06), transparent 70%),
+    rgba(2, 6, 12, 0.22);
+  box-shadow: inset 0 1px 0 rgba(210, 232, 255, 0.1);
+  color: var(--an-text, #f0e6d2);
+  transition: background var(--an-ease), border-color var(--an-ease);
+}
+
+[data-component="an-shell"] [data-slot="session-chat-panel"] [data-slot="session-title-ancestors"],
+[data-component="an-shell"] [data-slot="session-chat-panel"] [data-slot="session-project-trigger"] {
+  color: var(--an-gold-soft, #e5c57f) !important;
+}
+
+/* Composer dock strip — translucent ice, no bg-v2-background-bg-base slab */
 [data-color-scheme="dark"] [data-component="an-shell"] [data-component="session-composer-dock"],
 [data-color-scheme="dark"] [data-an-theme="an"] [data-component="session-composer-dock"] {
   background:
-    linear-gradient(180deg, rgba(186, 220, 255, 0.04), transparent 50%),
-    rgba(2, 6, 12, 0.28) !important;
+    linear-gradient(180deg, rgba(186, 220, 255, 0.05), transparent 55%),
+    linear-gradient(0deg, rgba(2, 5, 9, 0.35), transparent 70%),
+    rgba(4, 10, 16, 0.18) !important;
   backdrop-filter: blur(var(--an-blur-strong, 42px)) saturate(var(--an-saturate, 1.18));
   -webkit-backdrop-filter: blur(var(--an-blur-strong, 42px)) saturate(var(--an-saturate, 1.18));
-  border-top: 1px solid var(--an-border-soft, rgba(240, 198, 109, 0.12));
-  box-shadow: inset 0 1px 0 var(--an-ice-edge, rgba(210, 232, 255, 0.12));
+  border-top: 1px solid rgba(210, 232, 255, 0.1);
+  box-shadow: inset 0 1px 0 var(--an-ice-edge, rgba(210, 232, 255, 0.14));
+  transition: background var(--an-ease-dock, 320ms cubic-bezier(0.22, 1, 0.36, 1)), border-color var(--an-ease);
 }
 
+/* Kill leftover Aporetic indigo/navy composer chrome (aporia.css) under AnShell — void/gold + ice. */
+[data-component="an-shell"] [data-component="session-composer-dock"] [data-component="composer"],
+[data-component="an-shell"] [data-component="new-session"] [data-component="composer"],
+[data-an-theme="an"] [data-component="session-composer-dock"] [data-component="composer"],
+[data-an-theme="an"] [data-component="new-session"] [data-component="composer"],
 [data-color-scheme="dark"] [data-component="an-shell"] [data-component="composer"],
 [data-color-scheme="dark"] [data-an-theme="an"] [data-component="composer"],
 [data-color-scheme="dark"] [data-component="an-shell"] [data-component="session-composer-dock"] [data-component="composer"],
@@ -782,21 +845,54 @@
 [data-color-scheme="dark"] [data-component="an-shell"] [data-component="new-session"] [data-component="composer"],
 [data-color-scheme="dark"] [data-an-theme="an"] [data-component="new-session"] [data-component="composer"] {
   background:
-    linear-gradient(180deg, rgba(186, 220, 255, 0.05), transparent 40%),
+    linear-gradient(165deg, rgba(186, 220, 255, 0.07), transparent 42%),
+    linear-gradient(180deg, rgba(240, 198, 109, 0.04), transparent 36%),
     var(--an-void, #020509) !important;
-  border: 1px solid var(--an-border-soft, rgba(240, 198, 109, 0.12));
-  border-radius: var(--an-radius, 14px);
+  border: 1px solid var(--an-border-soft, rgba(240, 198, 109, 0.18)) !important;
+  border-color: var(--an-border-soft, rgba(240, 198, 109, 0.18)) !important;
+  border-radius: var(--an-radius, 14px) !important;
   box-shadow:
     var(--an-shadow-soft, 0 4px 18px rgba(0, 0, 0, 0.18)),
-    inset 0 1px 0 var(--an-ice-edge, rgba(210, 232, 255, 0.12)),
-    0 0 14px var(--an-glow-soft, rgba(231, 154, 29, 0.1));
-  transition: border-color var(--an-ease), box-shadow var(--an-ease);
+    inset 0 1px 0 var(--an-ice-edge, rgba(210, 232, 255, 0.16)),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.28),
+    0 0 18px var(--an-glow-soft, rgba(231, 154, 29, 0.1)) !important;
+  padding: 0 !important; /* undo aporia.css roomy indigo padding */
+  transition:
+    border-color var(--an-ease),
+    box-shadow var(--an-ease),
+    background var(--an-ease),
+    transform var(--an-ease);
 }
 
+[data-component="an-shell"] [data-component="session-composer-dock"] [data-component="composer"]:focus-within,
+[data-an-theme="an"] [data-component="session-composer-dock"] [data-component="composer"]:focus-within,
 [data-color-scheme="dark"] [data-component="an-shell"] [data-component="composer"]:focus-within,
 [data-color-scheme="dark"] [data-an-theme="an"] [data-component="composer"]:focus-within {
-  border-color: var(--an-border, rgba(240, 198, 109, 0.34));
-  box-shadow: var(--an-focus, 0 0 0 2px #020509, 0 0 0 4px rgba(240, 198, 109, 0.55));
+  border-color: var(--an-border, rgba(240, 198, 109, 0.34)) !important;
+  box-shadow:
+    var(--an-focus, 0 0 0 2px #020509, 0 0 0 4px rgba(240, 198, 109, 0.55)),
+    inset 0 1px 0 var(--an-ice-edge, rgba(210, 232, 255, 0.18)),
+    0 0 22px var(--an-glow-soft, rgba(231, 154, 29, 0.12)) !important;
+  transform: translateY(-1px);
+}
+
+/* Soften OpenCode toolbar chrome inside composer under AnShell */
+[data-component="an-shell"] [data-component="composer"] [data-slot="composer-controls"],
+[data-component="an-shell"] [data-component="composer"] [data-slot="composer-actions"] {
+  color: var(--an-text-muted, #cfac62);
+}
+
+[data-component="an-shell"] [data-component="composer"] :is(button, [data-component="icon-button"], [data-component="button-v2"]) {
+  transition: color var(--an-ease), background var(--an-ease), border-color var(--an-ease), box-shadow var(--an-ease);
+}
+
+[data-component="an-shell"] [data-component="composer"] [data-slot="composer-attachments-fade-left"],
+[data-component="an-shell"] [data-component="composer"] [data-slot="composer-attachments-fade-right"] {
+  background: linear-gradient(to right, var(--an-void, #020509), transparent) !important;
+}
+
+[data-component="an-shell"] [data-component="composer"] [data-slot="composer-attachments-fade-right"] {
+  background: linear-gradient(to left, var(--an-void, #020509), transparent) !important;
 }
 
 [data-color-scheme="dark"] [data-component="an-shell"] [data-action="composer-submit"]:not(:disabled),
@@ -808,6 +904,8 @@
     linear-gradient(90deg, var(--an-gold-deep, #d79a2e), var(--an-gold-deep, #d79a2e));
   color: var(--an-void, #020509);
   box-shadow: 0 0 16px var(--an-glow, rgba(231, 154, 29, 0.2));
+  border-radius: var(--an-radius-sm, 10px);
+  transition: background-image var(--an-ease), box-shadow var(--an-ease), transform var(--an-ease);
 }
 
 [data-color-scheme="dark"] [data-component="an-shell"] [data-action="composer-submit"]:not(:disabled) :is(svg, [data-component="icon"]),
@@ -822,6 +920,8 @@
       linear-gradient(90deg, var(--submit-hover) 0%, var(--submit-hover) 100%),
       linear-gradient(180deg, var(--submit-highlight) 0%, rgba(240, 198, 109, 0) 100%),
       linear-gradient(90deg, var(--an-gold, #f0c66d), var(--an-gold, #f0c66d));
+    box-shadow: 0 0 22px var(--an-glow, rgba(231, 154, 29, 0.28));
+    transform: translateY(-0.5px);
   }
 }
 

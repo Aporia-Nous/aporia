@@ -79,6 +79,13 @@ describe("AN Stage 4 tokens", () => {
     expect(AN_TOKENS.void).toBe("#020509")
   })
 
+  test("session dock ease token present (AP-STAGE4-09)", () => {
+    expect(AN_TOKENS.easeDock).toContain("320ms")
+    expect(AN_TOKENS.easeDock).toContain("cubic-bezier")
+    expect(AN_COMPOSER_SURFACE.fill).toBe("#020509")
+    expect(AN_COMPOSER_SURFACE.send).toBe("#d79a2e")
+  })
+
   test("three-state layout flags (AP-STAGE4-04)", () => {
     expect(anShellLayout("conversation")).toEqual({
       mode: "conversation",
