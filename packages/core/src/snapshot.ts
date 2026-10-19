@@ -15,6 +15,46 @@ import { State } from "./state.js"
 
 export { ID }
 
+/**
+ * Heuristic names that commonly mutate the worktree. Used only as a safety net when
+ * no local tool fiber ran (e.g. hosted tool names that still imply filesystem writes).
+ * Prefer false-positive end capture over missing file diffs for write tools.
+ */
+const FILESYSTEM_TOUCHING_TOOL_KEYS = [
+  "edit",
+  "write",
+  "patch",
+  "bash",
+  "shell",
+  "apply_patch",
+  "str_replace",
+  "create_file",
+  "delete_file",
+] as const
+
+/** True when a tool name looks like it may mutate the filesystem. */
+export const toolMayTouchFilesystem = (name: string): boolean => {
+  const normalized = name.toLowerCase()
+  return FILESYSTEM_TOUCHING_TOOL_KEYS.some((key) => normalized === key || normalized.includes(key))
+}
+
+/**
+ * Whether a successful step should run a second `Snapshot.capture` for file diffs.
+ * Any local (non-provider-executed) tool run forces capture; otherwise check recorded
+ * names against the filesystem-touching heuristic. Text-only steps skip end capture.
+ */
+export const shouldCaptureEndSnapshot = (input: {
+  readonly localToolCount: number
+  readonly recordedToolNames?: Iterable<string>
+}): boolean => {
+  if (input.localToolCount > 0) return true
+  if (!input.recordedToolNames) return false
+  for (const name of input.recordedToolNames) {
+    if (toolMayTouchFilesystem(name)) return true
+  }
+  return false
+}
+
 export class Error extends Schema.TaggedError<Error>()("Snapshot.Error", {
   operation: Schema.Literals(["capture", "files", "diff", "restore"]),
   message: Schema.String,

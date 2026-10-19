@@ -238,15 +238,22 @@ export const make = Effect.gen(function* () {
         const record = publisher.record()
         if (record.finish || record.failure) {
           const startSnapshot = yield* Fiber.join(pendingStartSnapshot)
-          const snapshot = yield* snapshots.capture()
-          const files =
-            startSnapshot && snapshot
+          // E04: skip end git capture when no local tools ran (and no FS-touching names recorded).
+          // Prefer false-positive capture when any local tool executed — missing diffs is worse than I/O.
+          const needsEndCapture = Snapshot.shouldCaptureEndSnapshot({
+            localToolCount: toolRuns.length,
+            recordedToolNames: publisher.recordedToolNames(),
+          })
+          const snapshot = needsEndCapture ? yield* snapshots.capture() : startSnapshot
+          const files = needsEndCapture
+            ? startSnapshot && snapshot
               ? startSnapshot === snapshot
                 ? []
                 : yield* snapshots
                     .files({ from: startSnapshot, to: snapshot })
                     .pipe(Effect.orElseSucceed(() => undefined))
               : undefined
+            : []
           const usage = record.finish
             ? { cost: SessionUsage.calculateCost(input.model.cost, record.finish.tokens), tokens: record.finish.tokens }
             : undefined
