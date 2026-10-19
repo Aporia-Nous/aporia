@@ -5,6 +5,7 @@ export {
   AN_PRODUCT_BYLINE,
   AN_TOKENS,
   AN_COMPOSER_SURFACE,
+  AN_CONTRAPTIONS_SURFACE,
   AN_SHELL_MODES,
   AN_SHELL_MODE_LABEL,
   AN_PRESENCE,
@@ -19,6 +20,7 @@ export {
   type AnPresence,
   type AnTokenName,
 } from "./tokens"
+export { AnContraptionsPanel } from "./contraptions-panel"
 export { buildAnShellModel, assertApprovedModesOnly, type AnShellModel } from "./shell-model"
 export {
   botsToRoster,

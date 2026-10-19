@@ -49,6 +49,7 @@ function StreamRegion(
 const DEFAULT_NAV = [
   { id: "home", label: "Home", icon: "home", active: true },
   { id: "missions", label: "Missions", icon: "missions" },
+  { id: "contraptions", label: "Contraptions", icon: "contraptions" },
   { id: "knowledge", label: "Knowledge", icon: "knowledge" },
   { id: "settings", label: "Settings", icon: "settings" },
 ] as const
@@ -82,6 +83,15 @@ function NavIcon(props: { name?: string }) {
           <rect x="13" y="4" width="7" height="7" rx="1.5" />
           <rect x="4" y="13" width="7" height="7" rx="1.5" />
           <rect x="13" y="13" width="7" height="7" rx="1.5" />
+        </svg>
+      )
+    case "contraptions":
+      return (
+        <svg {...common}>
+          <circle cx="9" cy="9" r="2.5" />
+          <path d="M9 3.5v1.2M9 13.3v1.2M4.4 5.8l.9.9M12.7 12.3l.9.9M3.5 9h1.2M13.3 9h1.2M4.4 12.2l.9-.9M12.7 5.7l.9-.9" />
+          <circle cx="16.5" cy="15.5" r="2" />
+          <path d="M16.5 11.8v.9M16.5 18.3v.9M13.2 13.3l.7.7M19.1 17l.7.7M12.8 15.5h.9M19.3 15.5h.9M13.2 17.7l.7-.7M19.1 14l.7-.7" />
         </svg>
       )
     case "knowledge":

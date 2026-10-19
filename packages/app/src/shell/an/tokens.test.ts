@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import {
   AN_COMPOSER_SURFACE,
+  AN_CONTRAPTIONS_SURFACE,
   AN_DESIGN_SOURCE,
   AN_PRODUCT_BYLINE,
   AN_PRODUCT_NAME,
@@ -98,6 +99,16 @@ describe("AN Stage 4 tokens", () => {
     expect([...AN_COMPOSER_SURFACE.hosts]).toContain('[data-component="an-shell"]')
     expect(AN_COMPOSER_SURFACE.fill).toBe(AN_TOKENS.void)
     expect(AN_COMPOSER_SURFACE.send).toBe(AN_TOKENS.goldDeep)
+  })
+
+  test("Contraptions mount surface markers (AP-STAGE4-4E)", () => {
+    expect(AN_CONTRAPTIONS_SURFACE.navId).toBe("contraptions")
+    expect(AN_CONTRAPTIONS_SURFACE.label).toBe("Contraptions")
+    expect(AN_CONTRAPTIONS_SURFACE.subtitle).toBe("Automations & integrations")
+    expect(AN_CONTRAPTIONS_SURFACE.partAttr).toBe('data-an-part="contraptions"')
+    expect(AN_CONTRAPTIONS_SURFACE.redstoneTitle).toContain("redstone")
+    // STAGE4-11/12 ownership markers must not be redefined by Contraptions mount
+    expect(AN_COMPOSER_SURFACE.ownedAttr).toBe('data-an-owned="composer"')
   })
 
   test("three-state layout flags (AP-STAGE4-04)", () => {

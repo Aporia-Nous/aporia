@@ -22,6 +22,7 @@ import { Show, createEffect, createMemo, createResource, createSignal, onCleanup
 import { Portal } from "solid-js/web"
 import { AnShell } from "./an-shell"
 import { buildStreamCards } from "./cards"
+import { AnContraptionsPanel } from "./contraptions-panel"
 import { messagesToConversationTurns } from "./conversation-turns"
 import {
   attentionBindResult,
@@ -31,7 +32,7 @@ import {
   type AnBindBot,
   type AnPresenceSignal,
 } from "./bind"
-import { isAnShellMode, type AnShellMode } from "./tokens"
+import { AN_CONTRAPTIONS_SURFACE, isAnShellMode, type AnShellMode } from "./tokens"
 import type { AnNavItem } from "./types"
 
 const ATTENTION_POLL_MS = 5000
@@ -224,6 +225,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   const command = useCommand()
   const openSettings = useSettingsDialog()
   const [mode, setMode] = createSignal<AnShellMode>("conversation")
+  const [contraptionsOpen, setContraptionsOpen] = createSignal(false)
   const info = () => props.view.info()
   const currentAgent = () => info()?.agent
   const roster = useAnRoster(currentAgent)
@@ -253,8 +255,19 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   }
 
   const navItems = (): AnNavItem[] => [
-    { id: "home", label: "Home", icon: "home", active: !props.view.sessionID() },
-    { id: "missions", label: "Missions", icon: "missions", active: !!props.view.sessionID() },
+    { id: "home", label: "Home", icon: "home", active: !props.view.sessionID() && !contraptionsOpen() },
+    {
+      id: "missions",
+      label: "Missions",
+      icon: "missions",
+      active: !!props.view.sessionID() && !contraptionsOpen(),
+    },
+    {
+      id: AN_CONTRAPTIONS_SURFACE.navId,
+      label: AN_CONTRAPTIONS_SURFACE.label,
+      icon: "contraptions",
+      active: contraptionsOpen(),
+    },
     { id: "knowledge", label: "Knowledge", icon: "knowledge" },
     { id: "settings", label: "Settings", icon: "settings" },
   ]
@@ -313,6 +326,11 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   }
 
   const onSelectNav = (id: string) => {
+    if (id === AN_CONTRAPTIONS_SURFACE.navId) {
+      setContraptionsOpen((open) => !open)
+      return
+    }
+    setContraptionsOpen(false)
     if (id === "home") navigate("/")
     else if (id === "settings") openSettings()
     else if (id === "missions") command.trigger("tab.new")
@@ -394,6 +412,9 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       >
         <div class="an-stream-slot">{props.children}</div>
       </AnShell>
+      <Show when={contraptionsOpen()}>
+        <AnContraptionsPanel onClose={() => setContraptionsOpen(false)} />
+      </Show>
     </div>
   )
 }

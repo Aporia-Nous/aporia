@@ -80,6 +80,20 @@ export const AN_COMPOSER_SURFACE = {
   ownedValue: "composer" as const,
 } as const
 
+/**
+ * AP-STAGE4-4E: Contraptions mount under AnShell (not classic AporiaRightPanel).
+ * User-facing brand + always-on category gloss; Redstone Easter-egg title only.
+ * Engine IDs stay flow_* / AutomationsTab / FlowsSection.
+ */
+export const AN_CONTRAPTIONS_SURFACE = {
+  part: "contraptions",
+  partAttr: 'data-an-part="contraptions"',
+  navId: "contraptions",
+  label: "Contraptions",
+  subtitle: "Automations & integrations",
+  redstoneTitle: "redstone stays the private joke",
+} as const
+
 /** Three-state framing from approved mockups — Stage 5 four-mode work stays separate. */
 export const AN_SHELL_MODES = ["conversation", "view", "takeover"] as const
 export type AnShellMode = (typeof AN_SHELL_MODES)[number]
