@@ -314,6 +314,10 @@ export const layer = Layer.effect(
       // An encrypted native window estimates as nothing, so wait for a response to measure it.
       const measured = messages.findLastIndex((message) => hasMeasuredPrompt(message, context.model.ref))
       if (measured < messages.findLastIndex(SessionProviderContext.isCheckpoint)) return false
+      // Far under the fire point: skip transcript rebuild + tool-schema stringify. Prefer a slight
+      // over-estimate so we fall through to the precise path before under-skipping a due compact.
+      const margin = dueEstimateMargin(ceiling)
+      if (estimateContextCheap(context) < ceiling - margin) return false
       const current = estimateContext(context)
       if (current < ceiling) return false
       // A prior pass that left almost no headroom under the fire point must not immediately auto-fire again: wait
@@ -1016,6 +1020,48 @@ export const estimateContext = (context: SessionContext.Loaded) => {
   return prompt.measured + prompt.estimated
 }
 
+/**
+ * Cheap size model for auto `due()`: uses measured assistant tokens + flattened recent text + cached
+ * tool-definition tokens. Skips `toLLMMessages` / unsupportedParts / boundImages / per-check schema
+ * stringify. Slightly over-estimates so due() only falls back to `estimateContext` near the ceiling.
+ */
+export const estimateContextCheap = (context: SessionContext.Loaded) => {
+  const anchorIndex = context.messages.findLastIndex((message) => hasMeasuredPrompt(message, context.model.ref))
+  const anchor = context.messages[anchorIndex]
+  if (anchor?.type === "assistant" && anchor.tokens) {
+    const tokens = anchor.tokens
+    const measured = tokens.input + tokens.cache.read + tokens.cache.write + tokens.output + tokens.reasoning
+    let estimated = 0
+    // Local tool results on the anchor were never in the provider's prompt count.
+    for (const part of anchor.content) {
+      if (part.type !== "tool") continue
+      if (part.state.status === "completed")
+        estimated += Token.estimate(truncateToolOutput(serializeToolContent(part.state.content)))
+      else if (part.state.status === "error") estimated += Token.estimate(part.state.error.message)
+    }
+    for (let index = anchorIndex + 1; index < context.messages.length; index++) {
+      const text = messageToText(context.messages[index]!)
+      if (text) estimated += Token.estimate(text)
+    }
+    return measured + estimated
+  }
+  const system =
+    Token.estimate(context.agent.info.system ?? "") +
+    Token.estimate(context.initial ?? "") +
+    // Padding for date/environment scaffolding when agent.system is empty (SessionSystemPrompt).
+    (context.agent.info.system ? 0 : 256)
+  let messages = 0
+  for (const message of context.messages) {
+    const text = messageToText(message)
+    if (text) messages += Token.estimate(text)
+  }
+  return system + toolDefinitionTokens(context.tools) + messages
+}
+
+/** Headroom under the ceiling where the cheap estimate alone may skip the precise rebuild. */
+export const dueEstimateMargin = (ceiling: number) =>
+  Number.isFinite(ceiling) ? Math.max(2_000, Math.floor(ceiling * 0.02)) : 2_000
+
 /** The prompt size: `measured` is what the provider reported at the latest response, `estimated` is the text since. */
 export const estimatePrompt = (context: SessionContext.Loaded) => {
   const anchorIndex = context.messages.findLastIndex((message) => hasMeasuredPrompt(message, context.model.ref))
@@ -1033,7 +1079,12 @@ export const estimatePrompt = (context: SessionContext.Loaded) => {
   if (anchor?.type !== "assistant" || !anchor.tokens)
     return {
       measured: 0,
-      estimated: estimateRequest({ system: base.system, tools: context.tools.definitions, messages: unmeasured }),
+      estimated: estimateRequest({
+        system: base.system,
+        tools: context.tools.definitions,
+        messages: unmeasured,
+        toolTokens: context.tools.definitionTokens,
+      }),
     }
 
   const tokens = anchor.tokens
@@ -1063,7 +1114,12 @@ const calculateCeiling = (limit: SessionContext.Loaded["model"]["limit"], buffer
  */
 const irreducible = (context: SessionContext.Loaded) => {
   const base = transcript(context, [])
-  return estimateRequest({ system: base.system, tools: context.tools.definitions, messages: [] })
+  return estimateRequest({
+    system: base.system,
+    tools: context.tools.definitions,
+    messages: [],
+    toolTokens: context.tools.definitionTokens,
+  })
 }
 
 /**
@@ -1088,10 +1144,17 @@ const hasMeasuredPrompt = (message: SessionMessage.Info, model: SessionContext.L
   message.tokens !== undefined &&
   message.tokens.input + message.tokens.cache.read + message.tokens.cache.write > 0
 
-const estimateRequest = (request: Pick<LLMRequest, "system" | "tools" | "messages">) =>
+const estimateRequest = (
+  request: Pick<LLMRequest, "system" | "tools" | "messages"> & { readonly toolTokens?: number },
+) =>
   request.system.reduce((sum, part) => sum + Token.estimate(part.text), 0) +
-  request.tools.reduce((sum, tool) => sum + estimateTool(tool), 0) +
+  (request.toolTokens !== undefined
+    ? request.toolTokens
+    : request.tools.reduce((sum, tool) => sum + estimateTool(tool), 0)) +
   request.messages.reduce((sum, message) => sum + estimateMessage(message), 0)
+
+const toolDefinitionTokens = (tools: SessionContext.Loaded["tools"]) =>
+  tools.definitionTokens ?? tools.definitions.reduce((sum, tool) => sum + estimateTool(tool), 0)
 
 /** Only what providers receive; `metadata` and `native` stay local. */
 const estimateTool = (tool: ToolEntry): number => {

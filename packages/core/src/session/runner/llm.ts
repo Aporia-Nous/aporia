@@ -65,6 +65,23 @@ const layer = Layer.effect(
         if (promotable === "steer" && pending.delivery === "queue" && !control) return DrainResult.Complete()
       }
       yield* plugins.awaitActivation
+      yield* context.beginDrain
+      return yield* Effect.ensuring(
+        drainBody({ sessionID, force, continuing, step, entering, promotable }),
+        context.endDrain,
+      )
+    })
+
+    const drainBody = Effect.fn("SessionRunner.drainBody")(function* (input: {
+      readonly sessionID: SessionSchema.ID
+      force: boolean
+      continuing: boolean
+      step: number
+      entering: boolean
+      readonly promotable: "input" | "steer"
+    }) {
+      let { force, continuing, step, entering } = input
+      const { sessionID, promotable } = input
       yield* settleStaleCompactions(sessionID)
       yield* settleStaleToolCalls(sessionID)
 

@@ -18,6 +18,7 @@ import { SessionRunnerModel } from "@opencode/core/session/runner/model"
 import { SessionTable } from "@opencode/core/session/sql"
 import { SessionStore } from "@opencode/core/session/store"
 import { Token } from "@opencode/core/util/token"
+import { Tool } from "@opencode/core/tool"
 import { Session } from "@opencode/core/session"
 import { Location } from "@opencode/core/location"
 import { Project } from "@opencode/core/project"
@@ -142,6 +143,49 @@ test("AP-ENGINE-E07 / AP-CURSOR-09: boundRecentText caps estimated tokens at kee
   expect(bounded).toContain("[User]:")
   expect(bounded).toContain("[recent truncated to keep]")
   expect(bounded.length).toBeLessThan(oversized.length)
+})
+
+it.effect("AP-ENGINE-E02: cheap estimate stays under ceiling far from fire point", () =>
+  Effect.gen(function* () {
+    const session = yield* insertSession(Session.ID.make("ses_cheap_under"))
+    const assistant = Schema.decodeUnknownSync(SessionMessage.Assistant)({
+      id: SessionMessage.ID.make("msg_cheap_under"),
+      type: "assistant",
+      agent: Agent.defaultID,
+      model: { id: "summary-model", providerID: "test" },
+      content: [{ type: "text", text: "Done" }],
+      tokens: { input: 10_000, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
+      time: { created: 0, completed: 0 },
+    })
+    const context = {
+      ...loaded(session, [assistant]),
+      tools: {
+        definitions: [
+          ToolDefinition.make({ name: "read", description: "Read files", inputSchema: { type: "object" } }),
+        ],
+        definitionTokens: 12,
+        execute: () => Effect.die("unused"),
+      },
+    }
+    const cheap = SessionCompaction.estimateContextCheap(context)
+    const precise = SessionCompaction.estimateContext(context)
+    expect(cheap).toBeLessThan(100_000 - SessionCompaction.dueEstimateMargin(100_000))
+    // Measured anchor path: cheap and precise share the provider count.
+    expect(precise).toBe(10_000)
+    expect(cheap).toBeGreaterThanOrEqual(precise)
+  }),
+)
+
+test("AP-ENGINE-E02: definitionTokens matches stringify estimate for due()", () => {
+  const description = "Read a file from disk."
+  const inputSchema = {
+    type: "object",
+    properties: { filePath: { type: "string" } },
+    required: ["filePath"],
+  }
+  const definitions = [ToolDefinition.make({ name: "read", description, inputSchema })]
+  const expected = Token.estimate("read" + description + JSON.stringify(inputSchema))
+  expect(Tool.estimateDefinitionTokens(definitions)).toBe(expected)
 })
 
 it.effect("compaction describes tool media without embedding base64", () =>
