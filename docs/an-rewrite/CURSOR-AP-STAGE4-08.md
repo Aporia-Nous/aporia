@@ -9,7 +9,7 @@ Work date: October 19, 2026 (America/Chicago). Board task `AP-STAGE4-08`.
 | cwd | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | branch | `stage4-an-shell` (continues from AP-STAGE4-07 tip `50d20e0007`) |
 | commits | `c86e9add7c` — ice-glass tokens; `5dc46d150b` — surfaces/motion/dock CSS |
-| tip | `5ff2a85777` — report + shot 12 (after code tips above) |
+| tip | `1a76e98315` — docs tip after report `5ff2a85777` (code `c86e9add7c`+`5dc46d150b`) |
 | ownership | this worktree only — not Stage 0 / not installed Aporetic |
 | push / merge | none |
 | Stage 4 complete | not claimed |
