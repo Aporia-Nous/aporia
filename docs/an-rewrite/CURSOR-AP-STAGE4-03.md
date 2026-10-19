@@ -9,6 +9,7 @@ Work date: October 18, 2026 (America/Chicago). Board task `AP-STAGE4-03`.
 | cwd | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | branch | `stage4-an-shell` (continues from AP-STAGE4-02 tip `7d0712bb07`) |
 | commit | `380620883c` — `fix(an-shell): pin composer to AN void/gold tokens` |
+| tip | `8b212b3f2f` — docs/evidence after code |
 | ownership | this worktree only — not `cursor-aporetic` (Stage 0) and not `C:\Tools\aporia` |
 | push | none |
 | merge | none |
