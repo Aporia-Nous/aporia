@@ -4,7 +4,7 @@
 |-------|-------|
 | status | **INDEPENDENT PASS** (page feed into Computer View scope) — **not** Stage 4 complete; control lock remains **AP-BF-03** |
 | branch | `stage4-an-shell` |
-| tip | `e24b6352cd` |
+| tip | `2574b77894` |
 | code | `adb4ddb23c` |
 | base | `a6dd3ebbaa` (AP-BF-01 tip; code `997aaf54c0`) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
