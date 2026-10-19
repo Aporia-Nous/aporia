@@ -5,6 +5,7 @@
 **Worktree:** `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` branch `stage4-an-shell`  
 **Base tip before slice:** `4f1fe0fea9` (AP-STAGE4-10 tip)  
 **Code commit:** `37e0851fc4`  
+**Docs tip:** `fb0058dd99`  
 **Scope:** Honest free-model i18n + Ollama/LM Studio discoverability in unpaid picker + Settings popular list. No billing, no OmniRoute, no secrets, no shell/an presence edits, no merge/push.
 
 ## Goal
