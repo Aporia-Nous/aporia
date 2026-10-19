@@ -157,7 +157,7 @@ export const dict = {
   "dialog.model.empty": "Nincsenek modelleredmények",
   "dialog.model.manage": "Modellek kezelése",
   "dialog.model.manage.description": "Testreszabhatja, hogy mely modellek jelenjenek meg a modellválasztóban.",
-  "dialog.model.unpaid.freeModels.title": "A Aporetic ingyenes modelljei",
+  "dialog.model.unpaid.freeModels.title": "A OpenCode ingyenes modelljei",
   "dialog.model.unpaid.addMore.title": "Adjon hozzá további modelleket a népszerű szolgáltatóktól",
   "dialog.model.unpaid.viewMoreProviders": "További 70+ szolgáltató megtekintése",
   "dialog.provider.viewAll": "További szolgáltatók megjelenítése",

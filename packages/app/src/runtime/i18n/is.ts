@@ -157,7 +157,7 @@ export const dict = {
   "dialog.model.empty": "Engar niðurstöður líkana",
   "dialog.model.manage": "Stjórna módelum",
   "dialog.model.manage.description": "Sérsníddu hvaða gerðir birtast í gerðavalinu.",
-  "dialog.model.unpaid.freeModels.title": "Ókeypis gerðir frá Aporetic",
+  "dialog.model.unpaid.freeModels.title": "Ókeypis gerðir frá OpenCode",
   "dialog.model.unpaid.addMore.title": "Bættu við fleiri gerðum frá vinsælum veitendum",
   "dialog.model.unpaid.viewMoreProviders": "Sjáðu 70+ þjónustuveitendur í viðbót",
   "dialog.provider.viewAll": "Sýna fleiri veitendur",

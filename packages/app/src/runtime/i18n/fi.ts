@@ -284,7 +284,7 @@ export const dict = {
   "dialog.model.empty": "Ei mallituloksia",
   "dialog.model.manage": "Hallitse malleja",
   "dialog.model.manage.description": "Mukauta, mitkä mallit näkyvät mallivalitsimessa.",
-  "dialog.model.unpaid.freeModels.title": "Aporian tarjoamat ilmaiset mallit",
+  "dialog.model.unpaid.freeModels.title": "OpenCoden tarjoamat ilmaiset mallit",
   "dialog.model.unpaid.addMore.title": "Lisää malleja suosituilta palveluntarjoajilta",
   "dialog.model.unpaid.viewMoreProviders": "Katso yli 70 muuta palveluntarjoajaa",
   "dialog.provider.viewAll": "Näytä lisää palveluntarjoajia",

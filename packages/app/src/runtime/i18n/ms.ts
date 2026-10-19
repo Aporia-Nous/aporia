@@ -147,7 +147,7 @@ export const dict = {
   "dialog.model.empty": "Tiada hasil model",
   "dialog.model.manage": "Urus model",
   "dialog.model.manage.description": "Sesuaikan model yang dipaparkan dalam pemilih model.",
-  "dialog.model.unpaid.freeModels.title": "Model percuma yang disediakan oleh Aporetic",
+  "dialog.model.unpaid.freeModels.title": "Model percuma yang disediakan oleh OpenCode",
   "dialog.model.unpaid.addMore.title": "Tambah lebih banyak model daripada penyedia popular",
   "dialog.model.unpaid.viewMoreProviders": "Lihat 70+ lagi penyedia",
   "dialog.provider.viewAll": "Tunjukkan lebih banyak penyedia",

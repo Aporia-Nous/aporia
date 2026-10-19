@@ -146,7 +146,7 @@ export const dict = {
   "dialog.model.empty": "Няма резултати за модели",
   "dialog.model.manage": "Управление на модели",
   "dialog.model.manage.description": "Персонализирайте кои модели да се показват в селектора на модели.",
-  "dialog.model.unpaid.freeModels.title": "Безплатни модели, предоставени от Aporetic",
+  "dialog.model.unpaid.freeModels.title": "Безплатни модели, предоставени от OpenCode",
   "dialog.model.unpaid.addMore.title": "Добавете още модели от популярни доставчици",
   "dialog.model.unpaid.viewMoreProviders": "Вижте още 70+ доставчици",
   "dialog.provider.viewAll": "Показване на още доставчици",

@@ -302,7 +302,7 @@ export const dict = {
   "dialog.model.empty": "Keine Modellergebnisse",
   "dialog.model.manage": "Modelle verwalten",
   "dialog.model.manage.description": "Anpassen, welche Modelle in der Modellauswahl erscheinen.",
-  "dialog.model.unpaid.freeModels.title": "Kostenlose Modelle von Aporetic",
+  "dialog.model.unpaid.freeModels.title": "Kostenlose Modelle von OpenCode",
   "dialog.model.unpaid.addMore.title": "Weitere Modelle von beliebten Anbietern hinzufügen",
   "dialog.model.unpaid.viewMoreProviders": "Über 70 weitere Anbieter anzeigen",
   "dialog.provider.viewAll": "Mehr Anbieter anzeigen",

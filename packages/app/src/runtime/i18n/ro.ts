@@ -145,7 +145,7 @@ export const dict = {
   "dialog.model.empty": "Niciun model găsit",
   "dialog.model.manage": "Gestionează modelele",
   "dialog.model.manage.description": "Personalizează ce modele apar în selectorul de modele.",
-  "dialog.model.unpaid.freeModels.title": "Modele gratuite oferite de Aporetic",
+  "dialog.model.unpaid.freeModels.title": "Modele gratuite oferite de OpenCode",
   "dialog.model.unpaid.addMore.title": "Adaugă mai multe modele de la furnizori populari",
   "dialog.model.unpaid.viewMoreProviders": "Vezi peste 70 de furnizori",
   "dialog.provider.viewAll": "Afișează mai mulți furnizori",

@@ -145,7 +145,7 @@ export const dict = {
   "dialog.model.empty": "לא נמצאו מודלים",
   "dialog.model.manage": "ניהול מודלים",
   "dialog.model.manage.description": "התאם אישית אילו מודלים יופיעו בבורר המודלים.",
-  "dialog.model.unpaid.freeModels.title": "מודלים חינם מסופקים על ידי Aporetic",
+  "dialog.model.unpaid.freeModels.title": "מודלים חינם מסופקים על ידי OpenCode",
   "dialog.model.unpaid.addMore.title": "הוסף עוד מודלים מספקים פופולריים",
   "dialog.model.unpaid.viewMoreProviders": "הצגת יותר מ-70 ספקים נוספים",
   "dialog.provider.viewAll": "הצג עוד ספקים",

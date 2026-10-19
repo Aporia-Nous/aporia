@@ -149,7 +149,7 @@ export const dict = {
   "dialog.model.empty": "މޮޑެލް ނަތީޖާއެއް ނެތެވެ",
   "dialog.model.manage": "މޮޑެލްތައް މެނޭޖްކުރުން",
   "dialog.model.manage.description": "މޮޑެލް ސެލެކްޓަރގައި ފެންނަނީ ކޮން މޮޑެލްތަކެއްކަން ކަސްޓަމައިޒް ކުރުން.",
-  "dialog.model.unpaid.freeModels.title": "ހިލޭ މޮޑެލްތައް ފޯރުކޮށްދެނީ Aporetic އިންނެވެ",
+  "dialog.model.unpaid.freeModels.title": "ހިލޭ މޮޑެލްތައް ފޯރުކޮށްދެނީ OpenCode އިންނެވެ",
   "dialog.model.unpaid.addMore.title": "މަޝްހޫރު ޕްރޮވައިޑަރުންގެ އިތުރު މޮޑެލްތައް އިތުރުކުރުން",
   "dialog.model.unpaid.viewMoreProviders": "އިތުރު 70+ ޕްރޮވައިޑަރުން ބައްލަވާށެވެ",
   "dialog.provider.viewAll": "އިތުރު ޕްރޮވައިޑަރުން ދައްކާށެވެ",

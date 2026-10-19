@@ -361,7 +361,7 @@ export const dict = {
   "dialog.model.manage": "Administrer modeller",
   "dialog.model.manage.description": "Tilpass hvilke modeller som vises i modellvelgeren.",
 
-  "dialog.model.unpaid.freeModels.title": "Gratis modeller levert av Aporetic",
+  "dialog.model.unpaid.freeModels.title": "Gratis modeller levert av OpenCode",
   "dialog.model.unpaid.addMore.title": "Legg til flere modeller fra populære leverandører",
   "dialog.model.unpaid.viewMoreProviders": "Se over 70 flere leverandører",
 

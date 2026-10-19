@@ -145,7 +145,7 @@ export const dict = {
   "dialog.model.empty": "Modeļi nav atrasti",
   "dialog.model.manage": "Pārvaldīt modeļus",
   "dialog.model.manage.description": "Pielāgojiet, kuri modeļi tiek rādīti modeļu atlasītājā.",
-  "dialog.model.unpaid.freeModels.title": "Bezmaksas modeļi no Aporetic",
+  "dialog.model.unpaid.freeModels.title": "Bezmaksas modeļi no OpenCode",
   "dialog.model.unpaid.addMore.title": "Pievienot vairāk modeļu no populāriem nodrošinātājiem",
   "dialog.model.unpaid.viewMoreProviders": "Skatīt vēl 70+ nodrošinātājus",
   "dialog.provider.viewAll": "Rādīt vairāk nodrošinātāju",

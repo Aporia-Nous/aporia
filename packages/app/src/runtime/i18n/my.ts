@@ -148,7 +148,7 @@ export const dict = {
   "dialog.model.empty": "မော်ဒယ်ရလဒ်များ မရှိပါ။",
   "dialog.model.manage": "မော်ဒယ်များကို စီမံပါ။",
   "dialog.model.manage.description": "မော်ဒယ်ရွေးချယ်မှုတွင် မည်သည့်မော်ဒယ်များကို စိတ်ကြိုက်ပြင်ဆင်ပါ။",
-  "dialog.model.unpaid.freeModels.title": "Aporetic မှ ပံ့ပိုးပေးသော အခမဲ့မော်ဒယ်များ",
+  "dialog.model.unpaid.freeModels.title": "OpenCode မှ ပံ့ပိုးပေးသော အခမဲ့မော်ဒယ်များ",
   "dialog.model.unpaid.addMore.title": "လူကြိုက်များသော ဝန်ဆောင်မှုပေးသူများထံမှ နောက်ထပ်မော်ဒယ်များကို ထည့်ပါ။",
   "dialog.model.unpaid.viewMoreProviders": "နောက်ထပ်ပံ့ပိုးပေးသူ 70+ ကိုကြည့်ပါ။",
   "dialog.provider.viewAll": "နောက်ထပ်ဝန်ဆောင်မှုပေးသူများကို ပြပါ။",

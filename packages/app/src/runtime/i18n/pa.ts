@@ -152,7 +152,7 @@ export const dict = {
   "dialog.model.empty": "کوئی ماڈل نئیں لبھیا",
   "dialog.model.manage": "ماڈل دا انتظام کرو",
   "dialog.model.manage.description": "ماڈل سلیکٹر وچ کیہڑے ماڈل دکھائی دیندے نیں، اپنی مرضی دے مطابق بناؤ۔",
-  "dialog.model.unpaid.freeModels.title": "Aporetic دے ذریعہ فراہم کردہ مفت ماڈل",
+  "dialog.model.unpaid.freeModels.title": "OpenCode دے ذریعہ فراہم کردہ مفت ماڈل",
   "dialog.model.unpaid.addMore.title": "مقبول پرووائیڈراں توں ہور ماڈل شامل کرو",
   "dialog.model.unpaid.viewMoreProviders": "70+ ہور پرووائیڈر ویکھو",
   "dialog.provider.viewAll": "ہور پرووائیڈر وکھاؤ",

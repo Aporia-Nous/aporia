@@ -145,7 +145,7 @@ export const dict = {
   "dialog.model.empty": "Žádné výsledky modelu",
   "dialog.model.manage": "Správa modelů",
   "dialog.model.manage.description": "Upravte, které modely se zobrazí ve voliči modelů.",
-  "dialog.model.unpaid.freeModels.title": "Bezplatné modely poskytované Aporetic",
+  "dialog.model.unpaid.freeModels.title": "Bezplatné modely poskytované OpenCode",
   "dialog.model.unpaid.addMore.title": "Přidejte další modely od oblíbených poskytovatelů",
   "dialog.model.unpaid.viewMoreProviders": "Zobrazit více než 70 dalších poskytovatelů",
   "dialog.provider.viewAll": "Zobrazit další poskytovatele",

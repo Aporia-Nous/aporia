@@ -146,7 +146,7 @@ export const dict = {
   "dialog.model.empty": "Asnjë rezultat modeli",
   "dialog.model.manage": "Menaxhoni modelet",
   "dialog.model.manage.description": "Personalizo cilat modele shfaqen në përzgjedhësin e modelit.",
-  "dialog.model.unpaid.freeModels.title": "Modele falas të ofruara nga Aporetic",
+  "dialog.model.unpaid.freeModels.title": "Modele falas të ofruara nga OpenCode",
   "dialog.model.unpaid.addMore.title": "Shtoni më shumë modele nga ofruesit e njohur",
   "dialog.model.unpaid.viewMoreProviders": "Shiko mbi 70 ofrues të tjerë",
   "dialog.provider.viewAll": "Shfaq më shumë ofrues",

@@ -158,7 +158,7 @@ export const dict = {
   "dialog.model.manage": "Upravljaj modelima",
   "dialog.model.manage.description": "Prilagodi koji se modeli prikazuju u izborniku modela.",
 
-  "dialog.model.unpaid.freeModels.title": "Besplatni modeli koje obezbjeđuje Aporetic",
+  "dialog.model.unpaid.freeModels.title": "Besplatni modeli koje obezbjeđuje OpenCode",
   "dialog.model.unpaid.addMore.title": "Dodaj još modela od popularnih provajdera",
   "dialog.model.unpaid.viewMoreProviders": "Pogledaj još više od 70 provajdera",
 

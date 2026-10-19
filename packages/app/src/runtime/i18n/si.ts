@@ -149,7 +149,7 @@ export const dict = {
   "dialog.model.empty": "ආදර්ශ ප්‍රතිඵල නැත",
   "dialog.model.manage": "ආකෘති කළමනාකරණය කරන්න",
   "dialog.model.manage.description": "ආකෘති තේරීම්කාරකයේ දිස්වන මාදිලි අභිරුචිකරණය කරන්න.",
-  "dialog.model.unpaid.freeModels.title": "Aporetic මඟින් සපයනු ලබන නිදහස් මාදිලි",
+  "dialog.model.unpaid.freeModels.title": "OpenCode මඟින් සපයනු ලබන නිදහස් මාදිලි",
   "dialog.model.unpaid.addMore.title": "ජනප්‍රිය සැපයුම්කරුවන්ගෙන් තවත් ආකෘති එක් කරන්න",
   "dialog.model.unpaid.viewMoreProviders": "තවත් සපයන්නන් 70+ බලන්න",
   "dialog.provider.viewAll": "තවත් සපයන්නන් පෙන්වන්න",

@@ -185,7 +185,7 @@ export const dict = {
   "dialog.model.manage": "Керувати моделями",
   "dialog.model.manage.description": "Налаштуйте, які моделі відображатимуться у виборі моделей.",
 
-  "dialog.model.unpaid.freeModels.title": "Безкоштовні моделі від Aporetic",
+  "dialog.model.unpaid.freeModels.title": "Безкоштовні моделі від OpenCode",
   "dialog.model.unpaid.addMore.title": "Додати більше моделей від популярних провайдерів",
   "dialog.model.unpaid.viewMoreProviders": "Переглянути ще понад 70 провайдерів",
 

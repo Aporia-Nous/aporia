@@ -145,7 +145,7 @@ export const dict = {
   "dialog.model.empty": "Mudelitulemusi pole",
   "dialog.model.manage": "Hallake mudeleid",
   "dialog.model.manage.description": "Kohandage, millised mudelid mudelivalijas kuvatakse.",
-  "dialog.model.unpaid.freeModels.title": "Tasuta mudeleid pakub Aporetic",
+  "dialog.model.unpaid.freeModels.title": "Tasuta mudeleid pakub OpenCode",
   "dialog.model.unpaid.addMore.title": "Lisage populaarsete pakkujate mudeleid",
   "dialog.model.unpaid.viewMoreProviders": "Vaadake veel 70+ pakkujat",
   "dialog.provider.viewAll": "Kuva rohkem teenusepakkujaid",

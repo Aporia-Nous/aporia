@@ -147,7 +147,7 @@ export const dict = {
   "dialog.model.empty": "ບໍ່ພົບຕົວແບບ",
   "dialog.model.manage": "ຈັດການຕົວແບບ",
   "dialog.model.manage.description": "ປັບແຕ່ງຕົວແບບທີ່ປາກົດຢູ່ໃນຕົວເລືອກຕົວແບບ.",
-  "dialog.model.unpaid.freeModels.title": "ແບບຟຣີສະໜອງໃຫ້ໂດຍ Aporetic",
+  "dialog.model.unpaid.freeModels.title": "ແບບຟຣີສະໜອງໃຫ້ໂດຍ OpenCode",
   "dialog.model.unpaid.addMore.title": "ເພີ່ມຮູບແບບເພີ່ມເຕີມຈາກຜູ້ໃຫ້ບໍລິການທີ່ນິຍົມ",
   "dialog.model.unpaid.viewMoreProviders": "ເບິ່ງ 70+ ຜູ້ໃຫ້ບໍລິການເພີ່ມເຕີມ",
   "dialog.provider.viewAll": "ສະແດງຜູ້ໃຫ້ບໍລິການເພີ່ມເຕີມ",

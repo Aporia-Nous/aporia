@@ -146,7 +146,7 @@ export const dict = {
   "dialog.model.empty": "Մոդելի արդյունքներ չկա",
   "dialog.model.manage": "Կառավարել մոդելները",
   "dialog.model.manage.description": "Անհատականացրեք, թե որ մոդելները կհայտնվեն մոդելի ընտրիչում:",
-  "dialog.model.unpaid.freeModels.title": "Անվճար մոդելները տրամադրվում են Aporetic",
+  "dialog.model.unpaid.freeModels.title": "Անվճար մոդելները տրամադրվում են OpenCode",
   "dialog.model.unpaid.addMore.title": "Ավելացնել ավելի շատ մոդելներ հանրաճանաչ մատակարարներից",
   "dialog.model.unpaid.viewMoreProviders": "Տես 70+ այլ մատակարարներ",
   "dialog.provider.viewAll": "Ցույց տալ ավելի շատ մատակարարներ",

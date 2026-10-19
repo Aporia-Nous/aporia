@@ -157,7 +157,7 @@ export const dict = {
   "dialog.model.empty": "དཔེ་ཚད་གྲུབ་འབྲས་མེད།",
   "dialog.model.manage": "དཔེ་ཚད་ཚུ་འཛིན་སྐྱོང་འཐབ།",
   "dialog.model.manage.description": "དཔེ་ཚད་སེལ་འཐུ་འབད་མི་ནང་ དཔེ་ཚད་ག་འདི་འབྱུངམ་ཨིན་ན་ སྲོལ་སྒྲིག་འབད།",
-  "dialog.model.unpaid.freeModels.title": "Aporeticགིས་བྱིན་མི་རིན་མེད་དཔེ་ཚད་ཚུ།",
+  "dialog.model.unpaid.freeModels.title": "OpenCodeགིས་བྱིན་མི་རིན་མེད་དཔེ་ཚད་ཚུ།",
   "dialog.model.unpaid.addMore.title": "ཡོངས་གྲགས་ཅན་གྱི་བྱིན་མི་ཚུ་ལས་ དཔེ་ཚད་མངམ་ཁ་སྐོང་བརྐྱབ།",
   "dialog.model.unpaid.viewMoreProviders": "70+ མཁོ་སྤྲོད་འབད་མི་ཚུ་བལྟ།",
   "dialog.provider.viewAll": "བྱིན་མི་མངམ་སྟོན།",

@@ -147,7 +147,7 @@ export const dict = {
   "dialog.model.empty": "រកមិនឃើញម៉ូដែល",
   "dialog.model.manage": "គ្រប់គ្រងម៉ូដែល",
   "dialog.model.manage.description": "ប្ដូរម៉ូដែលដែលបង្ហាញក្នុងឧបករណ៍ជ្រើសរើសម៉ូដែលតាមបំណង។",
-  "dialog.model.unpaid.freeModels.title": "ម៉ូដែលឥតគិតថ្លៃដែលផ្តល់ដោយ Aporetic",
+  "dialog.model.unpaid.freeModels.title": "ម៉ូដែលឥតគិតថ្លៃដែលផ្តល់ដោយ OpenCode",
   "dialog.model.unpaid.addMore.title": "បន្ថែមម៉ូដែលជាច្រើនទៀតពីអ្នកផ្តល់សេវាពេញនិយម",
   "dialog.model.unpaid.viewMoreProviders": "មើលអ្នកផ្តល់សេវា 70+ ទៀត។",
   "dialog.provider.viewAll": "បង្ហាញអ្នកផ្តល់សេវាបន្ថែម",

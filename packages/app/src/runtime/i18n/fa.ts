@@ -146,7 +146,7 @@ export const dict = {
   "dialog.model.empty": "نتیجه مدلی وجود ندارد",
   "dialog.model.manage": "مدل ها را مدیریت کنید",
   "dialog.model.manage.description": "مدل‌هایی که در انتخابگر مدل ظاهر می‌شوند را سفارشی کنید.",
-  "dialog.model.unpaid.freeModels.title": "مدل های رایگان ارائه شده توسط Aporetic",
+  "dialog.model.unpaid.freeModels.title": "مدل های رایگان ارائه شده توسط OpenCode",
   "dialog.model.unpaid.addMore.title": "مدل های بیشتری از ارائه دهندگان محبوب اضافه کنید",
   "dialog.model.unpaid.viewMoreProviders": "70+ ارائه‌دهنده دیگر را ببینید",
   "dialog.provider.viewAll": "نمایش ارائه دهندگان بیشتر",

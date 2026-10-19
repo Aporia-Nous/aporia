@@ -161,7 +161,7 @@ export const dict = {
   "dialog.model.manage": "Kelola model",
   "dialog.model.manage.description": "Sesuaikan model mana yang muncul di pemilih model.",
 
-  "dialog.model.unpaid.freeModels.title": "Model gratis disediakan oleh Aporetic",
+  "dialog.model.unpaid.freeModels.title": "Model gratis disediakan oleh OpenCode",
   "dialog.model.unpaid.addMore.title": "Tambahkan lebih banyak model dari penyedia populer",
   "dialog.model.unpaid.viewMoreProviders": "Lihat 70+ penyedia lainnya",
 

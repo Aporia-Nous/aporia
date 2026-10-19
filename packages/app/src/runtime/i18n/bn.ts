@@ -150,7 +150,7 @@ export const dict = {
   "dialog.model.empty": "কোন মডেল ফলাফল নেই",
   "dialog.model.manage": "মডেল পরিচালনা করুন",
   "dialog.model.manage.description": "মডেল নির্বাচকের মধ্যে কোন মডেলগুলি উপস্থিত হবে তা কাস্টমাইজ করুন৷",
-  "dialog.model.unpaid.freeModels.title": "বিনামূল্যের মডেলগুলি Aporetic দ্বারা প্রদত্ত",
+  "dialog.model.unpaid.freeModels.title": "বিনামূল্যের মডেলগুলি OpenCode দ্বারা প্রদত্ত",
   "dialog.model.unpaid.addMore.title": "জনপ্রিয় প্রদানকারীদের থেকে আরো মডেল যোগ করুন",
   "dialog.model.unpaid.viewMoreProviders": "আরও 70+ প্রদানকারী দেখুন",
   "dialog.provider.viewAll": "আরো প্রদানকারী দেখান",

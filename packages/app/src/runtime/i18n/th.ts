@@ -160,7 +160,7 @@ export const dict = {
   "dialog.model.manage": "จัดการโมเดล",
   "dialog.model.manage.description": "ปรับแต่งโมเดลที่จะปรากฏในตัวเลือกโมเดล",
 
-  "dialog.model.unpaid.freeModels.title": "โมเดลฟรีที่จัดหาให้โดย Aporetic",
+  "dialog.model.unpaid.freeModels.title": "โมเดลฟรีที่จัดหาให้โดย OpenCode",
   "dialog.model.unpaid.addMore.title": "เพิ่มโมเดลเพิ่มเติมจากผู้ให้บริการยอดนิยม",
   "dialog.model.unpaid.viewMoreProviders": "ดูผู้ให้บริการเพิ่มเติมกว่า 70 ราย",
 
