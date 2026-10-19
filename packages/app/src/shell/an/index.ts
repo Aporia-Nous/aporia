@@ -85,6 +85,11 @@ export {
 export { AnShellSessionLayout, AnShellDraftLayout, AnShellHomeLayout } from "./session-layout"
 export { AnConversationStream } from "./conversation-stream"
 export { messagesToConversationTurns, type AnConversationTurn } from "./conversation-turns"
+export {
+  anComposerBotLabel,
+  anComposerPlaceholder,
+  isAnOwnedComposerHost,
+} from "./composer-chrome"
 export type {
   AnShellProps,
   AnNavItem,

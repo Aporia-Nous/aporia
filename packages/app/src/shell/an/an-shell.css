@@ -1500,7 +1500,7 @@
   transition: color var(--an-ease), background var(--an-ease), border-color var(--an-ease), box-shadow var(--an-ease);
 }
 
-/* AP-STAGE4-12: quiet OC model/agent chips + mic — keep wiring, kill plastic identity */
+/* AP-STAGE4-12 (superseded visually by STAGE4-13 hide): quiet OC chips when briefly visible */
 [data-component="an-shell"] [data-an-owned="composer"] [data-component="composer"] [data-slot="composer-controls"] :is(button, [data-component="icon-button"], [data-component="button-v2"]),
 [data-component="an-shell"] [data-an-owned="composer"] [data-component="composer"] [data-slot="composer-actions"] :is(button, [data-component="icon-button"], [data-component="button-v2"]):not([data-action="composer-submit"]),
 [data-component="an-shell"] [data-an-owned="composer"] [data-component="composer"] .ap-icon-btn {
@@ -1514,6 +1514,22 @@
 [data-component="an-shell"] [data-an-owned="composer"] [data-component="composer"] .ap-icon-btn:is(:hover, :focus-visible) {
   color: var(--an-gold, #f0c66d) !important;
   background: rgba(240, 198, 109, 0.08) !important;
+}
+
+/* AP-STAGE4-13: composer strip reads AN — hide residual OC model/agent chips + mic/call.
+   Keep gold send (`composer-submit`), attach (+), and STAGE4-12 ownership. */
+[data-component="an-shell"] [data-an-owned="composer"] [data-component="composer"] [data-slot="composer-controls"],
+[data-component="an-shell"] [data-an-owned="composer"] [data-component="composer"] [data-action="composer-model"],
+[data-component="an-shell"] [data-an-owned="composer"] [data-component="composer"] [data-aporia-mic],
+[data-component="an-shell"] [data-an-owned="composer"] [data-component="composer"] [data-aporia-call-inline],
+[data-component="an-shell"] [data-an-owned="composer"] [data-component="composer"] .ap-mic-inline {
+  display: none !important;
+}
+
+/* Soft AN placeholder tone (companion, not OC faint gray desk copy) */
+[data-component="an-shell"] [data-an-owned="composer"] [data-component="composer"] [data-slot="composer-placeholder"] {
+  color: var(--an-text-muted, #cfac62) !important;
+  opacity: 0.72;
 }
 
 /* Disabled send: mute OC white-ring plastic; enabled gold stays below */

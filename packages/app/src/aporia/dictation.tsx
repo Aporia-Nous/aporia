@@ -135,6 +135,11 @@ export function MicButton(props: { class?: string }) {
 export function ComposerMic() {
   createEffect(() => {
     const inject = () => {
+      // AP-STAGE4-13: AnShell owns composer chrome — do not inject OC mic/call into AN dock.
+      if (document.querySelector('[data-component="an-shell"][data-an-theme="an"]') ||
+          document.querySelector('[data-component="an-shell"]')) {
+        return
+      }
       const composer = document.querySelector<HTMLElement>('[data-component="composer"]')
       if (!composer || composer.querySelector("[data-aporia-mic]")) return
       const buttons = [...composer.querySelectorAll("button")]

@@ -105,6 +105,16 @@ describe("AN Stage 4 tokens", () => {
     expect(AN_COMPOSER_SURFACE.send).toBe(AN_TOKENS.goldDeep)
   })
 
+  test("AN composer chrome hides OC chips/mic and keeps gold send (AP-STAGE4-13)", () => {
+    expect(AN_COMPOSER_SURFACE.hideOcChips).toBe(true)
+    expect(AN_COMPOSER_SURFACE.hideMicCall).toBe(true)
+    expect(AN_COMPOSER_SURFACE.keepGoldSend).toBe(true)
+    expect(AN_COMPOSER_SURFACE.placeholderTemplate).toBe("Message {bot}…")
+    // STAGE4-12 ownership must remain the presentation pin
+    expect(AN_COMPOSER_SURFACE.ownedAttr).toBe('data-an-owned="composer"')
+    expect(AN_COMPOSER_SURFACE.send).toBe(AN_TOKENS.goldDeep)
+  })
+
   test("Contraptions mount surface markers (AP-STAGE4-4E)", () => {
     expect(AN_CONTRAPTIONS_SURFACE.navId).toBe("contraptions")
     expect(AN_CONTRAPTIONS_SURFACE.label).toBe("Contraptions")

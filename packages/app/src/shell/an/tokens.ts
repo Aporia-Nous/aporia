@@ -78,6 +78,15 @@ export const AN_COMPOSER_SURFACE = {
    */
   ownedAttr: 'data-an-owned="composer"' as const,
   ownedValue: "composer" as const,
+  /**
+   * AP-STAGE4-13: residual OC product chrome → AN companion strip.
+   * Hide model/agent chips + mic/call under owned dock; keep gold send; AN placeholder.
+   */
+  hideOcChips: true,
+  hideMicCall: true,
+  keepGoldSend: true,
+  /** `{bot}` replaced by friendly teammate label (see anComposerPlaceholder). */
+  placeholderTemplate: "Message {bot}…" as const,
 } as const
 
 /**

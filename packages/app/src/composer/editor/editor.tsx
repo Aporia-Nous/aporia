@@ -296,6 +296,7 @@ export function ComposerEditor(props: ComposerEditorProps) {
           />
           <Show when={!props.controller.value()}>
             <div
+              data-slot="composer-placeholder"
               dir={state.mode === "normal" ? "auto" : "ltr"}
               class="pointer-events-none absolute inset-x-0 top-0 px-4 pt-4 text-[13px] font-[440] leading-5 text-v2-text-text-faint"
               classList={{ "font-mono!": state.mode === "shell" }}

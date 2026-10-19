@@ -3,7 +3,6 @@ import { aporiaAlerts, AlertToasts } from "@/aporia/alerts"
 import { agentFor, bots, refreshBots, type Bot } from "@/aporia/bots"
 import { call } from "@/aporia/call"
 import { BotDispatcher } from "@/aporia/dispatch"
-import { ComposerMic } from "@/aporia/dictation"
 import { FlowCommands } from "@/aporia/flows"
 import { ReactionsLayer } from "@/aporia/reactions"
 import { prettyTitle, projectName } from "@/aporia/session-list"
@@ -240,12 +239,13 @@ function useAnAttention() {
 }
 
 function AnShellHosts(props: { directory: string; agent?: string; sessionID?: string }) {
+  // AP-STAGE4-13: do not mount ComposerMic under AnShell — mic/call are residual OC chrome.
+  // Classic Aporia layout still mounts ComposerMic; CSS also hides inject leftovers.
   return (
     <>
       <Portal>
         <AlertToasts />
       </Portal>
-      <ComposerMic />
       <UpdateWatcher />
       <BotDispatcher />
       <FlowCommands />
