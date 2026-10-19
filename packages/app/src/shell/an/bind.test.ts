@@ -1,15 +1,18 @@
 import { describe, expect, test } from "bun:test"
+import type { SessionMessageInfo } from "@opencode/client/promise"
 import {
   anShellMissionSwitchNote,
   attentionBindResult,
   attentionCardsToItems,
   botsToRoster,
   missionFromSession,
+  resolveAnPresence,
   rosterBindResult,
+  sessionActivityFromMessages,
 } from "./bind"
 
 describe("AN shell bind", () => {
-  test("roster marks running agents working and others unknown", () => {
+  test("roster marks running agents thinking and others unknown (no fake listening)", () => {
     const roster = botsToRoster({
       bots: [
         { slug: "orion", name: "Orion", role: "Lead" },
@@ -19,10 +22,66 @@ describe("AN shell bind", () => {
       agentStatus: { "aporia-orion": "running", "aporia-mira": "idle" },
     })
     expect(roster).toHaveLength(2)
-    expect(roster[0]?.presence).toBe("working")
+    expect(roster[0]?.presence).toBe("thinking")
     expect(roster[0]?.selected).toBe(true)
     expect(roster[1]?.presence).toBe("unknown")
     expect(roster[1]?.selected).toBe(false)
+  })
+
+  test("roster maps tool activity to working and call listening when signaled", () => {
+    const roster = botsToRoster({
+      bots: [
+        { slug: "orion", name: "Orion", role: "Lead" },
+        { slug: "mira", name: "Mira", role: "Research" },
+      ],
+      currentAgent: "aporia-mira",
+      agentSignals: {
+        "aporia-orion": { sessionStatus: "running", activity: "tool" },
+        "aporia-mira": { callState: "listening" },
+      },
+    })
+    expect(roster[0]?.presence).toBe("working")
+    expect(roster[1]?.presence).toBe("listening")
+  })
+
+  test("resolveAnPresence priority: call > waiting > tool > stream > reasoning > busy > unknown", () => {
+    expect(resolveAnPresence({ callState: "speaking", sessionStatus: "running", activity: "tool" })).toBe(
+      "speaking",
+    )
+    expect(resolveAnPresence({ awaitingUser: true, sessionStatus: "running" })).toBe("waiting")
+    expect(resolveAnPresence({ sessionStatus: "running", activity: "tool" })).toBe("working")
+    expect(resolveAnPresence({ sessionStatus: "running", activity: "stream" })).toBe("speaking")
+    expect(resolveAnPresence({ sessionStatus: "running", activity: "reasoning" })).toBe("thinking")
+    expect(resolveAnPresence({ sessionStatus: "running", activity: "none" })).toBe("thinking")
+    expect(resolveAnPresence({ sessionStatus: "idle" })).toBe("unknown")
+    expect(resolveAnPresence({})).toBe("unknown")
+  })
+
+  test("sessionActivityFromMessages reads tool/stream/reasoning without inventing", () => {
+    const toolMsg = {
+      type: "assistant",
+      content: [{ type: "tool", id: "t1", name: "bash", state: { status: "running", input: {}, metadata: {} } }],
+    } as unknown as SessionMessageInfo
+    expect(sessionActivityFromMessages([toolMsg])).toBe("tool")
+
+    const streamMsg = {
+      type: "assistant",
+      content: [{ type: "text", text: "Hello" }],
+    } as unknown as SessionMessageInfo
+    expect(sessionActivityFromMessages([streamMsg])).toBe("stream")
+
+    const reasonMsg = {
+      type: "assistant",
+      content: [{ type: "reasoning", text: "...", time: { created: 1 } }],
+    } as unknown as SessionMessageInfo
+    expect(sessionActivityFromMessages([reasonMsg])).toBe("reasoning")
+
+    const doneMsg = {
+      type: "assistant",
+      time: { created: 1, completed: 2 },
+      content: [{ type: "text", text: "done" }],
+    } as unknown as SessionMessageInfo
+    expect(sessionActivityFromMessages([doneMsg])).toBe("none")
   })
 
   test("roster unavailable stays empty with honest reason", () => {

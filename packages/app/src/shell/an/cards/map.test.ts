@@ -71,11 +71,13 @@ describe("AN card mapping", () => {
     expect(task?.progress).toBeUndefined()
   })
 
-  test("computer card stays honest idle without live feed", () => {
+  test("computer card stays honest unavailable without live feed", () => {
     const idle = computerToCard()
     expect(idle.type).toBe("computer")
-    expect(idle.status).toBe("Idle")
+    expect(idle.title).toBe("Computer View")
+    expect(idle.status).toBe("Unavailable")
     expect(idle.detail?.toLowerCase()).toContain("no live")
+    expect(idle.actions?.[0]?.label).toBe("Computer View")
     expect(idle.actions?.[0]?.stub).toBe(true)
   })
 

@@ -259,26 +259,28 @@ export function sessionToTaskCard(input: {
   }
 }
 
-/** Live computer panel → Computer card (honest idle/empty; no fake feed URL). */
+/** Computer View panel → Computer card (honest unavailable/empty; no fake feed URL). */
 export function computerToCard(input?: { live?: boolean; title?: string; detail?: string }): AnCardModel {
   const live = !!input?.live
   return {
     id: "computer:live",
     type: "computer",
-    title: input?.title?.trim() || "Live computer",
+    title: input?.title?.trim() || "Computer View",
     detail:
       input?.detail?.trim() ||
-      (live ? "Computer feed attached." : "No live computer feed yet — surface stays visible."),
-    status: live ? "Live" : "Idle",
+      (live
+        ? "Computer feed attached."
+        : "Computer View has no live feed — watch/control backends not attached."),
+    status: live ? "Live" : "Unavailable",
     statusTone: live ? "ok" : "neutral",
     source: "computer",
     actions: [
       {
         id: "view",
-        label: "View",
+        label: "Computer View",
         variant: "secondary",
         stub: !live,
-        stubReason: live ? undefined : "No computer session attached — View is chrome-only.",
+        stubReason: live ? undefined : "No computer session attached — Computer View is chrome-only.",
       },
     ],
   }

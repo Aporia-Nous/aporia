@@ -1,3 +1,4 @@
+import type { SessionMessageInfo } from "@opencode/client/promise"
 import type { AnPresence } from "./tokens"
 import type { AnAttentionItem, AnMissionHeader, AnRosterMember } from "./types"
 
@@ -16,29 +17,119 @@ export type AnBindAttentionCard = {
   missionId?: string
 }
 
-/** Map desktop bots → roster rows. Presence is working only when a matching session is running; else unknown. */
+/** Real signals used to resolve presence — omit fields when unavailable. */
+export type AnPresenceSignal = {
+  /** Session status string (e.g. "running" when busy). */
+  sessionStatus?: string
+  /**
+   * Finer activity while a session is busy.
+   * Derived from message parts only — never invented.
+   */
+  activity?: "tool" | "stream" | "reasoning" | "none"
+  /**
+   * Voice-call engine state when the call is bound to this agent.
+   * Only pass when `call.active` and agent is the call target.
+   */
+  callState?: "idle" | "connecting" | "listening" | "thinking" | "speaking" | "error"
+  /** Permission / attention awaiting the user for this agent's session. */
+  awaitingUser?: boolean
+}
+
+/**
+ * Map real session/call signals → design presence.
+ * Priority (most specific first): call → waiting → tool → stream → reasoning → busy → unknown.
+ * Idle / missing signals stay `unknown` — do not invent "listening".
+ */
+export function resolveAnPresence(signal: AnPresenceSignal = {}): AnPresence {
+  const call = signal.callState
+  if (call === "listening") return "listening"
+  if (call === "thinking") return "thinking"
+  if (call === "speaking") return "speaking"
+
+  if (signal.awaitingUser) return "waiting"
+
+  const busy = signal.sessionStatus === "running"
+  if (busy) {
+    switch (signal.activity) {
+      case "tool":
+        return "working"
+      case "stream":
+        return "speaking"
+      case "reasoning":
+        return "thinking"
+      case "none":
+      case undefined:
+        // Busy without finer parts — honest generic "thinking" (model turn in flight).
+        return "thinking"
+      default: {
+        const _exhaustive: never = signal.activity
+        void _exhaustive
+        return "thinking"
+      }
+    }
+  }
+
+  return "unknown"
+}
+
+/** Scan newest assistant message for active tool / stream / reasoning parts. */
+export function sessionActivityFromMessages(messages: readonly SessionMessageInfo[]): AnPresenceSignal["activity"] {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i]
+    if (!msg || msg.type !== "assistant") continue
+    if (msg.time?.completed) continue
+
+    let sawReasoning = false
+    let sawStream = false
+    for (const part of msg.content) {
+      if (!part) continue
+      if (part.type === "tool") {
+        const status = part.state?.status
+        if (status === "running" || status === "streaming") return "tool"
+      } else if (part.type === "reasoning") {
+        if (!part.time?.completed) sawReasoning = true
+      } else if (part.type === "text") {
+        if (typeof part.text === "string" && part.text.length > 0) sawStream = true
+      }
+    }
+    if (sawStream) return "stream"
+    if (sawReasoning) return "reasoning"
+    return "none"
+  }
+  return "none"
+}
+
+/** Map desktop bots → roster rows. Presence from real signals only. */
 export function botsToRoster(input: {
   bots: readonly AnBindBot[]
   currentAgent?: string
-  /** agent id → session status string (e.g. "running") */
+  /** agent id → presence signal (preferred) */
+  agentSignals?: ReadonlyMap<string, AnPresenceSignal> | Record<string, AnPresenceSignal>
+  /**
+   * Legacy: agent id → session status string (e.g. "running").
+   * Used when `agentSignals` omits an agent.
+   */
   agentStatus?: ReadonlyMap<string, string> | Record<string, string>
 }): AnRosterMember[] {
-  const statusOf = (agent: string): string | undefined => {
-    const map = input.agentStatus
-    if (!map) return undefined
-    if (map instanceof Map) return map.get(agent)
-    return map[agent]
+  const signalOf = (agent: string): AnPresenceSignal => {
+    const map = input.agentSignals
+    if (map) {
+      const fromMap = map instanceof Map ? map.get(agent) : map[agent]
+      if (fromMap) return fromMap
+    }
+    const statusMap = input.agentStatus
+    if (!statusMap) return {}
+    const status = statusMap instanceof Map ? statusMap.get(agent) : statusMap[agent]
+    return status ? { sessionStatus: status } : {}
   }
   return input.bots.map((bot) => {
     const agent = `aporia-${bot.slug}`
-    const status = statusOf(agent)
-    const presence: AnPresence = status === "running" ? "working" : "unknown"
     return {
       id: bot.slug,
       name: bot.name || bot.slug,
       role: bot.role?.trim() || "Teammate",
       avatar: bot.avatar,
-      presence,
+      presence: resolveAnPresence(signalOf(agent)),
       selected: input.currentAgent === agent,
     }
   })
@@ -88,6 +179,7 @@ export function rosterBindResult(input: {
   available: boolean
   bots: readonly AnBindBot[]
   currentAgent?: string
+  agentSignals?: ReadonlyMap<string, AnPresenceSignal> | Record<string, AnPresenceSignal>
   agentStatus?: ReadonlyMap<string, string> | Record<string, string>
 }): AnRosterBindResult {
   if (!input.available) {

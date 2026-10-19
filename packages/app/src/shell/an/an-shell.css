@@ -29,7 +29,7 @@
   transition: grid-template-columns var(--an-ease-rail, var(--an-ease));
 }
 
-/* View: widen live-computer rail beside chat (watch only). */
+/* Computer View: widen live-computer rail beside chat (watch only). */
 [data-component="an-shell"][data-mode="view"] {
   grid-template-columns:
     var(--an-nav-width, 56px)
@@ -233,20 +233,75 @@
   background: var(--an-text-faint);
 }
 
-.an-presence-online { background: var(--an-green); }
-.an-presence-working {
+/* Presence dots — listening/thinking/speaking/working/waiting (+ unknown). Ice/gold AN. */
+.an-presence-listening {
+  background: var(--an-green);
+  box-shadow: 0 0 6px rgba(59, 231, 140, 0.35);
+}
+.an-presence-thinking {
+  background: var(--an-gold-soft, var(--an-gold));
+  animation: an-presence-pulse 1.6s ease-in-out infinite;
+}
+.an-presence-speaking {
   background: var(--an-gold);
+  box-shadow: 0 0 10px var(--an-glow);
+  animation: an-presence-pulse 1.1s ease-in-out infinite;
+}
+.an-presence-working {
+  background: var(--an-gold-deep, var(--an-gold));
   box-shadow: 0 0 8px var(--an-glow);
 }
-.an-presence-idle { background: #8a93a0; }
-.an-presence-sleeping { background: #46505a; }
+.an-presence-waiting {
+  background: #c9a35a;
+  box-shadow: 0 0 6px rgba(201, 163, 90, 0.35);
+}
 .an-presence-unknown { background: var(--an-text-faint); }
+
+@keyframes an-presence-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.72;
+    transform: scale(0.92);
+  }
+}
 
 .an-roster-text {
   display: flex;
   flex-direction: column;
   min-width: 0;
   gap: 2px;
+}
+
+.an-roster-presence {
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  color: var(--an-text-muted);
+  text-transform: capitalize;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.an-roster-presence[data-presence="unknown"] {
+  color: var(--an-text-faint);
+}
+
+.an-roster-presence[data-presence="working"],
+.an-roster-presence[data-presence="speaking"],
+.an-roster-presence[data-presence="thinking"] {
+  color: var(--an-gold-muted, var(--an-gold));
+}
+
+.an-roster-presence[data-presence="listening"] {
+  color: var(--an-green);
+}
+
+.an-roster-presence[data-presence="waiting"] {
+  color: #c9a35a;
 }
 
 .an-roster-text strong {
@@ -652,6 +707,12 @@
 .an-computer-badge[data-live="true"] {
   border-color: rgba(59, 231, 140, 0.4);
   color: var(--an-green);
+}
+
+.an-computer-badge[data-live="false"],
+.an-computer-badge[data-state="unavailable"] {
+  border-color: var(--an-border-soft);
+  color: var(--an-text-faint);
 }
 
 .an-computer-surface {
