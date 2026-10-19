@@ -1040,7 +1040,7 @@ Worktree `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` on branch
 ### Stage 4 AN cards — stream card language (AP-STAGE4-06) — OPEN for review
 
 Worktree `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` on branch `stage4-an-shell`
-(base tip `39bf053c7b`). Report: `docs/an-rewrite/CURSOR-AP-STAGE4-06.md`.
+@ `8f92dad076` (base `39bf053c7b`). Report: `docs/an-rewrite/CURSOR-AP-STAGE4-06.md`.
 
 | item | value |
 | - | - |
