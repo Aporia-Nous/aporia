@@ -5,6 +5,8 @@ import {
   disconnectComputerAttach,
   initialComputerAttachState,
   isComputerLive,
+  selectComputerAttachPath,
+  setExternalAttachDraft,
 } from "./computer-attach"
 import {
   AN_COMPUTER_FEED_SURFACE,
@@ -117,5 +119,25 @@ describe("AP-BF-02 computer feed", () => {
     const feed = openComputerFeed(liveAttach())
     expect(computerFeedCapturePayload(feed)).toEqual({ url: "about:blank", includeCursor: false })
     expect(computerFeedCapturePayload(clearComputerFeed())).toBeNull()
+  })
+
+  test("external Edge/Chrome Live opens external region srcdoc (AP-BF-04)", () => {
+    let attach = beginComputerConsent(initialComputerAttachState("ses_1"))
+    attach = selectComputerAttachPath(attach, "external-chromium")
+    attach = setExternalAttachDraft(attach, {
+      family: "chrome",
+      endpoint: "http://127.0.0.1:9333",
+      region: "PAGE_EXT_1",
+    })
+    attach = confirmComputerAttach(attach)
+    expect(isComputerLive(attach)).toBe(true)
+
+    const feed = openComputerFeed(attach)
+    expect(feed.phase).toBe("open")
+    expect(feed.srcdoc).toContain('data-an-workspace="external-chromium"')
+    expect(feed.srcdoc).toContain("http://127.0.0.1:9333")
+    expect(feed.srcdoc).toContain("PAGE_EXT_1")
+    expect(feed.includeCursorInCapture).toBe(false)
+    expect(isComputerFeedActive(feed, attach)).toBe(true)
   })
 })

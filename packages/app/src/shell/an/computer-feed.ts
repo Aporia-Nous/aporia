@@ -1,7 +1,9 @@
-// AP-BF-02: watch-only page feed into Computer View when Live (local-browser path).
-// Real page surface only — never invent Live; Bot cursor stays a separate UI overlay (not in captures).
+// AP-BF-02/04: watch-only page feed into Computer View when Live.
+// Local workspace or consented external Edge/Chrome region — never invent Live.
+// Bot cursor stays a separate UI overlay (not in captures).
 
 import { type ComputerAttachState, isComputerLive } from "./computer-attach"
+import { externalBrowserFamilyLabel } from "./computer-external"
 
 export const AN_COMPUTER_FEED_SURFACE = {
   part: "computer-feed",
@@ -12,6 +14,7 @@ export const AN_COMPUTER_FEED_SURFACE = {
   defaultUrl: "about:blank",
   /** Identifiable workspace start document — real HTML, not a fake Live screenshot. */
   workspaceTitle: "Aporetic local browser workspace",
+  externalWorkspaceTitle: "Aporetic external browser region",
 } as const
 
 export type ComputerFeedPhase = "cleared" | "open"
@@ -28,7 +31,29 @@ export type ComputerFeedState = {
 }
 
 /** Real workspace start page shown when attach opens feed at about:blank. */
-export function computerFeedWorkspaceSrcdoc(): string {
+export function computerFeedWorkspaceSrcdoc(attach?: ComputerAttachState): string {
+  if (attach?.backend === "external-chromium" && attach.externalEndpoint && attach.externalRegionId) {
+    const title = AN_COMPUTER_FEED_SURFACE.externalWorkspaceTitle
+    const family = attach.externalFamily ? externalBrowserFamilyLabel(attach.externalFamily) : "Edge/Chrome"
+    const endpoint = attach.externalEndpoint
+    const region = attach.externalRegionId
+    return `<!doctype html><html lang="en"><head><meta charset="utf-8"/><title>${title}</title>
+<style>
+  html,body{margin:0;height:100%;background:#070b10;color:#e8eef6;font:14px/1.45 system-ui,sans-serif}
+  main{padding:28px 24px;max-width:46ch}
+  h1{margin:0 0 8px;font-size:18px;font-weight:600;color:#f0c66d}
+  p{margin:0 0 8px;color:#a8b4c4}
+  code{font:12px/1.4 ui-monospace,monospace;color:#c9d4e3}
+  .tag{display:inline-block;margin-top:10px;padding:2px 8px;border:1px solid rgba(240,198,109,.35);
+    border-radius:999px;color:#f0c66d;font-size:11px;letter-spacing:.04em;text-transform:uppercase}
+</style></head><body data-an-workspace="external-chromium" data-an-feed="external-region" data-an-region="${region}">
+<main><h1>${title}</h1>
+<p>Watch-only Computer View feed for your consented ${family} region — loopback only, not a VM.</p>
+<p>Endpoint <code data-an-part="feed-external-endpoint">${endpoint}</code> · region <code data-an-part="feed-external-region">${region}</code></p>
+<p>Page pixels are this document until CDP screencast wires in. Bot cursor stays a Computer View overlay outside captures.</p>
+<span class="tag" data-an-part="feed-workspace-tag">External browser · watch-only</span>
+</main></body></html>`
+  }
   const title = AN_COMPUTER_FEED_SURFACE.workspaceTitle
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"/><title>${title}</title>
 <style>
@@ -56,18 +81,18 @@ export function clearedComputerFeed(): ComputerFeedState {
   }
 }
 
-/** Open feed only when Computer View is honestly Live (BF-01 attach). */
+/** Open feed only when Computer View is honestly Live (BF-01/04 attach). */
 export function openComputerFeed(attach: ComputerAttachState): ComputerFeedState {
   if (!isComputerLive(attach)) {
     return {
       ...clearedComputerFeed(),
-      error: "Page feed opens only after consented local-browser attach.",
+      error: "Page feed opens only after consented local or external browser attach.",
     }
   }
   return {
     phase: "open",
     url: AN_COMPUTER_FEED_SURFACE.defaultUrl,
-    srcdoc: computerFeedWorkspaceSrcdoc(),
+    srcdoc: computerFeedWorkspaceSrcdoc(attach),
     watchOnly: true,
     includeCursorInCapture: false,
   }
@@ -114,7 +139,11 @@ export function normalizeComputerFeedUrl(input: string): { ok: true; url: string
   return { ok: true, url: url.href }
 }
 
-export function navigateComputerFeed(feed: ComputerFeedState, input: string): ComputerFeedState {
+export function navigateComputerFeed(
+  feed: ComputerFeedState,
+  input: string,
+  attach?: ComputerAttachState,
+): ComputerFeedState {
   if (feed.phase !== "open") {
     return { ...feed, error: "Connect and attach before navigating the page feed." }
   }
@@ -126,7 +155,7 @@ export function navigateComputerFeed(feed: ComputerFeedState, input: string): Co
     return {
       phase: "open",
       url: "about:blank",
-      srcdoc: computerFeedWorkspaceSrcdoc(),
+      srcdoc: computerFeedWorkspaceSrcdoc(attach),
       watchOnly: true,
       includeCursorInCapture: false,
     }

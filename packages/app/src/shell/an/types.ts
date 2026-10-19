@@ -73,10 +73,21 @@ export type AnShellProps = ParentProps<{
   /** Honest empty copy for the always-on Computer View panel. */
   computerEmpty?: string
   computerTitle?: string
-  /** True only when a consented local browser workspace is attached — never invent live. */
+  /** True only when a consented local or external browser path is attached — never invent live. */
   computerLive?: boolean
   /** AP-BF-01: attach phase for Connect/Disconnect chrome. */
   computerAttachPhase?: "disconnected" | "consenting" | "attached"
+  /** AP-BF-01/04: local-browser or external-chromium. */
+  computerAttachPath?: "local-browser" | "external-chromium"
+  computerAttachBackend?: "local-browser" | "external-chromium"
+  /** Path label shown on the workspace chrome. */
+  computerAttachPathLabel?: string
+  /** AP-BF-04 consent drafts for external Edge/Chrome. */
+  computerExternalDraftEndpoint?: string
+  computerExternalDraftRegion?: string
+  computerExternalDraftFamily?: "edge" | "chrome" | "chromium"
+  computerExternalEndpoint?: string
+  computerExternalRegionId?: string
   /** Labeled bot cursor overlay — Live and bot holds lock (hidden during user Takeover). */
   computerCursorVisible?: boolean
   /** AP-BF-02: page feed — only when Live; never invent pixels. */
@@ -99,4 +110,11 @@ export type AnShellProps = ParentProps<{
   onComputerConfirmAttach?: () => void
   onComputerCancelConsent?: () => void
   onComputerDisconnect?: () => void
+  onComputerAttachPathChange?: (path: "local-browser" | "external-chromium") => void
+  onComputerExternalDraftChange?: (draft: {
+    endpoint?: string
+    region?: string
+    family?: string
+  }) => void
+  onComputerExternalProbe?: () => void
 }>

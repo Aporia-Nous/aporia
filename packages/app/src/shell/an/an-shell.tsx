@@ -4,7 +4,13 @@ import { attentionToApprovalCards } from "./cards/map"
 import type { AnCardModel } from "./cards/types"
 import { AnConversationStream } from "./conversation-stream"
 import type { AnConversationTurn } from "./conversation-turns"
-import { AN_COMPUTER_ATTACH_SURFACE } from "./computer-attach"
+import { AN_COMPUTER_ATTACH_SURFACE, type ComputerAttachPath } from "./computer-attach"
+import {
+  AN_COMPUTER_EXTERNAL_SURFACE,
+  EXTERNAL_BROWSER_FAMILIES,
+  externalBrowserFamilyLabel,
+  type ExternalBrowserFamily,
+} from "./computer-external"
 import {
   AN_COMPUTER_CONTROL_SURFACE,
   computerControlBannerCopy,
@@ -133,6 +139,14 @@ function LiveComputerPanel(props: {
   size: "compact" | "large" | "primary"
   live?: boolean
   attachPhase?: "disconnected" | "consenting" | "attached"
+  attachPath?: ComputerAttachPath
+  attachBackend?: "local-browser" | "external-chromium"
+  pathLabel?: string
+  externalDraftEndpoint?: string
+  externalDraftRegion?: string
+  externalDraftFamily?: ExternalBrowserFamily
+  externalEndpoint?: string
+  externalRegionId?: string
   cursorVisible?: boolean
   feedActive?: boolean
   feedUrl?: string
@@ -150,9 +164,15 @@ function LiveComputerPanel(props: {
   onConfirmAttach?: () => void
   onCancelConsent?: () => void
   onDisconnect?: () => void
+  onAttachPathChange?: (path: ComputerAttachPath) => void
+  onExternalDraftChange?: (draft: { endpoint?: string; region?: string; family?: string }) => void
+  onExternalProbe?: () => void
 }) {
   const badge = () => (props.live ? "Live" : "Unavailable")
   const phase = () => props.attachPhase ?? (props.live ? "attached" : "disconnected")
+  const attachPath = () => props.attachPath ?? props.attachBackend ?? "local-browser"
+  const backend = () => props.attachBackend ?? attachPath()
+  const pathLabel = () => props.pathLabel ?? AN_COMPUTER_ATTACH_SURFACE.pathLabel
   const feedActive = () => !!props.live && !!props.feedActive
   const watchOnly = () => props.feedWatchOnly !== false && !props.userInput
   const controller = () => props.controller ?? (props.live ? "bot" : "none")
@@ -162,7 +182,10 @@ function LiveComputerPanel(props: {
       data-size={props.size}
       data-an-part={AN_COMPUTER_ATTACH_SURFACE.part}
       data-attach-phase={phase()}
-      data-backend={AN_COMPUTER_ATTACH_SURFACE.backend}
+      data-attach-path={attachPath()}
+      data-backend={backend()}
+      data-external-endpoint={props.externalEndpoint || undefined}
+      data-external-region={props.externalRegionId || undefined}
       data-feed-active={feedActive() ? "true" : "false"}
       data-an-control={AN_COMPUTER_CONTROL_SURFACE.part}
       data-controller={controller()}
@@ -183,7 +206,7 @@ function LiveComputerPanel(props: {
           fallback={<p class="an-computer-empty">{props.empty}</p>}
         >
           <div class="an-computer-workspace" data-an-part="computer-workspace">
-            <span class="an-computer-workspace-label">{AN_COMPUTER_ATTACH_SURFACE.pathLabel}</span>
+            <span class="an-computer-workspace-label">{pathLabel()}</span>
             <Show when={feedActive()}>
               <form
                 class="an-computer-feed-bar"
@@ -268,6 +291,87 @@ function LiveComputerPanel(props: {
           </button>
         </Show>
         <Show when={phase() === "consenting"}>
+          <div
+            class="an-computer-path"
+            data-an-part={AN_COMPUTER_EXTERNAL_SURFACE.part}
+            role="radiogroup"
+            aria-label="Browser attach path"
+          >
+            <button
+              type="button"
+              class="an-computer-btn an-computer-btn--path"
+              role="radio"
+              data-action="computer-path-local"
+              data-path="local-browser"
+              data-active={attachPath() === "local-browser" ? "true" : "false"}
+              aria-checked={attachPath() === "local-browser"}
+              onClick={() => props.onAttachPathChange?.("local-browser")}
+            >
+              Local workspace
+            </button>
+            <button
+              type="button"
+              class="an-computer-btn an-computer-btn--path"
+              role="radio"
+              data-action="computer-path-external"
+              data-path="external-chromium"
+              data-active={attachPath() === "external-chromium" ? "true" : "false"}
+              aria-checked={attachPath() === "external-chromium"}
+              onClick={() => props.onAttachPathChange?.("external-chromium")}
+            >
+              My Edge/Chrome
+            </button>
+          </div>
+          <Show when={attachPath() === "external-chromium"}>
+            <div class="an-computer-external" data-an-part="computer-external-fields">
+              <label class="an-computer-external-field">
+                <span>Browser</span>
+                <select
+                  data-action="computer-external-family"
+                  value={props.externalDraftFamily ?? "edge"}
+                  onChange={(event) =>
+                    props.onExternalDraftChange?.({ family: event.currentTarget.value })
+                  }
+                >
+                  <For each={[...EXTERNAL_BROWSER_FAMILIES]}>
+                    {(family) => <option value={family}>{externalBrowserFamilyLabel(family)}</option>}
+                  </For>
+                </select>
+              </label>
+              <label class="an-computer-external-field">
+                <span>Loopback endpoint</span>
+                <input
+                  type="text"
+                  data-action="computer-external-endpoint"
+                  placeholder={AN_COMPUTER_EXTERNAL_SURFACE.defaultEndpointHint}
+                  value={props.externalDraftEndpoint ?? ""}
+                  onInput={(event) =>
+                    props.onExternalDraftChange?.({ endpoint: event.currentTarget.value })
+                  }
+                />
+              </label>
+              <label class="an-computer-external-field">
+                <span>Region id</span>
+                <input
+                  type="text"
+                  data-action="computer-external-region"
+                  placeholder="CDP target id from your browser"
+                  value={props.externalDraftRegion ?? ""}
+                  onInput={(event) =>
+                    props.onExternalDraftChange?.({ region: event.currentTarget.value })
+                  }
+                />
+              </label>
+              <button
+                type="button"
+                class="an-computer-btn"
+                data-action="computer-external-probe"
+                onClick={() => props.onExternalProbe?.()}
+              >
+                Check endpoint
+              </button>
+            </div>
+          </Show>
           <button type="button" class="an-computer-btn an-computer-btn--confirm" data-action="computer-confirm" onClick={() => props.onConfirmAttach?.()}>
             Confirm attach
           </button>
@@ -471,6 +575,14 @@ export function AnShell(props: AnShellProps): JSX.Element {
               size="primary"
               live={computerLive()}
               attachPhase={props.computerAttachPhase}
+              attachPath={props.computerAttachPath}
+              attachBackend={props.computerAttachBackend}
+              pathLabel={props.computerAttachPathLabel}
+              externalDraftEndpoint={props.computerExternalDraftEndpoint}
+              externalDraftRegion={props.computerExternalDraftRegion}
+              externalDraftFamily={props.computerExternalDraftFamily}
+              externalEndpoint={props.computerExternalEndpoint}
+              externalRegionId={props.computerExternalRegionId}
               cursorVisible={props.computerCursorVisible}
               feedActive={props.computerFeedActive}
               feedUrl={props.computerFeedUrl}
@@ -487,6 +599,9 @@ export function AnShell(props: AnShellProps): JSX.Element {
               onConfirmAttach={props.onComputerConfirmAttach}
               onCancelConsent={props.onComputerCancelConsent}
               onDisconnect={props.onComputerDisconnect}
+              onAttachPathChange={props.onComputerAttachPathChange}
+              onExternalDraftChange={props.onComputerExternalDraftChange}
+              onExternalProbe={props.onComputerExternalProbe}
             />
             <div class="an-takeover-bar" role="toolbar" aria-label="Takeover controls">
               <button
@@ -551,6 +666,14 @@ export function AnShell(props: AnShellProps): JSX.Element {
             size={layout().computerBeside ? "large" : "compact"}
             live={computerLive()}
             attachPhase={props.computerAttachPhase}
+            attachPath={props.computerAttachPath}
+            attachBackend={props.computerAttachBackend}
+            pathLabel={props.computerAttachPathLabel}
+            externalDraftEndpoint={props.computerExternalDraftEndpoint}
+            externalDraftRegion={props.computerExternalDraftRegion}
+            externalDraftFamily={props.computerExternalDraftFamily}
+            externalEndpoint={props.computerExternalEndpoint}
+            externalRegionId={props.computerExternalRegionId}
             cursorVisible={props.computerCursorVisible}
             feedActive={props.computerFeedActive}
             feedUrl={props.computerFeedUrl}
@@ -567,6 +690,9 @@ export function AnShell(props: AnShellProps): JSX.Element {
             onConfirmAttach={props.onComputerConfirmAttach}
             onCancelConsent={props.onComputerCancelConsent}
             onDisconnect={props.onComputerDisconnect}
+            onAttachPathChange={props.onComputerAttachPathChange}
+            onExternalDraftChange={props.onComputerExternalDraftChange}
+            onExternalProbe={props.onComputerExternalProbe}
           />
         </Show>
 

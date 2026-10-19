@@ -27,14 +27,25 @@ export { AnContraptionsPanel } from "./contraptions-panel"
 export {
   beginComputerConsent,
   cancelComputerConsent,
+  computerAttachPathLabel,
   confirmComputerAttach,
   disconnectComputerAttach,
   initialComputerAttachState,
   isComputerCursorVisible,
   isComputerLive,
   rescopeComputerAttach,
+  selectComputerAttachPath,
+  setExternalAttachDraft,
+  type ComputerAttachPath,
   type ComputerAttachState,
 } from "./computer-attach"
+export {
+  AN_COMPUTER_EXTERNAL_SURFACE,
+  normalizeExternalBrowserEndpoint,
+  normalizeExternalBrowserRegion,
+  probeExternalBrowserEndpoint,
+  type ExternalBrowserFamily,
+} from "./computer-external"
 export {
   clearComputerFeed,
   isComputerFeedActive,

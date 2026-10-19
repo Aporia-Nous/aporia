@@ -26,14 +26,19 @@ import {
   beginComputerConsent,
   cancelComputerConsent,
   computerAttachEmptyCopy,
+  computerAttachPathLabel,
   confirmComputerAttach,
   disconnectComputerAttach,
   initialComputerAttachState,
   isComputerCursorVisible,
   isComputerLive,
   rescopeComputerAttach,
+  selectComputerAttachPath,
+  setExternalAttachDraft,
+  type ComputerAttachPath,
   type ComputerAttachState,
 } from "./computer-attach"
+import { probeExternalBrowserEndpoint } from "./computer-external"
 import {
   clearComputerFeed,
   isComputerFeedActive,
@@ -446,24 +451,78 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     if (!props.view.sessionID()) {
       aporiaAlerts.push({
         title: "Computer View",
-        detail: "Open a session before connecting a local browser workspace.",
+        detail: "Open a session before connecting a browser workspace.",
         level: "warn",
       })
       return
     }
     aporiaAlerts.push({
       title: "Confirm browser attach",
-      detail: "Local Chromium workspace (Edge/Chrome family) — not a VM. Confirm to go Live.",
+      detail: "Choose Local workspace or your Edge/Chrome region (loopback). Not a VM. Confirm to go Live.",
       level: "info",
     })
   }
 
+  const onComputerAttachPathChange = (path: ComputerAttachPath) => {
+    setComputerAttach((prev) => selectComputerAttachPath(prev, path))
+  }
+
+  const onComputerExternalDraftChange = (draft: {
+    endpoint?: string
+    region?: string
+    family?: string
+  }) => {
+    setComputerAttach((prev) => setExternalAttachDraft(prev, draft))
+  }
+
+  const onComputerExternalProbe = () => {
+    const draft = computerAttach().externalDraftEndpoint ?? ""
+    void probeExternalBrowserEndpoint(draft).then((result) => {
+      if (!result.ok) {
+        setComputerAttach((prev) => ({ ...prev, error: result.error }))
+        aporiaAlerts.push({ title: "External browser", detail: result.error, level: "warn" })
+        return
+      }
+      setComputerAttach((prev) =>
+        setExternalAttachDraft({ ...prev, error: undefined }, { endpoint: result.endpoint }),
+      )
+      aporiaAlerts.push({
+        title: "Endpoint reachable",
+        detail: result.browser
+          ? `${result.browser} answered on ${result.endpoint}. Enter a region id, then Confirm attach.`
+          : `${result.endpoint} answered. Enter a region id, then Confirm attach.`,
+        level: "info",
+      })
+    })
+  }
+
   const onComputerConfirmAttach = () => {
-    setComputerAttach((prev) => confirmComputerAttach(prev))
-    aporiaAlerts.push({
-      title: "Browser workspace attached",
-      detail: "Computer View is Live with watch-only page feed. Disconnect clears Live and feed.",
-      level: "info",
+    setComputerAttach((prev) => {
+      const next = confirmComputerAttach(prev)
+      if (next.error) {
+        aporiaAlerts.push({ title: "Computer View", detail: next.error, level: "warn" })
+        return next
+      }
+      if (!isComputerLive(next)) {
+        aporiaAlerts.push({
+          title: "Computer View",
+          detail: "Attach did not go Live — check consent path and try again.",
+          level: "warn",
+        })
+        return next
+      }
+      aporiaAlerts.push({
+        title:
+          next.backend === "external-chromium"
+            ? "Edge/Chrome region attached"
+            : "Browser workspace attached",
+        detail:
+          next.backend === "external-chromium"
+            ? `Live on ${next.externalEndpoint} · region ${next.externalRegionId}. Watch-only until Takeover.`
+            : "Computer View is Live with watch-only page feed. Disconnect clears Live and feed.",
+        level: "info",
+      })
+      return next
     })
   }
 
@@ -488,13 +547,13 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     if (!computerLive()) {
       aporiaAlerts.push({
         title: "Computer View",
-        detail: "Attach a local browser workspace before navigating the page feed.",
+        detail: "Attach a browser workspace before navigating the page feed.",
         level: "warn",
       })
       return
     }
     setComputerFeed((prev) => {
-      const next = navigateComputerFeed(prev, input)
+      const next = navigateComputerFeed(prev, input, computerAttach())
       if (next.error) {
         aporiaAlerts.push({ title: "Page feed", detail: next.error, level: "warn" })
         return prev
@@ -553,6 +612,14 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         computerTitle="Computer View"
         computerLive={computerLive()}
         computerAttachPhase={computerAttach().phase}
+        computerAttachPath={computerAttach().path}
+        computerAttachBackend={computerAttach().backend}
+        computerAttachPathLabel={computerAttachPathLabel(computerAttach())}
+        computerExternalDraftEndpoint={computerAttach().externalDraftEndpoint}
+        computerExternalDraftRegion={computerAttach().externalDraftRegion}
+        computerExternalDraftFamily={computerAttach().externalDraftFamily}
+        computerExternalEndpoint={computerAttach().externalEndpoint}
+        computerExternalRegionId={computerAttach().externalRegionId}
         computerCursorVisible={computerCursorVisible()}
         computerFeedActive={computerFeedActive()}
         computerFeedUrl={computerFeed().url || undefined}
@@ -570,6 +637,9 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         onComputerConfirmAttach={onComputerConfirmAttach}
         onComputerCancelConsent={onComputerCancelConsent}
         onComputerDisconnect={onComputerDisconnect}
+        onComputerAttachPathChange={onComputerAttachPathChange}
+        onComputerExternalDraftChange={onComputerExternalDraftChange}
+        onComputerExternalProbe={onComputerExternalProbe}
         onSelectNav={onSelectNav}
         onSelectMember={(id) => void openMember(id)}
         onStreamCardAction={(actionId, card) => {

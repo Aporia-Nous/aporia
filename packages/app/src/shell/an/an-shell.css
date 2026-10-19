@@ -1155,6 +1155,54 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  align-items: flex-start;
+}
+
+.an-computer-path {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+}
+
+.an-computer-btn--path[data-active="true"] {
+  border-color: rgba(240, 198, 109, 0.45);
+  color: var(--an-gold, #f0c66d);
+  background: rgba(240, 198, 109, 0.08);
+}
+
+.an-computer-external {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 0 2px;
+}
+
+.an-computer-external-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--an-text-muted);
+}
+
+.an-computer-external-field input,
+.an-computer-external-field select {
+  appearance: none;
+  border: 1px solid var(--an-border-soft);
+  border-radius: var(--an-radius-sm);
+  background: rgba(4, 9, 13, 0.65);
+  color: var(--an-text);
+  font: inherit;
+  font-size: 11px;
+  padding: 5px 8px;
+}
+
+.an-computer-external-field input:focus,
+.an-computer-external-field select:focus {
+  outline: none;
+  border-color: rgba(240, 198, 109, 0.4);
 }
 
 .an-computer-btn {

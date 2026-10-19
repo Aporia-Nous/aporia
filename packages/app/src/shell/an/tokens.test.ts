@@ -3,6 +3,7 @@ import {
   AN_COMPOSER_SURFACE,
   AN_COMPUTER_ATTACH_SURFACE,
   AN_COMPUTER_CONTROL_SURFACE,
+  AN_COMPUTER_EXTERNAL_SURFACE,
   AN_COMPUTER_FEED_SURFACE,
   AN_CONTRAPTIONS_SURFACE,
   AN_DESIGN_SOURCE,
@@ -119,6 +120,14 @@ describe("AN Stage 4 tokens", () => {
     expect(AN_COMPUTER_ATTACH_SURFACE.partAttr).toBe('data-an-part="computer-attach"')
     expect(AN_COMPUTER_ATTACH_SURFACE.pathLabel).toContain("Edge/Chrome")
     // STAGE4-11/12 ownership markers must not be redefined by BF-01
+    expect(AN_COMPOSER_SURFACE.ownedAttr).toBe('data-an-owned="composer"')
+  })
+
+  test("Computer external surface markers (AP-BF-04)", () => {
+    expect(AN_COMPUTER_EXTERNAL_SURFACE.backend).toBe("external-chromium")
+    expect(AN_COMPUTER_EXTERNAL_SURFACE.loopbackOnly).toBe(true)
+    expect(AN_COMPUTER_EXTERNAL_SURFACE.partAttr).toBe('data-an-part="computer-external"')
+    expect(AN_COMPUTER_ATTACH_SURFACE.paths).toContain("external-chromium")
     expect(AN_COMPOSER_SURFACE.ownedAttr).toBe('data-an-owned="composer"')
   })
 

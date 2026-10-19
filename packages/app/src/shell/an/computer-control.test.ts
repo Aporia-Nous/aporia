@@ -24,6 +24,8 @@ import {
   confirmComputerAttach,
   initialComputerAttachState,
   isComputerLive,
+  selectComputerAttachPath,
+  setExternalAttachDraft,
 } from "./computer-attach"
 
 describe("AP-BF-03 computer control lock", () => {
@@ -82,6 +84,28 @@ describe("AP-BF-03 computer control lock", () => {
     expect(feedIsWatchOnly(takeover)).toBe(false)
     expect(isBotCursorShown(true, takeover)).toBe(false)
     expect(computerControlBannerCopy(true, takeover).pill).toBe("You control")
+  })
+
+  test("external Chromium Live still honors Takeover lock (AP-BF-04)", () => {
+    let attach = beginComputerConsent(initialComputerAttachState("ses_ext"))
+    attach = selectComputerAttachPath(attach, "external-chromium")
+    attach = setExternalAttachDraft(attach, {
+      family: "edge",
+      endpoint: "http://127.0.0.1:9222",
+      region: "REGION_1",
+    })
+    attach = confirmComputerAttach(attach)
+    expect(isComputerLive(attach)).toBe(true)
+    expect(AN_COMPUTER_ATTACH_SURFACE.paths).toContain("external-chromium")
+
+    const takeover = syncComputerControl(initialComputerControlState("ses_ext"), {
+      live: true,
+      mode: "takeover",
+      sessionID: "ses_ext",
+    })
+    expect(userMayInput(takeover)).toBe(true)
+    expect(isBotCursorShown(true, takeover)).toBe(false)
+    expect(releaseToBot(takeover, true).needsFreshObservation).toBe(true)
   })
 
   test("Hand back / Stop restore bot lock + fresh observation; disconnect clears", () => {

@@ -4,12 +4,15 @@ import {
   beginComputerConsent,
   cancelComputerConsent,
   computerAttachEmptyCopy,
+  computerAttachPathLabel,
   confirmComputerAttach,
   disconnectComputerAttach,
   initialComputerAttachState,
   isComputerCursorVisible,
   isComputerLive,
   rescopeComputerAttach,
+  selectComputerAttachPath,
+  setExternalAttachDraft,
 } from "./computer-attach"
 import { AN_COMPOSER_SURFACE } from "./tokens"
 
@@ -78,5 +81,53 @@ describe("AP-BF-01 computer attach", () => {
     state = rescopeComputerAttach(state, "ses_a")
     expect(isComputerLive(state)).toBe(true)
     expect(state.sessionID).toBe("ses_a")
+  })
+
+  test("external Edge/Chrome path requires loopback endpoint + region (AP-BF-04)", () => {
+    let state = beginComputerConsent(initialComputerAttachState("ses_1"))
+    state = selectComputerAttachPath(state, "external-chromium")
+    expect(state.path).toBe("external-chromium")
+    expect(isComputerLive(state)).toBe(false)
+
+    state = setExternalAttachDraft(state, {
+      family: "edge",
+      endpoint: "http://127.0.0.1:9222",
+      region: "",
+    })
+    state = confirmComputerAttach(state)
+    expect(isComputerLive(state)).toBe(false)
+    expect(state.error).toMatch(/region/i)
+
+    state = setExternalAttachDraft(state, { region: "TARGET_A1" })
+    state = confirmComputerAttach(state)
+    expect(state.phase).toBe("attached")
+    expect(state.backend).toBe("external-chromium")
+    expect(state.externalEndpoint).toBe("http://127.0.0.1:9222")
+    expect(state.externalRegionId).toBe("TARGET_A1")
+    expect(isComputerLive(state)).toBe(true)
+    expect(computerAttachPathLabel(state)).toContain("Edge")
+    expect(computerAttachEmptyCopy(state)).toMatch(/region attached/i)
+  })
+
+  test("external path rejects non-loopback hosts", () => {
+    let state = beginComputerConsent(initialComputerAttachState("ses_1"))
+    state = selectComputerAttachPath(state, "external-chromium")
+    state = setExternalAttachDraft(state, {
+      family: "chrome",
+      endpoint: "http://8.8.8.8:9222",
+      region: "TAB1",
+    })
+    state = confirmComputerAttach(state)
+    expect(isComputerLive(state)).toBe(false)
+    expect(state.error).toMatch(/local-only|127\.0\.0\.1|localhost/i)
+  })
+
+  test("local path still attaches without external fields", () => {
+    let state = beginComputerConsent(initialComputerAttachState("ses_1"))
+    state = selectComputerAttachPath(state, "local-browser")
+    state = confirmComputerAttach(state)
+    expect(state.backend).toBe("local-browser")
+    expect(state.externalEndpoint).toBeUndefined()
+    expect(isComputerLive(state)).toBe(true)
   })
 })
