@@ -33,4 +33,4 @@ Compared DEV screenshots to:
 - Line nav icons (not emoji clutter)
 
 ## Recommended next fix slice
-**AP-STAGE4-08 (ice/glass feel) — OPEN for review (2026-10-19):** report `CURSOR-AP-STAGE4-08.md`; shot `12-ice-glass-feel.png`. No independent PASS claimed this slice. Remaining after feel: deeper Session conversation surface vs mockup; Podman/runtime chrome; illustrated nav; Stage 5 four-mode deferred. No merge/push.
+**AP-STAGE4-09 (Session/composer dock glass) — OPEN for review (2026-10-19):** separate worktree `cursor-aporetic-stage4-dock` branch `stage4-dock-glass`; report `CURSOR-AP-STAGE4-09.md`; shot `13-session-dock-glass.png`. No independent PASS claimed. Remaining after dock: Podman/runtime chrome; illustrated nav; Stage 5 four-mode deferred. No merge/push into stage4 tip.
