@@ -79,6 +79,13 @@ export type AnShellProps = ParentProps<{
   computerAttachPhase?: "disconnected" | "consenting" | "attached"
   /** Labeled bot cursor overlay — only when live (UI affordance, not page paint). */
   computerCursorVisible?: boolean
+  /** AP-BF-02: watch-only page feed — only when Live; never invent pixels. */
+  computerFeedActive?: boolean
+  computerFeedUrl?: string
+  computerFeedSrcdoc?: string
+  computerFeedDraft?: string
+  onComputerFeedDraftChange?: (value: string) => void
+  onComputerFeedNavigate?: (url: string) => void
   onComputerConnect?: () => void
   onComputerConfirmAttach?: () => void
   onComputerCancelConsent?: () => void

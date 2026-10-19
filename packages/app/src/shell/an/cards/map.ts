@@ -259,9 +259,15 @@ export function sessionToTaskCard(input: {
   }
 }
 
-/** Computer View panel → Computer card (honest unavailable/empty; no fake feed URL). */
-export function computerToCard(input?: { live?: boolean; title?: string; detail?: string }): AnCardModel {
+/** Computer View panel → Computer card (honest unavailable/empty; feed only when Live). */
+export function computerToCard(input?: {
+  live?: boolean
+  feedActive?: boolean
+  title?: string
+  detail?: string
+}): AnCardModel {
   const live = !!input?.live
+  const feedActive = !!input?.feedActive
   return {
     id: "computer:live",
     type: "computer",
@@ -269,7 +275,9 @@ export function computerToCard(input?: { live?: boolean; title?: string; detail?
     detail:
       input?.detail?.trim() ||
       (live
-        ? "Local browser workspace attached (consented). Page pixels still BF-02."
+        ? feedActive
+          ? "Local browser workspace attached with watch-only page feed. Bot cursor is overlay chrome only."
+          : "Local browser workspace attached (consented). Page feed pending."
         : "Computer View has no live attach — connect a local browser workspace."),
     status: live ? "Live" : "Unavailable",
     statusTone: live ? "ok" : "neutral",
@@ -317,6 +325,7 @@ export function buildStreamCards(input: {
   session?: { sessionID?: string; title?: string; agent?: string; working?: boolean }
   messages?: readonly SessionMessageInfo[]
   computerLive?: boolean
+  computerFeedActive?: boolean
   includeTeam?: boolean
   /** When true and no edit/proof tools exist, append honest Proof · unavailable (default false — avoid clutter). */
   includeProofUnavailable?: boolean
@@ -330,7 +339,7 @@ export function buildStreamCards(input: {
   if (input.includeProofUnavailable && !partCards.some((c) => c.type === "proof")) {
     cards.push(messageProofUnavailableCard())
   }
-  cards.push(computerToCard({ live: input.computerLive }))
+  cards.push(computerToCard({ live: input.computerLive, feedActive: input.computerFeedActive }))
   if (input.includeTeam !== false) {
     const team = rosterToTeamCard(input.roster ?? [])
     if (team) cards.push(team)

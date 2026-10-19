@@ -1004,18 +1004,19 @@
   letter-spacing: 0.02em;
 }
 
-/* AP-BF-01: consent/attach + labeled cursor (UI overlay only; no fake page feed). */
+/* AP-BF-01/02: consent/attach + watch-only page feed; labeled cursor is overlay chrome only. */
 .an-computer-workspace {
   position: relative;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   min-height: inherit;
-  padding: 12px 14px 28px;
+  padding: 28px 10px 10px;
   border-radius: inherit;
   background:
     linear-gradient(180deg, rgba(186, 220, 255, 0.05), transparent 42%),
     rgba(2, 5, 9, 0.55);
+  gap: 8px;
 }
 
 .an-computer-workspace-label {
@@ -1026,22 +1027,84 @@
   font-size: 10px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.an-computer-feed-bar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex: 0 0 auto;
+  z-index: 2;
+}
+
+.an-computer-feed-url {
+  flex: 1;
+  min-width: 0;
+  appearance: none;
+  border: 1px solid var(--an-border-soft);
+  border-radius: var(--an-radius-sm);
+  background: rgba(4, 9, 13, 0.72);
+  color: var(--an-text);
+  font: inherit;
+  font-size: 11px;
+  padding: 5px 8px;
+}
+
+.an-computer-feed-url:focus {
+  outline: 1px solid rgba(240, 198, 109, 0.45);
+  outline-offset: 0;
+}
+
+.an-computer-btn--feed {
+  flex: 0 0 auto;
+  border-color: rgba(240, 198, 109, 0.35);
+  color: var(--an-gold, #f0c66d);
+}
+
+.an-computer-feed {
+  position: relative;
+  flex: 1;
+  min-height: 120px;
+  border-radius: calc(var(--an-radius-sm) + 2px);
+  overflow: hidden;
+  border: 1px solid rgba(186, 220, 255, 0.12);
+  background: #070b10;
+}
+
+.an-computer-feed-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 140px;
+  border: 0;
+  background: #070b10;
+  /* Watch-only: page receives no pointer input; address bar remains chrome navigation. */
+  pointer-events: none;
+}
+
+.an-computer[data-size="large"] .an-computer-feed-frame,
+.an-computer[data-size="primary"] .an-computer-feed-frame {
+  min-height: 220px;
 }
 
 .an-computer-empty--live {
   max-width: 34ch;
+  margin: auto;
   color: var(--an-text-muted);
+  text-align: center;
 }
 
 .an-computer-cursor {
   position: absolute;
   left: 58%;
-  top: 42%;
+  top: 48%;
   display: flex;
   align-items: center;
   gap: 6px;
   pointer-events: none;
-  z-index: 2;
+  z-index: 4;
   animation: an-computer-cursor-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 

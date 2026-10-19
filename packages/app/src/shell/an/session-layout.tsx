@@ -34,6 +34,13 @@ import {
   rescopeComputerAttach,
   type ComputerAttachState,
 } from "./computer-attach"
+import {
+  clearComputerFeed,
+  isComputerFeedActive,
+  navigateComputerFeed,
+  syncComputerFeed,
+  type ComputerFeedState,
+} from "./computer-feed"
 import { AnContraptionsPanel } from "./contraptions-panel"
 import { messagesToConversationTurns } from "./conversation-turns"
 import {
@@ -241,16 +248,30 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   const [computerAttach, setComputerAttach] = createSignal<ComputerAttachState>(
     initialComputerAttachState(props.view.sessionID()),
   )
+  const [computerFeed, setComputerFeed] = createSignal<ComputerFeedState>(clearComputerFeed())
+  const [computerFeedDraft, setComputerFeedDraft] = createSignal("")
   const info = () => props.view.info()
   const currentAgent = () => info()?.agent
   const roster = useAnRoster(currentAgent)
   const attention = useAnAttention()
   const computerLive = createMemo(() => isComputerLive(computerAttach()))
   const computerCursorVisible = createMemo(() => isComputerCursorVisible(computerAttach()))
+  const computerFeedActive = createMemo(() => isComputerFeedActive(computerFeed(), computerAttach()))
 
   createEffect(() => {
     const sessionID = props.view.sessionID()
     setComputerAttach((prev) => rescopeComputerAttach(prev, sessionID))
+  })
+
+  /** Keep page feed honest with Live attach — open on attach, clear on disconnect/rescope. */
+  createEffect(() => {
+    const attach = computerAttach()
+    setComputerFeed((prev) => syncComputerFeed(prev, attach))
+    if (!isComputerLive(attach)) {
+      setComputerFeedDraft("")
+      return
+    }
+    setComputerFeedDraft((draft) => draft || "about:blank")
   })
 
   const onModeChange = (next: AnShellMode) => {
@@ -372,6 +393,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       },
       messages: props.view.messages(),
       computerLive: computerLive(),
+      computerFeedActive: computerFeedActive(),
       includeTeam: true,
     }),
   )
@@ -397,7 +419,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     setComputerAttach((prev) => confirmComputerAttach(prev))
     aporiaAlerts.push({
       title: "Browser workspace attached",
-      detail: "Computer View is Live (watch-only). Page feed = BF-02. Disconnect clears Live.",
+      detail: "Computer View is Live with watch-only page feed. Disconnect clears Live and feed.",
       level: "info",
     })
   }
@@ -408,10 +430,32 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
 
   const onComputerDisconnect = () => {
     setComputerAttach((prev) => disconnectComputerAttach(prev))
+    setComputerFeed(clearComputerFeed())
+    setComputerFeedDraft("")
     aporiaAlerts.push({
       title: "Browser workspace disconnected",
-      detail: "Live cleared. Re-connect requires fresh consent.",
+      detail: "Live and page feed cleared. Re-connect requires fresh consent.",
       level: "info",
+    })
+  }
+
+  const onComputerFeedNavigate = (input: string) => {
+    if (!computerLive()) {
+      aporiaAlerts.push({
+        title: "Computer View",
+        detail: "Attach a local browser workspace before navigating the page feed.",
+        level: "warn",
+      })
+      return
+    }
+    setComputerFeed((prev) => {
+      const next = navigateComputerFeed(prev, input)
+      if (next.error) {
+        aporiaAlerts.push({ title: "Page feed", detail: next.error, level: "warn" })
+        return prev
+      }
+      setComputerFeedDraft(next.url)
+      return next
     })
   }
 
@@ -465,6 +509,12 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         computerLive={computerLive()}
         computerAttachPhase={computerAttach().phase}
         computerCursorVisible={computerCursorVisible()}
+        computerFeedActive={computerFeedActive()}
+        computerFeedUrl={computerFeed().url || undefined}
+        computerFeedSrcdoc={computerFeed().srcdoc}
+        computerFeedDraft={computerFeedDraft()}
+        onComputerFeedDraftChange={setComputerFeedDraft}
+        onComputerFeedNavigate={onComputerFeedNavigate}
         onComputerConnect={onComputerConnect}
         onComputerConfirmAttach={onComputerConfirmAttach}
         onComputerCancelConsent={onComputerCancelConsent}

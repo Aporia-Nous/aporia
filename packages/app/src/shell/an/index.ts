@@ -6,6 +6,7 @@ export {
   AN_TOKENS,
   AN_COMPOSER_SURFACE,
   AN_COMPUTER_ATTACH_SURFACE,
+  AN_COMPUTER_FEED_SURFACE,
   AN_CONTRAPTIONS_SURFACE,
   AN_SHELL_MODES,
   AN_SHELL_MODE_LABEL,
@@ -33,6 +34,14 @@ export {
   rescopeComputerAttach,
   type ComputerAttachState,
 } from "./computer-attach"
+export {
+  clearComputerFeed,
+  isComputerFeedActive,
+  navigateComputerFeed,
+  openComputerFeed,
+  syncComputerFeed,
+  type ComputerFeedState,
+} from "./computer-feed"
 export { buildAnShellModel, assertApprovedModesOnly, type AnShellModel } from "./shell-model"
 export {
   botsToRoster,

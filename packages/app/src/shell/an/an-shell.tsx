@@ -5,6 +5,7 @@ import type { AnCardModel } from "./cards/types"
 import { AnConversationStream } from "./conversation-stream"
 import type { AnConversationTurn } from "./conversation-turns"
 import { AN_COMPUTER_ATTACH_SURFACE } from "./computer-attach"
+import { AN_COMPUTER_FEED_SURFACE } from "./computer-feed"
 import {
   AN_PRODUCT_NAME,
   AN_SHELL_MODES,
@@ -129,6 +130,12 @@ function LiveComputerPanel(props: {
   live?: boolean
   attachPhase?: "disconnected" | "consenting" | "attached"
   cursorVisible?: boolean
+  feedActive?: boolean
+  feedUrl?: string
+  feedSrcdoc?: string
+  feedDraft?: string
+  onFeedDraftChange?: (value: string) => void
+  onFeedNavigate?: (url: string) => void
   onConnect?: () => void
   onConfirmAttach?: () => void
   onCancelConsent?: () => void
@@ -136,6 +143,7 @@ function LiveComputerPanel(props: {
 }) {
   const badge = () => (props.live ? "Live" : "Unavailable")
   const phase = () => props.attachPhase ?? (props.live ? "attached" : "disconnected")
+  const feedActive = () => !!props.live && !!props.feedActive
   return (
     <section
       class="an-computer"
@@ -143,6 +151,7 @@ function LiveComputerPanel(props: {
       data-an-part={AN_COMPUTER_ATTACH_SURFACE.part}
       data-attach-phase={phase()}
       data-backend={AN_COMPUTER_ATTACH_SURFACE.backend}
+      data-feed-active={feedActive() ? "true" : "false"}
       aria-label={props.title}
     >
       <header class="an-computer-header">
@@ -158,6 +167,63 @@ function LiveComputerPanel(props: {
         >
           <div class="an-computer-workspace" data-an-part="computer-workspace">
             <span class="an-computer-workspace-label">{AN_COMPUTER_ATTACH_SURFACE.pathLabel}</span>
+            <Show when={feedActive()}>
+              <form
+                class="an-computer-feed-bar"
+                data-an-part="computer-feed-bar"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  props.onFeedNavigate?.(props.feedDraft ?? props.feedUrl ?? "")
+                }}
+              >
+                <input
+                  class="an-computer-feed-url"
+                  data-an-part="computer-feed-url"
+                  type="text"
+                  spellcheck={false}
+                  autocomplete="off"
+                  aria-label="Watch-only page URL"
+                  placeholder="https://…"
+                  value={props.feedDraft ?? props.feedUrl ?? ""}
+                  onInput={(event) => props.onFeedDraftChange?.(event.currentTarget.value)}
+                />
+                <button type="submit" class="an-computer-btn an-computer-btn--feed" data-action="computer-feed-go">
+                  Go
+                </button>
+              </form>
+              <div
+                class="an-computer-feed"
+                data-an-part={AN_COMPUTER_FEED_SURFACE.part}
+                data-watch-only={AN_COMPUTER_FEED_SURFACE.watchOnly ? "true" : "false"}
+                data-cursor-in-capture={AN_COMPUTER_FEED_SURFACE.includeCursorInCapture ? "true" : "false"}
+                data-feed-url={props.feedUrl ?? ""}
+              >
+                <Show
+                  when={props.feedSrcdoc}
+                  fallback={
+                    <iframe
+                      class="an-computer-feed-frame"
+                      title="Computer View page feed"
+                      src={props.feedUrl || "about:blank"}
+                      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+                      tabindex={-1}
+                      data-an-part="computer-feed-frame"
+                      data-feed-mode="src"
+                    />
+                  }
+                >
+                  <iframe
+                    class="an-computer-feed-frame"
+                    title="Computer View page feed"
+                    srcdoc={props.feedSrcdoc}
+                    sandbox="allow-scripts allow-same-origin"
+                    tabindex={-1}
+                    data-an-part="computer-feed-frame"
+                    data-feed-mode="srcdoc"
+                  />
+                </Show>
+              </div>
+            </Show>
             <Show when={props.cursorVisible}>
               <div
                 class="an-computer-cursor"
@@ -169,7 +235,9 @@ function LiveComputerPanel(props: {
                 <span class="an-computer-cursor-tag">{AN_COMPUTER_ATTACH_SURFACE.cursorLabel}</span>
               </div>
             </Show>
-            <p class="an-computer-empty an-computer-empty--live">{props.empty}</p>
+            <Show when={!feedActive()}>
+              <p class="an-computer-empty an-computer-empty--live">{props.empty}</p>
+            </Show>
           </div>
         </Show>
       </div>
@@ -245,7 +313,7 @@ export function AnShell(props: AnShellProps): JSX.Element {
   const computerLive = () => !!props.computerLive
   const computerNote = () =>
     props.computerLive
-      ? "Live = consented local browser attach. Watch-only in Computer View; Takeover is separate. No fake page feed."
+      ? "Live = consented local browser attach + watch-only page feed. Bot cursor is overlay chrome — not in page captures. Takeover is separate."
       : "Watch-only Computer View — connect a local browser workspace to go Live."
   const progress = () => {
     const value = props.mission?.progressPercent
@@ -369,6 +437,12 @@ export function AnShell(props: AnShellProps): JSX.Element {
               live={computerLive()}
               attachPhase={props.computerAttachPhase}
               cursorVisible={props.computerCursorVisible}
+              feedActive={props.computerFeedActive}
+              feedUrl={props.computerFeedUrl}
+              feedSrcdoc={props.computerFeedSrcdoc}
+              feedDraft={props.computerFeedDraft}
+              onFeedDraftChange={props.onComputerFeedDraftChange}
+              onFeedNavigate={props.onComputerFeedNavigate}
               onConnect={props.onComputerConnect}
               onConfirmAttach={props.onComputerConfirmAttach}
               onCancelConsent={props.onComputerCancelConsent}
@@ -428,6 +502,12 @@ export function AnShell(props: AnShellProps): JSX.Element {
             live={computerLive()}
             attachPhase={props.computerAttachPhase}
             cursorVisible={props.computerCursorVisible}
+            feedActive={props.computerFeedActive}
+            feedUrl={props.computerFeedUrl}
+            feedSrcdoc={props.computerFeedSrcdoc}
+            feedDraft={props.computerFeedDraft}
+            onFeedDraftChange={props.onComputerFeedDraftChange}
+            onFeedNavigate={props.onComputerFeedNavigate}
             onConnect={props.onComputerConnect}
             onConfirmAttach={props.onComputerConfirmAttach}
             onCancelConsent={props.onComputerCancelConsent}

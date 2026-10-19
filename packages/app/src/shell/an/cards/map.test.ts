@@ -81,6 +81,14 @@ describe("AN card mapping", () => {
     expect(idle.actions?.[0]?.stub).toBe(true)
   })
 
+  test("computer card reports watch-only feed when Live + feed active (AP-BF-02)", () => {
+    const live = computerToCard({ live: true, feedActive: true })
+    expect(live.status).toBe("Live")
+    expect(live.detail?.toLowerCase()).toContain("watch-only")
+    expect(live.detail?.toLowerCase()).toContain("overlay")
+    expect(live.actions?.[0]?.stub).toBe(false)
+  })
+
   test("team card from roster; empty roster omitted", () => {
     expect(rosterToTeamCard([])).toBeUndefined()
     const team = rosterToTeamCard([{ id: "orion", name: "Orion", role: "Lead", presence: "unknown" }])

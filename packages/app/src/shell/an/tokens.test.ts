@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test"
 import {
   AN_COMPOSER_SURFACE,
   AN_COMPUTER_ATTACH_SURFACE,
+  AN_COMPUTER_FEED_SURFACE,
   AN_CONTRAPTIONS_SURFACE,
   AN_DESIGN_SOURCE,
   AN_PRODUCT_BYLINE,
@@ -117,6 +118,13 @@ describe("AN Stage 4 tokens", () => {
     expect(AN_COMPUTER_ATTACH_SURFACE.partAttr).toBe('data-an-part="computer-attach"')
     expect(AN_COMPUTER_ATTACH_SURFACE.pathLabel).toContain("Edge/Chrome")
     // STAGE4-11/12 ownership markers must not be redefined by BF-01
+    expect(AN_COMPOSER_SURFACE.ownedAttr).toBe('data-an-owned="composer"')
+  })
+
+  test("Computer feed surface markers (AP-BF-02)", () => {
+    expect(AN_COMPUTER_FEED_SURFACE.partAttr).toBe('data-an-part="computer-feed"')
+    expect(AN_COMPUTER_FEED_SURFACE.watchOnly).toBe(true)
+    expect(AN_COMPUTER_FEED_SURFACE.includeCursorInCapture).toBe(false)
     expect(AN_COMPOSER_SURFACE.ownedAttr).toBe('data-an-owned="composer"')
   })
 

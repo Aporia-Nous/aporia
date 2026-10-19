@@ -95,10 +95,11 @@ export const AN_CONTRAPTIONS_SURFACE = {
 } as const
 
 /**
- * AP-BF-01: Computer View consent/attach surface (browser-first, not VM).
- * Re-export markers from computer-attach for shell token discoverability.
+ * AP-BF-01/02: Computer View consent/attach + watch-only page feed (browser-first, not VM).
+ * Re-export markers for shell token discoverability.
  */
 export { AN_COMPUTER_ATTACH_SURFACE } from "./computer-attach"
+export { AN_COMPUTER_FEED_SURFACE } from "./computer-feed"
 
 /** Three-state framing from approved mockups — Stage 5 four-mode work stays separate. */
 export const AN_SHELL_MODES = ["conversation", "view", "takeover"] as const

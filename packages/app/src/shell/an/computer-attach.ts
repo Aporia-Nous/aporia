@@ -45,7 +45,7 @@ export function isComputerLive(state: ComputerAttachState): boolean {
   )
 }
 
-/** Labeled cursor affordance is UI-only overlay — never in agent captures (BF-02 feed still open). */
+/** Labeled cursor affordance is UI-only overlay — never in agent captures (BF-02 page feed is separate). */
 export function isComputerCursorVisible(state: ComputerAttachState): boolean {
   return isComputerLive(state)
 }
@@ -122,14 +122,14 @@ export function computerAttachEmptyCopy(state: ComputerAttachState): string {
     return "Confirm to attach Aporetic’s local Chromium workspace (Edge/Chrome family). Watch-only until Takeover. Not a VM."
   }
   if (isComputerLive(state)) {
-    return "Local browser workspace attached. Labeled bot cursor is a Computer View overlay only — page pixels arrive in BF-02."
+    return "Local browser workspace attached. Watch-only page feed is active; labeled Bot cursor is a Computer View overlay only."
   }
   return "Computer View is unavailable until you connect a local browser workspace. Browser-first — not VM."
 }
 
 export function computerAttachNote(state: ComputerAttachState): string {
   if (isComputerLive(state)) {
-    return "Live = consented local browser attach. Watch-only in Computer View; Takeover is separate. No fake page feed."
+    return "Live = consented local browser attach + watch-only page feed. Bot cursor is overlay chrome — not in page captures. Takeover is separate."
   }
   if (state.phase === "consenting") {
     return "Consent required — local only; disconnect clears Live."
