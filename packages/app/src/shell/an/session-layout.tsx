@@ -21,6 +21,7 @@ import { createEffect, createMemo, createResource, createSignal, onCleanup, type
 import { Portal } from "solid-js/web"
 import { AnShell } from "./an-shell"
 import { attentionBindResult, missionFromSession, rosterBindResult, type AnBindBot } from "./bind"
+import { isAnShellMode, type AnShellMode } from "./tokens"
 import type { AnNavItem } from "./types"
 
 const ATTENTION_POLL_MS = 5000
@@ -167,10 +168,34 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   const server = useServer()
   const command = useCommand()
   const openSettings = useSettingsDialog()
+  const [mode, setMode] = createSignal<AnShellMode>("conversation")
   const info = () => props.view.info()
   const currentAgent = () => info()?.agent
   const roster = useAnRoster(currentAgent)
   const attention = useAnAttention()
+
+  const onModeChange = (next: AnShellMode) => {
+    if (!isAnShellMode(next)) return
+    setMode(next)
+  }
+
+  const onHandBack = () => {
+    setMode("conversation")
+    aporiaAlerts.push({
+      title: "Handed back",
+      detail: "Returned to Conversation. Computer backend not attached — control was chrome-only.",
+      level: "info",
+    })
+  }
+
+  const onStopTakeover = () => {
+    setMode("view")
+    aporiaAlerts.push({
+      title: "Takeover stopped",
+      detail: "Switched to View (watch-only). No live computer input was granted.",
+      level: "info",
+    })
+  }
 
   const navItems = (): AnNavItem[] => [
     { id: "home", label: "Home", icon: "⌂", active: !props.view.sessionID() },
@@ -248,13 +273,18 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     <div class="an-shell-root" data-component="an-shell-session">
       <AnShellHosts directory={props.view.directory()} agent={currentAgent()} sessionID={props.view.sessionID()} />
       <AnShell
-        mode="conversation"
+        mode={mode()}
+        onModeChange={onModeChange}
+        onHandBack={onHandBack}
+        onStopTakeover={onStopTakeover}
         navItems={navItems()}
         roster={roster.bound().roster}
         rosterFooter={rosterFooter()}
         mission={mission()}
         attention={attention.bound().attention}
         attentionEmpty={attention.bound().emptyMessage}
+        computerEmpty="No live computer feed yet. Panel stays visible — attach a computer session to populate."
+        computerTitle="Live computer"
         onSelectNav={onSelectNav}
         onSelectMember={(id) => void openMember(id)}
       >

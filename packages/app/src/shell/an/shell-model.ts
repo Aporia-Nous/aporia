@@ -1,13 +1,16 @@
-import { AN_SHELL_MODES, isAnShellMode, type AnShellMode } from "./tokens"
+import { AN_SHELL_MODES, anShellLayout, isAnShellMode, type AnShellLayout, type AnShellMode } from "./tokens"
 import type { AnAttentionItem, AnMissionHeader, AnNavItem, AnRosterMember } from "./types"
 
 export type AnShellModel = {
   mode: AnShellMode
+  layout: AnShellLayout
   navItems: AnNavItem[]
   roster: AnRosterMember[]
   mission: AnMissionHeader
   attention: AnAttentionItem[]
+  /** Attention rail stays in the region list even when empty (always-on). */
   regions: readonly ["nav", "roster", "mission", "stream", "attention"]
+  attentionAlwaysOn: true
 }
 
 /** Pure Stage 4 shell model — columns match approved AN layout; no fake presence/progress. */
@@ -29,6 +32,7 @@ export function buildAnShellModel(input: {
   }
   return {
     mode,
+    layout: anShellLayout(mode),
     navItems: input.navItems ?? [],
     roster: (input.roster ?? []).map((member) => ({
       ...member,
@@ -38,6 +42,7 @@ export function buildAnShellModel(input: {
     mission,
     attention: input.attention ?? [],
     regions: ["nav", "roster", "mission", "stream", "attention"],
+    attentionAlwaysOn: true,
   }
 }
 

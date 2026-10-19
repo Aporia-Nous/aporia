@@ -15,14 +15,17 @@ Authorization: Ali “get your screen shots cuz design isnt quite right” (plus
 - `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4\docs\an-rewrite\evidence\screenshots-2026-10-18\03-desktop-full-canvas.webp` — computer-use primary canvas (Aporetic occluded by Cursor)
 - `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4\docs\an-rewrite\evidence\screenshots-2026-10-18\04-primary-screen-blit.png` — primary-screen blit without focus (Aporetic occluded)
 - `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4\docs\an-rewrite\evidence\screenshots-2026-10-18\05-composer-an-tokens-after.png` — **AP-STAGE4-03 after** PrintWindow (Electron PID 59784); composer center sampled `#020509` (before `01-…` was `#121B39`)
+- `…/06-conversation-glass-rail.png` — **AP-STAGE4-04** Conversation: glass + always-on Live computer/Attention empty
+- `…/07-view-mode.png` — **AP-STAGE4-04** View active (watch-only rail)
+- `…/08-takeover-mode.png` — **AP-STAGE4-04** Takeover: computer primary + Hand back/Stop + chat on rail
 
 ## Capture notes
 - Browser MCP of `localhost:5173` → black empty `#root` (not AnShell). Prefer Electron window capture.
-- Fragile focus scripts avoided. Working path: `PrintWindow(..., PW_RENDERFULLCONTENT)` on Aporetic HWND.
+- Working path: `PrintWindow(..., PW_RENDERFULLCONTENT)` on Aporetic HWND; mode flips via CDP `9222` `.an-mode-btn` click.
 - If a human-visible desktop shot with Aporetic on top is needed: click the **Aporetic** taskbar button so it is unoccluded, then re-run PrintWindow or Snipping Tool.
 
 ## View / Takeover
-Not captured. `session-layout.tsx` hardcodes `mode="conversation"`; header chip is a non-interactive label. Stage 5 modes deferred.
+Captured AP-STAGE4-04 (`07` / `08`). Interactive three-state only — Stage 5 four-mode deferred.
 
 ## Design match
-NOT matching approved packet. See `DESIGN-GAPS.md` in this folder.
+Closer (glass + rail + modes) but not Stage 8 PASS. Remaining gaps in `DESIGN-GAPS.md`.

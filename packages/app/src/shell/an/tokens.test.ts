@@ -4,6 +4,7 @@ import {
   AN_DESIGN_SOURCE,
   AN_SHELL_MODES,
   AN_TOKENS,
+  anShellLayout,
   anShellModeLabel,
   isAnShellMode,
   presenceDotClass,
@@ -57,13 +58,33 @@ describe("AN Stage 4 tokens", () => {
     expect(AN_COMPOSER_SURFACE.fill.toLowerCase()).not.toBe("#121b37")
     expect(AN_COMPOSER_SURFACE.fill.toLowerCase()).not.toBe("#151e3e")
   })
+
+  test("glass panel tokens are translucent (AP-STAGE4-04)", () => {
+    expect(AN_TOKENS.panel).toContain("0.58")
+    expect(AN_TOKENS.panelRaised).toContain("0.72")
+    expect(AN_TOKENS.panelGlass).toContain("0.42")
+    expect(AN_TOKENS.glow).toContain("0.28")
+  })
+
+  test("three-state layout flags (AP-STAGE4-04)", () => {
+    expect(anShellLayout("conversation")).toEqual({
+      mode: "conversation",
+      attentionAlwaysOn: true,
+      computerBeside: false,
+      computerPrimary: false,
+    })
+    expect(anShellLayout("view")).toMatchObject({ computerBeside: true, computerPrimary: false })
+    expect(anShellLayout("takeover")).toMatchObject({ computerBeside: false, computerPrimary: true })
+  })
 })
 
 describe("AN shell model", () => {
-  test("regions match Stage 4 rails", () => {
+  test("regions match Stage 4 rails and attention stays always-on", () => {
     const model = buildAnShellModel({})
     expect(model.regions).toEqual(["nav", "roster", "mission", "stream", "attention"])
+    expect(model.attentionAlwaysOn).toBe(true)
     expect(model.mode).toBe("conversation")
+    expect(model.layout.attentionAlwaysOn).toBe(true)
     expect(model.mission.title).toBe("Mission")
     expect(model.mission.progressPercent).toBeUndefined()
   })
@@ -80,5 +101,11 @@ describe("AN shell model", () => {
     expect(model.mission.progressPercent).toBe(100)
     expect(model.roster[0]?.presence).toBe("unknown")
     expect(model.attention).toHaveLength(1)
+  })
+
+  test("view and takeover layouts flip computer placement", () => {
+    expect(buildAnShellModel({ mode: "view" }).layout.computerBeside).toBe(true)
+    expect(buildAnShellModel({ mode: "takeover" }).layout.computerPrimary).toBe(true)
+    expect(buildAnShellModel({ mode: "status" as string }).mode).toBe("conversation")
   })
 })

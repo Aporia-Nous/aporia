@@ -1,5 +1,11 @@
 import { For, Show, type JSX } from "solid-js"
-import { anShellModeLabel, presenceDotClass, type AnShellMode } from "./tokens"
+import {
+  AN_SHELL_MODES,
+  anShellLayout,
+  anShellModeLabel,
+  presenceDotClass,
+  type AnShellMode,
+} from "./tokens"
 import type { AnShellProps } from "./types"
 import "./an-shell.css"
 
@@ -10,6 +16,9 @@ const DEFAULT_NAV = [
   { id: "settings", label: "Settings", icon: "⚙" },
 ] as const
 
+const DEFAULT_COMPUTER_EMPTY =
+  "No live computer feed yet. Surface stays visible — attach a session to populate."
+
 function initials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean)
   if (parts.length === 0) return "?"
@@ -17,11 +26,68 @@ function initials(name: string) {
   return `${parts[0]![0] ?? ""}${parts[1]![0] ?? ""}`.toUpperCase()
 }
 
+function LiveComputerPanel(props: {
+  title: string
+  empty: string
+  size: "compact" | "large" | "primary"
+  live?: boolean
+}) {
+  return (
+    <section class="an-computer" data-size={props.size} aria-label={props.title}>
+      <header class="an-computer-header">
+        <strong>{props.title}</strong>
+        <span class="an-computer-badge" data-live={props.live ? "true" : "false"}>
+          {props.live ? "Live" : "Idle"}
+        </span>
+      </header>
+      <div class="an-computer-surface" data-empty="true">
+        <p class="an-computer-empty">{props.empty}</p>
+      </div>
+      <Show when={props.size !== "primary"}>
+        <p class="an-computer-note">Watch only in View — input requires Takeover.</p>
+      </Show>
+    </section>
+  )
+}
+
+function ModeSwitcher(props: {
+  mode: AnShellMode
+  onChange?: (mode: AnShellMode) => void
+}) {
+  return (
+    <div
+      class="an-mode-switch"
+      role="radiogroup"
+      aria-label="Shell mode (Conversation, View, Takeover)"
+    >
+      <For each={[...AN_SHELL_MODES]}>
+        {(id) => (
+          <button
+            type="button"
+            class="an-mode-btn"
+            role="radio"
+            data-mode={id}
+            data-active={props.mode === id ? "true" : "false"}
+            aria-checked={props.mode === id}
+            title={anShellModeLabel(id)}
+            onClick={() => props.onChange?.(id)}
+          >
+            {anShellModeLabel(id)}
+          </button>
+        )}
+      </For>
+    </div>
+  )
+}
+
 export function AnShell(props: AnShellProps): JSX.Element {
   const mode = (): AnShellMode => props.mode ?? "conversation"
+  const layout = () => anShellLayout(mode())
   const nav = () => props.navItems ?? [...DEFAULT_NAV]
   const attention = () => props.attention ?? []
   const roster = () => props.roster ?? []
+  const computerEmpty = () => props.computerEmpty ?? DEFAULT_COMPUTER_EMPTY
+  const computerTitle = () => props.computerTitle ?? "Live computer"
   const progress = () => {
     const value = props.mission?.progressPercent
     if (value === undefined || Number.isNaN(value)) return undefined
@@ -33,7 +99,7 @@ export function AnShell(props: AnShellProps): JSX.Element {
       data-component="an-shell"
       data-an-theme="an"
       data-mode={mode()}
-      data-attention-collapsed={attention().length === 0 ? "" : undefined}
+      data-attention-always-on=""
     >
       <nav class="an-nav" aria-label="AN navigation">
         <div class="an-nav-brand" title={props.brandTitle ?? "Aporia Nous"} aria-label="AN">
@@ -120,14 +186,54 @@ export function AnShell(props: AnShellProps): JSX.Element {
               </For>
             </div>
           </Show>
-          <span class="an-mode-chip" data-mode={mode()} title="Approved three-state framing (Stage 5 modes deferred)">
-            {anShellModeLabel(mode())}
-          </span>
+          <ModeSwitcher mode={mode()} onChange={props.onModeChange} />
         </header>
-        <div class="an-stream">{props.children}</div>
+
+        <Show when={layout().computerPrimary}>
+          <div class="an-takeover-stage" aria-label="Computer takeover">
+            <div class="an-takeover-banner">
+              <span class="an-takeover-pill">Live takeover</span>
+              <span class="an-takeover-copy">
+                You are controlling the computer surface. Backend may be stubbed — affordances stay honest.
+              </span>
+            </div>
+            <LiveComputerPanel
+              title={computerTitle()}
+              empty={computerEmpty()}
+              size="primary"
+              live={false}
+            />
+            <div class="an-takeover-bar" role="toolbar" aria-label="Takeover controls">
+              <button type="button" class="an-takeover-handback" onClick={() => props.onHandBack?.()}>
+                Hand back
+              </button>
+              <button type="button" class="an-takeover-stop" onClick={() => props.onStopTakeover?.()}>
+                Stop
+              </button>
+            </div>
+          </div>
+        </Show>
+
+        <Show when={!layout().computerPrimary}>
+          <div class="an-stream">{props.children}</div>
+        </Show>
       </section>
 
-      <aside class="an-attention" aria-label="Attention">
+      <aside class="an-attention" aria-label="Attention and live computer">
+        <Show when={layout().computerPrimary}>
+          <div class="an-attention-header">Conversation</div>
+          <div class="an-stream an-stream--rail">{props.children}</div>
+        </Show>
+
+        <Show when={!layout().computerPrimary}>
+          <LiveComputerPanel
+            title={computerTitle()}
+            empty={computerEmpty()}
+            size={layout().computerBeside ? "large" : "compact"}
+            live={false}
+          />
+        </Show>
+
         <div class="an-attention-header">{props.attentionTitle ?? "Attention"}</div>
         <div class="an-attention-list">
           <Show

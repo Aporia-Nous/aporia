@@ -43,11 +43,19 @@ export type AnShellProps = ParentProps<{
   mission?: AnMissionHeader
   attentionTitle?: string
   attention?: AnAttentionItem[]
-  /** Display-only three-state framing from approved mockups; not Stage 5 control lock. */
+  /** Approved three-state framing (Conversation / View / Takeover); not Stage 5 control lock. */
   mode?: AnShellMode
+  /** Interactive mode switch — layout changes; backends may still be stubbed. */
+  onModeChange?: (mode: AnShellMode) => void
   onSelectNav?: (id: string) => void
   onSelectMember?: (id: string) => void
   onSelectAttention?: (id: string) => void
+  /** Takeover chrome stubs — honest no-ops when computer backend is missing. */
+  onHandBack?: () => void
+  onStopTakeover?: () => void
   rosterFooter?: JSX.Element
   attentionEmpty?: string
+  /** Honest empty copy for the always-on live computer panel. */
+  computerEmpty?: string
+  computerTitle?: string
 }>

@@ -1002,14 +1002,26 @@ id `an` (black/gold); Lagoon Night not adopted; Conversation/View/Takeover frami
 
 Report: `docs/an-rewrite/CURSOR-AP-STAGE4-02.md`.
 
-### Stage 4 polish — Composer AN tokens (AP-STAGE4-03) — OPEN for review (no PASS claim)
+### Stage 4 polish — Composer AN tokens (AP-STAGE4-03) — INDEPENDENT PASS (composer-token scope)
 
 Worktree `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` on branch `stage4-an-shell`
-@ `380620883c` (continues from tip `7d0712bb07`). Report: `docs/an-rewrite/CURSOR-AP-STAGE4-03.md`.
+@ `380620883c` (tip `369a549991`). Report: `docs/an-rewrite/CURSOR-AP-STAGE4-03.md`.
 
 | item | value |
 | - | - |
 | landed | AnShell/`an` composer void fill `#020509` + gold focus/send; `an.json` v2Overrides pin layer-01/base; editor.css beats navy dock rule |
 | evidence | before `01-conversation-default.png` center `#121B39` → after `05-composer-an-tokens-after.png` center `#020509`; unit 13+3 pass |
-| deferred | View/Takeover, attention always-on, cards, New teammate, full glass |
+| deferred | (continued in AP-STAGE4-04) |
+| not claimed | Stage 4 complete, merge, push |
+
+### Stage 4 visual/behavior — Glass + rail + three-state (AP-STAGE4-04) — OPEN for review (no PASS claim)
+
+Worktree `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` on branch `stage4-an-shell`
+(continues from tip `369a549991`). Report: `docs/an-rewrite/CURSOR-AP-STAGE4-04.md`.
+
+| item | value |
+| - | - |
+| landed | Soft glass + CSS atmosphere; always-on Live computer + Attention; interactive Conversation/View/Takeover layouts; Hand back/Stop stubs |
+| evidence | `06-conversation-glass-rail.png`, `07-view-mode.png`, `08-takeover-mode.png`; unit 16 app + 3 ui pass |
+| deferred | Task/Approval/Proof cards, New teammate, mission pills without data, Stage 4b, Stage 5 four-mode |
 | not claimed | independent PASS, Stage 4 complete, merge, push |

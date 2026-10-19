@@ -16,17 +16,38 @@ export const AN_TOKENS = {
   green: "#3be78c",
   ink: "#03070b",
   void: "#020509",
-  panel: "rgba(4, 9, 13, 0.76)",
-  panelRaised: "rgba(5, 10, 14, 0.94)",
+  panel: "rgba(4, 9, 13, 0.58)",
+  panelRaised: "rgba(5, 10, 14, 0.72)",
+  panelGlass: "rgba(6, 12, 18, 0.42)",
   border: "rgba(240, 198, 109, 0.34)",
   borderSoft: "rgba(240, 198, 109, 0.18)",
   borderStrong: "rgba(240, 198, 109, 0.55)",
-  glow: "rgba(231, 154, 29, 0.2)",
+  glow: "rgba(231, 154, 29, 0.28)",
   text: "#f0e6d2",
   textMuted: "#cfac62",
   danger: "#f87171",
   themeId: "an",
 } as const
+
+/** Layout flags for approved three-state chrome (not Stage 5 four-mode). */
+export type AnShellLayout = {
+  mode: AnShellMode
+  /** Attention / live-computer rail never collapses to width 0. */
+  attentionAlwaysOn: true
+  /** View: live surface beside chat (watch only — no input grant). */
+  computerBeside: boolean
+  /** Takeover: computer primary; Hand back / Stop are chrome affordances. */
+  computerPrimary: boolean
+}
+
+export function anShellLayout(mode: AnShellMode): AnShellLayout {
+  return {
+    mode,
+    attentionAlwaysOn: true,
+    computerBeside: mode === "view",
+    computerPrimary: mode === "takeover",
+  }
+}
 
 export type AnTokenName = keyof typeof AN_TOKENS
 
