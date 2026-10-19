@@ -5,7 +5,7 @@
 **Worktree:** `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4`  
 **Branch:** `stage4-an-shell`  
 **Base:** `538e7b1999` (AP-ENGINE-PORT-01 INDEPENDENT PASS)  
-**Code tip:** `7467e14aee` (docs tip-sync may follow)
+**Code:** `7467e14aee` · **Tip:** `5449a6027f`
 
 ## Scope
 
