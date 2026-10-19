@@ -54,7 +54,8 @@ export function attentionCardsToItems(cards: readonly AnBindAttentionCard[]): An
   }))
 }
 
-/** Mission header from live session info. Omits progress when task progress is unavailable. */
+/** Mission header from live session info. Omits progress when task progress is unavailable.
+ *  Pills: Local is real for desktop; Private/Efficient/Verified stay marked unavailable (no fake telemetry). */
 export function missionFromSession(input: {
   title?: string
   agent?: string
@@ -63,14 +64,18 @@ export function missionFromSession(input: {
 }): AnMissionHeader {
   const title = input.title?.trim() || input.agent?.trim() || "Mission"
   const subtitleParts = [input.agent?.trim(), input.directory?.trim()].filter(Boolean)
-  const mission: AnMissionHeader = {
+  const pills: AnMissionHeader["pills"] = [
+    { label: "Local", tone: "ok" },
+    { label: "Private · unavailable", tone: "neutral" },
+    { label: "Efficient · unavailable", tone: "neutral" },
+    { label: "Verified · unavailable", tone: "neutral" },
+  ]
+  if (input.working) pills.unshift({ label: "Working", tone: "ok" })
+  return {
     title,
     subtitle: subtitleParts.length ? subtitleParts.join(" · ") : undefined,
+    pills,
   }
-  if (input.working) {
-    mission.pills = [{ label: "Working", tone: "ok" }]
-  }
-  return mission
 }
 
 export type AnRosterBindResult = {

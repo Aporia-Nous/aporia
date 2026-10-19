@@ -435,6 +435,33 @@
   gap: 8px;
 }
 
+.an-attention-card-wrap {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--an-radius);
+}
+
+.an-attention-card-wrap:focus-visible {
+  outline: none;
+  box-shadow: var(--an-focus);
+}
+
+.an-attention-card-wrap .an-card {
+  transition: border-color var(--an-ease), box-shadow var(--an-ease);
+}
+
+.an-attention-card-wrap:hover .an-card {
+  border-color: var(--an-border-strong);
+  box-shadow: 0 0 28px var(--an-glow);
+}
+
+/* Legacy attention chip (kept for non-card call sites) */
 .an-attention-card {
   display: flex;
   flex-direction: column;
@@ -464,6 +491,39 @@
 .an-attention-card span {
   color: var(--an-text-muted);
   font-size: 12px;
+}
+
+.an-roster-footer-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.an-new-teammate {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px dashed var(--an-border);
+  border-radius: var(--an-radius);
+  background: rgba(4, 9, 13, 0.35);
+  color: var(--an-gold-soft);
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: border-color var(--an-ease), color var(--an-ease), box-shadow var(--an-ease);
+}
+
+.an-new-teammate:hover {
+  border-style: solid;
+  border-color: var(--an-border-strong);
+  color: var(--an-gold);
+  box-shadow: 0 0 18px var(--an-glow-soft);
+}
+
+.an-permission-card-host {
+  width: 100%;
+  margin-bottom: 10px;
+  pointer-events: auto;
 }
 
 .an-attention-empty {

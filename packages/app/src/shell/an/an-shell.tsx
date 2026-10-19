@@ -1,4 +1,7 @@
-import { For, Show, type JSX } from "solid-js"
+import { For, Show, type JSX, type ParentProps } from "solid-js"
+import { AnCard, AnStreamCards } from "./cards"
+import { attentionToApprovalCards } from "./cards/map"
+import type { AnCardModel } from "./cards/types"
 import {
   AN_PRODUCT_NAME,
   AN_SHELL_MODES,
@@ -9,6 +12,23 @@ import {
 } from "./tokens"
 import type { AnShellProps } from "./types"
 import "./an-shell.css"
+
+function StreamRegion(
+  props: ParentProps<{
+    cards: AnCardModel[]
+    onCardAction?: (actionId: string, card: AnCardModel) => void
+  }>,
+) {
+  return (
+    <>
+      <AnStreamCards
+        cards={props.cards}
+        onAction={(action, card) => props.onCardAction?.(action.id, card)}
+      />
+      <div class="an-stream-legacy">{props.children}</div>
+    </>
+  )
+}
 
 const DEFAULT_NAV = [
   { id: "home", label: "Home", icon: "⌂", active: true },
@@ -87,6 +107,8 @@ export function AnShell(props: AnShellProps): JSX.Element {
   const nav = () => props.navItems ?? [...DEFAULT_NAV]
   const attention = () => props.attention ?? []
   const roster = () => props.roster ?? []
+  const streamCards = () => props.streamCards ?? []
+  const attentionCards = () => attentionToApprovalCards(attention())
   const computerEmpty = () => props.computerEmpty ?? DEFAULT_COMPUTER_EMPTY
   const computerTitle = () => props.computerTitle ?? "Live computer"
   const progress = () => {
@@ -216,14 +238,22 @@ export function AnShell(props: AnShellProps): JSX.Element {
         </Show>
 
         <Show when={!layout().computerPrimary}>
-          <div class="an-stream">{props.children}</div>
+          <div class="an-stream">
+            <StreamRegion cards={streamCards()} onCardAction={props.onStreamCardAction}>
+              {props.children}
+            </StreamRegion>
+          </div>
         </Show>
       </section>
 
       <aside class="an-attention" aria-label="Attention and live computer">
         <Show when={layout().computerPrimary}>
           <div class="an-attention-header">Conversation</div>
-          <div class="an-stream an-stream--rail">{props.children}</div>
+          <div class="an-stream an-stream--rail">
+            <StreamRegion cards={streamCards()} onCardAction={props.onStreamCardAction}>
+              {props.children}
+            </StreamRegion>
+          </div>
         </Show>
 
         <Show when={!layout().computerPrimary}>
@@ -238,23 +268,32 @@ export function AnShell(props: AnShellProps): JSX.Element {
         <div class="an-attention-header">{props.attentionTitle ?? "Attention"}</div>
         <div class="an-attention-list">
           <Show
-            when={attention().length > 0}
+            when={attentionCards().length > 0}
             fallback={<p class="an-attention-empty">{props.attentionEmpty ?? "No blockers right now."}</p>}
           >
-            <For each={attention()}>
-              {(item) => (
-                <button
-                  type="button"
-                  class="an-attention-card"
-                  data-kind={item.kind ?? "info"}
-                  onClick={() => props.onSelectAttention?.(item.id)}
-                >
-                  <strong>{item.title}</strong>
-                  <Show when={item.detail}>
-                    <span>{item.detail}</span>
-                  </Show>
-                </button>
-              )}
+            <For each={attentionCards()}>
+              {(card) => {
+                const rawId = () =>
+                  card.id.startsWith("attention:") ? card.id.slice("attention:".length) : card.id
+                const railCard = () => ({ ...card, actions: undefined })
+                return (
+                  <div
+                    class="an-attention-card-wrap"
+                    data-kind="approval"
+                    role="button"
+                    tabindex="0"
+                    onClick={() => props.onSelectAttention?.(rawId())}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        props.onSelectAttention?.(rawId())
+                      }
+                    }}
+                  >
+                    <AnCard card={railCard()} density="rail" />
+                  </div>
+                )
+              }}
             </For>
           </Show>
         </div>

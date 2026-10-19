@@ -1,4 +1,5 @@
 import type { AnPresence, AnShellMode } from "./tokens"
+import type { AnCardModel } from "./cards/types"
 import type { JSX, ParentProps } from "solid-js"
 
 export type AnNavItem = {
@@ -45,6 +46,8 @@ export type AnShellProps = ParentProps<{
   mission?: AnMissionHeader
   attentionTitle?: string
   attention?: AnAttentionItem[]
+  /** Mapped AN cards shown at top of the conversation stream (Task/Approval/…). */
+  streamCards?: AnCardModel[]
   /** Approved three-state framing (Conversation / View / Takeover); not Stage 5 control lock. */
   mode?: AnShellMode
   /** Interactive mode switch — layout changes; backends may still be stubbed. */
@@ -52,6 +55,7 @@ export type AnShellProps = ParentProps<{
   onSelectNav?: (id: string) => void
   onSelectMember?: (id: string) => void
   onSelectAttention?: (id: string) => void
+  onStreamCardAction?: (actionId: string, card: AnCardModel) => void
   /** Takeover chrome stubs — honest no-ops when computer backend is missing. */
   onHandBack?: () => void
   onStopTakeover?: () => void

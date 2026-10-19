@@ -9,12 +9,13 @@ Work date: October 19, 2026 (America/Chicago). Board task `AP-STAGE4-04`.
 | cwd | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | branch | `stage4-an-shell` (continues from AP-STAGE4-03 tip `369a549991`) |
 | commit | `05b0142d73` — `feat(an-shell): glass, always-on rail, three-state modes (AP-STAGE4-04)` |
+| tip | `b5831ea1cb` — docs tip after code |
 | ownership | this worktree only — not `cursor-aporetic` (Stage 0) and not `C:\Tools\aporia` |
 | push | none |
 | merge | none |
 | Stage 4 complete | not claimed |
-| independent PASS | **not claimed** — OPEN for review |
-| running-DEV | used for re-screenshot + CDP mode clicks; not an acceptance PASS |
+| independent PASS | **INDEPENDENT PASS (glass/rail/three-state scope)** — 2026-10-19 |
+| running-DEV | CDP mode flips verified interactive; not Stage 8 / product acceptance PASS |
 
 ## Why this slice
 
@@ -47,7 +48,26 @@ Work date: October 19, 2026 (America/Chicago). Board task `AP-STAGE4-04`.
 | Conversation / View / Takeover changes layout (not label-only) | Done — View widens computer rail; Takeover computer primary + chat on rail + Hand back/Stop stubs |
 | Hand back / Stop honest when backend missing | Done — chrome-only alerts; no invented computer control |
 | Mission pills / nav icon pass / card rewrite | Deferred (priority 4 / out of scope) |
-| Independent PASS / merge / push | **Not claimed** — OPEN for review |
+| Independent PASS (this slice) | **PASS** — see Independent verification below |
+| Stage 4 complete / merge / push | **Not claimed** |
+
+## Independent verification (2026-10-19)
+
+Verdict: **PASS** (glass + always-on rail + Conversation/View/Takeover scope only).
+
+| check | result |
+| --- | --- |
+| Code tip | `05b0142d73` code; docs tip `b5831ea1cb`; base `369a549991` |
+| Re-ran tests | `packages/app` shell/an tokens+bind **16 pass / 0 fail**; `packages/ui` an-theme **3 pass / 0 fail** |
+| Glass | Live: `--an-panel-glass rgba(6,12,18,0.42)`, `--an-blur-strong 32px`, nav `backdrop-filter: blur(32px)`, radial atmosphere on shell |
+| Always-on rail | `data-attention-always-on`; no `data-attention-collapsed`; `.an-computer` always in DOM; Conversation attWidth **320** |
+| Mode switch (layout) | Conversation compact/320 → View large/**420** grid → Takeover `computerPrimary` + Hand back/Stop; Hand back → conversation; Stop → view |
+| Three-state only | Exactly Conversation / View / Takeover (labels + `data-mode`); no fourth mode |
+| Shots 06/07/08 | Present; Conversation gold / View gold / Takeover computer-primary + Hand back/Stop |
+| Isolation | Stage 0 `cursor-aporetic` tip unchanged (`b4d2a22a93`); product `C:\Tools\aporia` not this branch; no merge/push |
+| Non-blocking note | Takeover CSS fallback roster `240px` unused while `--an-roster-width` is `280px` — layout still flips via computer-primary |
+
+Deferred (not this slice): DESIGN-GAPS #4–7/#10; photographic atmosphere; Stage 4 complete; Stage 5 four-mode; merge/push.
 
 ## Pixel / running-DEV evidence
 
@@ -82,5 +102,4 @@ Stored under `docs/an-rewrite/evidence/2026-10-19-an-shell-stage4-04.txt` and `�
 
 ## Next
 
-- Independent review of this visual/behavior slice (OPEN).
-- Follow-on: card language, New teammate, mission progress when real; Stage 5 four-mode still deferred.
+- Independent review **PASS** (this slice). Follow-on: Task/Approval/Proof card language, New teammate, mission progress when real; Stage 5 four-mode still deferred. No merge/push without Ali.

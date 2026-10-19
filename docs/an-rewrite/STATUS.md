@@ -1036,3 +1036,15 @@ Worktree `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` on branch
 | landed | AnShell nav/roster defaults + `AN_PRODUCT_NAME` / `AN_PRODUCT_BYLINE`; window title already Aporetic |
 | intentional company strings | vault category, publisher CN, package author, bundle ids |
 | not claimed | independent PASS, Stage 4 complete, merge, push, monorepo rename |
+
+### Stage 4 AN cards — stream card language (AP-STAGE4-06) — OPEN for review
+
+Worktree `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` on branch `stage4-an-shell`
+(base tip `39bf053c7b`). Report: `docs/an-rewrite/CURSOR-AP-STAGE4-06.md`.
+
+| item | value |
+| - | - |
+| landed | Glass AN cards (6 types); stream Computer/Team (+Task/Approval when real); permission→Approval; Attention→Approval; mission unavailable pills; New teammate stub |
+| evidence | shot `09-conversation-an-cards.png`; CDP probe; unit 26 pass |
+| still OpenCode | message/tool/edit chrome in stream legacy; question dock; no live Proof source |
+| not claimed | independent PASS, Stage 4 complete, merge, push |

@@ -42,7 +42,7 @@ describe("AN shell bind", () => {
     expect(attentionBindResult({ available: true, cards: [] }).emptyMessage).toBe("No blockers right now.")
   })
 
-  test("mission header omits invented progress", () => {
+  test("mission header omits invented progress; chrome pills stay honest", () => {
     const mission = missionFromSession({
       title: "Ship Stage 4",
       agent: "build",
@@ -53,6 +53,8 @@ describe("AN shell bind", () => {
     expect(mission.subtitle).toContain("build")
     expect(mission.progressPercent).toBeUndefined()
     expect(mission.pills?.[0]?.label).toBe("Working")
+    expect(mission.pills?.some((p) => p.label === "Local")).toBe(true)
+    expect(mission.pills?.filter((p) => p.label.includes("unavailable")).length).toBe(3)
   })
 
   test("mission-switch survival stays on existing app patterns", () => {

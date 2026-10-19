@@ -17,9 +17,10 @@ import type { SessionInfo, SessionMessageInfo } from "@opencode/client/promise"
 import { Session } from "@opencode/schema/session"
 import { useTheme } from "@opencode/ui/theme/context"
 import { useNavigate } from "@solidjs/router"
-import { createEffect, createMemo, createResource, createSignal, onCleanup, type ParentProps } from "solid-js"
+import { Show, createEffect, createMemo, createResource, createSignal, onCleanup, type ParentProps } from "solid-js"
 import { Portal } from "solid-js/web"
 import { AnShell } from "./an-shell"
+import { buildStreamCards } from "./cards"
 import { attentionBindResult, missionFromSession, rosterBindResult, type AnBindBot } from "./bind"
 import { isAnShellMode, type AnShellMode } from "./tokens"
 import type { AnNavItem } from "./types"
@@ -263,10 +264,41 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     else if (id === "missions") command.trigger("tab.new")
   }
 
+  const streamCards = createMemo(() =>
+    buildStreamCards({
+      attention: attention.bound().attention,
+      roster: roster.bound().roster,
+      session: {
+        sessionID: props.view.sessionID(),
+        title: info()?.title ? prettyTitle(info()!.title) : undefined,
+        agent: currentAgent(),
+        working: props.view.working(),
+      },
+      computerLive: false,
+      includeTeam: true,
+    }),
+  )
+
+  const onNewTeammate = () => {
+    aporiaAlerts.push({
+      title: "New teammate",
+      detail: "Teammate creation sheet not wired yet — stub only (AP-STAGE4-06).",
+      level: "info",
+    })
+  }
+
   const rosterFooter = () => {
     const reason = roster.bound().emptyReason
-    if (!reason) return undefined
-    return <span class="an-roster-empty">{reason}</span>
+    return (
+      <div class="an-roster-footer-stack">
+        <Show when={reason}>
+          <span class="an-roster-empty">{reason}</span>
+        </Show>
+        <button type="button" class="an-new-teammate" onClick={onNewTeammate} title="New teammate (stub)">
+          + New teammate
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -283,10 +315,18 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         mission={mission()}
         attention={attention.bound().attention}
         attentionEmpty={attention.bound().emptyMessage}
+        streamCards={streamCards()}
         computerEmpty="No live computer feed yet. Panel stays visible — attach a computer session to populate."
         computerTitle="Live computer"
         onSelectNav={onSelectNav}
         onSelectMember={(id) => void openMember(id)}
+        onStreamCardAction={(actionId, card) => {
+          aporiaAlerts.push({
+            title: `${card.type} · ${actionId}`,
+            detail: "Card action stub — backend not bound for this control yet.",
+            level: "info",
+          })
+        }}
       >
         <div class="an-stream-slot">{props.children}</div>
       </AnShell>

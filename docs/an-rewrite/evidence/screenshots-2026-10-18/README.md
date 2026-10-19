@@ -18,6 +18,7 @@ Authorization: Ali “get your screen shots cuz design isnt quite right” (plus
 - `…/06-conversation-glass-rail.png` — **AP-STAGE4-04** Conversation: glass + always-on Live computer/Attention empty
 - `…/07-view-mode.png` — **AP-STAGE4-04** View active (watch-only rail)
 - `…/08-takeover-mode.png` — **AP-STAGE4-04** Takeover: computer primary + Hand back/Stop + chat on rail
+- `…/09-conversation-an-cards.png` — **AP-STAGE4-06** Conversation: Mission cards (Computer Idle + Team roster) + Local/unavailable pills + New teammate stub (OPEN review, no PASS)
 
 ## Capture notes
 - Browser MCP of `localhost:5173` → black empty `#root` (not AnShell). Prefer Electron window capture.

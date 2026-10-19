@@ -9,17 +9,17 @@ Compared DEV screenshots to:
 
 ## Critical / clearly wrong
 1. **Composer is navy/indigo, not AN black/gold.** ~~Sampled composer fill ~#121b37~~ → **Addressed AP-STAGE4-03** (after `05-composer-an-tokens-after.png` center `#020509`). OPEN review / PASS recorded separately.
-2. **No View / Takeover UI.** ~~Chip label-only~~ → **Addressed AP-STAGE4-04**: interactive Conversation / View / Takeover; layout changes; shots `07-view-mode.png`, `08-takeover-mode.png`. OPEN for review (not PASS).
-3. **Attention / right rail collapsed.** ~~Width 0 when empty~~ → **Addressed AP-STAGE4-04**: always-on Live computer + Attention with honest empty; shot `06-conversation-glass-rail.png`. OPEN for review.
+2. **No View / Takeover UI.** ~~Chip label-only~~ → **Addressed AP-STAGE4-04** (**INDEPENDENT PASS** 2026-10-19): interactive Conversation / View / Takeover; layout changes; shots `07-view-mode.png`, `08-takeover-mode.png`; CDP confirms mode/layout flips.
+3. **Attention / right rail collapsed.** ~~Width 0 when empty~~ → **Addressed AP-STAGE4-04** (**INDEPENDENT PASS** 2026-10-19): always-on Live computer + Attention with honest empty; shot `06-conversation-glass-rail.png`; CDP attWidth ≥320, no collapse.
 
-## Layout / structure gaps (still open)
-4. **Stream is still OpenCode message chrome** (tool edit cards, raw git logs, model footer) — not the approved Task / Approval / Proof / Team / Computer card language.
-5. **Mission header incomplete vs mockup:** no progress %, no Local/Private/Efficient/Verified pills (unless real data), no “Computer online” / Podman status strip, no profile avatar cluster.
-6. **Roster footer missing:** no “+ Add a bot”, no Podman/runtime status card at sidebar bottom.
+## Layout / structure gaps
+4. **Stream card language:** ~~pure OpenCode only~~ → **Partially addressed AP-STAGE4-06** (OPEN for review, **no PASS**): glass AN cards Task/Approval/Decision/Proof/Computer/Team implemented; stream shows Computer + Team (and Task when working; Approval when attention open); permission dock → Approval card under AnShell; Attention rail uses Approval cards. Residual OpenCode message/tool/edit chrome still present below/alongside — not fully replaced. Shot `09-conversation-an-cards.png`.
+5. **Mission header incomplete vs mockup:** ~~missing pills~~ → **Partial AP-STAGE4-06**: Local + honest `Private/Efficient/Verified · unavailable` pills (no fake telemetry); still no real progress %, Computer-online/Podman strip, or avatar cluster.
+6. **Roster footer:** ~~missing~~ → **Partial AP-STAGE4-06**: `+ New teammate` stub (alert only); still no Podman/runtime status card.
 7. **Nav icons are placeholder glyphs** (⌂ ▦ ▣ ⚙) vs approved illustrated icon set; gold active punch-up improved in AP-STAGE4-04 but icons still scaffolded.
 
 ## Atmosphere / material
-8. **Flat void vs cinematic glass:** ~~matte void only~~ → **Partially addressed AP-STAGE4-04** (CSS atmosphere + softer glass). Still not photographic nebula/landscape underlay from mockup PNGs — gradients only by design (no fake telemetry imagery).
+8. **Flat void vs cinematic glass:** ~~matte void only~~ → **Addressed for Stage 4 CSS glass (AP-STAGE4-04 PASS)**: translucent panels + blur + radial atmosphere verified live. Still not photographic nebula/landscape underlay from mockup PNGs — gradients only by design (no fake telemetry imagery); optional polish later.
 9. **Selected roster gold muted:** ~~#aa8d52~~ → **Punch-up in AP-STAGE4-04** (token gold border + glow). Re-check vs electric gold on review.
 10. **Typography:** shell CSS still Segoe UI Variable/system; approved sheet reads more custom/premium.
 
@@ -29,8 +29,7 @@ Compared DEV screenshots to:
 - Interactive Conversation / View / Takeover framing
 - Always-on Live computer + Attention rail
 - Roster of real bots with gold names
+- Mission cards strip (Computer / Team) in Conversation stream
 
 ## Recommended next fix slice
-**AP-STAGE4-04 (glass + rail + three-state) — source + screenshots OPEN for review (2026-10-19):** report `CURSOR-AP-STAGE4-04.md`. Not independent PASS. Remaining: card language (#4), mission/runtime chrome (#5–6), nav icons (#7), photographic atmosphere optional.
-
-Follow-on: Task/Approval/Proof cards; New teammate; Stage 5 four-mode still deferred.
+**AP-STAGE4-06 (AN card language) — OPEN for review (2026-10-19):** report `CURSOR-AP-STAGE4-06.md`; shot `09-conversation-an-cards.png`. No independent PASS claimed this slice. Remaining: deeper tool-part→card map; Decision/Proof live sources; Podman/runtime chrome; nav icons (#7); Stage 5 four-mode deferred. No merge/push.
