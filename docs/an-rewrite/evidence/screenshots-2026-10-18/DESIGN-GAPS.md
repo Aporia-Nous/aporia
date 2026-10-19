@@ -19,8 +19,8 @@ Compared DEV screenshots to:
 7. **Nav icons:** ~~placeholder glyphs (⌂ ▦ ▣ ⚙)~~ → **Partial AP-STAGE4-07**: line SVG icons + stronger gold active punch; not yet full illustrated mockup set.
 
 ## Atmosphere / material
-8. **Flat void vs cinematic glass:** ~~matte void only~~ → **Addressed for Stage 4 CSS glass (AP-STAGE4-04 PASS)**: translucent panels + blur + radial atmosphere verified live. Still not photographic nebula/landscape underlay from mockup PNGs — gradients only by design (no fake telemetry imagery); optional polish later.
-9. **Selected roster gold muted:** ~~#aa8d52~~ → **Punch-up AP-STAGE4-07** (token gold `#f0c66d` border + stronger glow; CDP `selectedBorder=rgb(240, 198, 109)`).
+8. **Flat void vs cinematic glass:** ~~matte void only~~ → **AP-STAGE4-04 glass** then **feel polish AP-STAGE4-08** (OPEN review, **no PASS**): Ali 2026-10-19 frictionless ice/glass — cooler translucent depth, blur 28/42 + saturate, specular ice edge, softer shadows, mode/rail/card motion; shot `12-ice-glass-feel.png`. Still not photographic nebula underlay (gradients only by design).
+9. **Selected roster gold muted:** ~~#aa8d52~~ → **Punch-up AP-STAGE4-07** (token gold `#f0c66d` border + stronger glow; CDP `selectedBorder=rgb(240, 198, 109)`); AP-STAGE4-08 softens punch slightly toward ice-glass (border-strong + softer glow).
 10. **Typography:** shell CSS still Segoe UI Variable/system; approved sheet reads more custom/premium.
 
 ## What is roughly on-direction
@@ -33,4 +33,4 @@ Compared DEV screenshots to:
 - Line nav icons (not emoji clutter)
 
 ## Recommended next fix slice
-**AP-STAGE4-07 (stream OpenCode residual) — OPEN for review (2026-10-19):** report `CURSOR-AP-STAGE4-07.md`; shot `10-conversation-stream-glass.png`. No independent PASS claimed this slice. Remaining: Session dock → AN conversation surface; live Decision/Proof demos with real tools; Podman/runtime chrome; illustrated nav set; Stage 5 four-mode deferred. No merge/push.
+**AP-STAGE4-08 (ice/glass feel) — OPEN for review (2026-10-19):** report `CURSOR-AP-STAGE4-08.md`; shot `12-ice-glass-feel.png`. No independent PASS claimed this slice. Remaining after feel: deeper Session conversation surface vs mockup; Podman/runtime chrome; illustrated nav; Stage 5 four-mode deferred. No merge/push.

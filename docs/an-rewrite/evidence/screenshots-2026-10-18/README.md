@@ -20,6 +20,7 @@ Authorization: Ali “get your screen shots cuz design isnt quite right” (plus
 - `…/08-takeover-mode.png` — **AP-STAGE4-04** Takeover: computer primary + Hand back/Stop + chat on rail
 - `…/09-conversation-an-cards.png` — **AP-STAGE4-06** Conversation: Mission cards (Computer Idle + Team roster) + Local/unavailable pills + New teammate stub (OPEN review, no PASS)
 - `…/10-conversation-stream-glass.png` — **AP-STAGE4-07** Conversation after stream glass/tool map + SVG nav + gold punch (CDP `Page.captureScreenshot`; PrintWindow black this run). OPEN review, no PASS. Compare vs `09`.
+- `…/12-ice-glass-feel.png` — **AP-STAGE4-08** Conversation after frictionless ice/glass feel polish (CDP `Page.captureScreenshot`; tokens blur 28/42, ice sheen/edge, card appear, glass dock). OPEN review, no PASS. Compare vs `10`.
 
 ## Capture notes
 - Browser MCP of `localhost:5173` → black empty `#root` (not AnShell). Prefer Electron window capture.
