@@ -303,6 +303,8 @@ export function BasicTool(props: BasicToolProps) {
       class="tool-collapsible"
       data-compact={props.compact ? "true" : undefined}
       data-rail={props.rail === false ? "false" : undefined}
+      data-status={props.status}
+      data-an-part="tool"
     >
       <Show
         when={!props.locked && (props.triggerAsLink || props.triggerHref)}

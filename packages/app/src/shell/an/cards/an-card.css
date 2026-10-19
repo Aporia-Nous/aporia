@@ -357,7 +357,8 @@
 
 /* Soft glass wrap for residual OpenCode tool/permission chrome inside AnShell */
 [data-component="an-shell"] .an-stream-legacy [data-component="dock-prompt"],
-[data-component="an-shell"] .an-stream-slot [data-component="dock-prompt"] {
+[data-component="an-shell"] .an-stream-slot [data-component="dock-prompt"],
+[data-component="an-shell"] .an-question-card-host [data-component="dock-prompt"] {
   border: 1px solid var(--an-border, rgba(240, 198, 109, 0.34)) !important;
   border-radius: var(--an-radius, 12px) !important;
   background:
@@ -366,7 +367,110 @@
   box-shadow: 0 0 22px var(--an-glow-soft, rgba(231, 154, 29, 0.1)) !important;
 }
 
-[data-component="an-shell"] .an-stream-legacy [data-component*="tool"],
-[data-component="an-shell"] .an-stream-slot [data-slot="message-part"] {
+/* Session panel: void glass instead of raised OpenCode chrome */
+[data-component="an-shell"] [data-slot="session-chat-panel"] > div {
+  border: 1px solid var(--an-border-soft, rgba(240, 198, 109, 0.18)) !important;
+  border-radius: var(--an-radius, 12px) !important;
+  background:
+    linear-gradient(180deg, rgba(240, 198, 109, 0.05) 0%, transparent 36%),
+    rgba(2, 5, 9, 0.82) !important;
+  box-shadow:
+    0 12px 36px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 236, 190, 0.08) !important;
+}
+
+[data-component="an-shell"] [data-component="session-composer-dock"] {
+  background: transparent !important;
+}
+
+/* Tool / edit parts → AN Task/Proof glass language (interactive body kept) */
+[data-component="an-shell"] .tool-collapsible,
+[data-component="an-shell"] [data-an-part="tool"] {
+  position: relative;
+  margin: 6px 0;
+  padding: 10px 12px 8px;
+  border: 1px solid var(--an-border-soft, rgba(240, 198, 109, 0.18));
+  border-radius: var(--an-radius, 12px);
+  background:
+    linear-gradient(180deg, rgba(240, 198, 109, 0.07) 0%, transparent 42%),
+    var(--an-panel-raised, rgba(5, 10, 14, 0.72));
+  backdrop-filter: blur(var(--an-blur, 18px));
+  -webkit-backdrop-filter: blur(var(--an-blur, 18px));
+  box-shadow:
+    0 8px 22px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 236, 190, 0.08);
+}
+
+[data-component="an-shell"] .tool-collapsible::before,
+[data-component="an-shell"] [data-an-part="tool"]::before {
+  content: "Task";
+  display: inline-block;
+  margin-bottom: 6px;
+  color: var(--an-gold, #f0c66d);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+[data-component="an-shell"] .tool-collapsible[data-status="completed"]::before {
+  content: "Proof";
+  color: var(--an-green, #3be78c);
+}
+
+[data-component="an-shell"] .tool-collapsible[data-status="error"]::before {
+  content: "Task";
+  color: var(--an-danger, #f87171);
+}
+
+[data-component="an-shell"] .tool-collapsible[data-status="completed"] {
+  border-color: rgba(59, 231, 140, 0.28);
+}
+
+/* Soften OpenCode tool title chrome */
+[data-component="an-shell"] [data-slot="basic-tool-tool-title"],
+[data-component="an-shell"] [data-component="tool-trigger"] {
+  color: var(--an-text, #f0e6d2) !important;
+}
+
+[data-component="an-shell"] [data-slot="basic-tool-tool-subtitle"],
+[data-component="an-shell"] [data-slot="basic-tool-tool-arg"] {
+  color: var(--an-text-muted, #cfac62) !important;
+}
+
+/* Message parts — quieter glass, less bubble chrome */
+[data-component="an-shell"] [data-slot="message-part"],
+[data-component="an-shell"] [data-slot="text-part-body"],
+[data-component="an-shell"] [data-slot="user-message-text"] {
   border-radius: 10px;
+  color: var(--an-text, #f0e6d2);
+}
+
+[data-component="an-shell"] [data-component="session-working"] {
+  border: 1px solid var(--an-border-soft, rgba(240, 198, 109, 0.18));
+  border-radius: 10px;
+  background: rgba(240, 198, 109, 0.06);
+  color: var(--an-gold-soft, #e5c57f);
+}
+
+.an-permission-card-host,
+.an-question-card-host {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+/* When Decision card leads, hide duplicate OpenCode question header title */
+.an-question-card-host [data-slot="question-header-title"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

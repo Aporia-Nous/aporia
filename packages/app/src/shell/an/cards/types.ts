@@ -33,6 +33,8 @@ export type AnCardSource =
   | "computer"
   | "roster"
   | "tool"
+  | "edit"
+  | "message"
 
 export type AnCardModel = {
   id: string

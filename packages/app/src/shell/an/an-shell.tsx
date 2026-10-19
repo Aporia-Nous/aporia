@@ -31,14 +31,61 @@ function StreamRegion(
 }
 
 const DEFAULT_NAV = [
-  { id: "home", label: "Home", icon: "⌂", active: true },
-  { id: "missions", label: "Missions", icon: "▦" },
-  { id: "knowledge", label: "Knowledge", icon: "▣" },
-  { id: "settings", label: "Settings", icon: "⚙" },
+  { id: "home", label: "Home", icon: "home", active: true },
+  { id: "missions", label: "Missions", icon: "missions" },
+  { id: "knowledge", label: "Knowledge", icon: "knowledge" },
+  { id: "settings", label: "Settings", icon: "settings" },
 ] as const
 
 const DEFAULT_COMPUTER_EMPTY =
   "No live computer feed yet. Surface stays visible — attach a session to populate."
+
+/** Line icons toward mockup — not emoji glyphs. */
+function NavIcon(props: { name?: string }) {
+  const common = {
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    "stroke-width": "1.75",
+    "stroke-linecap": "round" as const,
+    "stroke-linejoin": "round" as const,
+    "aria-hidden": "true" as const,
+    class: "an-nav-icon",
+  }
+  switch (props.name) {
+    case "home":
+      return (
+        <svg {...common}>
+          <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5Z" />
+        </svg>
+      )
+    case "missions":
+      return (
+        <svg {...common}>
+          <rect x="4" y="4" width="7" height="7" rx="1.5" />
+          <rect x="13" y="4" width="7" height="7" rx="1.5" />
+          <rect x="4" y="13" width="7" height="7" rx="1.5" />
+          <rect x="13" y="13" width="7" height="7" rx="1.5" />
+        </svg>
+      )
+    case "knowledge":
+      return (
+        <svg {...common}>
+          <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v16H7.5A2.5 2.5 0 0 0 5 21.5V5.5Z" />
+          <path d="M5 21.5A2.5 2.5 0 0 1 7.5 19H19" />
+        </svg>
+      )
+    case "settings":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="3" />
+          <path d="M12 3.5v2.2M12 18.3v2.2M4.9 6.5l1.6 1.6M17.5 15.9l1.6 1.6M3.5 12h2.2M18.3 12h2.2M4.9 17.5l1.6-1.6M17.5 8.1l1.6-1.6" />
+        </svg>
+      )
+    default:
+      return <span class="an-nav-icon-fallback">{props.name?.slice(0, 1) ?? "?"}</span>
+  }
+}
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean)
@@ -139,7 +186,7 @@ export function AnShell(props: AnShellProps): JSX.Element {
               aria-current={item.active ? "page" : undefined}
               onClick={() => props.onSelectNav?.(item.id)}
             >
-              <span aria-hidden="true">{item.icon ?? item.label.slice(0, 1)}</span>
+              <NavIcon name={item.icon ?? item.id} />
             </button>
           )}
         </For>
@@ -185,6 +232,17 @@ export function AnShell(props: AnShellProps): JSX.Element {
             <Show when={props.mission?.subtitle}>
               <span>{props.mission!.subtitle}</span>
             </Show>
+            <Show when={(props.mission?.pills?.length ?? 0) > 0}>
+              <div class="an-mission-pills">
+                <For each={props.mission!.pills!}>
+                  {(pill) => (
+                    <span class="an-pill" data-tone={pill.tone ?? "neutral"}>
+                      {pill.label}
+                    </span>
+                  )}
+                </For>
+              </div>
+            </Show>
           </div>
           <Show when={progress() !== undefined}>
             <div
@@ -196,17 +254,6 @@ export function AnShell(props: AnShellProps): JSX.Element {
               title={`${progress()}%`}
             >
               <i style={{ width: `${progress()}%` }} />
-            </div>
-          </Show>
-          <Show when={(props.mission?.pills?.length ?? 0) > 0}>
-            <div class="an-mission-pills">
-              <For each={props.mission!.pills!}>
-                {(pill) => (
-                  <span class="an-pill" data-tone={pill.tone ?? "neutral"}>
-                    {pill.label}
-                  </span>
-                )}
-              </For>
             </div>
           </Show>
           <ModeSwitcher mode={mode()} onChange={props.onModeChange} />

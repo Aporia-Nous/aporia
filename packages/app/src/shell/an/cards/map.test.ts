@@ -1,15 +1,33 @@
 import { describe, expect, test } from "bun:test"
+import type { SessionMessageAssistantTool, SessionMessageInfo } from "@opencode/client/promise"
 import {
   attentionToApprovalCards,
   buildStreamCards,
   computerToCard,
+  messageProofUnavailableCard,
+  messagesToPartCards,
   missionChromePills,
   permissionToApprovalCard,
   questionToDecisionCard,
   rosterToTeamCard,
   sessionToTaskCard,
+  toolPartToCard,
 } from "./map"
 import { AN_CARD_TYPES, isAnCardType } from "./types"
+
+function tool(
+  partial: Partial<SessionMessageAssistantTool> & {
+    id: string
+    name: string
+    state: SessionMessageAssistantTool["state"]
+  },
+): SessionMessageAssistantTool {
+  return {
+    type: "tool",
+    time: { created: 1 },
+    ...partial,
+  }
+}
 
 describe("AN card types", () => {
   test("approved six card types only", () => {
@@ -82,5 +100,85 @@ describe("AN card mapping", () => {
     expect(pills.some((p) => p.label === "Local" && p.tone === "ok")).toBe(true)
     expect(pills.filter((p) => p.label.includes("unavailable")).length).toBe(3)
     expect(JSON.stringify(pills)).not.toContain("Verified\"")
+  })
+
+  test("running tool maps to Task; completed edit maps to Proof", () => {
+    const running = toolPartToCard(
+      tool({
+        id: "t1",
+        name: "bash",
+        state: { status: "running", input: { command: "ls" }, metadata: {} },
+      }),
+    )
+    expect(running.type).toBe("task")
+    expect(running.source).toBe("tool")
+    expect(running.detail).toBe("ls")
+
+    const proof = toolPartToCard(
+      tool({
+        id: "t2",
+        name: "edit",
+        state: {
+          status: "completed",
+          input: { path: "src/a.ts" },
+          content: [{ type: "text", text: "ok" }],
+        },
+      }),
+    )
+    expect(proof.type).toBe("proof")
+    expect(proof.source).toBe("edit")
+    expect(proof.title).toContain("src/a.ts")
+  })
+
+  test("messagesToPartCards skips quiet completed reads; keeps active + edits", () => {
+    const messages = [
+      {
+        id: "m1",
+        type: "assistant",
+        agent: "a",
+        model: { id: "m", providerID: "p" },
+        time: { created: 1 },
+        content: [
+          tool({
+            id: "read1",
+            name: "read",
+            state: {
+              status: "completed",
+              input: { path: "x.ts" },
+              content: [{ type: "text", text: "…" }],
+            },
+          }),
+          tool({
+            id: "edit1",
+            name: "write",
+            state: {
+              status: "completed",
+              input: { path: "y.ts" },
+              content: [{ type: "text", text: "…" }],
+            },
+          }),
+          tool({
+            id: "run1",
+            name: "bash",
+            state: { status: "running", input: { command: "test" }, metadata: {} },
+          }),
+        ],
+      },
+    ] as SessionMessageInfo[]
+    const cards = messagesToPartCards(messages)
+    expect(cards.map((c) => c.id)).toEqual(["tool:run1", "tool:edit1"])
+    expect(cards.find((c) => c.id === "tool:edit1")?.type).toBe("proof")
+  })
+
+  test("buildStreamCards can include honest Proof unavailable without inventing edits", () => {
+    const stub = messageProofUnavailableCard()
+    expect(stub.type).toBe("proof")
+    expect(stub.status?.toLowerCase()).toContain("unavailable")
+    const cards = buildStreamCards({
+      roster: [{ id: "1", name: "Orion", role: "Lead", presence: "unknown" }],
+      includeProofUnavailable: true,
+    })
+    expect(cards.some((c) => c.id === "proof:unavailable")).toBe(true)
+    expect(cards.map((c) => c.type)).toContain("computer")
   })
 })

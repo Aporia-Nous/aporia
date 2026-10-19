@@ -199,10 +199,10 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   }
 
   const navItems = (): AnNavItem[] => [
-    { id: "home", label: "Home", icon: "⌂", active: !props.view.sessionID() },
-    { id: "missions", label: "Missions", icon: "▦", active: !!props.view.sessionID() },
-    { id: "knowledge", label: "Knowledge", icon: "▣" },
-    { id: "settings", label: "Settings", icon: "⚙" },
+    { id: "home", label: "Home", icon: "home", active: !props.view.sessionID() },
+    { id: "missions", label: "Missions", icon: "missions", active: !!props.view.sessionID() },
+    { id: "knowledge", label: "Knowledge", icon: "knowledge" },
+    { id: "settings", label: "Settings", icon: "settings" },
   ]
 
   const mission = createMemo(() =>
@@ -274,6 +274,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         agent: currentAgent(),
         working: props.view.working(),
       },
+      messages: props.view.messages(),
       computerLive: false,
       includeTeam: true,
     }),

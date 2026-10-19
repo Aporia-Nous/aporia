@@ -19,10 +19,11 @@ Authorization: Ali “get your screen shots cuz design isnt quite right” (plus
 - `…/07-view-mode.png` — **AP-STAGE4-04** View active (watch-only rail)
 - `…/08-takeover-mode.png` — **AP-STAGE4-04** Takeover: computer primary + Hand back/Stop + chat on rail
 - `…/09-conversation-an-cards.png` — **AP-STAGE4-06** Conversation: Mission cards (Computer Idle + Team roster) + Local/unavailable pills + New teammate stub (OPEN review, no PASS)
+- `…/10-conversation-stream-glass.png` — **AP-STAGE4-07** Conversation after stream glass/tool map + SVG nav + gold punch (CDP `Page.captureScreenshot`; PrintWindow black this run). OPEN review, no PASS. Compare vs `09`.
 
 ## Capture notes
 - Browser MCP of `localhost:5173` → black empty `#root` (not AnShell). Prefer Electron window capture.
-- Working path: `PrintWindow(..., PW_RENDERFULLCONTENT)` on Aporetic HWND; mode flips via CDP `9222` `.an-mode-btn` click.
+- Working path: `PrintWindow(..., PW_RENDERFULLCONTENT)` on Aporetic HWND; mode flips via CDP `9222` `.an-mode-btn` click. AP-STAGE4-07 shot used CDP screenshot when PrintWindow returned black.
 - If a human-visible desktop shot with Aporetic on top is needed: click the **Aporetic** taskbar button so it is unoccluded, then re-run PrintWindow or Snipping Tool.
 
 ## View / Takeover

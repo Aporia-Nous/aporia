@@ -9,6 +9,8 @@ import { Icon } from "@opencode/ui/icon"
 import { useSpring } from "@opencode/ui/motion-spring"
 import { showToast } from "@/shell/notifications/toast"
 import type { FormAnswer, FormInfo, FormMultiselectField, FormStringField } from "@opencode/client/promise"
+import { aporiaPrefs } from "@/aporia/prefs"
+import { AnCard, questionToDecisionCard } from "@/shell/an/cards"
 import { useLanguage } from "@/runtime/i18n/language"
 import { makeEventListener } from "@solid-primitives/event-listener"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
@@ -556,8 +558,30 @@ export const SessionQuestionDock: Component<{ request: FormInfo; onSubmit: () =>
     focus(pickFocus())
   }
 
+  const anDecision = () =>
+    questionToDecisionCard({
+      id: props.request.id,
+      title: summary(),
+      detail: question()?.question,
+    })
+
   return (
-    <div data-component="session-question-dock">
+    <div
+      data-component="session-question-dock"
+      classList={{ "an-question-card-host": aporiaPrefs.anShellEnabled() }}
+    >
+      <Show when={aporiaPrefs.anShellEnabled()}>
+        <AnCard
+          card={anDecision()}
+          density="stream"
+          onAction={(action) => {
+            if (action.id === "decide") {
+              // Options live in the dock body — scroll focus into the glass form.
+              focus(pickFocus())
+            }
+          }}
+        />
+      </Show>
       <DockPrompt
         kind="question"
         ref={(el) => (root = el)}

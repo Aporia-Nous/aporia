@@ -100,9 +100,26 @@
 }
 
 .an-nav-item[data-active="true"] {
-  color: var(--an-gold);
-  border-color: var(--an-border-strong);
-  box-shadow: 0 0 28px var(--an-glow);
+  color: var(--an-gold, #f0c66d);
+  border-color: var(--an-gold, #f0c66d);
+  background: rgba(240, 198, 109, 0.16);
+  box-shadow:
+    0 0 0 1px rgba(240, 198, 109, 0.45),
+    0 0 32px var(--an-glow, rgba(231, 154, 29, 0.28)),
+    inset 0 0 18px rgba(240, 198, 109, 0.08);
+}
+
+.an-nav-icon {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.an-nav-icon-fallback {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .an-roster {
@@ -167,13 +184,18 @@
   background: rgba(240, 198, 109, 0.08);
 }
 
+/* Roster selection punch — electric gold */
 .an-roster-member[data-selected="true"] {
   border-color: var(--an-gold, #f0c66d);
-  background: rgba(240, 198, 109, 0.14);
+  background: rgba(240, 198, 109, 0.18);
   box-shadow:
-    0 0 0 1px rgba(240, 198, 109, 0.35),
-    0 0 28px var(--an-glow),
-    inset 0 0 20px rgba(240, 198, 109, 0.06);
+    0 0 0 1px rgba(240, 198, 109, 0.5),
+    0 0 34px rgba(231, 154, 29, 0.38),
+    inset 0 0 22px rgba(240, 198, 109, 0.08);
+}
+
+.an-roster-member[data-selected="true"] .an-roster-text strong {
+  color: var(--an-gold, #f0c66d);
 }
 
 .an-roster-avatar {
@@ -250,7 +272,7 @@
 
 .an-mission {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   min-height: 56px;
   padding: 10px 16px;
@@ -301,6 +323,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  margin-top: 6px;
+  max-width: 100%;
 }
 
 .an-pill {
@@ -312,6 +336,8 @@
   border: 1px solid var(--an-border-soft);
   background: rgba(4, 9, 13, 0.55);
   color: var(--an-gold-soft);
+  white-space: nowrap;
+  flex: none;
   font-size: 11px;
 }
 
@@ -328,6 +354,8 @@
 .an-mode-switch {
   display: inline-flex;
   flex: none;
+  margin-left: auto;
+  align-self: center;
   gap: 2px;
   padding: 3px;
   border: 1px solid var(--an-border-soft);
