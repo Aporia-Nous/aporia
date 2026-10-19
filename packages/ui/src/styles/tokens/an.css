@@ -1,6 +1,7 @@
 /* AN black/gold glass tokens — extracted from approved design packet
    (aporetic-an-exact-flow-v11-selfcontained.html + original-AN-visual-style.png).
-   Lagoon Night / Marrs Tide / replacement-concept are NOT used here. */
+   Lagoon Night / Marrs Tide / replacement-concept are NOT used here.
+   Feel (Ali 2026-10-19): frictionless ice/glass — smooth; gold accents on ice-dark glass. */
 :root,
 [data-an-theme="an"] {
   --an-gold: #f0c66d;
@@ -10,32 +11,40 @@
   --an-green: #3be78c;
   --an-ink: #03070b;
   --an-void: #020509;
-  /* Softer glass (AP-STAGE4-04) — translucent panels over atmospheric depth */
-  --an-panel: rgba(4, 9, 13, 0.58);
+  /* Ice/glass (AP-STAGE4-08) — cooler translucent depth, not matte plastic */
+  --an-panel: rgba(6, 14, 22, 0.44);
   --an-panel-solid: #050a0e;
-  --an-panel-raised: rgba(5, 10, 14, 0.72);
-  --an-panel-glass: rgba(6, 12, 18, 0.42);
-  --an-border: rgba(240, 198, 109, 0.34);
-  --an-border-soft: rgba(240, 198, 109, 0.18);
-  --an-border-strong: rgba(240, 198, 109, 0.55);
-  --an-border-edge: rgba(255, 236, 190, 0.14);
-  --an-glow: rgba(231, 154, 29, 0.28);
-  --an-glow-soft: rgba(231, 154, 29, 0.14);
+  --an-panel-raised: rgba(8, 16, 24, 0.52);
+  --an-panel-glass: rgba(10, 20, 30, 0.32);
+  --an-ice-sheen: rgba(186, 220, 255, 0.07);
+  --an-ice-edge: rgba(210, 232, 255, 0.16);
+  --an-border: rgba(240, 198, 109, 0.26);
+  --an-border-soft: rgba(240, 198, 109, 0.12);
+  --an-border-strong: rgba(240, 198, 109, 0.42);
+  --an-border-edge: rgba(210, 232, 255, 0.14);
+  --an-glow: rgba(231, 154, 29, 0.22);
+  --an-glow-soft: rgba(231, 154, 29, 0.1);
   --an-text: #f0e6d2;
   --an-text-muted: #cfac62;
   --an-text-faint: #7b8aa3;
   --an-danger: #f87171;
-  --an-radius-sm: 8px;
-  --an-radius: 12px;
-  --an-radius-lg: 16px;
+  --an-radius-sm: 10px;
+  --an-radius: 14px;
+  --an-radius-lg: 18px;
   --an-radius-pill: 999px;
-  --an-blur: 22px;
-  --an-blur-strong: 32px;
+  --an-blur: 28px;
+  --an-blur-strong: 42px;
+  --an-saturate: 1.18;
   --an-nav-width: 56px;
   --an-roster-width: 280px;
   --an-attention-width: 320px;
   --an-attention-width-view: 420px;
-  --an-shadow: 0 16px 40px rgba(0, 0, 0, 0.42), 0 0 28px var(--an-glow-soft);
-  --an-focus: 0 0 0 2px var(--an-void), 0 0 0 4px rgba(240, 198, 109, 0.55);
-  --an-ease: 160ms cubic-bezier(0.2, 0, 0, 1);
+  /* Soft depth — avoid chunky OpenCode drop shadows */
+  --an-shadow: 0 8px 28px rgba(0, 0, 0, 0.28), 0 0 20px var(--an-glow-soft);
+  --an-shadow-soft: 0 4px 18px rgba(0, 0, 0, 0.18);
+  --an-specular: inset 0 1px 0 var(--an-ice-edge), inset 0 -1px 0 rgba(0, 0, 0, 0.22);
+  --an-focus: 0 0 0 2px var(--an-void), 0 0 0 4px rgba(240, 198, 109, 0.48);
+  --an-ease: 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  --an-ease-rail: 360ms cubic-bezier(0.22, 1, 0.36, 1);
+  --an-ease-card: 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }

@@ -67,11 +67,16 @@ describe("AN Stage 4 tokens", () => {
     expect(AN_COMPOSER_SURFACE.fill.toLowerCase()).not.toBe("#151e3e")
   })
 
-  test("glass panel tokens are translucent (AP-STAGE4-04)", () => {
-    expect(AN_TOKENS.panel).toContain("0.58")
-    expect(AN_TOKENS.panelRaised).toContain("0.72")
-    expect(AN_TOKENS.panelGlass).toContain("0.42")
-    expect(AN_TOKENS.glow).toContain("0.28")
+  test("glass panel tokens are ice-translucent (AP-STAGE4-08)", () => {
+    expect(AN_TOKENS.panel).toContain("0.44")
+    expect(AN_TOKENS.panelRaised).toContain("0.52")
+    expect(AN_TOKENS.panelGlass).toContain("0.32")
+    expect(AN_TOKENS.glow).toContain("0.22")
+    expect(AN_TOKENS.feel).toBe("frictionless-ice-glass")
+    // Cooler ice depth — not Lagoon Night theme swap; gold/void stay AN
+    expect(AN_TOKENS.panel).toContain("6, 14, 22")
+    expect(AN_TOKENS.gold).toBe("#f0c66d")
+    expect(AN_TOKENS.void).toBe("#020509")
   })
 
   test("three-state layout flags (AP-STAGE4-04)", () => {

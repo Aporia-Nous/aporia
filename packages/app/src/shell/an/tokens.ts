@@ -12,7 +12,8 @@ export const AN_DESIGN_SOURCE = {
   normal: "aporetic-design-reference/original-normal.png",
 } as const
 
-/** Exact CSS custom-property values mirrored from the approved packet. */
+/** Exact CSS custom-property values mirrored from the approved packet.
+ *  Panel translucency: ice/glass feel (Ali 2026-10-19) — still black/gold AN. */
 export const AN_TOKENS = {
   gold: "#f0c66d",
   goldDeep: "#d79a2e",
@@ -21,17 +22,19 @@ export const AN_TOKENS = {
   green: "#3be78c",
   ink: "#03070b",
   void: "#020509",
-  panel: "rgba(4, 9, 13, 0.58)",
-  panelRaised: "rgba(5, 10, 14, 0.72)",
-  panelGlass: "rgba(6, 12, 18, 0.42)",
-  border: "rgba(240, 198, 109, 0.34)",
-  borderSoft: "rgba(240, 198, 109, 0.18)",
-  borderStrong: "rgba(240, 198, 109, 0.55)",
-  glow: "rgba(231, 154, 29, 0.28)",
+  panel: "rgba(6, 14, 22, 0.44)",
+  panelRaised: "rgba(8, 16, 24, 0.52)",
+  panelGlass: "rgba(10, 20, 30, 0.32)",
+  border: "rgba(240, 198, 109, 0.26)",
+  borderSoft: "rgba(240, 198, 109, 0.12)",
+  borderStrong: "rgba(240, 198, 109, 0.42)",
+  glow: "rgba(231, 154, 29, 0.22)",
   text: "#f0e6d2",
   textMuted: "#cfac62",
   danger: "#f87171",
   themeId: "an",
+  /** Design feel authority — frictionless ice/glass; not matte plastic / OpenCode chrome. */
+  feel: "frictionless-ice-glass",
 } as const
 
 /** Layout flags for approved three-state chrome (not Stage 5 four-mode). */
