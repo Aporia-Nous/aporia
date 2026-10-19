@@ -72,6 +72,12 @@ export const AN_COMPOSER_SURFACE = {
   focusGold: AN_TOKENS.gold,
   /** CSS attribute hosts that must own the composer override (AnShell frame or sticky an). */
   hosts: ['[data-component="an-shell"]', '[data-an-theme="an"]'] as const,
+  /**
+   * AP-STAGE4-12: AnShell owns composer dock presentation (void/gold ice).
+   * Send/session wiring stays on core Prompt — no new polling layers.
+   */
+  ownedAttr: 'data-an-owned="composer"' as const,
+  ownedValue: "composer" as const,
 } as const
 
 /** Three-state framing from approved mockups — Stage 5 four-mode work stays separate. */

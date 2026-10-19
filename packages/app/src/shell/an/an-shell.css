@@ -974,7 +974,8 @@
   }
 }
 
-/* Floating Session panel frame (SessionPanelFrame under AnShell) — kills v2 raised plastic */
+/* Floating Session panel frame (SessionPanelFrame under AnShell) — kills v2 raised plastic.
+   Home / draft (not composer-only): panel may still host welcome chrome. */
 [data-component="an-shell"] [data-slot="session-chat-panel"] > div,
 [data-component="an-shell"] [data-an-part="session-panel-frame"] {
   --an-dock-radius: var(--an-radius-lg, 18px);
@@ -1001,6 +1002,60 @@
   animation: an-dock-settle var(--an-ease-dock, 320ms cubic-bezier(0.22, 1, 0.36, 1)) both;
 }
 
+/* AP-STAGE4-12: when Conversation is AN-owned, SessionPanelFrame must not fight the composer.
+   Passthrough layout host — single ice surface lives on the AN-owned composer dock. */
+[data-component="an-shell"] .an-stream-legacy--composer-only [data-slot="session-chat-panel"] > div,
+[data-component="an-shell"] .an-stream-legacy--composer-only [data-an-part="session-panel-frame"] {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Suppress residual OpenCode session header / review chrome under AN-owned Conversation */
+[data-component="an-shell"] .an-stream-legacy--composer-only [data-slot="session-chat-panel"] .flex.h-12.w-full.items-center,
+[data-component="an-shell"] .an-stream-legacy--composer-only [data-slot="session-review-toggle"],
+[data-component="an-shell"] .an-stream-legacy--composer-only [data-slot="session-title-ancestors"],
+[data-component="an-shell"] .an-stream-legacy--composer-only [data-component="session-identity-header"] {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+}
+
+/* AN-owned composer dock — single void/gold ice surface (not nested OC raised panel) */
+[data-component="an-shell"] .an-stream-legacy--composer-only [data-an-owned="composer"],
+[data-component="an-shell"] .an-stream-legacy--composer-only [data-component="session-composer-dock"] {
+  --an-dock-radius: var(--an-radius-lg, 18px);
+  margin: 0 4px 2px;
+  padding-bottom: 10px !important;
+  border: 1px solid var(--an-border-soft, rgba(240, 198, 109, 0.16)) !important;
+  border-radius: var(--an-dock-radius) !important;
+  background:
+    linear-gradient(165deg, var(--an-ice-sheen, rgba(186, 220, 255, 0.1)), transparent 44%),
+    linear-gradient(180deg, rgba(240, 198, 109, 0.05) 0%, transparent 38%),
+    linear-gradient(180deg, rgba(10, 22, 34, 0.42), rgba(2, 6, 12, 0.55)) !important;
+  backdrop-filter: blur(var(--an-blur-strong, 42px)) saturate(var(--an-saturate, 1.18)) !important;
+  -webkit-backdrop-filter: blur(var(--an-blur-strong, 42px)) saturate(var(--an-saturate, 1.18)) !important;
+  box-shadow:
+    var(--an-shadow-soft, 0 4px 18px rgba(0, 0, 0, 0.18)),
+    0 14px 40px rgba(0, 0, 0, 0.26),
+    0 0 24px var(--an-glow-soft, rgba(231, 154, 29, 0.1)),
+    var(--an-specular, inset 0 1px 0 rgba(210, 232, 255, 0.14)) !important;
+  border-top-color: rgba(210, 232, 255, 0.12) !important;
+  animation: an-dock-settle var(--an-ease-dock, 320ms cubic-bezier(0.22, 1, 0.36, 1)) both;
+  transition:
+    border-color var(--an-ease-dock, 320ms cubic-bezier(0.22, 1, 0.36, 1)),
+    box-shadow var(--an-ease-dock, 320ms cubic-bezier(0.22, 1, 0.36, 1)),
+    background var(--an-ease-dock, 320ms cubic-bezier(0.22, 1, 0.36, 1));
+}
+
 /* Session title strip — quiet ice bar, not OpenCode header chrome */
 [data-component="an-shell"] [data-slot="session-chat-panel"] .flex.h-12.w-full.items-center {
   border-bottom: 1px solid rgba(210, 232, 255, 0.08);
@@ -1017,9 +1072,10 @@
   color: var(--an-gold-soft, #e5c57f) !important;
 }
 
-/* Composer dock strip — translucent ice, no bg-v2-background-bg-base slab */
-[data-color-scheme="dark"] [data-component="an-shell"] [data-component="session-composer-dock"],
-[data-color-scheme="dark"] [data-an-theme="an"] [data-component="session-composer-dock"] {
+/* Composer dock strip (home / draft — not AN-owned Conversation path).
+   Composer-only path uses the stronger AP-STAGE4-12 owned-dock block above. */
+[data-color-scheme="dark"] [data-component="an-shell"] [data-component="session-composer-dock"]:not([data-an-owned="composer"]),
+[data-color-scheme="dark"] [data-an-theme="an"] [data-component="session-composer-dock"]:not([data-an-owned="composer"]) {
   background:
     linear-gradient(180deg, rgba(186, 220, 255, 0.05), transparent 55%),
     linear-gradient(0deg, rgba(2, 5, 9, 0.35), transparent 70%),
@@ -1029,6 +1085,19 @@
   border-top: 1px solid rgba(210, 232, 255, 0.1);
   box-shadow: inset 0 1px 0 var(--an-ice-edge, rgba(210, 232, 255, 0.14));
   transition: background var(--an-ease-dock, 320ms cubic-bezier(0.22, 1, 0.36, 1)), border-color var(--an-ease);
+}
+
+/* Home/draft still get ice strip when owned attr is present but Conversation not owned yet */
+[data-color-scheme="dark"] [data-component="an-shell"] .an-stream-legacy:not(.an-stream-legacy--composer-only) [data-an-owned="composer"],
+[data-color-scheme="dark"] [data-an-theme="an"] .an-stream-legacy:not(.an-stream-legacy--composer-only) [data-an-owned="composer"] {
+  background:
+    linear-gradient(180deg, rgba(186, 220, 255, 0.05), transparent 55%),
+    linear-gradient(0deg, rgba(2, 5, 9, 0.35), transparent 70%),
+    rgba(4, 10, 16, 0.18) !important;
+  backdrop-filter: blur(var(--an-blur-strong, 42px)) saturate(var(--an-saturate, 1.18));
+  -webkit-backdrop-filter: blur(var(--an-blur-strong, 42px)) saturate(var(--an-saturate, 1.18));
+  border-top: 1px solid rgba(210, 232, 255, 0.1);
+  box-shadow: inset 0 1px 0 var(--an-ice-edge, rgba(210, 232, 255, 0.14));
 }
 
 /* Kill leftover Aporetic indigo/navy composer chrome (aporia.css) under AnShell — void/gold + ice. */
@@ -1082,6 +1151,43 @@
 
 [data-component="an-shell"] [data-component="composer"] :is(button, [data-component="icon-button"], [data-component="button-v2"]) {
   transition: color var(--an-ease), background var(--an-ease), border-color var(--an-ease), box-shadow var(--an-ease);
+}
+
+/* AP-STAGE4-12: quiet OC model/agent chips + mic — keep wiring, kill plastic identity */
+[data-component="an-shell"] [data-an-owned="composer"] [data-component="composer"] [data-slot="composer-controls"] :is(button, [data-component="icon-button"], [data-component="button-v2"]),
+[data-component="an-shell"] [data-an-owned="composer"] [data-component="composer"] [data-slot="composer-actions"] :is(button, [data-component="icon-button"], [data-component="button-v2"]):not([data-action="composer-submit"]),
+[data-component="an-shell"] [data-an-owned="composer"] [data-component="composer"] .ap-icon-btn {
+  color: var(--an-gold-soft, #e5c57f) !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+[data-component="an-shell"] [data-an-owned="composer"] [data-component="composer"] [data-slot="composer-controls"] :is(button, [data-component="icon-button"]):is(:hover, [data-state="hover"], [data-expanded]),
+[data-component="an-shell"] [data-an-owned="composer"] [data-component="composer"] .ap-icon-btn:is(:hover, :focus-visible) {
+  color: var(--an-gold, #f0c66d) !important;
+  background: rgba(240, 198, 109, 0.08) !important;
+}
+
+/* Disabled send: mute OC white-ring plastic; enabled gold stays below */
+[data-component="an-shell"] [data-an-owned="composer"] [data-action="composer-submit"]:disabled,
+[data-component="an-shell"] [data-an-owned="composer"] [data-action="composer-submit"][disabled] {
+  background: rgba(240, 198, 109, 0.1) !important;
+  background-image: none !important;
+  color: var(--an-text-muted, #cfac62) !important;
+  box-shadow: none !important;
+  opacity: 0.55;
+  border: 1px solid rgba(240, 198, 109, 0.16) !important;
+  border-radius: var(--an-radius-sm, 10px) !important;
+}
+
+[data-component="an-shell"] [data-an-owned="composer"] [data-component="composer"] {
+  /* Kill leftover v2 raised class fighting AN ice */
+  box-shadow:
+    var(--an-shadow-soft, 0 4px 18px rgba(0, 0, 0, 0.18)),
+    inset 0 1px 0 var(--an-ice-edge, rgba(210, 232, 255, 0.16)),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.28),
+    0 0 18px var(--an-glow-soft, rgba(231, 154, 29, 0.1)) !important;
 }
 
 [data-component="an-shell"] [data-component="composer"] [data-slot="composer-attachments-fade-left"],

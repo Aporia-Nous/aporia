@@ -92,6 +92,14 @@ describe("AN Stage 4 tokens", () => {
     expect(AN_COMPOSER_SURFACE.send).toBe("#d79a2e")
   })
 
+  test("AnShell owns composer dock presentation marker (AP-STAGE4-12)", () => {
+    expect(AN_COMPOSER_SURFACE.ownedValue).toBe("composer")
+    expect(AN_COMPOSER_SURFACE.ownedAttr).toBe('data-an-owned="composer"')
+    expect([...AN_COMPOSER_SURFACE.hosts]).toContain('[data-component="an-shell"]')
+    expect(AN_COMPOSER_SURFACE.fill).toBe(AN_TOKENS.void)
+    expect(AN_COMPOSER_SURFACE.send).toBe(AN_TOKENS.goldDeep)
+  })
+
   test("three-state layout flags (AP-STAGE4-04)", () => {
     expect(anShellLayout("conversation")).toEqual({
       mode: "conversation",
