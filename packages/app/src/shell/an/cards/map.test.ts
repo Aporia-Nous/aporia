@@ -89,6 +89,13 @@ describe("AN card mapping", () => {
     expect(live.actions?.[0]?.stub).toBe(false)
   })
 
+  test("computer card reports You control when Takeover holds lock (AP-BF-03)", () => {
+    const takeover = computerToCard({ live: true, feedActive: true, userControl: true })
+    expect(takeover.status).toBe("You control")
+    expect(takeover.detail?.toLowerCase()).toContain("paused")
+    expect(takeover.actions?.[0]?.stub).toBe(false)
+  })
+
   test("team card from roster; empty roster omitted", () => {
     expect(rosterToTeamCard([])).toBeUndefined()
     const team = rosterToTeamCard([{ id: "orion", name: "Orion", role: "Lead", presence: "unknown" }])

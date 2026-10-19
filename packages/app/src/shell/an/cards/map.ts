@@ -263,23 +263,27 @@ export function sessionToTaskCard(input: {
 export function computerToCard(input?: {
   live?: boolean
   feedActive?: boolean
+  /** AP-BF-03: user holds control lock (Takeover). */
+  userControl?: boolean
   title?: string
   detail?: string
 }): AnCardModel {
   const live = !!input?.live
   const feedActive = !!input?.feedActive
+  const userControl = !!input?.userControl
+  const detailDefault = !live
+    ? "Computer View has no live attach — connect a local browser workspace."
+    : userControl
+      ? "You hold the control lock (Takeover). Bot is paused until Hand back or Stop."
+      : feedActive
+        ? "Local browser workspace attached with watch-only page feed. Bot holds the lock; Bot cursor is overlay chrome only."
+        : "Local browser workspace attached (consented). Page feed pending."
   return {
     id: "computer:live",
     type: "computer",
     title: input?.title?.trim() || "Computer View",
-    detail:
-      input?.detail?.trim() ||
-      (live
-        ? feedActive
-          ? "Local browser workspace attached with watch-only page feed. Bot cursor is overlay chrome only."
-          : "Local browser workspace attached (consented). Page feed pending."
-        : "Computer View has no live attach — connect a local browser workspace."),
-    status: live ? "Live" : "Unavailable",
+    detail: input?.detail?.trim() || detailDefault,
+    status: live ? (userControl ? "You control" : "Live") : "Unavailable",
     statusTone: live ? "ok" : "neutral",
     source: "computer",
     actions: [
@@ -326,6 +330,8 @@ export function buildStreamCards(input: {
   messages?: readonly SessionMessageInfo[]
   computerLive?: boolean
   computerFeedActive?: boolean
+  /** AP-BF-03: user holds Takeover control lock. */
+  computerUserControl?: boolean
   includeTeam?: boolean
   /** When true and no edit/proof tools exist, append honest Proof · unavailable (default false — avoid clutter). */
   includeProofUnavailable?: boolean
@@ -339,7 +345,13 @@ export function buildStreamCards(input: {
   if (input.includeProofUnavailable && !partCards.some((c) => c.type === "proof")) {
     cards.push(messageProofUnavailableCard())
   }
-  cards.push(computerToCard({ live: input.computerLive, feedActive: input.computerFeedActive }))
+  cards.push(
+    computerToCard({
+      live: input.computerLive,
+      feedActive: input.computerFeedActive,
+      userControl: input.computerUserControl,
+    }),
+  )
   if (input.includeTeam !== false) {
     const team = rosterToTeamCard(input.roster ?? [])
     if (team) cards.push(team)

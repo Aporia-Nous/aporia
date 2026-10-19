@@ -41,6 +41,19 @@ import {
   syncComputerFeed,
   type ComputerFeedState,
 } from "./computer-feed"
+import {
+  clearComputerControl,
+  computerControlNote,
+  feedIsWatchOnly,
+  initialComputerControlState,
+  isBotCursorShown,
+  releaseToBot,
+  rescopeComputerControl,
+  stopUserControl,
+  syncComputerControl,
+  userMayInput,
+  type ComputerControlState,
+} from "./computer-control"
 import { AnContraptionsPanel } from "./contraptions-panel"
 import { messagesToConversationTurns } from "./conversation-turns"
 import {
@@ -250,17 +263,25 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   )
   const [computerFeed, setComputerFeed] = createSignal<ComputerFeedState>(clearComputerFeed())
   const [computerFeedDraft, setComputerFeedDraft] = createSignal("")
+  const [computerControl, setComputerControl] = createSignal<ComputerControlState>(
+    initialComputerControlState(props.view.sessionID()),
+  )
   const info = () => props.view.info()
   const currentAgent = () => info()?.agent
   const roster = useAnRoster(currentAgent)
   const attention = useAnAttention()
   const computerLive = createMemo(() => isComputerLive(computerAttach()))
-  const computerCursorVisible = createMemo(() => isComputerCursorVisible(computerAttach()))
   const computerFeedActive = createMemo(() => isComputerFeedActive(computerFeed(), computerAttach()))
+  const computerUserInput = createMemo(() => userMayInput(computerControl()))
+  const computerFeedWatchOnly = createMemo(() => feedIsWatchOnly(computerControl()))
+  const computerCursorVisible = createMemo(
+    () => isComputerCursorVisible(computerAttach()) && isBotCursorShown(computerLive(), computerControl()),
+  )
 
   createEffect(() => {
     const sessionID = props.view.sessionID()
     setComputerAttach((prev) => rescopeComputerAttach(prev, sessionID))
+    setComputerControl((prev) => rescopeComputerControl(prev, sessionID))
   })
 
   /** Keep page feed honest with Live attach — open on attach, clear on disconnect/rescope. */
@@ -274,27 +295,48 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     setComputerFeedDraft((draft) => draft || "about:blank")
   })
 
+  /** Single control lock follows Live + presentation mode (BF-03). */
+  createEffect(() => {
+    const live = computerLive()
+    const nextMode = mode()
+    const sessionID = props.view.sessionID()
+    setComputerControl((prev) =>
+      syncComputerControl(prev, { live, mode: nextMode, sessionID }),
+    )
+  })
+
   const onModeChange = (next: AnShellMode) => {
     if (!isAnShellMode(next)) return
+    if (next === "takeover" && !computerLive()) {
+      aporiaAlerts.push({
+        title: "Takeover",
+        detail: "Connect and attach a local browser workspace before taking control. Layout-only until Live.",
+        level: "warn",
+      })
+    }
     setMode(next)
   }
 
   const onHandBack = () => {
+    setComputerControl((prev) => releaseToBot(prev, computerLive()))
     setMode("conversation")
     aporiaAlerts.push({
       title: "Handed back",
       detail: computerLive()
-        ? "Returned to Conversation. Local browser workspace stays attached until Disconnect."
-        : "Returned to Conversation. Computer backend not attached — control was chrome-only.",
+        ? "Returned to Conversation. Bot holds the lock again — fresh observation required before bot drives. Workspace stays attached until Disconnect."
+        : "Returned to Conversation. No Live attach — control was chrome-only.",
       level: "info",
     })
   }
 
   const onStopTakeover = () => {
+    setComputerControl((prev) => stopUserControl(prev, computerLive()))
     setMode("view")
     aporiaAlerts.push({
       title: "Takeover stopped",
-      detail: "Switched to Computer View (watch-only). No live computer input was granted.",
+      detail: computerLive()
+        ? "Switched to Computer View (watch-only). Bot holds the lock; fresh observation required before bot drives."
+        : "Switched to Computer View. No Live attach — no page input was granted.",
       level: "info",
     })
   }
@@ -394,6 +436,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       messages: props.view.messages(),
       computerLive: computerLive(),
       computerFeedActive: computerFeedActive(),
+      computerUserControl: computerUserInput(),
       includeTeam: true,
     }),
   )
@@ -432,9 +475,11 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     setComputerAttach((prev) => disconnectComputerAttach(prev))
     setComputerFeed(clearComputerFeed())
     setComputerFeedDraft("")
+    setComputerControl(clearComputerControl(props.view.sessionID()))
+    if (mode() === "takeover") setMode("view")
     aporiaAlerts.push({
       title: "Browser workspace disconnected",
-      detail: "Live and page feed cleared. Re-connect requires fresh consent.",
+      detail: "Live, page feed, and control lock cleared. Re-connect requires fresh consent.",
       level: "info",
     })
   }
@@ -513,6 +558,12 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         computerFeedUrl={computerFeed().url || undefined}
         computerFeedSrcdoc={computerFeed().srcdoc}
         computerFeedDraft={computerFeedDraft()}
+        computerFeedWatchOnly={computerFeedWatchOnly()}
+        computerController={computerControl().controller}
+        computerBotPaused={computerControl().botPaused}
+        computerUserInput={computerUserInput()}
+        computerNeedsFreshObservation={computerControl().needsFreshObservation}
+        computerNote={computerControlNote(computerLive(), computerControl())}
         onComputerFeedDraftChange={setComputerFeedDraft}
         onComputerFeedNavigate={onComputerFeedNavigate}
         onComputerConnect={onComputerConnect}

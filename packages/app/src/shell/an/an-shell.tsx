@@ -5,6 +5,10 @@ import type { AnCardModel } from "./cards/types"
 import { AnConversationStream } from "./conversation-stream"
 import type { AnConversationTurn } from "./conversation-turns"
 import { AN_COMPUTER_ATTACH_SURFACE } from "./computer-attach"
+import {
+  AN_COMPUTER_CONTROL_SURFACE,
+  computerControlBannerCopy,
+} from "./computer-control"
 import { AN_COMPUTER_FEED_SURFACE } from "./computer-feed"
 import {
   AN_PRODUCT_NAME,
@@ -134,6 +138,12 @@ function LiveComputerPanel(props: {
   feedUrl?: string
   feedSrcdoc?: string
   feedDraft?: string
+  /** BF-03: watch-only until user Takeover. Default true preserves BF-02. */
+  feedWatchOnly?: boolean
+  controller?: "none" | "bot" | "user"
+  botPaused?: boolean
+  userInput?: boolean
+  needsFreshObservation?: boolean
   onFeedDraftChange?: (value: string) => void
   onFeedNavigate?: (url: string) => void
   onConnect?: () => void
@@ -144,6 +154,8 @@ function LiveComputerPanel(props: {
   const badge = () => (props.live ? "Live" : "Unavailable")
   const phase = () => props.attachPhase ?? (props.live ? "attached" : "disconnected")
   const feedActive = () => !!props.live && !!props.feedActive
+  const watchOnly = () => props.feedWatchOnly !== false && !props.userInput
+  const controller = () => props.controller ?? (props.live ? "bot" : "none")
   return (
     <section
       class="an-computer"
@@ -152,6 +164,11 @@ function LiveComputerPanel(props: {
       data-attach-phase={phase()}
       data-backend={AN_COMPUTER_ATTACH_SURFACE.backend}
       data-feed-active={feedActive() ? "true" : "false"}
+      data-an-control={AN_COMPUTER_CONTROL_SURFACE.part}
+      data-controller={controller()}
+      data-bot-paused={props.botPaused ? "true" : "false"}
+      data-user-input={props.userInput ? "true" : "false"}
+      data-needs-observation={props.needsFreshObservation ? "true" : "false"}
       aria-label={props.title}
     >
       <header class="an-computer-header">
@@ -194,9 +211,10 @@ function LiveComputerPanel(props: {
               <div
                 class="an-computer-feed"
                 data-an-part={AN_COMPUTER_FEED_SURFACE.part}
-                data-watch-only={AN_COMPUTER_FEED_SURFACE.watchOnly ? "true" : "false"}
+                data-watch-only={watchOnly() ? "true" : "false"}
                 data-cursor-in-capture={AN_COMPUTER_FEED_SURFACE.includeCursorInCapture ? "true" : "false"}
                 data-feed-url={props.feedUrl ?? ""}
+                data-user-input={props.userInput ? "true" : "false"}
               >
                 <Show
                   when={props.feedSrcdoc}
@@ -206,9 +224,10 @@ function LiveComputerPanel(props: {
                       title="Computer View page feed"
                       src={props.feedUrl || "about:blank"}
                       sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
-                      tabindex={-1}
+                      tabindex={watchOnly() ? -1 : 0}
                       data-an-part="computer-feed-frame"
                       data-feed-mode="src"
+                      data-watch-only={watchOnly() ? "true" : "false"}
                     />
                   }
                 >
@@ -217,9 +236,10 @@ function LiveComputerPanel(props: {
                     title="Computer View page feed"
                     srcdoc={props.feedSrcdoc}
                     sandbox="allow-scripts allow-same-origin"
-                    tabindex={-1}
+                    tabindex={watchOnly() ? -1 : 0}
                     data-an-part="computer-feed-frame"
                     data-feed-mode="srcdoc"
+                    data-watch-only={watchOnly() ? "true" : "false"}
                   />
                 </Show>
               </div>
@@ -312,9 +332,19 @@ export function AnShell(props: AnShellProps): JSX.Element {
   const computerTitle = () => props.computerTitle ?? "Computer View"
   const computerLive = () => !!props.computerLive
   const computerNote = () =>
-    props.computerLive
-      ? "Live = consented local browser attach + watch-only page feed. Bot cursor is overlay chrome — not in page captures. Takeover is separate."
-      : "Watch-only Computer View — connect a local browser workspace to go Live."
+    props.computerNote ??
+    (props.computerLive
+      ? "Live = consented local browser attach + watch-only page feed. Bot holds the lock until Takeover. Bot cursor is overlay chrome — not in page captures."
+      : "Watch-only Computer View — connect a local browser workspace to go Live. Takeover needs Live.")
+  const computerUserInput = () => !!props.computerUserInput
+  const computerFeedWatchOnly = () =>
+    props.computerFeedWatchOnly !== undefined ? props.computerFeedWatchOnly : !computerUserInput()
+  const takeoverBanner = () => computerControlBannerCopy(computerLive(), {
+    controller: props.computerController ?? (computerLive() ? "bot" : "none"),
+    botPaused: !!props.computerBotPaused,
+    userInputGranted: computerUserInput(),
+    needsFreshObservation: !!props.computerNeedsFreshObservation,
+  })
   const progress = () => {
     const value = props.mission?.progressPercent
     if (value === undefined || Number.isNaN(value)) return undefined
@@ -422,12 +452,17 @@ export function AnShell(props: AnShellProps): JSX.Element {
         </header>
 
         <Show when={layout().computerPrimary}>
-          <div class="an-takeover-stage" aria-label="Computer takeover">
-            <div class="an-takeover-banner">
-              <span class="an-takeover-pill">Live takeover</span>
-              <span class="an-takeover-copy">
-                You are controlling the computer surface. Backend may be stubbed — affordances stay honest.
-              </span>
+          <div
+            class="an-takeover-stage"
+            aria-label="Computer takeover"
+            data-an-part={AN_COMPUTER_CONTROL_SURFACE.part}
+            data-controller={props.computerController ?? (computerLive() ? "bot" : "none")}
+            data-user-input={computerUserInput() ? "true" : "false"}
+            data-bot-paused={props.computerBotPaused ? "true" : "false"}
+          >
+            <div class="an-takeover-banner" data-live={computerLive() ? "true" : "false"}>
+              <span class="an-takeover-pill">{takeoverBanner().pill}</span>
+              <span class="an-takeover-copy">{takeoverBanner().copy}</span>
             </div>
             <LiveComputerPanel
               title={computerTitle()}
@@ -441,6 +476,11 @@ export function AnShell(props: AnShellProps): JSX.Element {
               feedUrl={props.computerFeedUrl}
               feedSrcdoc={props.computerFeedSrcdoc}
               feedDraft={props.computerFeedDraft}
+              feedWatchOnly={computerFeedWatchOnly()}
+              controller={props.computerController}
+              botPaused={props.computerBotPaused}
+              userInput={computerUserInput()}
+              needsFreshObservation={props.computerNeedsFreshObservation}
               onFeedDraftChange={props.onComputerFeedDraftChange}
               onFeedNavigate={props.onComputerFeedNavigate}
               onConnect={props.onComputerConnect}
@@ -449,10 +489,20 @@ export function AnShell(props: AnShellProps): JSX.Element {
               onDisconnect={props.onComputerDisconnect}
             />
             <div class="an-takeover-bar" role="toolbar" aria-label="Takeover controls">
-              <button type="button" class="an-takeover-handback" onClick={() => props.onHandBack?.()}>
+              <button
+                type="button"
+                class="an-takeover-handback"
+                data-action="computer-handback"
+                onClick={() => props.onHandBack?.()}
+              >
                 Hand back
               </button>
-              <button type="button" class="an-takeover-stop" onClick={() => props.onStopTakeover?.()}>
+              <button
+                type="button"
+                class="an-takeover-stop"
+                data-action="computer-stop-takeover"
+                onClick={() => props.onStopTakeover?.()}
+              >
                 Stop
               </button>
             </div>
@@ -506,6 +556,11 @@ export function AnShell(props: AnShellProps): JSX.Element {
             feedUrl={props.computerFeedUrl}
             feedSrcdoc={props.computerFeedSrcdoc}
             feedDraft={props.computerFeedDraft}
+            feedWatchOnly={computerFeedWatchOnly()}
+            controller={props.computerController}
+            botPaused={props.computerBotPaused}
+            userInput={computerUserInput()}
+            needsFreshObservation={props.computerNeedsFreshObservation}
             onFeedDraftChange={props.onComputerFeedDraftChange}
             onFeedNavigate={props.onComputerFeedNavigate}
             onConnect={props.onComputerConnect}

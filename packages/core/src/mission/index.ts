@@ -18,3 +18,5 @@ export * as Coordination from "./coordination.js"
 export * as Coordinator from "./coordinator.js"
 export * as CoordinatorTrigger from "./trigger.js"
 export * as AttentionCards from "./cards.js"
+/** AP-BF-03: single computer control lock (View watch-only / Takeover pauses bot). */
+export * as ComputerControl from "./control.js"

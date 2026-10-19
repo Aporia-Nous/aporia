@@ -1080,8 +1080,19 @@
   min-height: 140px;
   border: 0;
   background: #070b10;
-  /* Watch-only: page receives no pointer input; address bar remains chrome navigation. */
+  /* BF-02 default: watch-only — page receives no pointer input; address bar remains chrome navigation. */
   pointer-events: none;
+}
+
+/* AP-BF-03: Takeover while Live grants user input; bot is paused. */
+.an-computer-feed[data-user-input="true"] .an-computer-feed-frame,
+.an-computer-feed-frame[data-watch-only="false"] {
+  pointer-events: auto;
+}
+
+.an-computer[data-controller="user"] {
+  outline: 1px solid rgba(240, 198, 109, 0.28);
+  outline-offset: 1px;
 }
 
 .an-computer[data-size="large"] .an-computer-feed-frame,

@@ -7,6 +7,7 @@ export {
   AN_COMPOSER_SURFACE,
   AN_COMPUTER_ATTACH_SURFACE,
   AN_COMPUTER_FEED_SURFACE,
+  AN_COMPUTER_CONTROL_SURFACE,
   AN_CONTRAPTIONS_SURFACE,
   AN_SHELL_MODES,
   AN_SHELL_MODE_LABEL,
@@ -42,6 +43,22 @@ export {
   syncComputerFeed,
   type ComputerFeedState,
 } from "./computer-feed"
+export {
+  ackFreshObservation,
+  acquireUserControl,
+  botMayDrive,
+  clearComputerControl,
+  feedIsWatchOnly,
+  initialComputerControlState,
+  isBotCursorShown,
+  releaseToBot,
+  rescopeComputerControl,
+  stopUserControl,
+  syncComputerControl,
+  userMayInput,
+  type ComputerControlState,
+  type ComputerController,
+} from "./computer-control"
 export { buildAnShellModel, assertApprovedModesOnly, type AnShellModel } from "./shell-model"
 export {
   botsToRoster,

@@ -57,7 +57,7 @@ export type AnShellProps = ParentProps<{
   conversationTurns?: AnConversationTurn[]
   /** Empty-state hint for the AN conversation list. */
   conversationEmpty?: string
-  /** Approved three-state framing (Conversation / Computer View / Takeover); not Stage 5 control lock. */
+  /** Approved three-state framing (Conversation / Computer View / Takeover); shares one BF-03 control lock. */
   mode?: AnShellMode
   /** Interactive mode switch — layout changes; backends may still be stubbed. */
   onModeChange?: (mode: AnShellMode) => void
@@ -65,7 +65,7 @@ export type AnShellProps = ParentProps<{
   onSelectMember?: (id: string) => void
   onSelectAttention?: (id: string) => void
   onStreamCardAction?: (actionId: string, card: AnCardModel) => void
-  /** Takeover chrome stubs — honest no-ops when computer backend is missing. */
+  /** AP-BF-03: Hand back / Stop — release user lock to bot (when Live). */
   onHandBack?: () => void
   onStopTakeover?: () => void
   rosterFooter?: JSX.Element
@@ -77,13 +77,22 @@ export type AnShellProps = ParentProps<{
   computerLive?: boolean
   /** AP-BF-01: attach phase for Connect/Disconnect chrome. */
   computerAttachPhase?: "disconnected" | "consenting" | "attached"
-  /** Labeled bot cursor overlay — only when live (UI affordance, not page paint). */
+  /** Labeled bot cursor overlay — Live and bot holds lock (hidden during user Takeover). */
   computerCursorVisible?: boolean
-  /** AP-BF-02: watch-only page feed — only when Live; never invent pixels. */
+  /** AP-BF-02: page feed — only when Live; never invent pixels. */
   computerFeedActive?: boolean
   computerFeedUrl?: string
   computerFeedSrcdoc?: string
   computerFeedDraft?: string
+  /** AP-BF-03: feed watch-only until user Takeover grants input. */
+  computerFeedWatchOnly?: boolean
+  /** AP-BF-03: single controller — none | bot | user. */
+  computerController?: "none" | "bot" | "user"
+  computerBotPaused?: boolean
+  computerUserInput?: boolean
+  computerNeedsFreshObservation?: boolean
+  /** Override Computer View note (control-lock aware). */
+  computerNote?: string
   onComputerFeedDraftChange?: (value: string) => void
   onComputerFeedNavigate?: (url: string) => void
   onComputerConnect?: () => void
