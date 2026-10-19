@@ -48,7 +48,7 @@ export type AnShellProps = ParentProps<{
   attention?: AnAttentionItem[]
   /** Mapped AN cards shown at top of the conversation stream (Task/Approval/…). */
   streamCards?: AnCardModel[]
-  /** Approved three-state framing (Conversation / View / Takeover); not Stage 5 control lock. */
+  /** Approved three-state framing (Conversation / Computer View / Takeover); not Stage 5 control lock. */
   mode?: AnShellMode
   /** Interactive mode switch — layout changes; backends may still be stubbed. */
   onModeChange?: (mode: AnShellMode) => void
@@ -61,7 +61,9 @@ export type AnShellProps = ParentProps<{
   onStopTakeover?: () => void
   rosterFooter?: JSX.Element
   attentionEmpty?: string
-  /** Honest empty copy for the always-on live computer panel. */
+  /** Honest empty copy for the always-on Computer View panel. */
   computerEmpty?: string
   computerTitle?: string
+  /** True only when a real computer feed is attached — never invent live. */
+  computerLive?: boolean
 }>

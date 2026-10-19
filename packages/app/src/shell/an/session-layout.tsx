@@ -1,6 +1,7 @@
 // Stage 4: wire AnShell around real session children with sticky `an` theme and bound roster/attention.
 import { aporiaAlerts, AlertToasts } from "@/aporia/alerts"
 import { agentFor, bots, refreshBots, type Bot } from "@/aporia/bots"
+import { call } from "@/aporia/call"
 import { BotDispatcher } from "@/aporia/dispatch"
 import { ComposerMic } from "@/aporia/dictation"
 import { FlowCommands } from "@/aporia/flows"
@@ -21,7 +22,14 @@ import { Show, createEffect, createMemo, createResource, createSignal, onCleanup
 import { Portal } from "solid-js/web"
 import { AnShell } from "./an-shell"
 import { buildStreamCards } from "./cards"
-import { attentionBindResult, missionFromSession, rosterBindResult, type AnBindBot } from "./bind"
+import {
+  attentionBindResult,
+  missionFromSession,
+  rosterBindResult,
+  sessionActivityFromMessages,
+  type AnBindBot,
+  type AnPresenceSignal,
+} from "./bind"
 import { isAnShellMode, type AnShellMode } from "./tokens"
 import type { AnNavItem } from "./types"
 
@@ -66,19 +74,64 @@ function useAnRoster(currentAgent: () => string | undefined) {
     { initialValue: { available: bridge(), bots: [] as AnBindBot[] } },
   )
 
-  const agentStatus = createMemo(() => {
-    const map = new Map<string, string>()
+  const agentSignals = createMemo(() => {
+    const map = new Map<string, AnPresenceSignal>()
+    const callState = call.state()
+    const callActive = call.active
+    const selected = currentAgent()
+
     for (const session of data.session.list() ?? []) {
       const agent = session.agent
       if (!agent) continue
+      let sessionStatus = ""
       try {
-        const status = String(data.session.status(session.id) ?? "")
-        if (status === "running") map.set(agent, "running")
-        else if (!map.has(agent)) map.set(agent, status)
+        sessionStatus = String(data.session.status(session.id) ?? "")
       } catch {
         /* status unavailable for this session */
       }
+
+      let awaitingUser = false
+      try {
+        awaitingUser = (data.session.permission.list(session.id)?.length ?? 0) > 0
+      } catch {
+        awaitingUser = false
+      }
+
+      let activity: AnPresenceSignal["activity"] = "none"
+      if (sessionStatus === "running") {
+        try {
+          activity = sessionActivityFromMessages(data.session.message.list(session.id) ?? [])
+        } catch {
+          activity = "none"
+        }
+      }
+
+      const prev = map.get(agent)
+      const preferRunning = sessionStatus === "running" || prev?.sessionStatus === "running"
+      const next: AnPresenceSignal = {
+        sessionStatus: preferRunning ? "running" : sessionStatus || prev?.sessionStatus,
+        activity:
+          sessionStatus === "running"
+            ? activity
+            : prev?.sessionStatus === "running"
+              ? prev.activity
+              : activity,
+        awaitingUser: awaitingUser || !!prev?.awaitingUser,
+      }
+
+      // Voice call is a module singleton — apply only to the selected agent while active.
+      if (callActive && agent === selected) {
+        next.callState = callState
+      }
+
+      map.set(agent, next)
     }
+
+    // Selected agent may have no session row yet; still surface live call presence.
+    if (callActive && selected && !map.has(selected)) {
+      map.set(selected, { callState })
+    }
+
     return map
   })
 
@@ -87,7 +140,7 @@ function useAnRoster(currentAgent: () => string | undefined) {
       available: list()?.available ?? false,
       bots: list()?.bots ?? [],
       currentAgent: currentAgent(),
-      agentStatus: agentStatus(),
+      agentSignals: agentSignals(),
     }),
   )
 
@@ -193,7 +246,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     setMode("view")
     aporiaAlerts.push({
       title: "Takeover stopped",
-      detail: "Switched to View (watch-only). No live computer input was granted.",
+      detail: "Switched to Computer View (watch-only). No live computer input was granted.",
       level: "info",
     })
   }
@@ -317,8 +370,9 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         attention={attention.bound().attention}
         attentionEmpty={attention.bound().emptyMessage}
         streamCards={streamCards()}
-        computerEmpty="No live computer feed yet. Panel stays visible — attach a computer session to populate."
-        computerTitle="Live computer"
+        computerEmpty="Computer View has no live feed yet. Watch/control backends are not attached — chrome only."
+        computerTitle="Computer View"
+        computerLive={false}
         onSelectNav={onSelectNav}
         onSelectMember={(id) => void openMember(id)}
         onStreamCardAction={(actionId, card) => {

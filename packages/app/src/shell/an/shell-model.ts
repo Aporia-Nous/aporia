@@ -36,7 +36,7 @@ export function buildAnShellModel(input: {
     navItems: input.navItems ?? [],
     roster: (input.roster ?? []).map((member) => ({
       ...member,
-      // unknown stays unknown — never promote to online without real state
+      // unknown stays unknown — never invent listening/working without real signals
       presence: member.presence,
     })),
     mission,

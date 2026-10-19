@@ -5,6 +5,7 @@ import type { AnCardModel } from "./cards/types"
 import {
   AN_PRODUCT_NAME,
   AN_SHELL_MODES,
+  anPresenceLabel,
   anShellLayout,
   anShellModeLabel,
   presenceDotClass,
@@ -38,7 +39,7 @@ const DEFAULT_NAV = [
 ] as const
 
 const DEFAULT_COMPUTER_EMPTY =
-  "No live computer feed yet. Surface stays visible — attach a session to populate."
+  "Computer View has no live feed yet. Watch/control backends are not attached — chrome only."
 
 /** Line icons toward mockup — not emoji glyphs. */
 function NavIcon(props: { name?: string }) {
@@ -100,19 +101,22 @@ function LiveComputerPanel(props: {
   size: "compact" | "large" | "primary"
   live?: boolean
 }) {
+  const badge = () => (props.live ? "Live" : "Unavailable")
   return (
     <section class="an-computer" data-size={props.size} aria-label={props.title}>
       <header class="an-computer-header">
         <strong>{props.title}</strong>
-        <span class="an-computer-badge" data-live={props.live ? "true" : "false"}>
-          {props.live ? "Live" : "Idle"}
+        <span class="an-computer-badge" data-live={props.live ? "true" : "false"} data-state={badge().toLowerCase()}>
+          {badge()}
         </span>
       </header>
-      <div class="an-computer-surface" data-empty="true">
+      <div class="an-computer-surface" data-empty={props.live ? "false" : "true"}>
         <p class="an-computer-empty">{props.empty}</p>
       </div>
       <Show when={props.size !== "primary"}>
-        <p class="an-computer-note">Watch only in View — input requires Takeover.</p>
+        <p class="an-computer-note">
+          Watch-only Computer View — live feed not attached. Input requires Takeover.
+        </p>
       </Show>
     </section>
   )
@@ -126,7 +130,7 @@ function ModeSwitcher(props: {
     <div
       class="an-mode-switch"
       role="radiogroup"
-      aria-label="Shell mode (Conversation, View, Takeover)"
+      aria-label="Shell mode (Conversation, Computer View, Takeover)"
     >
       <For each={[...AN_SHELL_MODES]}>
         {(id) => (
@@ -157,7 +161,8 @@ export function AnShell(props: AnShellProps): JSX.Element {
   const streamCards = () => props.streamCards ?? []
   const attentionCards = () => attentionToApprovalCards(attention())
   const computerEmpty = () => props.computerEmpty ?? DEFAULT_COMPUTER_EMPTY
-  const computerTitle = () => props.computerTitle ?? "Live computer"
+  const computerTitle = () => props.computerTitle ?? "Computer View"
+  const computerLive = () => !!props.computerLive
   const progress = () => {
     const value = props.mission?.progressPercent
     if (value === undefined || Number.isNaN(value)) return undefined
@@ -206,6 +211,8 @@ export function AnShell(props: AnShellProps): JSX.Element {
                 role="listitem"
                 data-selected={member.selected ? "true" : "false"}
                 data-presence={member.presence}
+                title={`${member.name} · ${anPresenceLabel(member.presence)}`}
+                aria-label={`${member.name}, ${member.role}, ${anPresenceLabel(member.presence)}`}
                 onClick={() => props.onSelectMember?.(member.id)}
               >
                 <span class="an-roster-avatar" aria-hidden="true">
@@ -215,6 +222,9 @@ export function AnShell(props: AnShellProps): JSX.Element {
                 <span class="an-roster-text">
                   <strong>{member.name}</strong>
                   <span>{member.role}</span>
+                  <span class="an-roster-presence" data-presence={member.presence}>
+                    {anPresenceLabel(member.presence)}
+                  </span>
                 </span>
               </button>
             )}
@@ -271,7 +281,7 @@ export function AnShell(props: AnShellProps): JSX.Element {
               title={computerTitle()}
               empty={computerEmpty()}
               size="primary"
-              live={false}
+              live={computerLive()}
             />
             <div class="an-takeover-bar" role="toolbar" aria-label="Takeover controls">
               <button type="button" class="an-takeover-handback" onClick={() => props.onHandBack?.()}>
@@ -308,7 +318,7 @@ export function AnShell(props: AnShellProps): JSX.Element {
             title={computerTitle()}
             empty={computerEmpty()}
             size={layout().computerBeside ? "large" : "compact"}
-            live={false}
+            live={computerLive()}
           />
         </Show>
 

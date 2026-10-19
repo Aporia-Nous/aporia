@@ -8,8 +8,10 @@ export {
   AN_SHELL_MODES,
   AN_SHELL_MODE_LABEL,
   AN_PRESENCE,
+  AN_PRESENCE_LABEL,
   anShellLayout,
   anShellModeLabel,
+  anPresenceLabel,
   isAnShellMode,
   presenceDotClass,
   type AnShellLayout,
@@ -25,6 +27,9 @@ export {
   rosterBindResult,
   attentionBindResult,
   anShellMissionSwitchNote,
+  resolveAnPresence,
+  sessionActivityFromMessages,
+  type AnPresenceSignal,
 } from "./bind"
 export { AnShellSessionLayout, AnShellDraftLayout, AnShellHomeLayout } from "./session-layout"
 export type {

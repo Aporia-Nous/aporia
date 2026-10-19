@@ -44,7 +44,7 @@ export type AnShellLayout = {
   mode: AnShellMode
   /** Attention / live-computer rail never collapses to width 0. */
   attentionAlwaysOn: true
-  /** View: live surface beside chat (watch only — no input grant). */
+  /** Computer View: live surface beside chat (watch only — no input grant). */
   computerBeside: boolean
   /** Takeover: computer primary; Hand back / Stop are chrome affordances. */
   computerPrimary: boolean
@@ -80,7 +80,8 @@ export type AnShellMode = (typeof AN_SHELL_MODES)[number]
 
 export const AN_SHELL_MODE_LABEL: Record<AnShellMode, string> = {
   conversation: "Conversation",
-  view: "View",
+  /** User-facing Computer View; mode id stays `view` (Stage 5 four-mode still OPEN). */
+  view: "Computer View",
   takeover: "Takeover",
 }
 
@@ -92,21 +93,44 @@ export function anShellModeLabel(mode: AnShellMode): string {
   return AN_SHELL_MODE_LABEL[mode]
 }
 
-/** Presence for roster density — real state only; never invent online/working. */
-export const AN_PRESENCE = ["online", "working", "idle", "sleeping", "unknown"] as const
+/**
+ * Bot presence (Ali design): listening / thinking / speaking / working / waiting.
+ * `unknown` when no honest signal — never invent companion mood.
+ */
+export const AN_PRESENCE = ["listening", "thinking", "speaking", "working", "waiting", "unknown"] as const
 export type AnPresence = (typeof AN_PRESENCE)[number]
+
+export const AN_PRESENCE_LABEL: Record<AnPresence, string> = {
+  listening: "Listening",
+  thinking: "Thinking",
+  speaking: "Speaking",
+  working: "Working",
+  waiting: "Waiting",
+  unknown: "Unknown",
+}
+
+export function anPresenceLabel(presence: AnPresence): string {
+  return AN_PRESENCE_LABEL[presence]
+}
 
 export function presenceDotClass(presence: AnPresence): string {
   switch (presence) {
-    case "online":
-      return "an-presence an-presence-online"
+    case "listening":
+      return "an-presence an-presence-listening"
+    case "thinking":
+      return "an-presence an-presence-thinking"
+    case "speaking":
+      return "an-presence an-presence-speaking"
     case "working":
       return "an-presence an-presence-working"
-    case "idle":
-      return "an-presence an-presence-idle"
-    case "sleeping":
-      return "an-presence an-presence-sleeping"
-    default:
+    case "waiting":
+      return "an-presence an-presence-waiting"
+    case "unknown":
       return "an-presence an-presence-unknown"
+    default: {
+      const _exhaustive: never = presence
+      void _exhaustive
+      return "an-presence an-presence-unknown"
+    }
   }
 }

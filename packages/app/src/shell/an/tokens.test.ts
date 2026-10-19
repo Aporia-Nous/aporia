@@ -43,11 +43,17 @@ describe("AN Stage 4 tokens", () => {
     expect(isAnShellMode("conversation")).toBe(true)
     expect(isAnShellMode("status")).toBe(false)
     expect(isAnShellMode("inline")).toBe(false)
-    expect(anShellModeLabel("view")).toBe("View")
+    expect(anShellModeLabel("view")).toBe("Computer View")
+    expect(anShellModeLabel("conversation")).toBe("Conversation")
+    expect(anShellModeLabel("takeover")).toBe("Takeover")
   })
 
-  test("presence classes never invent a fourth mode token", () => {
+  test("presence classes cover design set without inventing modes", () => {
+    expect(presenceDotClass("listening")).toContain("an-presence-listening")
+    expect(presenceDotClass("thinking")).toContain("an-presence-thinking")
+    expect(presenceDotClass("speaking")).toContain("an-presence-speaking")
     expect(presenceDotClass("working")).toContain("an-presence-working")
+    expect(presenceDotClass("waiting")).toContain("an-presence-waiting")
     expect(presenceDotClass("unknown")).toContain("an-presence-unknown")
   })
 
