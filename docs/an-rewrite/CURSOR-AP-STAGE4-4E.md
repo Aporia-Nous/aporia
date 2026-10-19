@@ -4,6 +4,8 @@
 |-------|-------|
 | status | **OPEN for independent review** — implemented + live-DEV verified (executor); **not** Stage 4 complete; **not** INDEPENDENT PASS until verifier |
 | branch | `stage4-an-shell` |
+| tip | `af9ab9943a` |
+| code | `af9ab9943a` |
 | base | `5f810a9d51` (AP-STAGE4-12 tip) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | scope | Mount Contraptions under AnShell chrome (Automations & integrations; Redstone Easter-egg only); keep STAGE4-11 stream + STAGE4-12 composer ownership |
