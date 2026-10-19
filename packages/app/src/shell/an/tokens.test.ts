@@ -10,6 +10,7 @@ import {
   AN_DESIGN_SOURCE,
   AN_ICE_MATERIAL,
   AN_MOTION_SURFACE,
+  AN_REVIEW_CONTENT_SURFACE,
   AN_REVIEW_SURFACE,
   AN_PRODUCT_BYLINE,
   AN_PRODUCT_NAME,
@@ -158,6 +159,20 @@ describe("AN Stage 4 tokens", () => {
     expect(AN_MOTION_SURFACE.intentionalMotions.length).toBeGreaterThanOrEqual(3)
     expect(AN_MOTION_SURFACE.avoidPurpleNebula).toBe(true)
     expect(AN_COMPOSER_SURFACE.ownedAttr).toBe('data-an-owned="composer"')
+  })
+
+  test("Review content bind + deeper holo motion (AP-STAGE4-18)", () => {
+    expect(AN_MOTION_SURFACE.slice).toBe("AP-STAGE4-18")
+    expect(AN_MOTION_SURFACE.depth).toBe("jarvis-adjacent-ice-glass")
+    expect(AN_MOTION_SURFACE.continuousLight).toBe(true)
+    expect(AN_MOTION_SURFACE.intentionalMotions).toContain("holo-sheen-sweep")
+    expect(AN_MOTION_SURFACE.intentionalMotions).toContain("preview-surface-settle")
+    expect(AN_REVIEW_CONTENT_SURFACE.bindFromWorkspaceRead).toBe(true)
+    expect(AN_REVIEW_CONTENT_SURFACE.emptyShellsForbidden).toBe(true)
+    expect(AN_REVIEW_CONTENT_SURFACE.codePart).toBe("review-code-editor")
+    expect(AN_REVIEW_CONTENT_SURFACE.documentPart).toBe("review-document-preview")
+    expect(AN_COMPOSER_SURFACE.ownedAttr).toBe('data-an-owned="composer"')
+    expect(AN_REVIEW_SURFACE.navId).toBe("review")
   })
 
   test("Computer attach surface markers (AP-BF-01)", () => {

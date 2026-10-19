@@ -10,12 +10,15 @@ import { touchedFiles } from "@/aporia/session-stats"
 import { UpdateWatcher } from "@/aporia/update"
 import { useData, useServer } from "@/runtime/server/current"
 import { useServerSDK } from "@/runtime/server/client"
+import { formatServerError } from "@/runtime/server/errors"
 import { useCommand } from "@/shell/commands/command"
 import { sessionHref } from "@/shell/routes/session"
 import { useSettingsDialog } from "@/settings/command"
 import type { SessionModel } from "@/session/model"
+import { fileContentFromBytes } from "@/workspaces/files/artifact"
 import type { SessionInfo, SessionMessageInfo } from "@opencode/client/promise"
 import { Session } from "@opencode/schema/session"
+import { getDirectory, getFilename } from "@opencode/util/path"
 import { useTheme } from "@opencode/ui/theme/context"
 import { useNavigate } from "@solidjs/router"
 import { Show, createEffect, createMemo, createResource, createSignal, onCleanup, type ParentProps } from "solid-js"
@@ -82,6 +85,13 @@ import {
   type ComputerControlState,
 } from "./computer-control"
 import { AnContraptionsPanel } from "./contraptions-panel"
+import {
+  binaryReviewContent,
+  errorReviewContent,
+  loadingReviewContent,
+  readyReviewContent,
+  type AnReviewLoadedContent,
+} from "./review-content"
 import { AnReviewPanel } from "./review-panel"
 import { messagesToConversationTurns } from "./conversation-turns"
 import {
@@ -299,6 +309,14 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   const [contraptionsOpen, setContraptionsOpen] = createSignal(false)
   const [reviewOpen, setReviewOpen] = createSignal(false)
   const [reviewInitialTab, setReviewInitialTab] = createSignal<"browser" | "code" | "files" | "documents">("browser")
+  const [reviewCodeContent, setReviewCodeContent] = createSignal<AnReviewLoadedContent | undefined>()
+  const [reviewDocumentContent, setReviewDocumentContent] = createSignal<AnReviewLoadedContent | undefined>()
+  let reviewSdk: ReturnType<typeof useServerSDK> | undefined
+  try {
+    reviewSdk = useServerSDK()
+  } catch {
+    reviewSdk = undefined
+  }
   const [computerAttach, setComputerAttach] = createSignal<ComputerAttachState>(
     initialComputerAttachState(props.view.sessionID()),
   )
@@ -431,6 +449,43 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   const reviewFiles = createMemo(() =>
     touchedFiles(props.view.messages()).map((file) => ({ path: file.path, via: file.via })),
   )
+
+  /** AP-STAGE4-18: load workspace file bytes into Review Code/Documents previews. */
+  const loadReviewPath = async (rawPath: string, tab: "code" | "documents") => {
+    const path = rawPath.trim().replace(/\\/g, "/")
+    if (!path) return
+    const setContent = tab === "code" ? setReviewCodeContent : setReviewDocumentContent
+    setContent(loadingReviewContent(path))
+    if (!reviewSdk) {
+      setContent(errorReviewContent(path, "Workspace file API unavailable in this surface."))
+      return
+    }
+    const directory = (props.view.directory() || "").replace(/\\/g, "/")
+    const absolute = /^(?:[a-zA-Z]:\/|\/\/)/.test(path)
+    if (!absolute && !directory) {
+      setContent(
+        errorReviewContent(
+          path,
+          "Open a session with a workspace directory, or paste an absolute path, to bind Review content.",
+        ),
+      )
+      return
+    }
+    const request = absolute
+      ? { path: getFilename(path), location: { directory: getDirectory(path) } }
+      : { path, location: { directory } }
+    try {
+      const data = await reviewSdk.api.file.read(request)
+      const content = fileContentFromBytes(path, data)
+      if (content.type === "binary") {
+        setContent(binaryReviewContent(path, { mimeType: content.mimeType }))
+        return
+      }
+      setContent(readyReviewContent(path, content.content, { mimeType: content.mimeType }))
+    } catch (error) {
+      setContent(errorReviewContent(path, formatServerError(error, undefined, "Could not read file for Review.")))
+    }
+  }
 
   const navItems = (): AnNavItem[] => [
     {
@@ -868,8 +923,13 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         <AnReviewPanel
           initialTab={reviewInitialTab()}
           files={reviewFiles()}
+          codeContent={reviewCodeContent()}
+          documentContent={reviewDocumentContent()}
           computerLive={computerLive()}
           computerFeedUrl={computerFeed().url || undefined}
+          onRequestPath={(path, tab) => {
+            void loadReviewPath(path, tab)
+          }}
           onClose={() => setReviewOpen(false)}
         />
       </Show>

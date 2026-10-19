@@ -155,15 +155,17 @@ export const AN_REVIEW_SURFACE = {
 } as const
 
 /**
- * AP-STAGE4-17 motion: deliberate holographic ice transitions (Grok-bot-class bar within AN brand).
- * Not a skin copy — timing/depth/light only; no purple AI-slop.
+ * AP-STAGE4-17/18 motion: holographic ice transitions (Grok/Cursor/Antigravity-class bar within AN brand).
+ * STAGE4-18 deepens light/depth + continuous sheen (Jarvis-adjacent ice glass) — not a skin copy.
  */
 export const AN_MOTION_SURFACE = {
-  slice: "AP-STAGE4-17",
+  slice: "AP-STAGE4-18",
   feel: "holographic-ice-companion",
-  easePanel: "380ms cubic-bezier(0.16, 1, 0.3, 1)",
-  easeTab: "240ms cubic-bezier(0.22, 1, 0.36, 1)",
-  easeLive: "480ms cubic-bezier(0.16, 1, 0.3, 1)",
+  depth: "jarvis-adjacent-ice-glass",
+  easePanel: "520ms cubic-bezier(0.16, 1, 0.3, 1)",
+  easeTab: "280ms cubic-bezier(0.22, 1, 0.36, 1)",
+  easeLive: "560ms cubic-bezier(0.16, 1, 0.3, 1)",
+  easeHolo: "420ms cubic-bezier(0.16, 1, 0.3, 1)",
   easeDock: AN_TOKENS.easeDock,
   intentionalMotions: [
     "panel-open-close",
@@ -171,10 +173,27 @@ export const AN_MOTION_SURFACE = {
     "computer-live-attach",
     "card-enter",
     "composer-settle",
+    "holo-sheen-sweep",
+    "ice-depth-parallax",
+    "preview-surface-settle",
   ] as const,
+  continuousLight: true,
   avoidPurpleNebula: true,
   avoidCreamSerif: true,
   avoidBroadsheet: true,
+} as const
+
+/**
+ * AP-STAGE4-18: Review Code/Documents bind to real viewable content (not empty shells).
+ */
+export const AN_REVIEW_CONTENT_SURFACE = {
+  slice: "AP-STAGE4-18",
+  codePart: "review-code-editor",
+  documentPart: "review-document-preview",
+  codeBodyPart: "review-code-body",
+  documentBodyPart: "review-document-body",
+  bindFromWorkspaceRead: true,
+  emptyShellsForbidden: true,
 } as const
 
 /**

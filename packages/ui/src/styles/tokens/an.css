@@ -49,10 +49,14 @@
   --an-ease-card: 420ms cubic-bezier(0.22, 1, 0.36, 1);
   /* Session/composer floating dock settle (AP-STAGE4-09) */
   --an-ease-dock: 320ms cubic-bezier(0.22, 1, 0.36, 1);
-  /* AP-STAGE4-17: holographic companion motion (Grok-class bar, AN ice — not purple slop) */
-  --an-ease-panel: 380ms cubic-bezier(0.16, 1, 0.3, 1);
-  --an-ease-tab: 240ms cubic-bezier(0.22, 1, 0.36, 1);
-  --an-ease-live: 480ms cubic-bezier(0.16, 1, 0.3, 1);
-  --an-holo-sheen: rgba(186, 220, 255, 0.18);
-  --an-holo-rim: rgba(240, 198, 109, 0.22);
+  /* AP-STAGE4-17/18: holographic companion motion (Grok-class bar, AN ice — not purple slop) */
+  --an-ease-panel: 520ms cubic-bezier(0.16, 1, 0.3, 1);
+  --an-ease-tab: 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  --an-ease-live: 560ms cubic-bezier(0.16, 1, 0.3, 1);
+  --an-ease-holo: 420ms cubic-bezier(0.16, 1, 0.3, 1);
+  --an-holo-sheen: rgba(186, 220, 255, 0.22);
+  --an-holo-rim: rgba(240, 198, 109, 0.28);
+  --an-holo-sweep: rgba(210, 232, 255, 0.14);
+  --an-holo-depth: rgba(4, 14, 28, 0.45);
+  --an-holo-specular: rgba(230, 242, 255, 0.42);
 }
