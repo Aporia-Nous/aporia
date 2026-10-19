@@ -115,6 +115,37 @@ export const load = Effect.fn("SessionHistory.load")(function* (
   return (yield* messageEntries(db, sessionID, boundary)).map((entry) => entry.message)
 })
 
+/**
+ * AP-ENGINE-E05: assistants with streaming/running tools only (process-recovery settle).
+ * Same post-compaction bound as `load(..., "latest")`, without decoding the full history.
+ */
+export const assistantsWithOpenTools = Effect.fn("SessionHistory.assistantsWithOpenTools")(function* (
+  db: DatabaseService,
+  sessionID: SessionSchema.ID,
+) {
+  const compaction = yield* latestCompaction(db, sessionID, "latest")
+  const rows = yield* db
+    .select()
+    .from(SessionMessageTable)
+    .where(
+      and(
+        eq(SessionMessageTable.session_id, sessionID),
+        eq(SessionMessageTable.type, "assistant"),
+        compaction ? gte(SessionMessageTable.seq, compaction.seq) : undefined,
+        sql`exists (
+          select 1 from json_each(${SessionMessageTable.data}, '$.content') as content
+          where json_extract(content.value, '$.type') = 'tool'
+            and json_extract(content.value, '$.state.status') in ('streaming', 'running')
+        )`,
+      ),
+    )
+    .orderBy(asc(SessionMessageTable.seq))
+    .all()
+    .pipe(Effect.orDie)
+  const messages = yield* Effect.forEach(rows, decodeMessageRow)
+  return messages.filter((message): message is Extract<SessionMessage.Info, { type: "assistant" }> => message.type === "assistant")
+})
+
 export const entriesForRunner = Effect.fn("SessionHistory.entriesForRunner")(function* (
   db: DatabaseService,
   sessionID: SessionSchema.ID,

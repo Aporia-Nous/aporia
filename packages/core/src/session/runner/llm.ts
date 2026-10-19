@@ -17,7 +17,6 @@ import { SessionModelRequest } from "../model-request.js"
 import { SessionModelTransport } from "../model-transport.js"
 import { SessionMessage } from "../message.js"
 import { SessionSchema } from "../schema.js"
-import { SessionStore } from "../store.js"
 import { SessionMessageTable } from "../sql.js"
 import { SessionTitle } from "../title.js"
 import { toSessionError } from "../to-session-error.js"
@@ -40,7 +39,6 @@ const layer = Layer.effect(
   Effect.gen(function* () {
     const bus = yield* Bus.Service
     const lifecycle = yield* LocationLifecycle.Service
-    const store = yield* SessionStore.Service
     const context = yield* SessionContext.Service
     const modelTransport = yield* SessionModelTransport.Service
     const db = (yield* Database.Service).db
@@ -358,11 +356,11 @@ const layer = Layer.effect(
       }
     })
 
+    // AP-ENGINE-E05: SQL-narrow assistants with open tools; do not decode full history.
     const settleStaleToolCalls = Effect.fn("SessionRunner.settleStaleToolCalls")(function* (
       sessionID: SessionSchema.ID,
     ) {
-      for (const message of yield* store.context(sessionID)) {
-        if (message.type !== "assistant") continue
+      for (const message of yield* SessionHistory.assistantsWithOpenTools(db, sessionID)) {
         for (const tool of message.content) {
           if (tool.type !== "tool" || (tool.state.status !== "streaming" && tool.state.status !== "running")) continue
           const metadata = tool.state.status === "running" ? tool.state.metadata : undefined
@@ -396,7 +394,6 @@ export const node = makeLocationNode({
     llmClient,
     SessionContext.node,
     SessionModelTransport.node,
-    SessionStore.node,
     SessionCompaction.node,
     Plugin.node,
     SessionTitle.node,
