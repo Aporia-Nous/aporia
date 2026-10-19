@@ -4,8 +4,8 @@
 |-------|-------|
 | status | **OPEN — implemented + live-DEV** (await independent PASS) — **not** Stage 4 complete; **not** self-labeled INDEPENDENT PASS |
 | branch | `stage4-an-shell` |
-| tip | *(docs sync after code)* |
-| code | *(feat commit hash)* |
+| tip | *(docs tip commit after this report)* |
+| code | `10cc4f0751` |
 | base | `ec74cc7c4d` (AP-BF-02 tip; code `adb4ddb23c`) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | scope | Single control lock; Live View watch-only; Live Takeover = user input + bot paused; Hand back / Stop restore bot + fresh observation |
