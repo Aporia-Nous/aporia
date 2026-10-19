@@ -5,7 +5,8 @@
 **Worktree:** `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` branch `stage4-an-shell`  
 **Base tip before slice:** `22e43a666d` (AP-STAGE4-09)  
 **Code commit:** `3e5553fd5c`  
-**Implementation tip:** `2957aad00b` (docs note after code)
+**Implementation tip:** `2957aad00b` (docs note after code)  
+**Verifier tip:** `d35b59cee5` (this independent PASS section)
 
 ## Scope
 
@@ -53,7 +54,7 @@ Verdict: **PASS** (Flows→Contraptions copy rename + category gloss scope only)
 
 | check | result |
 | --- | --- |
-| Tip | HEAD `2957aad00b`; code `3e5553fd5c`; base `22e43a666d` (ancestor OK) |
+| Tip | code `3e5553fd5c`; implementation tip `2957aad00b`; verifier tip `d35b59cee5`; base `22e43a666d` (ancestor OK) |
 | Tab/nav | `right-panel.tsx`: automations tab label **Contraptions** |
 | Section + subtitle | `flows.tsx`: **Contraptions** + always-on **Automations & integrations · 0 model tokens** |
 | Singular / actions | Save/Add/Run/toasts/empty/errors use Contraption(s) — no user-facing **Flows** left in `aporia/` UI strings |
