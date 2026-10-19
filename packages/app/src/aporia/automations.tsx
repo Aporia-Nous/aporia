@@ -1,4 +1,4 @@
-// APORIA: Automations tab. Native flows first (./flows, run in the server), then local n8n through the
+// APORIA: Contraptions tab (nav label). Native Contraptions first (./flows, flow engine), then local n8n through the
 // desktop bridge (key stays in the main process).
 import { createResource, createSignal, For, Show } from "solid-js"
 import { EmptyState, Icon, Skeleton } from "./icons"

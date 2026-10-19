@@ -1,5 +1,5 @@
-// APORIA: pure helpers for the native Flows section and the flow slash commands (tested in
-// flows-util.test.ts). The engine itself runs in the server; the app only lists, starts and shows.
+// APORIA: pure helpers for the Contraptions section and slash commands (tested in
+// flows-util.test.ts). Engine IDs stay flow_*; the app only lists, starts and shows.
 
 export type FlowRunStatus = "running" | "waiting" | "needs-attention" | "completed" | "failed"
 export type FlowStepStatus = "pending" | "running" | "waiting" | "succeeded" | "failed" | "skipped" | "needs-attention"
@@ -64,17 +64,17 @@ export function slashInput(rest: string | undefined): JsonObject {
   return { text }
 }
 
-/** Parse the "Add flow from JSON" box. The server validates the definition itself; this only checks it is an object. */
+/** Parse the "Add Contraption from JSON" box. The server validates the definition; this only checks it is an object. */
 export function parseDefinition(text: string): { ok: true; definition: JsonObject } | { ok: false; error: string } {
   const trimmed = text.trim()
-  if (trimmed.length === 0) return { ok: false, error: "Paste a flow definition (JSON) first." }
+  if (trimmed.length === 0) return { ok: false, error: "Paste a Contraption definition (JSON) first." }
   let parsed: unknown
   try {
     parsed = JSON.parse(trimmed)
   } catch (error) {
     return { ok: false, error: `Not valid JSON: ${error instanceof Error ? error.message : String(error)}` }
   }
-  if (!isObject(parsed)) return { ok: false, error: "A flow definition is a JSON object." }
+  if (!isObject(parsed)) return { ok: false, error: "A Contraption definition is a JSON object." }
   return { ok: true, definition: parsed }
 }
 
@@ -131,7 +131,9 @@ export const isOpen = (status: FlowRunStatus) => status !== "completed" && statu
 
 /** The toast after a slash run was requested. */
 export function startedToast(flowName: string, created: boolean): string {
-  return created ? `Started flow "${flowName}"` : `Flow "${flowName}" was already started for this request`
+  return created
+    ? `Started Contraption "${flowName}"`
+    : `Contraption "${flowName}" was already started for this request`
 }
 
 /** A short, readable error from whatever the client threw (a FlowInvalidError lists its problems). */

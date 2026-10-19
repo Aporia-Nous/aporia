@@ -107,7 +107,7 @@ export function AporiaRightPanel(props: { view: AporiaView; onClose?: () => void
               onClick={() => setTab(value)}
             >
               <Icon name={TAB_ICONS[value]} size={14} />
-              <span class="ap-tab-label">{value === "automations" ? "Flows" : value === "call" ? "Call" : value === "browser" ? "Browser" : value[0]!.toUpperCase() + value.slice(1)}</span>
+              <span class="ap-tab-label">{value === "automations" ? "Contraptions" : value === "call" ? "Call" : value === "browser" ? "Browser" : value[0]!.toUpperCase() + value.slice(1)}</span>
             </button>
           )}
         </For>

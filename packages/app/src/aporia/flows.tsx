@@ -1,7 +1,7 @@
-// APORIA: native Flows (flow engine stage 1). Lists the flows saved in the server's mission log,
-// starts one, and shows its run history and step timeline. Flows run inside the server, with no
-// model call, so every step shows 0 tokens. There is no visual editor yet: a flow is added by
-// pasting its JSON definition. The n8n section below it is unchanged.
+// APORIA: native Contraptions UI (flow engine stage 1). User-facing name = Contraption(s);
+// category gloss = Automations & integrations. Engine IDs stay flow_* / F1. Lists saved
+// definitions, starts one, shows run history and step timeline. Runs in the server with no
+// model call (0 tokens). No visual editor yet: add by pasting JSON. n8n section below unchanged.
 import { createSignal, For, onCleanup, Show } from "solid-js"
 import { useServerSDK } from "@/runtime/server/client"
 import { useCommand } from "@/shell/commands/command"
@@ -118,7 +118,11 @@ export function FlowsSection() {
       const saved = (await api().save({ definition: parsed.definition })) as { id: string; version: number; created: boolean }
       setDraft("")
       setAdding(false)
-      showToast(saved.created ? `Saved flow ${saved.id} (version ${saved.version})` : `Flow ${saved.id} is unchanged`)
+      showToast(
+        saved.created
+          ? `Saved Contraption ${saved.id} (version ${saved.version})`
+          : `Contraption ${saved.id} is unchanged`,
+      )
       await refresh()
     } catch (e) {
       setDraftError(errorText(e))
@@ -128,15 +132,17 @@ export function FlowsSection() {
   return (
     <section class="ap-flows" data-component="aporia-flows">
       <div class="ap-flows-head">
-        <strong>Flows</strong>
-        <span class="ap-muted ap-small">Run in Aporetic, no model, 0 tokens</span>
+        <strong>Contraptions</strong>
+        <span class="ap-muted ap-small" title="redstone stays the private joke">
+          Automations & integrations · 0 model tokens
+        </span>
         <button type="button" class="ap-btn ap-btn-ghost" onClick={() => setAdding(!adding())} data-action="flow-add">
           <Icon name={adding() ? "x" : "file"} size={12} />
-          {adding() ? "Cancel" : "Add flow from JSON"}
+          {adding() ? "Cancel" : "Add Contraption from JSON"}
         </button>
       </div>
       <Show when={!sdk}>
-        <div class="ap-card ap-card-err">Flows need the Aporetic server.</div>
+        <div class="ap-card ap-card-err">Contraptions need the Aporetic server.</div>
       </Show>
       <Show when={error()}>
         <div class="ap-card ap-card-err" role="alert">
@@ -149,7 +155,7 @@ export function FlowsSection() {
             class="ap-flow-json"
             rows={8}
             spellcheck={false}
-            placeholder='{"id": "my-flow", "name": "My flow", "steps": [...], "connections": [...]}'
+            placeholder='{"id": "my-contraption", "name": "My Contraption", "steps": [...], "connections": [...]}'
             value={draft()}
             onInput={(e) => setDraft(e.currentTarget.value)}
             data-field="flow-json"
@@ -160,7 +166,7 @@ export function FlowsSection() {
             </span>
           </Show>
           <button type="button" class="ap-btn" onClick={() => void save()} data-action="flow-save">
-            <Icon name="check" size={12} /> Save flow
+            <Icon name="check" size={12} /> Save Contraption
           </button>
         </div>
       </Show>
@@ -168,7 +174,13 @@ export function FlowsSection() {
         <ul class="ap-files">
           <For
             each={flows()}
-            fallback={<EmptyState icon="sparkles" title="No flows yet" hint="Add one from JSON to start." />}
+            fallback={
+              <EmptyState
+                icon="sparkles"
+                title="No Contraptions yet"
+                hint="Add a Contraption from JSON to start."
+              />
+            }
           >
             {(flow) => (
               <li classList={{ "ap-flow-selected": selected() === flow.id }}>
@@ -245,7 +257,7 @@ export function FlowsSection() {
   )
 }
 
-/** Registers `/<flow id> [input]` for every saved flow. Input is a JSON object, or text as { text }. */
+/** Registers `/<flow id> [input]` for every saved Contraption. Input is a JSON object, or text as { text }. */
 export function FlowCommands() {
   const sdk = useSdk()
   let command: ReturnType<typeof useCommand> | undefined
@@ -260,11 +272,11 @@ export function FlowCommands() {
     try {
       const listed = await sdk.api.flow.list()
       const next = [...(listed?.data ?? [])] as FlowSummary[]
-      // Only replace the list when the set of flows changed, so the command registry is not churned every poll.
+      // Only replace the list when the set changed, so the command registry is not churned every poll.
       const key = (list: FlowSummary[]) => list.map((f) => `${f.id}:${f.name}`).join("|")
       if (key(next) !== key(flows())) setFlows(next)
     } catch {
-      // The Flows tab shows errors; the slash list just keeps what it had.
+      // The Contraptions tab shows errors; the slash list just keeps what it had.
     }
   }
   void load()
@@ -274,9 +286,9 @@ export function FlowCommands() {
   command?.register("aporia.flows", () =>
     flows().map((flow) => ({
       id: `flow.${flow.id}`,
-      title: `Run flow: ${flow.name}`,
-      description: "Runs in Aporetic with no model call. Input: a JSON object, or text.",
-      category: "Flows",
+      title: `Run Contraption: ${flow.name}`,
+      description: "Automations & integrations — no model call. Input: a JSON object, or text.",
+      category: "Contraptions",
       slash: slashName(flow),
       slashArguments: true,
       onSelect: async (_source?: unknown, input?: string) => {
@@ -289,7 +301,11 @@ export function FlowCommands() {
           })) as { runId: string; created: boolean }
           showToast({ title: startedToast(flow.name, started.created), variant: "success" } as never)
         } catch (e) {
-          showToast({ title: `Flow ${flow.name} did not start`, description: errorText(e), variant: "error" } as never)
+          showToast({
+            title: `Contraption ${flow.name} did not start`,
+            description: errorText(e),
+            variant: "error",
+          } as never)
         }
       },
     })),

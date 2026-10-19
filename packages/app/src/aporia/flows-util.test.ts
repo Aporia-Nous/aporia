@@ -23,9 +23,9 @@ describe("flow slash input", () => {
   })
 })
 
-describe("add flow from JSON", () => {
+describe("add Contraption from JSON", () => {
   test("only a JSON object passes; the server does the real validation", () => {
-    expect(parseDefinition("")).toEqual({ ok: false, error: "Paste a flow definition (JSON) first." })
+    expect(parseDefinition("")).toEqual({ ok: false, error: "Paste a Contraption definition (JSON) first." })
     expect(parseDefinition("[]").ok).toBe(false)
     expect(parseDefinition("{oops").ok).toBe(false)
     expect(parseDefinition('{"id":"a"}')).toEqual({ ok: true, definition: { id: "a" } })
@@ -57,8 +57,9 @@ describe("labels and timeline", () => {
     expect(stepLine({ id: "x", name: "Send", type: "http", status: "needs-attention", attempts: 1, tokens: 0 })).toBe(
       "! Send · http · needs-attention · 0 tokens",
     )
-    expect(startedToast("Greet", true)).toBe('Started flow "Greet"')
+    expect(startedToast("Greet", true)).toBe('Started Contraption "Greet"')
     expect(startedToast("Greet", false)).toContain("already")
+    expect(startedToast("Greet", false)).toContain("Contraption")
     expect(errorText({ problems: ["a", "b"] })).toBe("a; b")
     expect(errorText(new Error("boom"))).toBe("boom")
   })
