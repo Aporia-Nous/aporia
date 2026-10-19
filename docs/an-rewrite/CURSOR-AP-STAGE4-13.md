@@ -4,8 +4,8 @@
 |-------|-------|
 | status | **OPEN (implemented + live-DEV)** — **not** INDEPENDENT PASS; **not** Stage 4 complete |
 | branch | `stage4-an-shell` |
-| tip | _(filled after commit)_ |
-| code | _(filled after commit)_ |
+| tip | `17762b3fe7` |
+| code | `17762b3fe7` |
 | base | `a8437782b3` (AP-BF-04 tip) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | scope | Residual OC model/agent chips + mic/call → AN companion strip; placeholder `Message {bot}…`; keep gold send; preserve STAGE4-12 `data-an-owned=composer` |
