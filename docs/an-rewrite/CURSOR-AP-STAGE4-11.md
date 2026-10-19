@@ -4,6 +4,7 @@
 |-------|-------|
 | status | **OPEN for review** — vertical slice landed; **not** Stage 4 complete; **not** INDEPENDENT PASS claimed by this writer |
 | branch | `stage4-an-shell` |
+| tip | `ed17538810` |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | scope | AnShell owns user+assistant text Conversation; suppress OpenCode timeline under AnShell; fix card flex crush |
 | running-DEV | ACTIVE (watch-as-you-build CDP); running ≠ PASS |
