@@ -308,7 +308,12 @@ function SessionScreenContent(props: {
           throw error()
         }}
       </Show>
-      <div class="relative flex-1 min-h-0 overflow-hidden">
+      {/* Under AnShell, Conversation turns are owned by AN stream — this host is suppressed via CSS. */}
+      <div
+        class="relative flex-1 min-h-0 overflow-hidden"
+        data-an-part="opencode-timeline"
+        data-component="opencode-timeline"
+      >
         <Show when={!isDesktop() && store.mobileDockCached}>
           <div class="absolute inset-0" classList={{ invisible: mobileView() !== dockView()?.key }}>
             <DockRegion

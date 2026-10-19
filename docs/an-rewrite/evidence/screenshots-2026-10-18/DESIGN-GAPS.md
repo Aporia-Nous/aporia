@@ -13,7 +13,8 @@ Compared DEV screenshots to:
 3. **Attention / right rail collapsed.** ~~Width 0 when empty~~ → **Addressed AP-STAGE4-04** (**INDEPENDENT PASS** 2026-10-19): always-on Live computer + Attention with honest empty; shot `06-conversation-glass-rail.png`; CDP attWidth ≥320, no collapse.
 
 ## Layout / structure gaps
-4. **Stream card language:** ~~pure OpenCode only~~ → **Further AP-STAGE4-07** (OPEN for review, **no PASS**): tool/edit parts map to Task/Proof Mission cards when active/completed-edits; inline tools glass-restyled with Task/Proof labels; question→Decision card; session panel void glass; shot `10-conversation-stream-glass.png` (compare `09`). Residual: Session/composer dock still OpenCode-shaped; text turns not card-wrapped; empty session shows Computer+Team only (honest — no invented tools).
+4. **Stream ownership / message visibility:** ~~OpenCode timeline under AnShell wrapper; Mission cards `flex:1` crushed Conversation (user turns in DOM at ~16px height)~~ → **AP-STAGE4-11 vertical slice (OPEN review, no PASS claimed here):** AnShell owns user+assistant text via `AnConversationStream`; OpenCode timeline suppressed (`data-an-part="opencode-timeline"`); cards capped `max-height: 28%`; live shot `20-after-message-visible.png` shows YOU markers. **Still wrapper jank:** OpenCode composer dock; Mission cards above stream; tools not inline AN parts; plain-text turns only; identity/side docks residual OC. **Not Stage 4 complete.**
+4b. **Stream card language:** ~~pure OpenCode only~~ → **Further AP-STAGE4-07** then **11**: tool/edit → Mission Task/Proof; text turns now AN-owned (11). Residual: Session/composer dock still OpenCode-shaped; empty session Mission Computer+Team only (honest).
 5. **Mission header incomplete vs mockup:** ~~missing pills~~ → **Partial**: Local + honest `Private/Efficient/Verified · unavailable` pills under title (overlap fixed AP-STAGE4-07); still no real progress %, Computer-online/Podman strip, or avatar cluster.
 6. **Roster footer:** ~~missing~~ → **Partial AP-STAGE4-06**: `+ New teammate` stub (alert only); still no Podman/runtime status card.
 7. **Nav icons:** ~~placeholder glyphs (⌂ ▦ ▣ ⚙)~~ → **Partial AP-STAGE4-07**: line SVG icons + stronger gold active punch; not yet full illustrated mockup set.
@@ -33,4 +34,4 @@ Compared DEV screenshots to:
 - Line nav icons (not emoji clutter)
 
 ## Recommended next fix slice
-**AP-STAGE4-09 (Session/composer dock glass) — OPEN for review (2026-10-19):** separate worktree `cursor-aporetic-stage4-dock` branch `stage4-dock-glass`; report `CURSOR-AP-STAGE4-09.md`; shot `13-session-dock-glass.png`. No independent PASS claimed. Remaining after dock: Podman/runtime chrome; illustrated nav; Stage 5 four-mode deferred. No merge/push into stage4 tip.
+**AP-STAGE4-11 (AnShell owns Conversation) — OPEN for review (2026-10-19):** report `CURSOR-AP-STAGE4-11.md`; shot `20-after-message-visible.png`. Vertical slice only — residual OpenCode composer dock, Mission-card stack, tool-inline, markdown. Then 4E Contraptions mount / 4F nav-Podman. Stage 5 four-mode deferred. No merge/push.

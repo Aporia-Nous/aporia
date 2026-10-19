@@ -32,6 +32,8 @@ export {
   type AnPresenceSignal,
 } from "./bind"
 export { AnShellSessionLayout, AnShellDraftLayout, AnShellHomeLayout } from "./session-layout"
+export { AnConversationStream } from "./conversation-stream"
+export { messagesToConversationTurns, type AnConversationTurn } from "./conversation-turns"
 export type {
   AnShellProps,
   AnNavItem,

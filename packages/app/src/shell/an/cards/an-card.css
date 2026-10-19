@@ -365,8 +365,17 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  flex: 1;
   width: 100%;
+}
+
+/* Default (home / no AN-owned turns): legacy fills remaining stream space */
+.an-stream-legacy:not(.an-stream-legacy--composer-only) {
+  flex: 1;
+}
+
+/* Session with AN-owned Conversation: legacy is composer dock only — do not grow over turns */
+.an-stream-legacy--composer-only {
+  flex: 0 0 auto;
 }
 
 /* Soft ice-glass wrap for residual OpenCode tool/permission chrome inside AnShell */

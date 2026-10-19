@@ -22,6 +22,7 @@ import { Show, createEffect, createMemo, createResource, createSignal, onCleanup
 import { Portal } from "solid-js/web"
 import { AnShell } from "./an-shell"
 import { buildStreamCards } from "./cards"
+import { messagesToConversationTurns } from "./conversation-turns"
 import {
   attentionBindResult,
   missionFromSession,
@@ -333,6 +334,12 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     }),
   )
 
+  /** Own Conversation when a session is open (incl. empty) — home/draft keep OpenCode welcome. */
+  const conversationTurns = createMemo(() => {
+    if (!props.view.sessionID()) return undefined
+    return messagesToConversationTurns(props.view.messages())
+  })
+
   const onNewTeammate = () => {
     aporiaAlerts.push({
       title: "New teammate",
@@ -370,6 +377,8 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         attention={attention.bound().attention}
         attentionEmpty={attention.bound().emptyMessage}
         streamCards={streamCards()}
+        conversationTurns={conversationTurns()}
+        conversationEmpty="No messages yet — send from the composer below. Conversation is owned by AnShell."
         computerEmpty="Computer View has no live feed yet. Watch/control backends are not attached — chrome only."
         computerTitle="Computer View"
         computerLive={false}

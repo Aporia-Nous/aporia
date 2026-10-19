@@ -468,9 +468,38 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
-.an-stream > *,
+/* Cards must NOT steal flex:1 — that was collapsing Conversation / messages (AP-STAGE4-11).
+   Cap card stack so Conversation keeps usable height when Task/Team/Computer stack grows. */
+.an-stream > .an-stream-cards {
+  flex: 0 1 auto;
+  min-height: 0;
+  min-width: 0;
+  max-height: 28%;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.an-stream > .an-conversation {
+  flex: 1 1 auto;
+  min-height: 140px;
+  min-width: 0;
+}
+
+.an-stream > .an-stream-legacy {
+  flex: 0 0 auto;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.an-stream > .an-stream-legacy:not(.an-stream-legacy--composer-only) {
+  flex: 1 1 auto;
+}
+
 .an-stream-slot {
   flex: 1;
   min-height: 0;
@@ -485,6 +514,114 @@
   max-height: 55%;
   border-bottom: 1px solid var(--an-border-soft);
   overflow: hidden;
+}
+
+/* AN-owned Conversation turns (user + assistant text) */
+.an-conversation {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 8px 12px;
+  scroll-behavior: smooth;
+}
+
+.an-conversation-empty {
+  margin: 12px 4px;
+  color: var(--an-text-muted, #cfac62);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.an-conversation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.an-turn {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--an-radius, 14px);
+  border: 1px solid var(--an-border-soft, rgba(240, 198, 109, 0.12));
+  background:
+    linear-gradient(165deg, var(--an-ice-sheen, rgba(186, 220, 255, 0.06)), transparent 48%),
+    var(--an-panel-raised, rgba(8, 16, 24, 0.52));
+  box-shadow: var(--an-specular, inset 0 1px 0 rgba(210, 232, 255, 0.1));
+}
+
+.an-turn[data-role="user"] {
+  align-self: flex-end;
+  max-width: min(92%, 560px);
+  border-color: rgba(240, 198, 109, 0.28);
+  background:
+    linear-gradient(165deg, rgba(240, 198, 109, 0.1), transparent 50%),
+    rgba(4, 10, 16, 0.72);
+}
+
+.an-turn[data-role="assistant"] {
+  align-self: stretch;
+  max-width: 100%;
+}
+
+.an-turn-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.an-turn-role {
+  color: var(--an-gold, #f0c66d);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.an-turn[data-role="user"] .an-turn-role {
+  color: var(--an-gold-soft, #e5c57f);
+}
+
+.an-turn-streaming {
+  color: var(--an-text-muted, #cfac62);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+.an-turn-body {
+  color: var(--an-text, #f0e6d2);
+  font-size: 13px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Suppress OpenCode message timeline under AnShell when AN owns Conversation.
+   Composer / home welcome stay in .an-stream-legacy. */
+[data-component="an-shell"] .an-stream-legacy--composer-only [data-an-part="opencode-timeline"],
+[data-component="an-shell"] .an-stream-legacy--composer-only [data-component="opencode-timeline"] {
+  display: none !important;
+  flex: 0 0 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+}
+
+[data-component="an-shell"] .an-stream-legacy--composer-only [data-an-part="session-panel-frame"] {
+  flex: 0 0 auto;
+  min-height: 0;
+}
+
+/* Hide residual OpenCode message chrome if any leaks outside the timeline host */
+[data-component="an-shell"] .an-stream-legacy--composer-only [data-slot="user-message-text"],
+[data-component="an-shell"] .an-stream-legacy--composer-only [data-slot="message-part"],
+[data-component="an-shell"] .an-stream-legacy--composer-only [data-component="message-timeline"] {
+  display: none !important;
 }
 
 .an-shell-root {

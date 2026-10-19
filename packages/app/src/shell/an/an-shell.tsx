@@ -2,6 +2,8 @@ import { For, Show, type JSX, type ParentProps } from "solid-js"
 import { AnCard, AnStreamCards } from "./cards"
 import { attentionToApprovalCards } from "./cards/map"
 import type { AnCardModel } from "./cards/types"
+import { AnConversationStream } from "./conversation-stream"
+import type { AnConversationTurn } from "./conversation-turns"
 import {
   AN_PRODUCT_NAME,
   AN_SHELL_MODES,
@@ -17,6 +19,10 @@ import "./an-shell.css"
 function StreamRegion(
   props: ParentProps<{
     cards: AnCardModel[]
+    turns?: AnConversationTurn[]
+    conversationEmpty?: string
+    /** When true, AN owns message list; children keep composer / home chrome. */
+    ownConversation?: boolean
     onCardAction?: (actionId: string, card: AnCardModel) => void
   }>,
 ) {
@@ -26,7 +32,16 @@ function StreamRegion(
         cards={props.cards}
         onAction={(action, card) => props.onCardAction?.(action.id, card)}
       />
-      <div class="an-stream-legacy">{props.children}</div>
+      <Show when={props.ownConversation}>
+        <AnConversationStream turns={props.turns ?? []} emptyHint={props.conversationEmpty} />
+      </Show>
+      <div
+        class="an-stream-legacy"
+        classList={{ "an-stream-legacy--composer-only": !!props.ownConversation }}
+        data-an-own-conversation={props.ownConversation ? "true" : "false"}
+      >
+        {props.children}
+      </div>
     </>
   )
 }
@@ -159,6 +174,8 @@ export function AnShell(props: AnShellProps): JSX.Element {
   const attention = () => props.attention ?? []
   const roster = () => props.roster ?? []
   const streamCards = () => props.streamCards ?? []
+  const conversationTurns = () => props.conversationTurns
+  const ownConversation = () => conversationTurns() !== undefined
   const attentionCards = () => attentionToApprovalCards(attention())
   const computerEmpty = () => props.computerEmpty ?? DEFAULT_COMPUTER_EMPTY
   const computerTitle = () => props.computerTitle ?? "Computer View"
@@ -295,8 +312,14 @@ export function AnShell(props: AnShellProps): JSX.Element {
         </Show>
 
         <Show when={!layout().computerPrimary}>
-          <div class="an-stream">
-            <StreamRegion cards={streamCards()} onCardAction={props.onStreamCardAction}>
+          <div class="an-stream" data-an-own-conversation={ownConversation() ? "true" : "false"}>
+            <StreamRegion
+              cards={streamCards()}
+              turns={conversationTurns()}
+              conversationEmpty={props.conversationEmpty}
+              ownConversation={ownConversation()}
+              onCardAction={props.onStreamCardAction}
+            >
               {props.children}
             </StreamRegion>
           </div>
@@ -306,8 +329,17 @@ export function AnShell(props: AnShellProps): JSX.Element {
       <aside class="an-attention" aria-label="Attention and live computer">
         <Show when={layout().computerPrimary}>
           <div class="an-attention-header">Conversation</div>
-          <div class="an-stream an-stream--rail">
-            <StreamRegion cards={streamCards()} onCardAction={props.onStreamCardAction}>
+          <div
+            class="an-stream an-stream--rail"
+            data-an-own-conversation={ownConversation() ? "true" : "false"}
+          >
+            <StreamRegion
+              cards={streamCards()}
+              turns={conversationTurns()}
+              conversationEmpty={props.conversationEmpty}
+              ownConversation={ownConversation()}
+              onCardAction={props.onStreamCardAction}
+            >
               {props.children}
             </StreamRegion>
           </div>

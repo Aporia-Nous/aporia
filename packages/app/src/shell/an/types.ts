@@ -1,5 +1,6 @@
 import type { AnPresence, AnShellMode } from "./tokens"
 import type { AnCardModel } from "./cards/types"
+import type { AnConversationTurn } from "./conversation-turns"
 import type { JSX, ParentProps } from "solid-js"
 
 export type AnNavItem = {
@@ -48,6 +49,14 @@ export type AnShellProps = ParentProps<{
   attention?: AnAttentionItem[]
   /** Mapped AN cards shown at top of the conversation stream (Task/Approval/…). */
   streamCards?: AnCardModel[]
+  /**
+   * AN-owned conversation turns (user + assistant text).
+   * When provided (including empty array on a live session), AnShell renders Conversation —
+   * OpenCode timeline chrome is suppressed under AnShell.
+   */
+  conversationTurns?: AnConversationTurn[]
+  /** Empty-state hint for the AN conversation list. */
+  conversationEmpty?: string
   /** Approved three-state framing (Conversation / Computer View / Takeover); not Stage 5 control lock. */
   mode?: AnShellMode
   /** Interactive mode switch — layout changes; backends may still be stubbed. */
