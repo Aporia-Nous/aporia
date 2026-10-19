@@ -4,8 +4,8 @@
 |-------|-------|
 | status | **OPEN — implemented + live-DEV** (writer verified; **not** INDEPENDENT PASS; **not** Stage 4 complete) |
 | branch | `stage4-an-shell` |
-| tip | *(see HEAD after commit)* |
-| code | *(feat commit)* |
+| tip | `da612fe6fb` |
+| code | `da612fe6fb` |
 | base | `d71979708d` (AP-STAGE4-19 INDEPENDENT PASS tip) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | scope | EnginePort interface + OcServerEnginePort; AnShell send/stream via port; Settings → PORT-02 (no skin expand) |
