@@ -1014,14 +1014,25 @@ Worktree `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` on branch
 | deferred | (continued in AP-STAGE4-04) |
 | not claimed | Stage 4 complete, merge, push |
 
-### Stage 4 visual/behavior — Glass + rail + three-state (AP-STAGE4-04) — OPEN for review (no PASS claim)
+### Stage 4 visual/behavior — Glass + rail + three-state (AP-STAGE4-04) — INDEPENDENT PASS (glass/rail/three-state scope)
 
 Worktree `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` on branch `stage4-an-shell`
-@ `05b0142d73` (continues from tip `369a549991`). Report: `docs/an-rewrite/CURSOR-AP-STAGE4-04.md`.
+@ `05b0142d73` (tip `b5831ea1cb`; continues from `369a549991`). Report: `docs/an-rewrite/CURSOR-AP-STAGE4-04.md`.
 
 | item | value |
 | - | - |
 | landed | Soft glass + CSS atmosphere; always-on Live computer + Attention; interactive Conversation/View/Takeover layouts; Hand back/Stop stubs |
-| evidence | `06-conversation-glass-rail.png`, `07-view-mode.png`, `08-takeover-mode.png`; unit 16 app + 3 ui pass |
+| evidence | `06`/`07`/`08` shots; unit 16 app + 3 ui re-pass; CDP mode flips (320→420 View; Takeover primary; Hand back→conversation; Stop→view) |
 | deferred | Task/Approval/Proof cards, New teammate, mission pills without data, Stage 4b, Stage 5 four-mode |
-| not claimed | independent PASS, Stage 4 complete, merge, push |
+| not claimed | Stage 4 complete, merge, push, Stage 8 / running-DEV acceptance PASS |
+
+### Stage 4 branding — Aporetic product name (AP-STAGE4-05) — OPEN for review
+
+Worktree `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` on branch `stage4-an-shell`.
+Report: `docs/an-rewrite/CURSOR-AP-STAGE4-05.md`. Ali 2026-10-19: product **Aporetic**; company **Aporia Nous**; ownership form **Aporetic by Aporia Nous**.
+
+| item | value |
+| - | - |
+| landed | AnShell nav/roster defaults + `AN_PRODUCT_NAME` / `AN_PRODUCT_BYLINE`; window title already Aporetic |
+| intentional company strings | vault category, publisher CN, package author, bundle ids |
+| not claimed | independent PASS, Stage 4 complete, merge, push, monorepo rename |

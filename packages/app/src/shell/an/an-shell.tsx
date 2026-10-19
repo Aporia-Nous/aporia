@@ -1,5 +1,6 @@
 import { For, Show, type JSX } from "solid-js"
 import {
+  AN_PRODUCT_NAME,
   AN_SHELL_MODES,
   anShellLayout,
   anShellModeLabel,
@@ -102,7 +103,7 @@ export function AnShell(props: AnShellProps): JSX.Element {
       data-attention-always-on=""
     >
       <nav class="an-nav" aria-label="AN navigation">
-        <div class="an-nav-brand" title={props.brandTitle ?? "Aporia Nous"} aria-label="AN">
+        <div class="an-nav-brand" title={props.brandTitle ?? AN_PRODUCT_NAME} aria-label={props.brandTitle ?? AN_PRODUCT_NAME}>
           {props.brandMark ?? "AN"}
         </div>
         <For each={nav()}>
@@ -124,7 +125,7 @@ export function AnShell(props: AnShellProps): JSX.Element {
 
       <aside class="an-roster" aria-label="Bot Team roster">
         <header class="an-roster-header">
-          <strong>{props.rosterTitle ?? props.brandTitle ?? "Aporia Nous"}</strong>
+          <strong>{props.rosterTitle ?? props.brandTitle ?? AN_PRODUCT_NAME}</strong>
           <span>{props.rosterSubtitle ?? props.brandSubtitle ?? "Local-first agentic teams"}</span>
         </header>
         <div class="an-roster-list" role="list">

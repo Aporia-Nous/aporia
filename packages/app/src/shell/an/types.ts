@@ -33,7 +33,9 @@ export type AnAttentionItem = {
 }
 
 export type AnShellProps = ParentProps<{
+  /** Monogram in nav mark (default AN). */
   brandMark?: string
+  /** Product name for tooltips/roster (default Aporetic — not company name). */
   brandTitle?: string
   brandSubtitle?: string
   navItems?: AnNavItem[]

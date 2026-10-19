@@ -1,6 +1,11 @@
 /** AN black/gold tokens from approved design packet (v11 HTML + visual style PNG).
  *  Source of truth for Stage 4 shell CSS variables. Not Lagoon Night / Marrs Tide. */
 
+/** Product vs company (Ali 2026-10-19): app = Aporetic; company/brand = Aporia Nous. */
+export const AN_PRODUCT_NAME = "Aporetic" as const
+/** Ownership byline for about/mark surfaces only — do not spam chrome. */
+export const AN_PRODUCT_BYLINE = "by Aporia Nous" as const
+
 export const AN_DESIGN_SOURCE = {
   html: "aporetic-design-reference/aporetic-an-exact-flow-v11-selfcontained.html",
   style: "aporetic-design-reference/original-AN-visual-style.png",

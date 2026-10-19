@@ -1,6 +1,8 @@
 export { AnShell } from "./an-shell"
 export {
   AN_DESIGN_SOURCE,
+  AN_PRODUCT_NAME,
+  AN_PRODUCT_BYLINE,
   AN_TOKENS,
   AN_COMPOSER_SURFACE,
   AN_SHELL_MODES,

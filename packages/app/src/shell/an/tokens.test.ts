@@ -2,6 +2,8 @@ import { describe, expect, test } from "bun:test"
 import {
   AN_COMPOSER_SURFACE,
   AN_DESIGN_SOURCE,
+  AN_PRODUCT_BYLINE,
+  AN_PRODUCT_NAME,
   AN_SHELL_MODES,
   AN_TOKENS,
   anShellLayout,
@@ -12,6 +14,12 @@ import {
 import { assertApprovedModesOnly, buildAnShellModel } from "./shell-model"
 
 describe("AN Stage 4 tokens", () => {
+  test("product name is Aporetic; company byline is ownership form only", () => {
+    expect(AN_PRODUCT_NAME).toBe("Aporetic")
+    expect(AN_PRODUCT_BYLINE).toBe("by Aporia Nous")
+    expect(AN_PRODUCT_NAME).not.toBe("Aporia Nous")
+  })
+
   test("gold/ink match approved v11 packet values", () => {
     expect(AN_TOKENS.gold).toBe("#f0c66d")
     expect(AN_TOKENS.goldDeep).toBe("#d79a2e")
