@@ -3491,6 +3491,34 @@ describe("SessionRunnerLLM", () => {
     ])
   })
 
+  scenario("AP-ENGINE-E13: caps auto-compacts per drain with Failed — stall/churn", function* (s) {
+    // Undersized window keeps auto due after each tool continuation; third auto must Fail stall/churn.
+    yield* setupOverflowRecovery(s)
+    s.currentModel = undersizedContextModel
+    yield* s.llm.push(
+      TestLLM.text("## Objective\n- Cap one", "text-e13-sum1"),
+      TestLLM.tool("call-e13-1", "echo", { text: "first" }),
+      TestLLM.text("## Objective\n- Cap two", "text-e13-sum2"),
+      TestLLM.tool("call-e13-2", "echo", { text: "second" }),
+      // Third auto must not consume another summary stream.
+      TestLLM.text("## Objective\n- Must not compact thrice", "text-e13-sum3"),
+      TestLLM.text("Must not run", "text-e13-final"),
+    )
+    yield* s.admit("Continue")
+    const failed = yield* s.resume.pipe(Effect.flip)
+    // StepFailedError surfaces .message; structured type lives on .error.
+    expect(failed.message).toBe("Failed — stall/churn")
+    expect((failed as { error?: { type?: string } }).error?.type).toBe("compaction.stall")
+    // Two auto completions (cap), then stall before a third summary / second tool.
+    // Post-compaction context may only show the latest checkpoint; count Started events.
+    const started = (yield* recordedEventTypes(sessionID)).filter(
+      (type) => type === Bus.versionedType(SessionEvent.Compaction.Started.type, 1),
+    )
+    expect(started).toHaveLength(2)
+    expect(s.executions).toEqual(["first"])
+    expect(s.requests.length).toBe(3)
+  })
+
   scenario("recovers once from a raw context overflow failure", function* (s) {
     yield* setupOverflowRecovery(s)
     yield* s.llm.push(

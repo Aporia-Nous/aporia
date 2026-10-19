@@ -54,8 +54,11 @@ interface Input {
     retry: boolean,
   ) => Effect.Effect<{ readonly retry: false } | SessionRunnerRetry.Decision>
   readonly recoverContinuation: boolean
-  /** The runner owns compaction policy; the attempt invokes it only before durable output. */
-  readonly recoverOverflow: Effect.Effect<boolean>
+  /**
+   * The runner owns compaction policy; the attempt invokes it only before durable output.
+   * May fail with StepFailedError (e.g. AP-ENGINE-E13 drain compact stall/churn).
+   */
+  readonly recoverOverflow: Effect.Effect<boolean, StepFailedError>
 }
 
 const TOOLS_INTERRUPTED = { type: "aborted", message: "Tool execution interrupted" } as const
