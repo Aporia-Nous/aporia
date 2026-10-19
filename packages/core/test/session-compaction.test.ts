@@ -30,7 +30,8 @@ import { Money } from "@opencode/schema/money"
 import { Skill } from "@opencode/schema/skill"
 import { Shell } from "@opencode/schema/shell"
 import { DateTime, Effect, Fiber, Layer, Schema, Stream } from "effect"
-import { asc, eq } from "drizzle-orm"
+import { TestClock } from "effect/testing"
+import { asc, eq, sql } from "drizzle-orm"
 import { testEffect } from "./lib/effect"
 
 let requests: LLMRequest[] = []
@@ -125,6 +126,21 @@ test("S4: boundSummaryOutput caps estimated tokens at SUMMARY_BUDGET", () => {
   expect(Token.estimate(bounded)).toBeLessThanOrEqual(SessionCompaction.SUMMARY_BUDGET)
   expect(bounded).toContain("## Objective")
   expect(bounded).toContain("[summary truncated to budget]")
+  expect(bounded.length).toBeLessThan(oversized.length)
+})
+
+test("AP-ENGINE-E07 / AP-CURSOR-09: boundRecentText caps estimated tokens at keep", () => {
+  const keep = 100
+  const short = "[User]: stay under budget"
+  expect(SessionCompaction.boundRecentText(short, keep)).toBe(short)
+  expect(Token.estimate(short)).toBeLessThanOrEqual(keep)
+
+  const oversized = "[User]: " + "x".repeat(80_000)
+  expect(Token.estimate(oversized)).toBeGreaterThan(keep)
+  const bounded = SessionCompaction.boundRecentText(oversized, keep)
+  expect(Token.estimate(bounded)).toBeLessThanOrEqual(keep)
+  expect(bounded).toContain("[User]:")
+  expect(bounded).toContain("[recent truncated to keep]")
   expect(bounded.length).toBeLessThan(oversized.length)
 })
 
@@ -485,6 +501,194 @@ it.effect("recent text fits keep even when the last user message is far behind t
     // The cut lands inside one exchange, so the retained text says so instead of looking like a whole turn.
     expect(recent).toContain("summarized above")
   }))
+
+/**
+ * AP-ENGINE-E07 (Stage0 AP-CURSOR-09). One user message whose own text exceeds `keep` (15,000 tokens). Selection
+ * still keeps that newest message; retained recent is truncated to `keep` with an honest marker.
+ */
+it.effect("AP-ENGINE-E07: single keep-exceeding user message truncates recent to keep", () =>
+  Effect.gen(function* () {
+    requests = []
+    const sessionID = Session.ID.make("ses_keep_exceed_user")
+    const session = yield* insertSession(sessionID)
+    const oversized = "x".repeat(80_000)
+    expect(Token.estimate(`[User]: ${oversized}`)).toBeGreaterThan(15_000)
+    const messages = [
+      SessionMessage.User.make({
+        id: SessionMessage.ID.create(),
+        type: "user",
+        text: "Earlier short turn",
+        time: { created: DateTime.makeUnsafe(0) },
+      }),
+      SessionMessage.User.make({
+        id: SessionMessage.ID.create(),
+        type: "user",
+        text: oversized,
+        time: { created: DateTime.makeUnsafe(1) },
+      }),
+    ]
+
+    expect(yield* compactManually(session, messages)).toEqual({ status: "completed" })
+
+    const store = yield* SessionStore.Service
+    const stored = (yield* store.context(sessionID))[0]
+    const recent = stored?.type === "compaction" && stored.status === "completed" ? stored.recent : ""
+
+    expect(Token.estimate(recent)).toBeLessThanOrEqual(15_000)
+    expect(recent).toContain("[recent truncated to keep]")
+    expect(recent).toContain("[User]:")
+    expect(recent).not.toContain("Earlier short turn")
+  }),
+)
+
+/**
+ * AP-ENGINE-E07. One assistant message whose text alone exceeds `keep`. Same truncate-to-keep path; does not fail or split.
+ */
+it.effect("AP-ENGINE-E07: single keep-exceeding assistant message truncates recent to keep", () =>
+  Effect.gen(function* () {
+    requests = []
+    const sessionID = Session.ID.make("ses_keep_exceed_assistant")
+    const session = yield* insertSession(sessionID)
+    const oversized = "y".repeat(80_000)
+    expect(Token.estimate(`[Assistant]: ${oversized}`)).toBeGreaterThan(15_000)
+    const messages = [
+      SessionMessage.User.make({
+        id: SessionMessage.ID.create(),
+        type: "user",
+        text: "Earlier question",
+        time: { created: DateTime.makeUnsafe(0) },
+      }),
+      SessionMessage.User.make({
+        id: SessionMessage.ID.create(),
+        type: "user",
+        text: "Write a long answer",
+        time: { created: DateTime.makeUnsafe(1) },
+      }),
+      Schema.decodeUnknownSync(SessionMessage.Assistant)({
+        id: SessionMessage.ID.create(),
+        type: "assistant",
+        agent: Agent.defaultID,
+        model: { id: "summary-model", providerID: "test" },
+        content: [{ type: "text", text: oversized }],
+        time: { created: 2, completed: 2 },
+      }),
+    ]
+
+    expect(yield* compactManually(session, messages)).toEqual({ status: "completed" })
+
+    const store = yield* SessionStore.Service
+    const stored = (yield* store.context(sessionID))[0]
+    const recent = stored?.type === "compaction" && stored.status === "completed" ? stored.recent : ""
+
+    expect(Token.estimate(recent)).toBeLessThanOrEqual(15_000)
+    expect(recent).toContain("[recent truncated to keep]")
+    expect(recent).toContain("[Assistant]:")
+  }),
+)
+
+/**
+ * AP-ENGINE-E03. Multiple provider textDelta chunks coalesce into one Compaction.Delta before stepFinish flush.
+ * Ended still carries the full concatenated summary; deltas remain ephemeral (not durable).
+ */
+it.effect("AP-ENGINE-E03: Compaction.Delta batches text like LLM 100ms publisher", () =>
+  Effect.gen(function* () {
+    requests = []
+    const db = (yield* Database.Service).db
+    const bus = yield* Bus.Service
+    const store = yield* SessionStore.Service
+    const sessionID = Session.ID.make("ses_compact_delta_batch")
+    const session = yield* insertSession(sessionID)
+    const messages = [
+      SessionMessage.User.make({
+        id: SessionMessage.ID.create(),
+        type: "user",
+        text: "Batch the compact deltas.",
+        time: { created: DateTime.makeUnsafe(0) },
+      }),
+    ]
+
+    streamOnce = () =>
+      Stream.make(
+        LLMEvent.textDelta({ id: "summary", text: "## Objective\n" }),
+        LLMEvent.textDelta({ id: "summary", text: "- batched " }),
+        LLMEvent.textDelta({ id: "summary", text: "summary" }),
+        LLMEvent.stepFinish({
+          index: 0,
+          reason: { normalized: "stop" },
+          usage: {
+            inputTokens: 15,
+            outputTokens: 6,
+            nonCachedInputTokens: 10,
+            cacheReadInputTokens: 3,
+            cacheWriteInputTokens: 2,
+            reasoningTokens: 2,
+          },
+        }),
+        LLMEvent.finish({ reason: { normalized: "stop" } }),
+      )
+
+    const delta = yield* bus
+      .subscribe(SessionEvent.Compaction.Delta)
+      .pipe(Stream.take(1), Stream.runCollect, Effect.forkScoped)
+    yield* Effect.yieldNow
+
+    expect(yield* compactManually(session, messages)).toEqual({ status: "completed" })
+    // Without advancing the batch timer, stepFinish flush still publishes one coalesced delta.
+    expect(Array.from(yield* Fiber.join(delta)).map((event) => event.data.text)).toEqual([
+      "## Objective\n- batched summary",
+    ])
+    expect(yield* store.context(sessionID)).toMatchObject([
+      { type: "compaction", status: "completed", summary: "## Objective\n- batched summary" },
+    ])
+    expect(
+      yield* db
+        .select({ n: sql<number>`count(*)` })
+        .from(EventTable)
+        .where(sql`${EventTable.type} like 'session.compaction.delta.%'`)
+        .all()
+        .pipe(Effect.orDie),
+    ).toEqual([{ n: 0 }])
+  }),
+)
+
+it.effect("AP-ENGINE-E03: Failed compaction cancels pending Compaction.Delta batch", () =>
+  Effect.gen(function* () {
+    requests = []
+    const bus = yield* Bus.Service
+    const sessionID = Session.ID.make("ses_compact_delta_cancel")
+    const session = yield* insertSession(sessionID)
+    const messages = [
+      SessionMessage.User.make({
+        id: SessionMessage.ID.create(),
+        type: "user",
+        text: "Fail after a partial summary chunk.",
+        time: { created: DateTime.makeUnsafe(0) },
+      }),
+    ]
+
+    streamOnce = () =>
+      Stream.make(
+        LLMEvent.textDelta({ id: "summary", text: "## Objective\n- partial" }),
+        LLMEvent.providerError({ message: "summary provider timed out" }),
+      )
+
+    const seen: string[] = []
+    yield* bus.subscribe(SessionEvent.Compaction.Delta).pipe(
+      Stream.tap((event) => Effect.sync(() => seen.push(event.data.text))),
+      Stream.runDrain,
+      Effect.forkScoped,
+    )
+    yield* Effect.yieldNow
+
+    expect(yield* compactManually(session, messages)).toEqual({
+      status: "failed",
+      error: { type: "provider.error", message: "summary provider timed out" },
+    })
+    // Timer may still be sleeping under TestClock; failure must drop the batch, not publish it.
+    yield* TestClock.adjust("200 millis")
+    expect(seen).toEqual([])
+  }),
+)
 
 it.effect("manual compaction summarizes short context instead of no-op", () =>
   Effect.gen(function* () {

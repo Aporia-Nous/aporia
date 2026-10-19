@@ -18,7 +18,7 @@ import type { StreamOptions } from "@opencode/ai/route"
 import type { SessionCompactionResult } from "@opencode/plugin/effect/session"
 import type { SessionError } from "@opencode/schema/session-error"
 import { makeLocationNode } from "@opencode/util/effect/app-node"
-import { Context, Effect, Layer, Result, Stream } from "effect"
+import { Context, Effect, Fiber, Layer, Result, Stream } from "effect"
 import { Agent } from "../agent.js"
 import { Bus } from "../bus.js"
 import { Database } from "../database/database.js"
@@ -127,6 +127,10 @@ const TOOL_OUTPUT_MAX_CHARS = 1_250
 const IMAGE_TOKEN_ESTIMATE = 1_500
 const PDF_TOKEN_ESTIMATE = 2_000
 const SUMMARY_TRUNCATION_MARK = "\n\n[summary truncated to budget]"
+/** Honest marker when retained recent text alone exceeds `keep` (same family as tool `[truncated]` / S4 summary mark). */
+const RECENT_TRUNCATION_MARK = "\n\n[recent truncated to keep]"
+/** Match primary LLM text delta batching in `publish-llm-event` so compact streams do not flood the bus. */
+const COMPACTION_DELTA_BATCH_MS = 100
 
 const SUMMARY_TEMPLATE = `You MUST use this format for your response (you may omit sections that aren't applicable). Do not include the <template> tags in your response.
 <template>
@@ -187,6 +191,22 @@ export const boundSummaryOutput = (text: string) => {
   const line = cut.lastIndexOf("\n")
   const end = section > room * 0.5 ? section : line > room * 0.5 ? line : room
   return cut.slice(0, end).trimEnd() + SUMMARY_TRUNCATION_MARK
+}
+
+/**
+ * Cap retained recent text at `keep` estimated tokens when one message (kept whole by selection) would otherwise
+ * overshoot. Prefers a line boundary; always appends an honest truncation marker. Does not fail or split messages.
+ */
+export const boundRecentText = (text: string, keep: number) => {
+  if (!text) return text
+  if (Token.estimate(text) <= keep) return text
+  const chars = Math.max(0, keep) * 4
+  if (text.length <= chars) return text
+  const room = Math.max(0, chars - RECENT_TRUNCATION_MARK.length)
+  const cut = text.slice(0, room)
+  const line = cut.lastIndexOf("\n")
+  const end = line > room * 0.5 ? line : room
+  return cut.slice(0, end).trimEnd() + RECENT_TRUNCATION_MARK
 }
 
 export const buildPrompt = (update: boolean, legacy = false) => {
@@ -571,28 +591,70 @@ export const layer = Layer.effect(
       const metadataKey = context.model.model.route.providerMetadataKey ?? context.model.model.provider
       const unusable = (error: SessionError.Error) => Effect.fail<Failure>({ error })
 
+      // Batch Compaction.Delta like primary LLM text (100ms). Full summary text still accumulates in `streamed`.
+      let pending = ""
+      let timer: Fiber.Fiber<void> | undefined
+      const publishPending = Effect.fnUntraced(function* () {
+        if (!pending) return
+        const text = pending
+        pending = ""
+        yield* bus.publish(SessionEvent.Compaction.Delta, { sessionID, text })
+      }, Effect.uninterruptible)
+      const clearTimer = Effect.fnUntraced(function* () {
+        if (!timer) return
+        yield* Fiber.interrupt(timer)
+        timer = undefined
+      })
+      const flushDeltas = Effect.fnUntraced(function* () {
+        yield* clearTimer()
+        yield* publishPending()
+      })
+      const cancelDeltas = Effect.fnUntraced(function* () {
+        yield* clearTimer()
+        pending = ""
+      })
+      const enqueueDelta = Effect.fnUntraced(function* (chunk: string) {
+        pending += chunk
+        if (!pending || timer) return
+        timer = yield* Effect.gen(function* () {
+          while (pending) {
+            yield* Effect.sleep(COMPACTION_DELTA_BATCH_MS)
+            yield* publishPending()
+          }
+        }).pipe(
+          Effect.ensuring(
+            Effect.sync(() => {
+              timer = undefined
+            }),
+          ),
+          Effect.forkChild({ startImmediately: true }),
+        )
+      })
+      const failAfterCancel = <A, E>(effect: Effect.Effect<A, E>) => cancelDeltas().pipe(Effect.andThen(effect))
+
       return llm.stream(request, options).pipe(
         Stream.runFoldEffect(
           (): Streamed => ({ text: "" }),
           (streamed, event): Effect.Effect<Streamed, AIError | Failure> => {
             if (LLMEvent.is.providerError(event)) {
               if (event.classification === undefined)
-                return unusable({ type: "provider.error", message: event.message })
-              return Effect.fail(
-                new AIError({
-                  reason: new InvalidRequestError({ message: event.message, classification: event.classification }),
-                }),
+                return failAfterCancel(unusable({ type: "provider.error", message: event.message }))
+              return failAfterCancel(
+                Effect.fail(
+                  new AIError({
+                    reason: new InvalidRequestError({ message: event.message, classification: event.classification }),
+                  }),
+                ),
               )
             }
 
             if (LLMEvent.is.textDelta(event)) {
-              return bus
-                .publish(SessionEvent.Compaction.Delta, { sessionID, text: event.text })
-                .pipe(Effect.as({ ...streamed, text: streamed.text + event.text }))
+              return enqueueDelta(event.text).pipe(Effect.as({ ...streamed, text: streamed.text + event.text }))
             }
 
             if (LLMEvent.is.stepFinish(event)) {
-              return spend(sessionID, SessionUsage.record(event.usage, context.model.cost)).pipe(
+              return flushDeltas().pipe(
+                Effect.andThen(spend(sessionID, SessionUsage.record(event.usage, context.model.cost))),
                 Effect.as({ ...streamed, providerState: event.providerMetadata?.[metadataKey] }),
               )
             }
@@ -600,30 +662,40 @@ export const layer = Layer.effect(
             if (!LLMEvent.is.finish(event)) return Effect.succeed(streamed)
             switch (event.reason.normalized) {
               case "unknown":
-                return Effect.fail(
-                  new AIError({
-                    reason: new InvalidProviderOutputError({
-                      message: "The provider response ended with an unknown finish reason.",
-                      classification: "incomplete-stream",
+                return failAfterCancel(
+                  Effect.fail(
+                    new AIError({
+                      reason: new InvalidProviderOutputError({
+                        message: "The provider response ended with an unknown finish reason.",
+                        classification: "incomplete-stream",
+                      }),
                     }),
-                  }),
+                  ),
                 )
               case "error":
-                return Effect.fail(
-                  new AIError({ reason: new UnknownProviderError({ message: "Compaction generation failed" }) }),
+                return failAfterCancel(
+                  Effect.fail(
+                    new AIError({ reason: new UnknownProviderError({ message: "Compaction generation failed" }) }),
+                  ),
                 )
               case "length":
-                return unusable({
-                  type: "compaction.failed",
-                  message: "Compaction summary reached the output token limit",
-                })
+                return failAfterCancel(
+                  unusable({
+                    type: "compaction.failed",
+                    message: "Compaction summary reached the output token limit",
+                  }),
+                )
               case "content-filter":
-                return unusable(contentFilterError("Compaction summary was blocked by the provider", event.reason))
+                return failAfterCancel(
+                  unusable(contentFilterError("Compaction summary was blocked by the provider", event.reason)),
+                )
               default:
-                return Effect.succeed(streamed)
+                return flushDeltas().pipe(Effect.as(streamed))
             }
           },
         ),
+        // Interrupt mid-stream: deliver any held progress so live UI is not stuck waiting on the batch timer.
+        Effect.onInterrupt(() => flushDeltas()),
       )
     }
 
@@ -773,10 +845,13 @@ const splitConversation = (messages: ReadonlyArray<SessionMessage.Info>, keep: n
   const start = recentStart(entries, keep, previousCompaction(messages))
   const recent = entries.slice(start)
   const text = recent.map((entry) => entry.text).join("\n\n")
+  // The cut falls inside one exchange when the newest messages alone fill the allowance.
+  const retained =
+    text && start > 0 && recent[0]?.message.type !== "user" ? `${MID_EXCHANGE}\n\n${text}` : text
+  // Selection always keeps the newest message whole; if that message alone exceeds `keep`, truncate with a marker.
   return {
     older: messages.slice(0, recent[0]?.index ?? messages.length),
-    // The cut falls inside one exchange when the newest messages alone fill the allowance.
-    recent: text && start > 0 && recent[0]?.message.type !== "user" ? `${MID_EXCHANGE}\n\n${text}` : text,
+    recent: boundRecentText(retained, keep),
   }
 }
 
