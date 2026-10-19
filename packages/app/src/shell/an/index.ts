@@ -133,6 +133,17 @@ export {
   isAnOwnedSettingsHost,
   shouldOwnAnSettings,
 } from "./settings-chrome"
+export {
+  createOcServerEnginePort,
+  EnginePortProvider,
+  tryUseEnginePort,
+  useEnginePort,
+  type EngineEvent,
+  type EnginePort,
+  type EngineSessionCreateInput,
+  type EngineSessionCreateResult,
+  type PromptAdmission,
+} from "./engine"
 export { docxXmlToPlainText, extractDocxPlainText, officePreviewResidual } from "./docx-text"
 export type {
   AnShellProps,

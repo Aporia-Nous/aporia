@@ -57,6 +57,10 @@ import { useTheme } from "@opencode/ui/theme/context"
 import "@/settings/settings.css"
 import "@/shell/an/settings-an.css"
 
+// AP-ENGINE-PORT-02 (follow-up): replace this OC Settings React shell with AN Settings
+// screens that talk EnginePort for About + Providers/Models. PORT-01 stops expanding
+// settings-an.css / skin wrap here — do not add more OC Settings CSS ownership fights.
+
 const GuiExtensionsSettings = import.meta.env.DEV
   ? lazy(() =>
       import("@/runtime/extension/settings-page-dev").then((module) => ({ default: module.GuiExtensionsSettings })),

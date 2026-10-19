@@ -1,6 +1,9 @@
 /**
  * AP-STAGE4-19: AN ice-glass Settings ownership (same bar as STAGE4-13 composer).
  * Skins OpenCode product Settings chrome when AnShell is enabled — not a full Settings rewrite.
+ *
+ * AP-ENGINE-PORT-02: drop OC Settings React import; AN Settings host via EnginePort
+ * (About + Providers/Models read). PORT-01 does not expand this skin further.
  */
 
 import { AN_PRODUCT_BYLINE, AN_PRODUCT_NAME, AN_SETTINGS_SURFACE } from "./tokens"

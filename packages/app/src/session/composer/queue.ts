@@ -14,6 +14,7 @@ import { readPromptPresentation } from "@/composer/comment-note"
 import { extractPromptContext, extractPromptFromMessage } from "@/composer/prompt"
 import { useData } from "@/runtime/server/current"
 import { useServerSDK } from "@/runtime/server/client"
+import { tryUseEnginePort } from "@/shell/an/engine"
 import { useWorkspaceLocation } from "@/workspaces/location"
 import { useLanguage } from "@/runtime/i18n/language"
 import { showToast } from "@/shell/notifications/toast"
@@ -38,6 +39,10 @@ export function createSessionQueue(input: {
   const server = useServerSDK()
   const location = useWorkspaceLocation()
   const language = useLanguage()
+  // AP-ENGINE-PORT-01: queue rewrite/edit under AnShell uses the same EnginePort ingress as send.
+  const engine = tryUseEnginePort()
+  const sessionPrompt = (admission: Parameters<typeof data.session.prompt>[0]) =>
+    engine ? engine.prompt(admission) : data.session.prompt(admission)
   const [state, setState] = createStore<{ editing?: { id: string; stash: EditStash } }>({})
   const notify = () => showToast({ title: language.t("common.requestFailed") })
 
@@ -101,7 +106,7 @@ export function createSessionQueue(input: {
 
       if (!pending.some((item) => item.id === change.original && item.type === "user" && item.delivery === "queue"))
         throw new Error("Queued prompt was delivered before the edit")
-      await data.session.prompt(admission)
+      await sessionPrompt(admission)
       await server.api.session.inbox.cancel({ sessionID: input.sessionID, inboxID: change.original })
       cancelEdit()
     },
@@ -135,7 +140,7 @@ export function createSessionQueue(input: {
   // `replace` substitutes an edited prompt for the original at its position in the same rewrite.
   const rewrite = async (
     inboxIDs: string[],
-    replace?: { original: string; admission: Parameters<typeof data.session.prompt>[0] },
+    replace?: { original: string; admission: Parameters<typeof sessionPrompt>[0] },
   ) => {
     const pending = await server.api.session.inbox.list({ sessionID: input.sessionID })
 
@@ -180,7 +185,7 @@ export function createSessionQueue(input: {
       const id = admission.id ?? SessionMessage.ID.create()
 
       replacements.push(id)
-      await data.session.prompt({ ...admission, id }).catch(async (error) => {
+      await sessionPrompt({ ...admission, id }).catch(async (error) => {
         await Promise.all(
           replacements.map((inboxID) =>
             server.api.session.inbox.cancel({ sessionID: input.sessionID, inboxID }).catch(() => undefined),

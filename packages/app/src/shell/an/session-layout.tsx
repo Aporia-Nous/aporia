@@ -105,6 +105,11 @@ import {
   type AnBindBot,
   type AnPresenceSignal,
 } from "./bind"
+import {
+  createOcServerEnginePort,
+  EnginePortProvider,
+  type EnginePort,
+} from "./engine"
 import { AN_CONTRAPTIONS_SURFACE, AN_REVIEW_SURFACE, isAnShellMode, type AnShellMode } from "./tokens"
 import type { AnNavItem } from "./types"
 
@@ -128,8 +133,7 @@ function useStickyAnTheme() {
   })
 }
 
-function useAnRoster(currentAgent: () => string | undefined) {
-  const data = useData()
+function useAnRoster(currentAgent: () => string | undefined, engine: () => EnginePort) {
   const [version, setVersion] = createSignal(0)
   const bridge = () => !!(globalThis as { electron?: { aporia?: { bots?: unknown } } }).electron?.aporia?.bots
   const [list] = createResource(
@@ -154,20 +158,21 @@ function useAnRoster(currentAgent: () => string | undefined) {
     const callState = call.state()
     const callActive = call.active
     const selected = currentAgent()
+    const port = engine()
 
-    for (const session of data.session.list() ?? []) {
+    for (const session of port.listSessions()) {
       const agent = session.agent
       if (!agent) continue
       let sessionStatus = ""
       try {
-        sessionStatus = String(data.session.status(session.id) ?? "")
+        sessionStatus = String(port.sessionStatus(session.id) ?? "")
       } catch {
         /* status unavailable for this session */
       }
 
       let awaitingUser = false
       try {
-        awaitingUser = (data.session.permission.list(session.id)?.length ?? 0) > 0
+        awaitingUser = (port.listPermissions(session.id)?.length ?? 0) > 0
       } catch {
         awaitingUser = false
       }
@@ -175,7 +180,7 @@ function useAnRoster(currentAgent: () => string | undefined) {
       let activity: AnPresenceSignal["activity"] = "none"
       if (sessionStatus === "running") {
         try {
-          activity = sessionActivityFromMessages(data.session.message.list(session.id) ?? [])
+          activity = sessionActivityFromMessages(port.listMessages(session.id) ?? [])
         } catch {
           activity = "none"
         }
@@ -305,6 +310,8 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   useStickyAnTheme()
   const navigate = useNavigate()
   const data = useData()
+  // AP-ENGINE-PORT-01: single AnShell ingress for prompt + message list (OC server still backend).
+  const engine = createOcServerEnginePort(data)
   const server = useServer()
   const command = useCommand()
   const openSettings = useSettingsDialog()
@@ -334,7 +341,12 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   let screencastSession: ComputerScreencastSession | null = null
   const info = () => props.view.info()
   const currentAgent = () => info()?.agent
-  const roster = useAnRoster(currentAgent)
+  /** Stream / cards / review file list — via EnginePort, not raw data.session.message.list. */
+  const sessionMessages = (): SessionMessageInfo[] => {
+    const id = props.view.sessionID()
+    return id ? engine.listMessages(id) : noMessages
+  }
+  const roster = useAnRoster(currentAgent, () => engine)
   const attention = useAnAttention()
   const computerLive = createMemo(() => isComputerLive(computerAttach()))
   const computerFeedActive = createMemo(() => isComputerFeedActive(computerFeed(), computerAttach()))
@@ -450,7 +462,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   }
 
   const reviewFiles = createMemo(() =>
-    touchedFiles(props.view.messages()).map((file) => ({ path: file.path, via: file.via })),
+    touchedFiles(sessionMessages()).map((file) => ({ path: file.path, via: file.via })),
   )
 
   /** AP-STAGE4-18: load workspace file bytes into Review Code/Documents previews. */
@@ -548,7 +560,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
 
   const openMember = async (slug: string) => {
     const agent = agentFor(slug)
-    const existing = (data.session.list() ?? []).find((s) => s.agent === agent && !s.parentID && !s.time.archived)
+    const existing = engine.listSessions().find((s) => s.agent === agent && !s.parentID && !s.time.archived)
     if (existing) {
       navigate(sessionHref(server.key, existing.id))
       return
@@ -571,12 +583,12 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       const paths = (await bots({ op: "paths" })) as { bots?: string }
       const [providerID, ...rest] = (bot.model || "deepseek/deepseek-flash").split("/")
       const directory = `${paths?.bots ?? ""}\\${bot.slug}`
-      const created = data.session.create({
+      const created = engine.createSession({
         id: Session.ID.create(),
         agent,
         model: { id: rest.join("/"), providerID },
-        location: { directory },
-      } as any)
+        directory,
+      })
       await created.request
       await bots({ op: "attachSession", slug: bot.slug, sessionID: created.id })
       refreshBots()
@@ -658,7 +670,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         agent: currentAgent(),
         working: props.view.working(),
       },
-      messages: props.view.messages(),
+      messages: sessionMessages(),
       computerLive: computerLive(),
       computerFeedActive: computerFeedActive(),
       computerUserControl: computerUserInput(),
@@ -833,14 +845,14 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   /** Own Conversation when a session is open (incl. empty) — home/draft keep OpenCode welcome. */
   const conversationTurns = createMemo(() => {
     if (!props.view.sessionID()) return undefined
-    return messagesToConversationTurns(props.view.messages())
+    return messagesToConversationTurns(sessionMessages())
   })
 
   /** In-conversation turns + Task/Approval/Proof/Computer cards (mockup). */
   const streamItems = createMemo(() => {
     if (!props.view.sessionID()) return undefined
     return buildConversationStreamItems({
-      messages: props.view.messages(),
+      messages: sessionMessages(),
       turns: conversationTurns() ?? [],
       contextCards: contextCards(),
     })
@@ -869,92 +881,99 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   }
 
   return (
-    <div class="an-shell-root" data-component="an-shell-session">
-      <AnShellHosts directory={props.view.directory()} agent={currentAgent()} sessionID={props.view.sessionID()} />
-      <AnShell
-        mode={mode()}
-        onModeChange={onModeChange}
-        onHandBack={onHandBack}
-        onStopTakeover={onStopTakeover}
-        navItems={navItems()}
-        roster={roster.bound().roster}
-        rosterFooter={rosterFooter()}
-        mission={mission()}
-        attention={attention.bound().attention}
-        attentionEmpty={attention.bound().emptyMessage}
-        streamCards={streamCards()}
-        missionStackCards={missionStackCards()}
-        streamItems={streamItems()}
-        conversationTurns={conversationTurns()}
-        conversationEmpty="No messages yet — send from the composer below. Conversation is owned by AnShell."
-        computerEmpty={computerAttachEmptyCopy(computerAttach())}
-        computerTitle="Computer View"
-        computerLive={computerLive()}
-        computerAttachPhase={computerAttach().phase}
-        computerAttachPath={computerAttach().path}
-        computerAttachBackend={computerAttach().backend}
-        computerAttachPathLabel={computerAttachPathLabel(computerAttach())}
-        computerExternalDraftEndpoint={computerAttach().externalDraftEndpoint}
-        computerExternalDraftRegion={computerAttach().externalDraftRegion}
-        computerExternalDraftFamily={computerAttach().externalDraftFamily}
-        computerExternalEndpoint={computerAttach().externalEndpoint}
-        computerExternalRegionId={computerAttach().externalRegionId}
-        computerCursorVisible={computerCursorVisible()}
-        computerFeedActive={computerFeedActive()}
-        computerFeedUrl={computerFeed().url || undefined}
-        computerFeedSrcdoc={computerFeed().srcdoc}
-        computerFeedDraft={computerFeedDraft()}
-        computerFeedWatchOnly={computerFeedWatchOnly()}
-        computerScreencastPhase={computerScreencast().phase}
-        computerScreencastFrameUrl={computerScreencast().frameDataUrl}
-        computerScreencastFrameCount={computerScreencast().frameCount}
-        computerPixelSource={computerPixelSrc()}
-        computerScreencastStatus={computerScreencastStatusCopy(computerScreencast())}
-        computerController={computerControl().controller}
-        computerBotPaused={computerControl().botPaused}
-        computerUserInput={computerUserInput()}
-        computerNeedsFreshObservation={computerControl().needsFreshObservation}
-        computerNote={computerControlNote(computerLive(), computerControl())}
-        onComputerFeedDraftChange={setComputerFeedDraft}
-        onComputerFeedNavigate={onComputerFeedNavigate}
-        onComputerConnect={onComputerConnect}
-        onComputerConfirmAttach={onComputerConfirmAttach}
-        onComputerCancelConsent={onComputerCancelConsent}
-        onComputerDisconnect={onComputerDisconnect}
-        onComputerAttachPathChange={onComputerAttachPathChange}
-        onComputerExternalDraftChange={onComputerExternalDraftChange}
-        onComputerExternalProbe={onComputerExternalProbe}
-        onComputerExternalOpenTab={() => void onComputerExternalOpenTab()}
-        onSelectNav={onSelectNav}
-        onSelectMember={(id) => void openMember(id)}
-        onStreamCardAction={(actionId, card) => {
-          aporiaAlerts.push({
-            title: `${card.type} · ${actionId}`,
-            detail: "Card action stub — backend not bound for this control yet.",
-            level: "info",
-          })
-        }}
+    <EnginePortProvider engine={engine}>
+      <div
+        class="an-shell-root"
+        data-component="an-shell-session"
+        data-an-engine="oc-server"
+        data-an-engine-port="01"
       >
-        <div class="an-stream-slot">{props.children}</div>
-      </AnShell>
-      <Show when={contraptionsOpen()}>
-        <AnContraptionsPanel onClose={() => setContraptionsOpen(false)} />
-      </Show>
-      <Show when={reviewOpen()}>
-        <AnReviewPanel
-          initialTab={reviewInitialTab()}
-          files={reviewFiles()}
-          codeContent={reviewCodeContent()}
-          documentContent={reviewDocumentContent()}
+        <AnShellHosts directory={props.view.directory()} agent={currentAgent()} sessionID={props.view.sessionID()} />
+        <AnShell
+          mode={mode()}
+          onModeChange={onModeChange}
+          onHandBack={onHandBack}
+          onStopTakeover={onStopTakeover}
+          navItems={navItems()}
+          roster={roster.bound().roster}
+          rosterFooter={rosterFooter()}
+          mission={mission()}
+          attention={attention.bound().attention}
+          attentionEmpty={attention.bound().emptyMessage}
+          streamCards={streamCards()}
+          missionStackCards={missionStackCards()}
+          streamItems={streamItems()}
+          conversationTurns={conversationTurns()}
+          conversationEmpty="No messages yet — send from the composer below. Conversation is owned by AnShell."
+          computerEmpty={computerAttachEmptyCopy(computerAttach())}
+          computerTitle="Computer View"
           computerLive={computerLive()}
+          computerAttachPhase={computerAttach().phase}
+          computerAttachPath={computerAttach().path}
+          computerAttachBackend={computerAttach().backend}
+          computerAttachPathLabel={computerAttachPathLabel(computerAttach())}
+          computerExternalDraftEndpoint={computerAttach().externalDraftEndpoint}
+          computerExternalDraftRegion={computerAttach().externalDraftRegion}
+          computerExternalDraftFamily={computerAttach().externalDraftFamily}
+          computerExternalEndpoint={computerAttach().externalEndpoint}
+          computerExternalRegionId={computerAttach().externalRegionId}
+          computerCursorVisible={computerCursorVisible()}
+          computerFeedActive={computerFeedActive()}
           computerFeedUrl={computerFeed().url || undefined}
-          onRequestPath={(path, tab) => {
-            void loadReviewPath(path, tab)
+          computerFeedSrcdoc={computerFeed().srcdoc}
+          computerFeedDraft={computerFeedDraft()}
+          computerFeedWatchOnly={computerFeedWatchOnly()}
+          computerScreencastPhase={computerScreencast().phase}
+          computerScreencastFrameUrl={computerScreencast().frameDataUrl}
+          computerScreencastFrameCount={computerScreencast().frameCount}
+          computerPixelSource={computerPixelSrc()}
+          computerScreencastStatus={computerScreencastStatusCopy(computerScreencast())}
+          computerController={computerControl().controller}
+          computerBotPaused={computerControl().botPaused}
+          computerUserInput={computerUserInput()}
+          computerNeedsFreshObservation={computerControl().needsFreshObservation}
+          computerNote={computerControlNote(computerLive(), computerControl())}
+          onComputerFeedDraftChange={setComputerFeedDraft}
+          onComputerFeedNavigate={onComputerFeedNavigate}
+          onComputerConnect={onComputerConnect}
+          onComputerConfirmAttach={onComputerConfirmAttach}
+          onComputerCancelConsent={onComputerCancelConsent}
+          onComputerDisconnect={onComputerDisconnect}
+          onComputerAttachPathChange={onComputerAttachPathChange}
+          onComputerExternalDraftChange={onComputerExternalDraftChange}
+          onComputerExternalProbe={onComputerExternalProbe}
+          onComputerExternalOpenTab={() => void onComputerExternalOpenTab()}
+          onSelectNav={onSelectNav}
+          onSelectMember={(id) => void openMember(id)}
+          onStreamCardAction={(actionId, card) => {
+            aporiaAlerts.push({
+              title: `${card.type} · ${actionId}`,
+              detail: "Card action stub — backend not bound for this control yet.",
+              level: "info",
+            })
           }}
-          onClose={() => setReviewOpen(false)}
-        />
-      </Show>
-    </div>
+        >
+          <div class="an-stream-slot">{props.children}</div>
+        </AnShell>
+        <Show when={contraptionsOpen()}>
+          <AnContraptionsPanel onClose={() => setContraptionsOpen(false)} />
+        </Show>
+        <Show when={reviewOpen()}>
+          <AnReviewPanel
+            initialTab={reviewInitialTab()}
+            files={reviewFiles()}
+            codeContent={reviewCodeContent()}
+            documentContent={reviewDocumentContent()}
+            computerLive={computerLive()}
+            computerFeedUrl={computerFeed().url || undefined}
+            onRequestPath={(path, tab) => {
+              void loadReviewPath(path, tab)
+            }}
+            onClose={() => setReviewOpen(false)}
+          />
+        </Show>
+      </div>
+    </EnginePortProvider>
   )
 }
 
