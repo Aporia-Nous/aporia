@@ -3,6 +3,7 @@ import { createRequire } from "node:module"
 import solidPlugin from "vite-plugin-solid"
 import tailwindcss from "@tailwindcss/vite"
 import { fileURLToPath } from "url"
+import { computerCdpRelayPlugin } from "./vite.computer-cdp.mjs"
 
 const theme = fileURLToPath(new URL("./public/oc-theme-preload.js", import.meta.url))
 
@@ -121,6 +122,7 @@ export default [
       handler: inlineThemePreload,
     },
   },
+  computerCdpRelayPlugin(),
   ...tailwind,
   solidPlugin(),
 ]

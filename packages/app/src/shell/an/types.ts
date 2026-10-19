@@ -107,6 +107,12 @@ export type AnShellProps = ParentProps<{
   computerFeedDraft?: string
   /** AP-BF-03: feed watch-only until user Takeover grants input. */
   computerFeedWatchOnly?: boolean
+  /** AP-BF-05: live CDP screencast / pixel source honesty. */
+  computerScreencastPhase?: "idle" | "connecting" | "streaming" | "error" | "stopped"
+  computerScreencastFrameUrl?: string
+  computerScreencastFrameCount?: number
+  computerPixelSource?: "none" | "iframe" | "cdp-screencast"
+  computerScreencastStatus?: string
   /** AP-BF-03: single controller — none | bot | user. */
   computerController?: "none" | "bot" | "user"
   computerBotPaused?: boolean

@@ -47,9 +47,25 @@ import {
   clearComputerFeed,
   isComputerFeedActive,
   navigateComputerFeed,
+  normalizeComputerFeedUrl,
   syncComputerFeed,
   type ComputerFeedState,
 } from "./computer-feed"
+import {
+  applyComputerScreencastFrame,
+  clearComputerScreencast,
+  computerPixelSource,
+  computerScreencastStatusCopy,
+  connectingComputerScreencast,
+  failComputerScreencast,
+  shouldStartComputerScreencast,
+  syncComputerScreencast,
+  type ComputerScreencastState,
+} from "./computer-screencast"
+import {
+  startComputerScreencastSession,
+  type ComputerScreencastSession,
+} from "./computer-screencast-cdp"
 import {
   clearComputerControl,
   computerControlNote,
@@ -283,9 +299,13 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   )
   const [computerFeed, setComputerFeed] = createSignal<ComputerFeedState>(clearComputerFeed())
   const [computerFeedDraft, setComputerFeedDraft] = createSignal("")
+  const [computerScreencast, setComputerScreencast] = createSignal<ComputerScreencastState>(
+    clearComputerScreencast(),
+  )
   const [computerControl, setComputerControl] = createSignal<ComputerControlState>(
     initialComputerControlState(props.view.sessionID()),
   )
+  let screencastSession: ComputerScreencastSession | null = null
   const info = () => props.view.info()
   const currentAgent = () => info()?.agent
   const roster = useAnRoster(currentAgent)
@@ -296,6 +316,9 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   const computerFeedWatchOnly = createMemo(() => feedIsWatchOnly(computerControl()))
   const computerCursorVisible = createMemo(
     () => isComputerCursorVisible(computerAttach()) && isBotCursorShown(computerLive(), computerControl()),
+  )
+  const computerPixelSrc = createMemo(() =>
+    computerPixelSource(computerAttach(), computerScreencast(), computerFeedActive()),
   )
 
   createEffect(() => {
@@ -313,6 +336,45 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       return
     }
     setComputerFeedDraft((draft) => draft || "about:blank")
+  })
+
+  /** AP-BF-05: live CDP screencast for consented external Edge/Chrome region only. */
+  createEffect(() => {
+    const attach = computerAttach()
+    const endpoint = attach.externalEndpoint
+    const regionId = attach.externalRegionId
+    const liveExternal = shouldStartComputerScreencast(attach)
+
+    if (!liveExternal || !endpoint || !regionId) {
+      if (screencastSession) {
+        screencastSession.stop()
+        screencastSession = null
+      }
+      setComputerScreencast((prev) => syncComputerScreencast(prev, attach))
+      return
+    }
+
+    setComputerScreencast(connectingComputerScreencast(endpoint, regionId))
+    // Electron renderer blocks CDP WebSocket; loopback HTTP relay (Vite plugin or :5199) returns real JPEG pixels.
+    const envRelay = import.meta.env?.VITE_AN_CDP_RELAY_ORIGIN
+    const relayOrigin = typeof envRelay === "string" && envRelay ? envRelay : "http://127.0.0.1:5199"
+    const session = startComputerScreencastSession({
+      endpoint,
+      regionId,
+      preferRelay: true,
+      relayOrigin,
+      onFrame: (frame) => {
+        setComputerScreencast((prev) => applyComputerScreencastFrame(prev, frame))
+      },
+      onError: (error) => {
+        setComputerScreencast((prev) => failComputerScreencast(prev, error))
+      },
+    })
+    screencastSession = session
+    onCleanup(() => {
+      session.stop()
+      if (screencastSession === session) screencastSession = null
+    })
   })
 
   /** Single control lock follows Live + presentation mode (BF-03). */
@@ -570,14 +632,19 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   }
 
   const onComputerDisconnect = () => {
+    if (screencastSession) {
+      screencastSession.stop()
+      screencastSession = null
+    }
     setComputerAttach((prev) => disconnectComputerAttach(prev))
     setComputerFeed(clearComputerFeed())
     setComputerFeedDraft("")
+    setComputerScreencast(clearComputerScreencast())
     setComputerControl(clearComputerControl(props.view.sessionID()))
     if (mode() === "takeover") setMode("view")
     aporiaAlerts.push({
       title: "Browser workspace disconnected",
-      detail: "Live, page feed, and control lock cleared. Re-connect requires fresh consent.",
+      detail: "Live, page feed, CDP screencast, and control lock cleared. Re-connect requires fresh consent.",
       level: "info",
     })
   }
@@ -600,6 +667,19 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       setComputerFeedDraft(next.url)
       return next
     })
+    // External Live: drive the consented CDP page when screencast is connected.
+    const session = screencastSession
+    const attach = computerAttach()
+    if (session && shouldStartComputerScreencast(attach)) {
+      const normalized = normalizeComputerFeedUrl(input)
+      if (normalized.ok && normalized.url !== "about:blank") {
+        void session.navigate(normalized.url).then((result) => {
+          if (!result.ok) {
+            aporiaAlerts.push({ title: "CDP navigate", detail: result.error, level: "warn" })
+          }
+        })
+      }
+    }
   }
 
   /** Own Conversation when a session is open (incl. empty) — home/draft keep OpenCode welcome. */
@@ -677,6 +757,11 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         computerFeedSrcdoc={computerFeed().srcdoc}
         computerFeedDraft={computerFeedDraft()}
         computerFeedWatchOnly={computerFeedWatchOnly()}
+        computerScreencastPhase={computerScreencast().phase}
+        computerScreencastFrameUrl={computerScreencast().frameDataUrl}
+        computerScreencastFrameCount={computerScreencast().frameCount}
+        computerPixelSource={computerPixelSrc()}
+        computerScreencastStatus={computerScreencastStatusCopy(computerScreencast())}
         computerController={computerControl().controller}
         computerBotPaused={computerControl().botPaused}
         computerUserInput={computerUserInput()}

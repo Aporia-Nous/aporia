@@ -5,6 +5,7 @@ import {
   AN_COMPUTER_CONTROL_SURFACE,
   AN_COMPUTER_EXTERNAL_SURFACE,
   AN_COMPUTER_FEED_SURFACE,
+  AN_COMPUTER_SCREENCAST_SURFACE,
   AN_CONTRAPTIONS_SURFACE,
   AN_DESIGN_SOURCE,
   AN_ICE_MATERIAL,
@@ -171,6 +172,13 @@ describe("AN Stage 4 tokens", () => {
   test("Computer control surface markers (AP-BF-03)", () => {
     expect(AN_COMPUTER_CONTROL_SURFACE.partAttr).toBe('data-an-part="computer-control"')
     expect(AN_COMPUTER_CONTROL_SURFACE.singleController).toBe(true)
+    expect(AN_COMPOSER_SURFACE.ownedAttr).toBe('data-an-owned="composer"')
+  })
+
+  test("Computer screencast surface markers (AP-BF-05)", () => {
+    expect(AN_COMPUTER_SCREENCAST_SURFACE.partAttr).toBe('data-an-part="computer-screencast"')
+    expect(AN_COMPUTER_SCREENCAST_SURFACE.framePart).toBe("computer-screencast-frame")
+    expect(AN_COMPUTER_SCREENCAST_SURFACE.includeCursorInCapture).toBe(false)
     expect(AN_COMPOSER_SURFACE.ownedAttr).toBe('data-an-owned="composer"')
   })
 

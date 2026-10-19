@@ -1162,6 +1162,42 @@
   pointer-events: none;
 }
 
+/* AP-BF-05: real CDP JPEG frames — never invent Live; cursor stays outside the image. */
+.an-computer-feed-pixels {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 140px;
+  object-fit: contain;
+  background: #070b10;
+  pointer-events: none;
+  user-select: none;
+}
+
+.an-computer-screencast-status {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  margin: 0;
+  padding: 4px 8px;
+  border-radius: var(--an-radius-sm);
+  background: rgba(4, 9, 13, 0.78);
+  color: var(--an-text-muted);
+  font-size: 10px;
+  line-height: 1.35;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.an-computer-screencast-status[data-phase="streaming"] {
+  color: var(--an-gold, #f0c66d);
+}
+
+.an-computer-screencast-status[data-phase="error"] {
+  color: #f0a0a0;
+}
+
 /* AP-BF-03: Takeover while Live grants user input; bot is paused. */
 .an-computer-feed[data-user-input="true"] .an-computer-feed-frame,
 .an-computer-feed-frame[data-watch-only="false"] {
@@ -1174,7 +1210,9 @@
 }
 
 .an-computer[data-size="large"] .an-computer-feed-frame,
-.an-computer[data-size="primary"] .an-computer-feed-frame {
+.an-computer[data-size="primary"] .an-computer-feed-frame,
+.an-computer[data-size="large"] .an-computer-feed-pixels,
+.an-computer[data-size="primary"] .an-computer-feed-pixels {
   min-height: 220px;
 }
 

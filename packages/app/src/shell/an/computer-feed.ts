@@ -1,6 +1,7 @@
-// AP-BF-02/04: watch-only page feed into Computer View when Live.
-// Local workspace or consented external Edge/Chrome region — never invent Live.
-// Bot cursor stays a separate UI overlay (not in captures).
+// AP-BF-02/04/05: watch-only page feed into Computer View when Live.
+// Local workspace (iframe page pixels) or consented external Edge/Chrome region.
+// BF-05: external Live prefers CDP screencast frames over this placeholder srcdoc.
+// Never invent Live. Bot cursor stays a separate UI overlay (not in captures).
 
 import { type ComputerAttachState, isComputerLive } from "./computer-attach"
 import { externalBrowserFamilyLabel } from "./computer-external"
@@ -50,8 +51,9 @@ export function computerFeedWorkspaceSrcdoc(attach?: ComputerAttachState): strin
 <main><h1>${title}</h1>
 <p>Watch-only Computer View feed for your consented ${family} region — loopback only, not a VM.</p>
 <p>Endpoint <code data-an-part="feed-external-endpoint">${endpoint}</code> · region <code data-an-part="feed-external-region">${region}</code></p>
-<p>Page pixels are this document until CDP screencast wires in. Bot cursor stays a Computer View overlay outside captures.</p>
-<span class="tag" data-an-part="feed-workspace-tag">External browser · watch-only</span>
+<p data-an-part="feed-screencast-hint">Connecting to live CDP page pixels for this region. This placeholder is not a fake Live screenshot — real frames replace it when the screencast streams.</p>
+<p>Bot cursor stays a Computer View overlay outside captures.</p>
+<span class="tag" data-an-part="feed-workspace-tag">External browser · CDP pixels</span>
 </main></body></html>`
   }
   const title = AN_COMPUTER_FEED_SURFACE.workspaceTitle
@@ -66,8 +68,8 @@ export function computerFeedWorkspaceSrcdoc(attach?: ComputerAttachState): strin
 </style></head><body data-an-workspace="local-browser" data-an-feed="workspace-start">
 <main><h1>${title}</h1>
 <p>Watch-only Computer View feed. Local Chromium path (Edge/Chrome family) — not a VM.</p>
-<p>Page pixels are the iframe document. Labeled Bot cursor is a Computer View overlay outside this document.</p>
-<span class="tag" data-an-part="feed-workspace-tag">Local browser · watch-only</span>
+<p>Page pixels are this iframe document (navigate via Go for http/https). External Edge/Chrome Live uses CDP screencast instead. Labeled Bot cursor is a Computer View overlay outside this document.</p>
+<span class="tag" data-an-part="feed-workspace-tag">Local browser · iframe pixels</span>
 </main></body></html>`
 }
 

@@ -57,7 +57,8 @@ describe("AP-BF-02 computer feed", () => {
     expect(feed.watchOnly).toBe(true)
     expect(feed.includeCursorInCapture).toBe(false)
     expect(isComputerFeedActive(feed, attach)).toBe(true)
-    expect(computerFeedWorkspaceSrcdoc()).toContain("watch-only")
+    expect(computerFeedWorkspaceSrcdoc()).toContain("Watch-only")
+    expect(computerFeedWorkspaceSrcdoc()).toContain("iframe pixels")
   })
 
   test("disconnect / clear removes feed (no fake Live pixels)", () => {

@@ -56,6 +56,24 @@ export {
   type ComputerFeedState,
 } from "./computer-feed"
 export {
+  AN_COMPUTER_SCREENCAST_SURFACE,
+  clearComputerScreencast,
+  computerPixelSource,
+  isComputerScreencastStreaming,
+  shouldStartComputerScreencast,
+  type ComputerPixelSource,
+  type ComputerScreencastState,
+} from "./computer-screencast"
+export {
+  listExternalBrowserTargets,
+  resolveExternalTargetWsUrl,
+  startComputerScreencastSession,
+} from "./computer-screencast-cdp"
+export {
+  AN_COMPUTER_CDP_RELAY,
+  buildComputerCdpFrameUrl,
+} from "./computer-screencast-relay"
+export {
   ackFreshObservation,
   acquireUserControl,
   botMayDrive,

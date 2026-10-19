@@ -237,9 +237,9 @@ export function computerAttachEmptyCopy(state: ComputerAttachState): string {
   if (isComputerLive(state)) {
     if (state.backend === "external-chromium") {
       const family = state.externalFamily ? externalBrowserFamilyLabel(state.externalFamily) : "Edge/Chrome"
-      return `${family} region attached (loopback). Watch-only page feed is active; labeled Bot cursor is a Computer View overlay only.`
+      return `${family} region attached (loopback). Live CDP page pixels stream when the screencast connects; labeled Bot cursor is a Computer View overlay only.`
     }
-    return "Local browser workspace attached. Watch-only page feed is active; labeled Bot cursor is a Computer View overlay only."
+    return "Local browser workspace attached. Watch-only iframe page feed is active; labeled Bot cursor is a Computer View overlay only."
   }
   return "Computer View is unavailable until you connect a local browser workspace or your Edge/Chrome region. Browser-first — not VM."
 }
@@ -247,9 +247,9 @@ export function computerAttachEmptyCopy(state: ComputerAttachState): string {
 export function computerAttachNote(state: ComputerAttachState): string {
   if (isComputerLive(state)) {
     if (state.backend === "external-chromium") {
-      return "Live = consented Edge/Chrome region on loopback + watch-only page feed. Bot cursor is overlay chrome — not in page captures. Takeover is separate."
+      return "Live = consented Edge/Chrome region on loopback + CDP screencast page pixels. Bot cursor is overlay chrome — not in page captures. Takeover is separate."
     }
-    return "Live = consented local browser attach + watch-only page feed. Bot cursor is overlay chrome — not in page captures. Takeover is separate."
+    return "Live = consented local browser attach + watch-only iframe page feed. Bot cursor is overlay chrome — not in page captures. Takeover is separate."
   }
   if (state.phase === "consenting") {
     return state.path === "external-chromium"

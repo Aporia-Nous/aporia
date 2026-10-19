@@ -136,6 +136,7 @@ export const AN_CONTRAPTIONS_SURFACE = {
 export { AN_COMPUTER_ATTACH_SURFACE } from "./computer-attach"
 export { AN_COMPUTER_FEED_SURFACE } from "./computer-feed"
 export { AN_COMPUTER_CONTROL_SURFACE } from "./computer-control"
+export { AN_COMPUTER_SCREENCAST_SURFACE } from "./computer-screencast"
 export { AN_COMPUTER_EXTERNAL_SURFACE } from "./computer-external"
 
 /** Three-state framing from approved mockups — Stage 5 four-mode work stays separate. */

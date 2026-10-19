@@ -18,6 +18,11 @@ import {
 } from "./computer-control"
 import { AN_COMPUTER_FEED_SURFACE } from "./computer-feed"
 import {
+  AN_COMPUTER_SCREENCAST_SURFACE,
+  type ComputerPixelSource,
+  type ComputerScreencastPhase,
+} from "./computer-screencast"
+import {
   AN_PRODUCT_NAME,
   AN_SHELL_MODES,
   anPresenceLabel,
@@ -174,6 +179,12 @@ function LiveComputerPanel(props: {
   feedDraft?: string
   /** BF-03: watch-only until user Takeover. Default true preserves BF-02. */
   feedWatchOnly?: boolean
+  /** AP-BF-05: CDP screencast phase / real pixel frame (never invent Live). */
+  screencastPhase?: ComputerScreencastPhase
+  screencastFrameUrl?: string
+  screencastFrameCount?: number
+  pixelSource?: ComputerPixelSource
+  screencastStatus?: string
   controller?: "none" | "bot" | "user"
   botPaused?: boolean
   userInput?: boolean
@@ -196,6 +207,9 @@ function LiveComputerPanel(props: {
   const feedActive = () => !!props.live && !!props.feedActive
   const watchOnly = () => props.feedWatchOnly !== false && !props.userInput
   const controller = () => props.controller ?? (props.live ? "bot" : "none")
+  const pixelSource = () => props.pixelSource ?? "none"
+  const showScreencastPixels = () =>
+    pixelSource() === "cdp-screencast" && !!props.screencastFrameUrl
   return (
     <section
       class="an-computer"
@@ -207,7 +221,11 @@ function LiveComputerPanel(props: {
       data-external-endpoint={props.externalEndpoint || undefined}
       data-external-region={props.externalRegionId || undefined}
       data-feed-active={feedActive() ? "true" : "false"}
+      data-pixel-source={pixelSource()}
+      data-screencast-phase={props.screencastPhase ?? "idle"}
+      data-screencast-frames={props.screencastFrameCount != null ? String(props.screencastFrameCount) : undefined}
       data-an-control={AN_COMPUTER_CONTROL_SURFACE.part}
+      data-an-screencast={AN_COMPUTER_SCREENCAST_SURFACE.part}
       data-controller={controller()}
       data-bot-paused={props.botPaused ? "true" : "false"}
       data-user-input={props.userInput ? "true" : "false"}
@@ -258,32 +276,56 @@ function LiveComputerPanel(props: {
                 data-cursor-in-capture={AN_COMPUTER_FEED_SURFACE.includeCursorInCapture ? "true" : "false"}
                 data-feed-url={props.feedUrl ?? ""}
                 data-user-input={props.userInput ? "true" : "false"}
+                data-pixel-source={pixelSource()}
+                data-screencast-phase={props.screencastPhase ?? "idle"}
               >
-                <Show
-                  when={props.feedSrcdoc}
-                  fallback={
+                <Show when={showScreencastPixels()}>
+                  <img
+                    class="an-computer-feed-pixels"
+                    data-an-part={AN_COMPUTER_SCREENCAST_SURFACE.framePart}
+                    data-cursor-in-capture="false"
+                    data-watch-only={watchOnly() ? "true" : "false"}
+                    alt="Live CDP page pixels"
+                    src={props.screencastFrameUrl}
+                    draggable={false}
+                  />
+                </Show>
+                <Show when={!showScreencastPixels()}>
+                  <Show
+                    when={props.feedSrcdoc}
+                    fallback={
+                      <iframe
+                        class="an-computer-feed-frame"
+                        title="Computer View page feed"
+                        src={props.feedUrl || "about:blank"}
+                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+                        tabindex={watchOnly() ? -1 : 0}
+                        data-an-part="computer-feed-frame"
+                        data-feed-mode="src"
+                        data-watch-only={watchOnly() ? "true" : "false"}
+                      />
+                    }
+                  >
                     <iframe
                       class="an-computer-feed-frame"
                       title="Computer View page feed"
-                      src={props.feedUrl || "about:blank"}
-                      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+                      srcdoc={props.feedSrcdoc}
+                      sandbox="allow-scripts allow-same-origin"
                       tabindex={watchOnly() ? -1 : 0}
                       data-an-part="computer-feed-frame"
-                      data-feed-mode="src"
+                      data-feed-mode="srcdoc"
                       data-watch-only={watchOnly() ? "true" : "false"}
                     />
-                  }
-                >
-                  <iframe
-                    class="an-computer-feed-frame"
-                    title="Computer View page feed"
-                    srcdoc={props.feedSrcdoc}
-                    sandbox="allow-scripts allow-same-origin"
-                    tabindex={watchOnly() ? -1 : 0}
-                    data-an-part="computer-feed-frame"
-                    data-feed-mode="srcdoc"
-                    data-watch-only={watchOnly() ? "true" : "false"}
-                  />
+                  </Show>
+                </Show>
+                <Show when={props.screencastStatus && pixelSource() !== "iframe"}>
+                  <p
+                    class="an-computer-screencast-status"
+                    data-an-part="computer-screencast-status"
+                    data-phase={props.screencastPhase ?? "idle"}
+                  >
+                    {props.screencastStatus}
+                  </p>
                 </Show>
               </div>
             </Show>
@@ -619,6 +661,11 @@ export function AnShell(props: AnShellProps): JSX.Element {
               feedSrcdoc={props.computerFeedSrcdoc}
               feedDraft={props.computerFeedDraft}
               feedWatchOnly={computerFeedWatchOnly()}
+              screencastPhase={props.computerScreencastPhase}
+              screencastFrameUrl={props.computerScreencastFrameUrl}
+              screencastFrameCount={props.computerScreencastFrameCount}
+              pixelSource={props.computerPixelSource}
+              screencastStatus={props.computerScreencastStatus}
               controller={props.computerController}
               botPaused={props.computerBotPaused}
               userInput={computerUserInput()}
@@ -719,6 +766,11 @@ export function AnShell(props: AnShellProps): JSX.Element {
             feedSrcdoc={props.computerFeedSrcdoc}
             feedDraft={props.computerFeedDraft}
             feedWatchOnly={computerFeedWatchOnly()}
+            screencastPhase={props.computerScreencastPhase}
+            screencastFrameUrl={props.computerScreencastFrameUrl}
+            screencastFrameCount={props.computerScreencastFrameCount}
+            pixelSource={props.computerPixelSource}
+            screencastStatus={props.computerScreencastStatus}
             controller={props.computerController}
             botPaused={props.computerBotPaused}
             userInput={computerUserInput()}
