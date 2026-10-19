@@ -4,7 +4,7 @@
 |-------|-------|
 | status | **OPEN — implemented + live-DEV** (await independent PASS) — **not** Stage 4 complete; **not** self-labeled INDEPENDENT PASS |
 | branch | `stage4-an-shell` |
-| tip | `a2bb9a9842` |
+| tip | `b7b853ad37` |
 | code | `10cc4f0751` |
 | base | `ec74cc7c4d` (AP-BF-02 tip; code `adb4ddb23c`) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
