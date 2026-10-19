@@ -4,8 +4,8 @@
 |-------|-------|
 | status | **OPEN implemented+live-DEV** — **not** INDEPENDENT PASS |
 | branch | `stage4-an-shell` |
-| tip | _(sync with STAGE4-17 tip)_ |
-| code | _(same commit as STAGE4-17)_ |
+| tip | `aef077a496` |
+| code | `aef077a496` |
 | base | `c4be6688a8` (AP-BF-05) |
 | scope | Prefer tab in existing Edge/Chrome window; spawn OS window only when no browser process |
 | merge/push | **No** |

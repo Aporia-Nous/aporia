@@ -4,8 +4,8 @@
 |-------|-------|
 | status | **OPEN implemented+live-DEV** — **not** INDEPENDENT PASS; **not** Stage 4 complete |
 | branch | `stage4-an-shell` |
-| tip | _(filled after tip-sync commit)_ |
-| code | _(filled after code commit)_ |
+| tip | `aef077a496` (code; tip-sync may follow) |
+| code | `aef077a496` |
 | base | `c4be6688a8` (AP-BF-05 tip) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | scope | Collapsible in-app Review panel; Edge/Chrome reuse existing window→tab; holographic ice motion |
