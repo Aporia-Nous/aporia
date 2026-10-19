@@ -5,7 +5,7 @@
 | status | **OPEN — implemented + live-DEV** (await independent PASS) — **not** Stage 4 complete; **not** self-labeled INDEPENDENT PASS |
 | branch | `stage4-an-shell` |
 | tip | *(docs tip commit after this report)* |
-| code | *(feat commit hash)* |
+| code | `71d24596b4` |
 | base | `919dc1995e` (AP-BF-03 tip; code `10cc4f0751`) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | scope | Consented attach to user’s own Edge/Chrome region on loopback; preserve BF-01 honesty, BF-02 feed, BF-03 Takeover lock |
