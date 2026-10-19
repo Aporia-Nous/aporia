@@ -4,8 +4,8 @@
 |-------|-------|
 | status | **OPEN — implemented + live-DEV verified** (screencast / page-pixel scope) — **not** INDEPENDENT PASS; **not** Stage 4 complete |
 | branch | `stage4-an-shell` |
-| tip | *(set after docs sync)* |
-| code | *(set after code commit)* |
+| tip | `ca279b5593` (code; docs tip sync may follow) |
+| code | `ca279b5593` |
 | base | `bf6e89c418` (AP-STAGE4-16 tip; ice punch — do not rework) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | scope | Real CDP page pixels in Computer View for consented Edge/Chrome; local-browser keeps iframe pixels; honesty preserved |
