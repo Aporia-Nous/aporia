@@ -12,7 +12,7 @@ import {
 } from "./bind"
 
 describe("AN shell bind", () => {
-  test("roster marks running agents thinking and others unknown (no fake listening)", () => {
+  test("roster marks running agents thinking and known-idle teammates listening", () => {
     const roster = botsToRoster({
       bots: [
         { slug: "orion", name: "Orion", role: "Lead" },
@@ -24,7 +24,7 @@ describe("AN shell bind", () => {
     expect(roster).toHaveLength(2)
     expect(roster[0]?.presence).toBe("thinking")
     expect(roster[0]?.selected).toBe(true)
-    expect(roster[1]?.presence).toBe("unknown")
+    expect(roster[1]?.presence).toBe("listening")
     expect(roster[1]?.selected).toBe(false)
   })
 
@@ -44,16 +44,33 @@ describe("AN shell bind", () => {
     expect(roster[1]?.presence).toBe("listening")
   })
 
-  test("resolveAnPresence priority: call > waiting > tool > stream > reasoning > busy > unknown", () => {
+  test("listed teammates without session signals are listening, not Unknown", () => {
+    const roster = botsToRoster({
+      bots: [
+        { slug: "grok", name: "Grok", role: "Companion" },
+        { slug: "orion", name: "Orion", role: "Lead" },
+      ],
+      currentAgent: "aporia-grok",
+    })
+    expect(roster[0]?.presence).toBe("listening")
+    expect(roster[1]?.presence).toBe("listening")
+  })
+
+  test("resolveAnPresence priority: call > waiting > tool > stream > reasoning > busy > listening > unknown", () => {
     expect(resolveAnPresence({ callState: "speaking", sessionStatus: "running", activity: "tool" })).toBe(
       "speaking",
     )
+    expect(resolveAnPresence({ callState: "connecting" })).toBe("thinking")
+    expect(resolveAnPresence({ callState: "error" })).toBe("unknown")
     expect(resolveAnPresence({ awaitingUser: true, sessionStatus: "running" })).toBe("waiting")
     expect(resolveAnPresence({ sessionStatus: "running", activity: "tool" })).toBe("working")
     expect(resolveAnPresence({ sessionStatus: "running", activity: "stream" })).toBe("speaking")
     expect(resolveAnPresence({ sessionStatus: "running", activity: "reasoning" })).toBe("thinking")
     expect(resolveAnPresence({ sessionStatus: "running", activity: "none" })).toBe("thinking")
-    expect(resolveAnPresence({ sessionStatus: "idle" })).toBe("unknown")
+    expect(resolveAnPresence({ sessionStatus: "idle" })).toBe("listening")
+    expect(resolveAnPresence({ sessionStatus: "ready" })).toBe("listening")
+    expect(resolveAnPresence({ callState: "idle" })).toBe("listening")
+    expect(resolveAnPresence({ known: true })).toBe("listening")
     expect(resolveAnPresence({})).toBe("unknown")
   })
 

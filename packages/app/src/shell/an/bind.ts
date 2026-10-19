@@ -19,7 +19,7 @@ export type AnBindAttentionCard = {
 
 /** Real signals used to resolve presence — omit fields when unavailable. */
 export type AnPresenceSignal = {
-  /** Session status string (e.g. "running" when busy). */
+  /** Session status string (e.g. "running" when busy, "idle" when ready). */
   sessionStatus?: string
   /**
    * Finer activity while a session is busy.
@@ -33,22 +33,31 @@ export type AnPresenceSignal = {
   callState?: "idle" | "connecting" | "listening" | "thinking" | "speaking" | "error"
   /** Permission / attention awaiting the user for this agent's session. */
   awaitingUser?: boolean
+  /**
+   * Companion is known from a real source (desktop roster / session row).
+   * With no busy/wait/call activity → design `listening`, not `unknown`.
+   */
+  known?: boolean
 }
 
 /**
- * Map real session/call signals → design presence.
- * Priority (most specific first): call → waiting → tool → stream → reasoning → busy → unknown.
- * Idle / missing signals stay `unknown` — do not invent "listening".
+ * Map real session/call signals → design presence (five-state + unknown escape).
+ * Priority: call speaking/thinking/listening → connecting → waiting → tool → stream →
+ * reasoning → busy → known idle/ready → unknown.
+ * Known idle companions → `listening`. `unknown` only when no honest signal.
  */
 export function resolveAnPresence(signal: AnPresenceSignal = {}): AnPresence {
   const call = signal.callState
   if (call === "listening") return "listening"
   if (call === "thinking") return "thinking"
   if (call === "speaking") return "speaking"
+  if (call === "connecting") return "thinking"
+  if (call === "error") return "unknown"
 
   if (signal.awaitingUser) return "waiting"
 
-  const busy = signal.sessionStatus === "running"
+  const status = (signal.sessionStatus ?? "").trim().toLowerCase()
+  const busy = status === "running" || status === "busy"
   if (busy) {
     switch (signal.activity) {
       case "tool":
@@ -67,6 +76,11 @@ export function resolveAnPresence(signal: AnPresenceSignal = {}): AnPresence {
         return "thinking"
       }
     }
+  }
+
+  // Known ready companion (session idle, call idle, or roster-listed) → listening.
+  if (status === "idle" || status === "ready" || call === "idle" || signal.known === true) {
+    return "listening"
   }
 
   return "unknown"
@@ -124,12 +138,16 @@ export function botsToRoster(input: {
   }
   return input.bots.map((bot) => {
     const agent = `aporia-${bot.slug}`
+    const raw = signalOf(agent)
+    // Listed teammate from the desktop bridge is a known companion — missing
+    // session row is idle/listening, not Unknown.
+    const signal: AnPresenceSignal = { ...raw, known: true }
     return {
       id: bot.slug,
       name: bot.name || bot.slug,
       role: bot.role?.trim() || "Teammate",
       avatar: bot.avatar,
-      presence: resolveAnPresence(signalOf(agent)),
+      presence: resolveAnPresence(signal),
       selected: input.currentAgent === agent,
     }
   })

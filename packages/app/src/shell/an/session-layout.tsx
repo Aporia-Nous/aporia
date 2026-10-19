@@ -146,8 +146,15 @@ function useAnRoster(currentAgent: () => string | undefined) {
 
       const prev = map.get(agent)
       const preferRunning = sessionStatus === "running" || prev?.sessionStatus === "running"
+      // Session row exists → known companion. Normalize empty/non-running to idle.
+      const normalizedStatus = preferRunning
+        ? "running"
+        : sessionStatus === "running"
+          ? "running"
+          : sessionStatus || prev?.sessionStatus || "idle"
       const next: AnPresenceSignal = {
-        sessionStatus: preferRunning ? "running" : sessionStatus || prev?.sessionStatus,
+        sessionStatus: normalizedStatus,
+        known: true,
         activity:
           sessionStatus === "running"
             ? activity
@@ -165,9 +172,12 @@ function useAnRoster(currentAgent: () => string | undefined) {
       map.set(agent, next)
     }
 
-    // Selected agent may have no session row yet; still surface live call presence.
-    if (callActive && selected && !map.has(selected)) {
-      map.set(selected, { callState })
+    // Selected agent may have no session row yet; still surface live call / idle presence.
+    if (selected && !map.has(selected)) {
+      map.set(
+        selected,
+        callActive ? { callState, known: true } : { sessionStatus: "idle", known: true },
+      )
     }
 
     return map

@@ -133,7 +133,7 @@ export function anShellModeLabel(mode: AnShellMode): string {
 
 /**
  * Bot presence (Ali design): listening / thinking / speaking / working / waiting.
- * `unknown` when no honest signal — never invent companion mood.
+ * Session/call idle maps to listening. `unknown` only when no honest signal.
  */
 export const AN_PRESENCE = ["listening", "thinking", "speaking", "working", "waiting", "unknown"] as const
 export type AnPresence = (typeof AN_PRESENCE)[number]
@@ -144,6 +144,7 @@ export const AN_PRESENCE_LABEL: Record<AnPresence, string> = {
   speaking: "Speaking",
   working: "Working",
   waiting: "Waiting",
+  /** Escape only — not a design mood; use when no real signal exists. */
   unknown: "Unknown",
 }
 
