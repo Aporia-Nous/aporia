@@ -9,6 +9,7 @@ Work date: October 19, 2026 (America/Chicago). Board task `AP-STAGE4-05`.
 | cwd | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | branch | `stage4-an-shell` |
 | commit | `584fcda036` — `fix(an-shell): product name Aporetic (AP-STAGE4-05)` |
+| tip | `b758f70ed3` — docs tip after code |
 | ownership | this worktree only — not Stage 0 / not installed Aporetic |
 | push / merge | none |
 | Stage 4 complete | not claimed |
