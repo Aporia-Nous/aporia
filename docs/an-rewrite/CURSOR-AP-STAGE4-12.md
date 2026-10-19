@@ -4,7 +4,7 @@
 |-------|-------|
 | status | **OPEN for review** (composer-own scope) — **not** Stage 4 complete; **no PASS claim** |
 | branch | `stage4-an-shell` |
-| tip | `cf083186a3` (docs tip filled by follow-up hash commit if needed) |
+| tip | `bc0acb4ca8` |
 | code | `cf083186a3` |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | base | `799f176044` (AP-STAGE4-11 tip) |
