@@ -1048,3 +1048,15 @@ Worktree `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` on branch
 | evidence | shot `09-conversation-an-cards.png`; CDP probe; unit 26 pass |
 | still OpenCode | message/tool/edit chrome in stream legacy; question dock; no live Proof source |
 | not claimed | independent PASS, Stage 4 complete, merge, push |
+
+### Stage 4c/4d — Presence + Computer View (AP-STAGE4-4C + AP-STAGE4-4D) — OPEN for review
+
+Worktree `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4-presence` on branch
+`stage4-presence-computer-view` (base `4f1fe0fea9`). Report: `docs/an-rewrite/CURSOR-AP-STAGE4-4C-4D.md`.
+Isolated from main Stage 4 worktree (MODELS-01a collision avoidance). **Not merged** into `stage4-an-shell`.
+
+| item | value |
+| - | - |
+| landed | Presence listening/thinking/speaking/working/waiting (+ unknown); real signal map; user-facing Computer View; Unavailable honesty |
+| evidence | shots `16`/`17` fixture chrome; unit 33 pass; evidence `2026-10-19-an-shell-stage4-4c-4d.txt` |
+| not claimed | independent PASS, running-DEV load, merge into stage4-an-shell, push, Stage 4 complete |
