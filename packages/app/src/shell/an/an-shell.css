@@ -1,4 +1,5 @@
-/* Stage 4 AN shell — black/gold glass + three-state layout (AP-STAGE4-04). */
+/* Stage 4 AN shell — black/gold ice-glass + three-state layout (AP-STAGE4-04/08).
+   Feel (Ali 2026-10-19): frictionless glass/ice — smooth; gold on ice-dark, not Lagoon. */
 @import "@opencode/ui/styles/tokens/an.css";
 
 [data-component="an-shell"] {
@@ -13,17 +14,19 @@
   min-height: 0;
   width: 100%;
   color: var(--an-local-text);
-  /* Atmospheric depth — CSS gradients only; no fake telemetry imagery */
+  /* Cool ice depth + soft gold bloom — CSS gradients only; no fake telemetry */
   background:
-    radial-gradient(ellipse 90% 55% at 78% -8%, rgba(240, 198, 109, 0.22), transparent 52%),
-    radial-gradient(ellipse 70% 45% at 8% 110%, rgba(59, 231, 140, 0.05), transparent 48%),
-    radial-gradient(ellipse 50% 40% at 55% 70%, rgba(231, 154, 29, 0.08), transparent 55%),
-    linear-gradient(165deg, #050a10 0%, var(--an-void, #020509) 42%, #04080e 100%);
+    radial-gradient(ellipse 88% 52% at 76% -10%, rgba(240, 198, 109, 0.16), transparent 54%),
+    radial-gradient(ellipse 55% 42% at 12% 8%, rgba(170, 210, 255, 0.07), transparent 50%),
+    radial-gradient(ellipse 70% 45% at 8% 110%, rgba(59, 231, 140, 0.04), transparent 48%),
+    radial-gradient(ellipse 50% 40% at 55% 70%, rgba(231, 154, 29, 0.05), transparent 55%),
+    linear-gradient(165deg, #040910 0%, var(--an-void, #020509) 44%, #03070c 100%);
   font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
   font-size: 13px;
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
-  transition: grid-template-columns var(--an-ease);
+  /* Mode / rail width — intentional ease, no jank */
+  transition: grid-template-columns var(--an-ease-rail, var(--an-ease));
 }
 
 /* View: widen live-computer rail beside chat (watch only). */
@@ -61,10 +64,12 @@
   gap: 8px;
   padding: 12px 0;
   border-right: 1px solid var(--an-border-soft);
-  background: var(--an-panel-glass, var(--an-panel));
-  backdrop-filter: blur(var(--an-blur-strong, var(--an-blur)));
-  -webkit-backdrop-filter: blur(var(--an-blur-strong, var(--an-blur)));
-  box-shadow: inset 1px 0 0 var(--an-border-edge, rgba(255, 236, 190, 0.1));
+  background:
+    linear-gradient(180deg, var(--an-ice-sheen, rgba(186, 220, 255, 0.07)), transparent 40%),
+    var(--an-panel-glass, var(--an-panel));
+  backdrop-filter: blur(var(--an-blur-strong, var(--an-blur))) saturate(var(--an-saturate, 1.18));
+  -webkit-backdrop-filter: blur(var(--an-blur-strong, var(--an-blur))) saturate(var(--an-saturate, 1.18));
+  box-shadow: var(--an-specular, inset 0 1px 0 rgba(210, 232, 255, 0.14)), inset 1px 0 0 var(--an-ice-edge, rgba(210, 232, 255, 0.12));
 }
 
 .an-nav-brand {
@@ -73,12 +78,14 @@
   width: 40px;
   height: 40px;
   border-radius: var(--an-radius-sm);
-  border: 1px solid var(--an-border);
-  background: rgba(4, 9, 13, 0.72);
+  border: 1px solid var(--an-border-soft);
+  background:
+    linear-gradient(145deg, rgba(240, 198, 109, 0.12), transparent 55%),
+    rgba(4, 10, 16, 0.55);
   color: var(--an-gold);
   font-weight: 900;
   letter-spacing: -0.08em;
-  box-shadow: var(--an-shadow), 0 0 18px var(--an-glow-soft);
+  box-shadow: var(--an-shadow-soft, 0 4px 18px rgba(0, 0, 0, 0.18)), var(--an-specular), 0 0 14px var(--an-glow-soft);
 }
 
 .an-nav-item {
@@ -101,12 +108,12 @@
 
 .an-nav-item[data-active="true"] {
   color: var(--an-gold, #f0c66d);
-  border-color: var(--an-gold, #f0c66d);
-  background: rgba(240, 198, 109, 0.16);
+  border-color: var(--an-border-strong, rgba(240, 198, 109, 0.42));
+  background: rgba(240, 198, 109, 0.12);
   box-shadow:
-    0 0 0 1px rgba(240, 198, 109, 0.45),
-    0 0 32px var(--an-glow, rgba(231, 154, 29, 0.28)),
-    inset 0 0 18px rgba(240, 198, 109, 0.08);
+    0 0 0 1px rgba(240, 198, 109, 0.28),
+    0 0 22px var(--an-glow, rgba(231, 154, 29, 0.22)),
+    inset 0 1px 0 rgba(255, 236, 190, 0.14);
 }
 
 .an-nav-icon {
@@ -127,10 +134,12 @@
   flex-direction: column;
   min-height: 0;
   border-right: 1px solid var(--an-border-soft);
-  background: var(--an-panel);
-  backdrop-filter: blur(var(--an-blur));
-  -webkit-backdrop-filter: blur(var(--an-blur));
-  box-shadow: inset 1px 0 0 var(--an-border-edge, rgba(255, 236, 190, 0.08));
+  background:
+    linear-gradient(180deg, var(--an-ice-sheen, rgba(186, 220, 255, 0.06)), transparent 36%),
+    var(--an-panel);
+  backdrop-filter: blur(var(--an-blur)) saturate(var(--an-saturate, 1.18));
+  -webkit-backdrop-filter: blur(var(--an-blur)) saturate(var(--an-saturate, 1.18));
+  box-shadow: var(--an-specular), inset 1px 0 0 var(--an-ice-edge, rgba(210, 232, 255, 0.1));
 }
 
 .an-roster-header {
@@ -184,14 +193,14 @@
   background: rgba(240, 198, 109, 0.08);
 }
 
-/* Roster selection punch — electric gold */
+/* Roster selection — gold on ice glass (punch without chunky chrome) */
 .an-roster-member[data-selected="true"] {
-  border-color: var(--an-gold, #f0c66d);
-  background: rgba(240, 198, 109, 0.18);
+  border-color: var(--an-border-strong, rgba(240, 198, 109, 0.42));
+  background: rgba(240, 198, 109, 0.12);
   box-shadow:
-    0 0 0 1px rgba(240, 198, 109, 0.5),
-    0 0 34px rgba(231, 154, 29, 0.38),
-    inset 0 0 22px rgba(240, 198, 109, 0.08);
+    0 0 0 1px rgba(240, 198, 109, 0.28),
+    0 0 24px rgba(231, 154, 29, 0.22),
+    inset 0 1px 0 rgba(255, 236, 190, 0.12);
 }
 
 .an-roster-member[data-selected="true"] .an-roster-text strong {
@@ -265,9 +274,9 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-  background: var(--an-panel-glass, rgba(6, 12, 18, 0.28));
-  backdrop-filter: blur(calc(var(--an-blur) * 0.55));
-  -webkit-backdrop-filter: blur(calc(var(--an-blur) * 0.55));
+  background: var(--an-panel-glass, rgba(10, 20, 30, 0.28));
+  backdrop-filter: blur(calc(var(--an-blur) * 0.65)) saturate(var(--an-saturate, 1.18));
+  -webkit-backdrop-filter: blur(calc(var(--an-blur) * 0.65)) saturate(var(--an-saturate, 1.18));
 }
 
 .an-mission {
@@ -277,10 +286,12 @@
   min-height: 56px;
   padding: 10px 16px;
   border-bottom: 1px solid var(--an-border-soft);
-  background: rgba(3, 7, 11, 0.55);
-  backdrop-filter: blur(var(--an-blur));
-  -webkit-backdrop-filter: blur(var(--an-blur));
-  box-shadow: inset 0 1px 0 var(--an-border-edge, rgba(255, 236, 190, 0.1));
+  background:
+    linear-gradient(180deg, var(--an-ice-sheen, rgba(186, 220, 255, 0.06)), transparent 70%),
+    rgba(3, 8, 14, 0.42);
+  backdrop-filter: blur(var(--an-blur-strong, var(--an-blur))) saturate(var(--an-saturate, 1.18));
+  -webkit-backdrop-filter: blur(var(--an-blur-strong, var(--an-blur))) saturate(var(--an-saturate, 1.18));
+  box-shadow: var(--an-specular);
 }
 
 .an-mission-copy {
@@ -360,8 +371,12 @@
   padding: 3px;
   border: 1px solid var(--an-border-soft);
   border-radius: var(--an-radius-pill);
-  background: rgba(4, 9, 13, 0.55);
-  backdrop-filter: blur(10px);
+  background:
+    linear-gradient(180deg, var(--an-ice-sheen, rgba(186, 220, 255, 0.08)), transparent 60%),
+    rgba(4, 10, 16, 0.4);
+  backdrop-filter: blur(18px) saturate(var(--an-saturate, 1.18));
+  -webkit-backdrop-filter: blur(18px) saturate(var(--an-saturate, 1.18));
+  box-shadow: var(--an-specular);
 }
 
 .an-mode-btn {
@@ -374,7 +389,12 @@
   font-weight: 600;
   letter-spacing: 0.02em;
   cursor: pointer;
-  transition: color var(--an-ease), background var(--an-ease), border-color var(--an-ease), box-shadow var(--an-ease);
+  transition:
+    color var(--an-ease),
+    background var(--an-ease),
+    border-color var(--an-ease),
+    box-shadow var(--an-ease),
+    transform var(--an-ease);
 }
 
 .an-mode-btn:hover {
@@ -384,8 +404,8 @@
 .an-mode-btn[data-active="true"] {
   color: var(--an-void, #020509);
   background: linear-gradient(180deg, var(--an-gold), var(--an-gold-deep));
-  border-color: var(--an-border-strong);
-  box-shadow: 0 0 18px var(--an-glow);
+  border-color: transparent;
+  box-shadow: 0 0 16px var(--an-glow);
 }
 
 .an-stream {
@@ -436,11 +456,18 @@
   flex-direction: column;
   min-height: 0;
   border-left: 1px solid var(--an-border-soft);
-  background: var(--an-panel);
-  backdrop-filter: blur(var(--an-blur-strong, var(--an-blur)));
-  -webkit-backdrop-filter: blur(var(--an-blur-strong, var(--an-blur)));
+  background:
+    linear-gradient(200deg, var(--an-ice-sheen, rgba(186, 220, 255, 0.07)), transparent 42%),
+    var(--an-panel);
+  backdrop-filter: blur(var(--an-blur-strong, var(--an-blur))) saturate(var(--an-saturate, 1.18));
+  -webkit-backdrop-filter: blur(var(--an-blur-strong, var(--an-blur))) saturate(var(--an-saturate, 1.18));
   overflow: hidden;
-  box-shadow: inset -1px 0 0 var(--an-border-edge, rgba(255, 236, 190, 0.08));
+  box-shadow: var(--an-specular), inset -1px 0 0 var(--an-ice-edge, rgba(210, 232, 255, 0.1));
+  /* Rail surface ease alongside grid column resize */
+  transition:
+    background var(--an-ease-rail, var(--an-ease)),
+    box-shadow var(--an-ease-rail, var(--an-ease)),
+    border-color var(--an-ease-rail, var(--an-ease));
 }
 
 .an-attention-header {
@@ -485,8 +512,11 @@
 }
 
 .an-attention-card-wrap:hover .an-card {
-  border-color: var(--an-border-strong);
-  box-shadow: 0 0 28px var(--an-glow);
+  border-color: var(--an-border);
+  box-shadow:
+    var(--an-shadow-soft),
+    var(--an-specular),
+    0 0 18px var(--an-glow-soft);
 }
 
 /* Legacy attention chip (kept for non-card call sites) */
@@ -496,19 +526,21 @@
   gap: 4px;
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid var(--an-border);
+  border: 1px solid var(--an-border-soft);
   border-radius: var(--an-radius);
-  background: var(--an-panel-raised);
+  background:
+    linear-gradient(165deg, var(--an-ice-sheen, rgba(186, 220, 255, 0.06)), transparent 48%),
+    var(--an-panel-raised);
   color: inherit;
   text-align: left;
   cursor: pointer;
-  box-shadow: 0 0 18px var(--an-glow-soft);
+  box-shadow: var(--an-shadow-soft), var(--an-specular);
   transition: border-color var(--an-ease), box-shadow var(--an-ease);
 }
 
 .an-attention-card:hover {
-  border-color: var(--an-border-strong);
-  box-shadow: 0 0 28px var(--an-glow);
+  border-color: var(--an-border);
+  box-shadow: var(--an-shadow-soft), var(--an-specular), 0 0 16px var(--an-glow-soft);
 }
 
 .an-attention-card strong {
@@ -573,9 +605,14 @@
   padding: 10px;
   border: 1px solid var(--an-border-soft);
   border-radius: var(--an-radius);
-  background: var(--an-panel-raised);
-  box-shadow: var(--an-shadow);
+  background:
+    linear-gradient(165deg, var(--an-ice-sheen, rgba(186, 220, 255, 0.06)), transparent 48%),
+    var(--an-panel-raised);
+  backdrop-filter: blur(var(--an-blur)) saturate(var(--an-saturate, 1.18));
+  -webkit-backdrop-filter: blur(var(--an-blur)) saturate(var(--an-saturate, 1.18));
+  box-shadow: var(--an-shadow-soft), var(--an-specular);
   flex: none;
+  transition: box-shadow var(--an-ease), border-color var(--an-ease);
 }
 
 .an-computer[data-size="large"] {
@@ -726,11 +763,16 @@
   color: var(--an-gold);
 }
 
-/* AP-STAGE4-03: composer AN tokens — void fill + gold focus/send (not navy/indigo OpenCode).
-   Specificity beats packages/app composer editor.css dark dock rules that use v2-layer-01. */
+/* AP-STAGE4-03/08: composer void/gold on ice dock — not navy OpenCode chrome. */
 [data-color-scheme="dark"] [data-component="an-shell"] [data-component="session-composer-dock"],
 [data-color-scheme="dark"] [data-an-theme="an"] [data-component="session-composer-dock"] {
-  background-color: transparent;
+  background:
+    linear-gradient(180deg, rgba(186, 220, 255, 0.04), transparent 50%),
+    rgba(2, 6, 12, 0.28) !important;
+  backdrop-filter: blur(var(--an-blur-strong, 42px)) saturate(var(--an-saturate, 1.18));
+  -webkit-backdrop-filter: blur(var(--an-blur-strong, 42px)) saturate(var(--an-saturate, 1.18));
+  border-top: 1px solid var(--an-border-soft, rgba(240, 198, 109, 0.12));
+  box-shadow: inset 0 1px 0 var(--an-ice-edge, rgba(210, 232, 255, 0.12));
 }
 
 [data-color-scheme="dark"] [data-component="an-shell"] [data-component="composer"],
@@ -739,9 +781,16 @@
 [data-color-scheme="dark"] [data-an-theme="an"] [data-component="session-composer-dock"] [data-component="composer"],
 [data-color-scheme="dark"] [data-component="an-shell"] [data-component="new-session"] [data-component="composer"],
 [data-color-scheme="dark"] [data-an-theme="an"] [data-component="new-session"] [data-component="composer"] {
-  background: var(--an-void, #020509) !important;
-  border: 1px solid var(--an-border-soft, rgba(240, 198, 109, 0.18));
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4), 0 0 18px var(--an-glow-soft, rgba(231, 154, 29, 0.1));
+  background:
+    linear-gradient(180deg, rgba(186, 220, 255, 0.05), transparent 40%),
+    var(--an-void, #020509) !important;
+  border: 1px solid var(--an-border-soft, rgba(240, 198, 109, 0.12));
+  border-radius: var(--an-radius, 14px);
+  box-shadow:
+    var(--an-shadow-soft, 0 4px 18px rgba(0, 0, 0, 0.18)),
+    inset 0 1px 0 var(--an-ice-edge, rgba(210, 232, 255, 0.12)),
+    0 0 14px var(--an-glow-soft, rgba(231, 154, 29, 0.1));
+  transition: border-color var(--an-ease), box-shadow var(--an-ease);
 }
 
 [data-color-scheme="dark"] [data-component="an-shell"] [data-component="composer"]:focus-within,
