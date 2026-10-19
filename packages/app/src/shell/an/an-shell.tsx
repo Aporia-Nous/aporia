@@ -4,6 +4,7 @@ import { attentionToApprovalCards } from "./cards/map"
 import type { AnCardModel } from "./cards/types"
 import { AnConversationStream } from "./conversation-stream"
 import type { AnConversationTurn } from "./conversation-turns"
+import { AN_COMPUTER_ATTACH_SURFACE } from "./computer-attach"
 import {
   AN_PRODUCT_NAME,
   AN_SHELL_MODES,
@@ -123,12 +124,27 @@ function initials(name: string) {
 function LiveComputerPanel(props: {
   title: string
   empty: string
+  note: string
   size: "compact" | "large" | "primary"
   live?: boolean
+  attachPhase?: "disconnected" | "consenting" | "attached"
+  cursorVisible?: boolean
+  onConnect?: () => void
+  onConfirmAttach?: () => void
+  onCancelConsent?: () => void
+  onDisconnect?: () => void
 }) {
   const badge = () => (props.live ? "Live" : "Unavailable")
+  const phase = () => props.attachPhase ?? (props.live ? "attached" : "disconnected")
   return (
-    <section class="an-computer" data-size={props.size} aria-label={props.title}>
+    <section
+      class="an-computer"
+      data-size={props.size}
+      data-an-part={AN_COMPUTER_ATTACH_SURFACE.part}
+      data-attach-phase={phase()}
+      data-backend={AN_COMPUTER_ATTACH_SURFACE.backend}
+      aria-label={props.title}
+    >
       <header class="an-computer-header">
         <strong>{props.title}</strong>
         <span class="an-computer-badge" data-live={props.live ? "true" : "false"} data-state={badge().toLowerCase()}>
@@ -136,12 +152,49 @@ function LiveComputerPanel(props: {
         </span>
       </header>
       <div class="an-computer-surface" data-empty={props.live ? "false" : "true"}>
-        <p class="an-computer-empty">{props.empty}</p>
+        <Show
+          when={props.live}
+          fallback={<p class="an-computer-empty">{props.empty}</p>}
+        >
+          <div class="an-computer-workspace" data-an-part="computer-workspace">
+            <span class="an-computer-workspace-label">{AN_COMPUTER_ATTACH_SURFACE.pathLabel}</span>
+            <Show when={props.cursorVisible}>
+              <div
+                class="an-computer-cursor"
+                data-an-part="computer-cursor"
+                title={AN_COMPUTER_ATTACH_SURFACE.cursorLabel}
+                aria-label={AN_COMPUTER_ATTACH_SURFACE.cursorLabel}
+              >
+                <i class="an-computer-cursor-pointer" />
+                <span class="an-computer-cursor-tag">{AN_COMPUTER_ATTACH_SURFACE.cursorLabel}</span>
+              </div>
+            </Show>
+            <p class="an-computer-empty an-computer-empty--live">{props.empty}</p>
+          </div>
+        </Show>
+      </div>
+      <div class="an-computer-actions" data-an-part="computer-attach-actions" role="group" aria-label="Computer View attach">
+        <Show when={phase() === "disconnected" || (phase() === "attached" && !props.live)}>
+          <button type="button" class="an-computer-btn an-computer-btn--connect" data-action="computer-connect" onClick={() => props.onConnect?.()}>
+            Connect browser
+          </button>
+        </Show>
+        <Show when={phase() === "consenting"}>
+          <button type="button" class="an-computer-btn an-computer-btn--confirm" data-action="computer-confirm" onClick={() => props.onConfirmAttach?.()}>
+            Confirm attach
+          </button>
+          <button type="button" class="an-computer-btn an-computer-btn--cancel" data-action="computer-cancel" onClick={() => props.onCancelConsent?.()}>
+            Cancel
+          </button>
+        </Show>
+        <Show when={props.live}>
+          <button type="button" class="an-computer-btn an-computer-btn--disconnect" data-action="computer-disconnect" onClick={() => props.onDisconnect?.()}>
+            Disconnect
+          </button>
+        </Show>
       </div>
       <Show when={props.size !== "primary"}>
-        <p class="an-computer-note">
-          Watch-only Computer View — live feed not attached. Input requires Takeover.
-        </p>
+        <p class="an-computer-note">{props.note}</p>
       </Show>
     </section>
   )
@@ -190,6 +243,10 @@ export function AnShell(props: AnShellProps): JSX.Element {
   const computerEmpty = () => props.computerEmpty ?? DEFAULT_COMPUTER_EMPTY
   const computerTitle = () => props.computerTitle ?? "Computer View"
   const computerLive = () => !!props.computerLive
+  const computerNote = () =>
+    props.computerLive
+      ? "Live = consented local browser attach. Watch-only in Computer View; Takeover is separate. No fake page feed."
+      : "Watch-only Computer View — connect a local browser workspace to go Live."
   const progress = () => {
     const value = props.mission?.progressPercent
     if (value === undefined || Number.isNaN(value)) return undefined
@@ -307,8 +364,15 @@ export function AnShell(props: AnShellProps): JSX.Element {
             <LiveComputerPanel
               title={computerTitle()}
               empty={computerEmpty()}
+              note={computerNote()}
               size="primary"
               live={computerLive()}
+              attachPhase={props.computerAttachPhase}
+              cursorVisible={props.computerCursorVisible}
+              onConnect={props.onComputerConnect}
+              onConfirmAttach={props.onComputerConfirmAttach}
+              onCancelConsent={props.onComputerCancelConsent}
+              onDisconnect={props.onComputerDisconnect}
             />
             <div class="an-takeover-bar" role="toolbar" aria-label="Takeover controls">
               <button type="button" class="an-takeover-handback" onClick={() => props.onHandBack?.()}>
@@ -359,8 +423,15 @@ export function AnShell(props: AnShellProps): JSX.Element {
           <LiveComputerPanel
             title={computerTitle()}
             empty={computerEmpty()}
+            note={computerNote()}
             size={layout().computerBeside ? "large" : "compact"}
             live={computerLive()}
+            attachPhase={props.computerAttachPhase}
+            cursorVisible={props.computerCursorVisible}
+            onConnect={props.onComputerConnect}
+            onConfirmAttach={props.onComputerConfirmAttach}
+            onCancelConsent={props.onComputerCancelConsent}
+            onDisconnect={props.onComputerDisconnect}
           />
         </Show>
 

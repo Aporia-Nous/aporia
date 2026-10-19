@@ -5,6 +5,7 @@ export {
   AN_PRODUCT_BYLINE,
   AN_TOKENS,
   AN_COMPOSER_SURFACE,
+  AN_COMPUTER_ATTACH_SURFACE,
   AN_CONTRAPTIONS_SURFACE,
   AN_SHELL_MODES,
   AN_SHELL_MODE_LABEL,
@@ -21,6 +22,17 @@ export {
   type AnTokenName,
 } from "./tokens"
 export { AnContraptionsPanel } from "./contraptions-panel"
+export {
+  beginComputerConsent,
+  cancelComputerConsent,
+  confirmComputerAttach,
+  disconnectComputerAttach,
+  initialComputerAttachState,
+  isComputerCursorVisible,
+  isComputerLive,
+  rescopeComputerAttach,
+  type ComputerAttachState,
+} from "./computer-attach"
 export { buildAnShellModel, assertApprovedModesOnly, type AnShellModel } from "./shell-model"
 export {
   botsToRoster,

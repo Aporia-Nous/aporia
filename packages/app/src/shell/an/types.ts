@@ -73,6 +73,14 @@ export type AnShellProps = ParentProps<{
   /** Honest empty copy for the always-on Computer View panel. */
   computerEmpty?: string
   computerTitle?: string
-  /** True only when a real computer feed is attached — never invent live. */
+  /** True only when a consented local browser workspace is attached — never invent live. */
   computerLive?: boolean
+  /** AP-BF-01: attach phase for Connect/Disconnect chrome. */
+  computerAttachPhase?: "disconnected" | "consenting" | "attached"
+  /** Labeled bot cursor overlay — only when live (UI affordance, not page paint). */
+  computerCursorVisible?: boolean
+  onComputerConnect?: () => void
+  onComputerConfirmAttach?: () => void
+  onComputerCancelConsent?: () => void
+  onComputerDisconnect?: () => void
 }>

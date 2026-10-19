@@ -269,8 +269,8 @@ export function computerToCard(input?: { live?: boolean; title?: string; detail?
     detail:
       input?.detail?.trim() ||
       (live
-        ? "Computer feed attached."
-        : "Computer View has no live feed — watch/control backends not attached."),
+        ? "Local browser workspace attached (consented). Page pixels still BF-02."
+        : "Computer View has no live attach — connect a local browser workspace."),
     status: live ? "Live" : "Unavailable",
     statusTone: live ? "ok" : "neutral",
     source: "computer",
@@ -280,7 +280,7 @@ export function computerToCard(input?: { live?: boolean; title?: string; detail?
         label: "Computer View",
         variant: "secondary",
         stub: !live,
-        stubReason: live ? undefined : "No computer session attached — Computer View is chrome-only.",
+        stubReason: live ? undefined : "No browser workspace attached — Computer View is chrome-only.",
       },
     ],
   }

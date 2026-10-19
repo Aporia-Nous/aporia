@@ -22,6 +22,18 @@ import { Show, createEffect, createMemo, createResource, createSignal, onCleanup
 import { Portal } from "solid-js/web"
 import { AnShell } from "./an-shell"
 import { buildStreamCards } from "./cards"
+import {
+  beginComputerConsent,
+  cancelComputerConsent,
+  computerAttachEmptyCopy,
+  confirmComputerAttach,
+  disconnectComputerAttach,
+  initialComputerAttachState,
+  isComputerCursorVisible,
+  isComputerLive,
+  rescopeComputerAttach,
+  type ComputerAttachState,
+} from "./computer-attach"
 import { AnContraptionsPanel } from "./contraptions-panel"
 import { messagesToConversationTurns } from "./conversation-turns"
 import {
@@ -226,10 +238,20 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   const openSettings = useSettingsDialog()
   const [mode, setMode] = createSignal<AnShellMode>("conversation")
   const [contraptionsOpen, setContraptionsOpen] = createSignal(false)
+  const [computerAttach, setComputerAttach] = createSignal<ComputerAttachState>(
+    initialComputerAttachState(props.view.sessionID()),
+  )
   const info = () => props.view.info()
   const currentAgent = () => info()?.agent
   const roster = useAnRoster(currentAgent)
   const attention = useAnAttention()
+  const computerLive = createMemo(() => isComputerLive(computerAttach()))
+  const computerCursorVisible = createMemo(() => isComputerCursorVisible(computerAttach()))
+
+  createEffect(() => {
+    const sessionID = props.view.sessionID()
+    setComputerAttach((prev) => rescopeComputerAttach(prev, sessionID))
+  })
 
   const onModeChange = (next: AnShellMode) => {
     if (!isAnShellMode(next)) return
@@ -240,7 +262,9 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     setMode("conversation")
     aporiaAlerts.push({
       title: "Handed back",
-      detail: "Returned to Conversation. Computer backend not attached — control was chrome-only.",
+      detail: computerLive()
+        ? "Returned to Conversation. Local browser workspace stays attached until Disconnect."
+        : "Returned to Conversation. Computer backend not attached — control was chrome-only.",
       level: "info",
     })
   }
@@ -347,10 +371,49 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         working: props.view.working(),
       },
       messages: props.view.messages(),
-      computerLive: false,
+      computerLive: computerLive(),
       includeTeam: true,
     }),
   )
+
+  const onComputerConnect = () => {
+    setComputerAttach((prev) => beginComputerConsent(prev))
+    if (!props.view.sessionID()) {
+      aporiaAlerts.push({
+        title: "Computer View",
+        detail: "Open a session before connecting a local browser workspace.",
+        level: "warn",
+      })
+      return
+    }
+    aporiaAlerts.push({
+      title: "Confirm browser attach",
+      detail: "Local Chromium workspace (Edge/Chrome family) — not a VM. Confirm to go Live.",
+      level: "info",
+    })
+  }
+
+  const onComputerConfirmAttach = () => {
+    setComputerAttach((prev) => confirmComputerAttach(prev))
+    aporiaAlerts.push({
+      title: "Browser workspace attached",
+      detail: "Computer View is Live (watch-only). Page feed = BF-02. Disconnect clears Live.",
+      level: "info",
+    })
+  }
+
+  const onComputerCancelConsent = () => {
+    setComputerAttach((prev) => cancelComputerConsent(prev))
+  }
+
+  const onComputerDisconnect = () => {
+    setComputerAttach((prev) => disconnectComputerAttach(prev))
+    aporiaAlerts.push({
+      title: "Browser workspace disconnected",
+      detail: "Live cleared. Re-connect requires fresh consent.",
+      level: "info",
+    })
+  }
 
   /** Own Conversation when a session is open (incl. empty) — home/draft keep OpenCode welcome. */
   const conversationTurns = createMemo(() => {
@@ -397,9 +460,15 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         streamCards={streamCards()}
         conversationTurns={conversationTurns()}
         conversationEmpty="No messages yet — send from the composer below. Conversation is owned by AnShell."
-        computerEmpty="Computer View has no live feed yet. Watch/control backends are not attached — chrome only."
+        computerEmpty={computerAttachEmptyCopy(computerAttach())}
         computerTitle="Computer View"
-        computerLive={false}
+        computerLive={computerLive()}
+        computerAttachPhase={computerAttach().phase}
+        computerCursorVisible={computerCursorVisible()}
+        onComputerConnect={onComputerConnect}
+        onComputerConfirmAttach={onComputerConfirmAttach}
+        onComputerCancelConsent={onComputerCancelConsent}
+        onComputerDisconnect={onComputerDisconnect}
         onSelectNav={onSelectNav}
         onSelectMember={(id) => void openMember(id)}
         onStreamCardAction={(actionId, card) => {

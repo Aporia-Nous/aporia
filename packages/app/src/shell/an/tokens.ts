@@ -94,6 +94,12 @@ export const AN_CONTRAPTIONS_SURFACE = {
   redstoneTitle: "redstone stays the private joke",
 } as const
 
+/**
+ * AP-BF-01: Computer View consent/attach surface (browser-first, not VM).
+ * Re-export markers from computer-attach for shell token discoverability.
+ */
+export { AN_COMPUTER_ATTACH_SURFACE } from "./computer-attach"
+
 /** Three-state framing from approved mockups — Stage 5 four-mode work stays separate. */
 export const AN_SHELL_MODES = ["conversation", "view", "takeover"] as const
 export type AnShellMode = (typeof AN_SHELL_MODES)[number]
