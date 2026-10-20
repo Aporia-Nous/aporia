@@ -6,7 +6,7 @@
 | branch | `stage4-an-shell` |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | tip / code | `27af7302f7` |
-| docs tip | `6bc1a70bb8` |
+| docs tip | `b0b908f875` (pin ancestor `6bc1a70bb8`) |
 | base | Stage 5 ACCEPT docs tip `c2b65acad2` / code `6e73823dc7` |
 | merge/push/install | **No** |
 
