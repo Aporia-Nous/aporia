@@ -5,8 +5,8 @@
 | status | **IMPLEMENTED + MEASURED** (await independent PASS) |
 | branch | `stage4-an-shell` |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
-| tip / code | *(set at commit)* |
-| base | AP-STAGE6-EFFICIENCY `c62dbaf22e` / HEAD `12b76b182c` |
+| tip / code | `3cec86376d` |
+| base | AP-STAGE6-EFFICIENCY `c62dbaf22e` / HEAD prior `12b76b182c` |
 | merge/push/install | **No** |
 
 ## Intent
