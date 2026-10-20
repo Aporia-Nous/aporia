@@ -1,12 +1,13 @@
 /**
- * FLOW-GENIUS-04 / Stage 6 — Aporetic MnemosynePort (product wire into lean pack).
+ * FLOW-GENIUS-04 / AP-STAGE6-IJ / Stage 6 — Aporetic MnemosynePort.
  *
  * Owns the retrieval → CitedRetrieval path for SessionRunner lean packs.
  * Does not open host `~/.config/opencode/mnemosyne/mnemosyne.db`, does not install,
  * does not stop shared services. External tree at C:\Perseus\mnemosyne remains a
  * discovery lead; this port is the Aporetic product boundary.
  *
- * Not Stage 6 complete / I tests 1–7 / J acceptance.
+ * Host DB auto-open remains BLOCKED (no board authorization). I/J gates live in
+ * packages/core/test/session-stage6-i.test.ts + session-runner J fixtures.
  */
 export * as MnemosynePortModule from "./mnemosyne-port.js"
 
@@ -25,8 +26,12 @@ export type MnemosyneHit = {
   readonly body: string
   readonly scope: MnemosyneScope
   readonly kind?: string
-  /** Optional authority / supersession marker for later I-3 work. */
+  /** Optional authority / supersession marker (I-3). */
   readonly supersededBy?: string
+  /** false = untrusted evidence only; never an instruction (I-5). */
+  readonly trusted?: boolean
+  /** Team-scope eligibility (I-2); absent = all bots in that team scope. */
+  readonly eligibleBots?: ReadonlyArray<string>
   readonly score?: number
   readonly createdAt?: string
 }
@@ -34,10 +39,14 @@ export type MnemosyneHit = {
 export type MnemosyneSearchInput = {
   readonly query: string
   readonly limit?: number
-  /** When set, only hits in this scope are returned (I-2 foundation). */
+  /** When set, only hits in this scope are returned (I-2). */
   readonly scope?: MnemosyneScope
   /** When true, include superseded rows (default false — correction wins). */
   readonly includeSuperseded?: boolean
+  /** Caller bot id for team eligibility (I-2). */
+  readonly botId?: string
+  /** When true, omit trusted:false evidence rows (instruction path). */
+  readonly instructionsOnly?: boolean
 }
 
 export type MnemosyneRememberInput = {
@@ -45,8 +54,11 @@ export type MnemosyneRememberInput = {
   readonly scope?: MnemosyneScope
   readonly kind?: string
   readonly id?: string
-  /** Prior memory id this fact corrects (I-3 foundation). */
+  /** Prior memory id this fact corrects (I-3). */
   readonly supersedes?: string
+  /** false stores evidence-only; instruction kind + untrusted is rejected (I-5). */
+  readonly trusted?: boolean
+  readonly eligibleBots?: ReadonlyArray<string>
 }
 
 export type MnemosyneAvailability = "available" | "unavailable" | "mocked"
@@ -68,7 +80,18 @@ export type MnemosyneSeed = {
   readonly scope?: MnemosyneScope
   readonly kind?: string
   readonly supersededBy?: string
+  readonly trusted?: boolean
+  readonly eligibleBots?: ReadonlyArray<string>
   readonly createdAt?: string
+}
+
+/** Reject promoting adversarial / injection-shaped text into instruction memories (I-5). */
+export function canRememberAsInstruction(body: string): boolean {
+  const lower = body.toLowerCase()
+  if (lower.includes("ignore the owner")) return false
+  if (lower.includes("send secrets")) return false
+  if (lower.includes("disregard previous instructions")) return false
+  return true
 }
 
 const TOKEN = /[a-zA-Z][a-zA-Z0-9_]*/g
@@ -138,6 +161,7 @@ export function recallCitedRetrieval(
     readonly query: string
     readonly limit?: number
     readonly scope?: MnemosyneScope
+    readonly botId?: string
     readonly excerptChars?: number
   },
 ): CitedRetrieval[] {
@@ -149,6 +173,7 @@ export function recallCitedRetrieval(
     query,
     limit: input.limit ?? DEFAULT_RETRIEVAL_LIMIT,
     scope: input.scope,
+    botId: input.botId,
     includeSuperseded: false,
   })
   return hitsToCitedRetrieval(hits, { excerptChars: input.excerptChars })
@@ -160,6 +185,8 @@ type MutableRow = {
   scope: MnemosyneScope
   kind: string
   supersededBy?: string
+  trusted: boolean
+  eligibleBots?: ReadonlyArray<string>
   createdAt: string
   deleted: boolean
 }
@@ -178,6 +205,8 @@ export function createFixtureMnemosynePort(seeds: ReadonlyArray<MnemosyneSeed> =
       scope: seed.scope ?? "project",
       kind: seed.kind ?? "note",
       supersededBy: seed.supersededBy,
+      trusted: seed.trusted !== false,
+      eligibleBots: seed.eligibleBots,
       createdAt: seed.createdAt ?? "fixture",
       deleted: false,
     })
@@ -192,6 +221,15 @@ export function createFixtureMnemosynePort(seeds: ReadonlyArray<MnemosyneSeed> =
         if (row.deleted) continue
         if (!input.includeSuperseded && row.supersededBy) continue
         if (input.scope && row.scope !== input.scope) continue
+        if (input.instructionsOnly && !row.trusted) continue
+        if (
+          row.eligibleBots &&
+          row.eligibleBots.length > 0 &&
+          input.botId &&
+          !row.eligibleBots.includes(input.botId)
+        ) {
+          continue
+        }
         const score = overlapScore(input.query, row.body)
         if (score <= 0) continue
         scored.push({
@@ -200,6 +238,8 @@ export function createFixtureMnemosynePort(seeds: ReadonlyArray<MnemosyneSeed> =
           scope: row.scope,
           kind: row.kind,
           supersededBy: row.supersededBy,
+          trusted: row.trusted,
+          eligibleBots: row.eligibleBots,
           score,
           createdAt: row.createdAt,
         })
@@ -210,6 +250,11 @@ export function createFixtureMnemosynePort(seeds: ReadonlyArray<MnemosyneSeed> =
     remember(input) {
       const body = input.body.trim()
       if (body.length === 0) return { ok: false, reason: "empty body" }
+      const kind = input.kind ?? "note"
+      const trusted = input.trusted !== false
+      if ((kind === "instruction" || kind === "preference") && (!trusted || !canRememberAsInstruction(body))) {
+        return { ok: false, reason: "untrusted evidence cannot become instruction" }
+      }
       seq += 1
       const id = input.id?.trim() || `mem_fix_${seq}`
       if (input.supersedes) {
@@ -220,7 +265,9 @@ export function createFixtureMnemosynePort(seeds: ReadonlyArray<MnemosyneSeed> =
         id,
         body,
         scope: input.scope ?? "project",
-        kind: input.kind ?? "note",
+        kind,
+        trusted,
+        eligibleBots: input.eligibleBots,
         createdAt: new Date().toISOString(),
         deleted: false,
       })
