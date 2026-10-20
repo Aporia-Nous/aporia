@@ -6,6 +6,7 @@
 | decision | **AP-STAGE5-MODES DONE** — Ali chose **C** (professional app) |
 | branch | `stage4-an-shell` |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
+| tip | `40563797f7` |
 | base | ~`e14194835c` / prior docs HEAD `a9f60150f3` |
 | merge/push/install | **No** |
 
