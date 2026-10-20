@@ -6,7 +6,7 @@
 | decision | Option C continues (AP-STAGE5-MODES DONE) |
 | branch | `stage4-an-shell` |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
-| tip | *(filled after commit)* |
+| tip | `e209898a04` |
 | base | STAGE5-01 tip `40563797f7` / docs `750a3f196f` |
 | merge/push/install | **No** |
 
@@ -36,7 +36,7 @@
 | `122-stage5-02-attach-offer-computer-card.png` | Connect → quiet Computer entry |
 | `123-stage5-02-takeover-dock-preserved.png` | Takeover Hand-back dock preserved |
 
-Live CDP: `cdp-probe-stage5-02-quiet-entry.mjs` → marker **`AP-STAGE5-02 quiet-entry …`** EXIT=0 ws.closed
+Live CDP: `cdp-probe-stage5-02-quiet-entry.mjs` → marker **`AP-STAGE5-02 quiet-entry 1792498041021`** EXIT=0 ws.closed
 
 Board evidence: `business-control/evidence/2026-10-20-ap-stage5-02-quiet-entry-live-dev.txt`
 
