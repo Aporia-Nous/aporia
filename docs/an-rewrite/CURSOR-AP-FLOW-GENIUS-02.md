@@ -5,7 +5,8 @@
 | status | **IMPLEMENTED + MEASURED** (await independent PASS) |
 | branch | `stage4-an-shell` |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
-| tip / code | *(set on commit)* |
+| tip / code | `0e74f69738` |
+| docs tip | *(HEAD after docs pin)* |
 | base | AP-CE-02 `de36bb2047` / docs `cc8c1f51a0` |
 | merge/push/install | **No** |
 
@@ -35,7 +36,7 @@ Ali confirmed FLOW-GENIUS-01 default (2026-10-20). Own Stage 6 lean prompt assem
 
 - `bun test test/session-lean-pack.test.ts` → **6 pass**
 - CE gate non-regress: `flow-ce01` + `flow-ce02` → **12 pass**
-- AnShell tokens → *(re-run recorded in board evidence)*
+- AnShell tokens → **26 pass** (Stage 5 chrome markers intact)
 - Fixture: fullTokens **2162** → leanTokens **578** (tokensSaved **1584**); recent 8/40; toolPointers 1
 
 ## Not claimed
