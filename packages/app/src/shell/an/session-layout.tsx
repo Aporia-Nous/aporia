@@ -130,6 +130,15 @@ import {
   syncComputerScopeFromAttach,
   type ComputerScopeState,
 } from "./computer-scope"
+import {
+  AN_COMPUTER_CDP_ISOLATION_SURFACE,
+  authorizeCdpNavigate,
+  authorizeCdpScreencastStart,
+  autoPauseOnUserTargetInteraction,
+  computerCdpIsolationStatusCopy,
+  installAnCdpIsolationWindowProbe,
+  shouldAutoPauseOnUserTargetInteraction,
+} from "./computer-cdp-isolation"
 import { AnContraptionsPanel } from "./contraptions-panel"
 import { AnSettingsPanel } from "./settings-panel"
 import { extractDocxPlainText, officePreviewResidual } from "./docx-text"
@@ -538,9 +547,10 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     setComputerFeedDraft((draft) => draft || "about:blank")
   })
 
-  /** AP-BF-05: live CDP screencast for consented external Edge/Chrome region only. */
+  /** AP-BF-05 + AP-STAGE5-06: CDP screencast only when region stays inside tab-group allowlist. */
   createEffect(() => {
     const attach = computerAttach()
+    const scope = computerScope()
     const endpoint = attach.externalEndpoint
     const regionId = attach.externalRegionId
     const liveExternal = shouldStartComputerScreencast(attach)
@@ -551,6 +561,16 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         screencastSession = null
       }
       setComputerScreencast((prev) => syncComputerScreencast(prev, attach))
+      return
+    }
+
+    const gate = authorizeCdpScreencastStart(scope, regionId)
+    if (!gate.ok) {
+      if (screencastSession) {
+        screencastSession.stop()
+        screencastSession = null
+      }
+      setComputerScreencast((prev) => failComputerScreencast(prev, gate.error))
       return
     }
 
@@ -753,6 +773,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       refresh: refreshPodmanStatus,
       surface: AN_PODMAN_SURFACE,
     })
+    installAnCdpIsolationWindowProbe()
     void refreshPodmanStatus()
   })
 
@@ -1065,6 +1086,15 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       })
       return
     }
+    // AP-STAGE5-06 / handoff H: user feed Go while bot drives → auto-pause (no Takeover input).
+    if (shouldAutoPauseOnUserTargetInteraction(computerLive(), computerControl())) {
+      setComputerControl((prev) => autoPauseOnUserTargetInteraction(prev, computerLive()))
+      aporiaAlerts.push({
+        title: `${computerControllerBotName()} paused`,
+        detail: "Paused on your interaction with the controlled surface. Resume restores drive; Take over grants input.",
+        level: "info",
+      })
+    }
     setComputerFeed((prev) => {
       const next = navigateComputerFeed(prev, input, computerAttach())
       if (next.error) {
@@ -1074,10 +1104,18 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       setComputerFeedDraft(next.url)
       return next
     })
-    // External Live: drive the consented CDP page when screencast is connected.
+    // External Live: drive only the allowlisted CDP region (STAGE5-06 isolation).
     const session = screencastSession
     const attach = computerAttach()
     if (session && shouldStartComputerScreencast(attach)) {
+      const regionId = attach.externalRegionId
+      if (regionId) {
+        const gate = authorizeCdpNavigate(computerScope(), regionId)
+        if (!gate.ok) {
+          aporiaAlerts.push({ title: "CDP isolation", detail: gate.error, level: "warn" })
+          return
+        }
+      }
       const normalized = normalizeComputerFeedUrl(input)
       if (normalized.ok && normalized.url !== "about:blank") {
         void session.navigate(normalized.url).then((result) => {
@@ -1088,6 +1126,10 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       }
     }
   }
+
+  const computerCdpIsolationLine = createMemo(() => computerCdpIsolationStatusCopy(computerScope()))
+  const computerNativeCaptureBlocked = () =>
+    AN_COMPUTER_CDP_ISOLATION_SURFACE.nativeWindowCaptureStatus === "BLOCKED"
 
   /** Own Conversation when a session is open (incl. empty) — home/draft keep OpenCode welcome. */
   const conversationTurns = createMemo(() => {
@@ -1231,6 +1273,8 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
           computerBoundaryVisible={computerBoundaryVisible()}
           computerScopeBannerLine={computerScopeBannerLine()}
           computerControllerBotName={computerControllerBotName()}
+          computerCdpIsolationLine={computerCdpIsolationLine()}
+          computerNativeCaptureBlocked={computerNativeCaptureBlocked()}
           computerFeedActive={computerFeedActive()}
           computerFeedUrl={computerFeed().url || undefined}
           computerFeedSrcdoc={computerFeed().srcdoc}

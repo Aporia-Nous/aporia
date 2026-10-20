@@ -19,6 +19,7 @@ import {
   computerControlBannerCopy,
 } from "./computer-control"
 import { AN_COMPUTER_SCOPE_SURFACE } from "./computer-scope"
+import { AN_COMPUTER_CDP_ISOLATION_SURFACE } from "./computer-cdp-isolation"
 import { AN_COMPUTER_FEED_SURFACE } from "./computer-feed"
 import {
   AN_COMPUTER_SCREENCAST_SURFACE,
@@ -130,6 +131,9 @@ function LiveComputerPanel(props: {
   scopeTarget?: string
   boundaryVisible?: boolean
   scopeBannerLine?: string
+  /** AP-STAGE5-06: CDP isolation chrome (native capture honesty). */
+  cdpIsolationLine?: string
+  nativeCaptureBlocked?: boolean
   feedActive?: boolean
   feedUrl?: string
   feedSrcdoc?: string
@@ -200,6 +204,19 @@ function LiveComputerPanel(props: {
       data-scope-kind={scopeKind()}
       data-scope-target={props.scopeTarget || undefined}
       data-boundary={boundaryVisible() ? AN_COMPUTER_SCOPE_SURFACE.boundaryTone : "off"}
+      data-an-part-isolation={AN_COMPUTER_CDP_ISOLATION_SURFACE.part}
+      data-cdp-isolation={
+        scopeKind() === "tab-group" && AN_COMPUTER_CDP_ISOLATION_SURFACE.browserTabGroupIsolation
+          ? "on"
+          : scopeKind() === "window"
+            ? "native-blocked"
+            : "off"
+      }
+      data-native-capture={
+        props.nativeCaptureBlocked !== false && !AN_COMPUTER_CDP_ISOLATION_SURFACE.nativeWindowCapture
+          ? "blocked"
+          : "unavailable"
+      }
       data-controller={controller()}
       data-bot-paused={props.botPaused ? "true" : "false"}
       data-user-input={props.userInput ? "true" : "false"}
@@ -222,6 +239,17 @@ function LiveComputerPanel(props: {
         >
           {props.scopeBannerLine}
         </div>
+      </Show>
+      <Show when={props.cdpIsolationLine && props.live}>
+        <p
+          class="an-computer-isolation-note"
+          data-an-part={AN_COMPUTER_CDP_ISOLATION_SURFACE.part}
+          data-native-capture={
+            props.nativeCaptureBlocked !== false ? "blocked" : "unavailable"
+          }
+        >
+          {props.cdpIsolationLine}
+        </p>
       </Show>
       <div class="an-computer-surface" data-empty={props.live ? "false" : "true"}>
         <Show
@@ -726,6 +754,8 @@ export function AnShell(props: AnShellProps): JSX.Element {
               scopeTarget={props.computerScopeTarget}
               boundaryVisible={props.computerBoundaryVisible}
               scopeBannerLine={props.computerScopeBannerLine}
+              cdpIsolationLine={props.computerCdpIsolationLine}
+              nativeCaptureBlocked={props.computerNativeCaptureBlocked}
               feedActive={props.computerFeedActive}
               feedUrl={props.computerFeedUrl}
               feedSrcdoc={props.computerFeedSrcdoc}
@@ -842,6 +872,8 @@ export function AnShell(props: AnShellProps): JSX.Element {
             scopeTarget={props.computerScopeTarget}
             boundaryVisible={props.computerBoundaryVisible}
             scopeBannerLine={props.computerScopeBannerLine}
+            cdpIsolationLine={props.computerCdpIsolationLine}
+            nativeCaptureBlocked={props.computerNativeCaptureBlocked}
             feedActive={props.computerFeedActive}
             feedUrl={props.computerFeedUrl}
             feedSrcdoc={props.computerFeedSrcdoc}

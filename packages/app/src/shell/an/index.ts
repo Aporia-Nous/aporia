@@ -125,6 +125,25 @@ export {
   type ComputerScopeKind,
   type ComputerScopeState,
 } from "./computer-scope"
+export {
+  AN_COMPUTER_CDP_ISOLATION_SURFACE,
+  attemptNativeWindowCapture,
+  authorizeCdpNavigate,
+  authorizeCdpRegionAction,
+  authorizeCdpRetarget,
+  authorizeCdpScreencastStart,
+  autoPauseOnUserTargetInteraction,
+  computerCdpIsolationStatusCopy,
+  filterCdpTargetsToScope,
+  isNativeWindowCaptureAvailable,
+  refuseSilentTabGroupWiden,
+  resolveActiveCdpTargetInScope,
+  shouldAutoPauseOnUserTargetInteraction,
+  installAnCdpIsolationWindowProbe,
+  type CdpIsolationGateResult,
+  type CdpIsolationTarget,
+  type NativeWindowCaptureAttempt,
+} from "./computer-cdp-isolation"
 export { buildAnShellModel, assertApprovedModesOnly, type AnShellModel } from "./shell-model"
 export {
   botsToRoster,

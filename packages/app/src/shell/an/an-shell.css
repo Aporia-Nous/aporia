@@ -2239,6 +2239,19 @@
   color: var(--an-gold, #f0c66d);
 }
 
+/* AP-STAGE5-06: CDP isolation honesty note — not a wallpaper card; native capture BLOCKED. */
+.an-computer-isolation-note {
+  margin: 0 0 6px;
+  color: var(--an-text-muted);
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+}
+
+.an-computer-isolation-note[data-native-capture="blocked"] {
+  color: var(--an-gold-soft, #e5c57f);
+}
+
 /* AP-BF-01/02: consent/attach + watch-only page feed; labeled cursor is overlay chrome only. */
 .an-computer-workspace {
   position: relative;

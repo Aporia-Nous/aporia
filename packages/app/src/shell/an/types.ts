@@ -119,6 +119,9 @@ export type AnShellProps = ParentProps<{
   computerScopeBannerLine?: string
   /** Selected bot display name for controlling banner. */
   computerControllerBotName?: string
+  /** AP-STAGE5-06: CDP isolation status line + native capture honesty. */
+  computerCdpIsolationLine?: string
+  computerNativeCaptureBlocked?: boolean
   /** AP-BF-02: page feed — only when Live; never invent pixels. */
   computerFeedActive?: boolean
   computerFeedUrl?: string
