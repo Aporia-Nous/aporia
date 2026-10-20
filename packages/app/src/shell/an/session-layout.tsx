@@ -843,8 +843,10 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       computerUserControl: computerUserInput(),
       computerController: computerControl().controller,
       computerAttachPhase: computerAttach().phase,
+      computerFeedUrl: computerFeed().url || undefined,
+      computerFeedSrcdoc: computerFeed().srcdoc || undefined,
       shellMode: mode(),
-      // AP-STAGE5-02 Option C: quietEntry + Team handoff via residency helpers (no wallpaper).
+      // AP-STAGE5-02/03 Option C: quietEntry + Status/Inline densities + Team handoff (no wallpaper).
     }),
   )
 
@@ -865,6 +867,8 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       computerUserControl: computerUserInput(),
       computerController: computerControl().controller,
       computerAttachPhase: computerAttach().phase,
+      computerFeedUrl: computerFeed().url || undefined,
+      computerFeedSrcdoc: computerFeed().srcdoc || undefined,
       shellMode: mode(),
     }),
   )
@@ -1186,6 +1190,14 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
             })
           }}
           onStreamCardAction={(actionId, card) => {
+            if (card.type === "computer" && actionId === "view") {
+              onModeChange("view")
+              return
+            }
+            if (card.type === "computer" && actionId === "take-control") {
+              onModeChange("takeover")
+              return
+            }
             if (card.type === "team" && (actionId === "configure" || actionId === "new-teammate")) {
               openTeammateCreate()
               return

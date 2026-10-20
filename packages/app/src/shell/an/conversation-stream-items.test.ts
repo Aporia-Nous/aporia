@@ -34,6 +34,34 @@ describe("AP-STAGE4-15 conversation stream items", () => {
     expect(live.find((c) => c.type === "computer")?.title).toBe("Computer")
   })
 
+  test("Status density on attach offer; Inline on Live+feed (AP-STAGE5-03)", () => {
+    const status = buildContextCards({
+      shellMode: "conversation",
+      computerAttachPhase: "consenting",
+    })
+    expect(status[0]?.eventDensity).toBe("status")
+    expect(status[0]?.actions?.some((a) => a.id === "take-control")).toBe(false)
+
+    const inline = buildContextCards({
+      shellMode: "conversation",
+      computerLive: true,
+      computerFeedActive: true,
+      computerFeedUrl: "https://example.test/",
+    })
+    expect(inline.find((c) => c.type === "computer")?.eventDensity).toBe("inline")
+    expect(inline.find((c) => c.type === "computer")?.actions?.map((a) => a.id)).toEqual([
+      "view",
+      "take-control",
+    ])
+
+    const viewSuppress = buildContextCards({
+      shellMode: "view",
+      computerLive: true,
+      computerFeedActive: true,
+    })
+    expect(viewSuppress.some((c) => c.type === "computer")).toBe(false)
+  })
+
   test("quietEntry attach offer + Team handoff only (AP-STAGE5-02)", () => {
     const offer = buildContextCards({
       shellMode: "conversation",

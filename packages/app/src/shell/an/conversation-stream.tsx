@@ -161,8 +161,13 @@ export function AnConversationStream(props: {
                   data-an-part="in-conversation-card"
                   data-card-type={item.card.type}
                   data-card-id={item.card.id}
+                  data-event-density={item.card.eventDensity || undefined}
                 >
-                  <AnCard card={item.card} density="stream" onAction={handleCardAction} />
+                  <AnCard
+                    card={item.card}
+                    density={item.card.eventDensity === "status" ? "compact" : "stream"}
+                    onAction={handleCardAction}
+                  />
                 </div>
               )
             }

@@ -9,6 +9,7 @@ import {
   missionChromePills,
   permissionToApprovalCard,
   questionToDecisionCard,
+  resolveComputerCardDensity,
   rosterToTeamCard,
   sessionToTaskCard,
   shouldIncludeComputerStreamCard,
@@ -86,23 +87,61 @@ describe("AN card mapping", () => {
     expect(idle.title).not.toBe("Computer View")
     expect(idle.status).toBe("Unavailable")
     expect(idle.detail?.toLowerCase()).toContain("no live")
+    expect(idle.eventDensity).toBe("status")
     expect(idle.actions?.[0]?.label).toBe("Open in Computer View")
-    expect(idle.actions?.[0]?.stub).toBe(true)
+    expect(idle.actions?.[0]?.stub).toBeFalsy()
+    expect(idle.actions?.some((a) => a.id === "take-control")).toBe(false)
   })
 
-  test("computer card reports watch-only feed when Live + feed active (AP-BF-02)", () => {
-    const live = computerToCard({ live: true, feedActive: true })
+  test("computer card reports watch-only feed when Live + feed active (AP-BF-02 / STAGE5-03 Inline)", () => {
+    const live = computerToCard({ live: true, feedActive: true, feedUrl: "https://example.test/" })
     expect(live.status).toBe("Live")
-    expect(live.detail?.toLowerCase()).toContain("watch-only")
-    expect(live.detail?.toLowerCase()).toContain("overlay")
-    expect(live.actions?.[0]?.stub).toBe(false)
+    expect(live.eventDensity).toBe("inline")
+    expect(live.detail?.toLowerCase()).toContain("inline")
+    expect(live.previewKind).toBe("url")
+    expect(live.previewUrl).toBe("https://example.test/")
+    expect(live.actions?.[0]?.stub).toBeFalsy()
+    expect(live.actions?.find((a) => a.id === "take-control")?.label).toBe("Take control")
+    expect(live.actions?.find((a) => a.id === "take-control")?.stub).toBeFalsy()
   })
 
   test("computer card reports You control when Takeover holds lock (AP-BF-03)", () => {
     const takeover = computerToCard({ live: true, feedActive: true, userControl: true })
     expect(takeover.status).toBe("You control")
     expect(takeover.detail?.toLowerCase()).toContain("paused")
-    expect(takeover.actions?.[0]?.stub).toBe(false)
+    expect(takeover.actions?.[0]?.stub).toBeFalsy()
+    expect(takeover.actions?.find((a) => a.id === "take-control")?.stub).toBe(true)
+  })
+
+  test("Status vs Inline densities (AP-STAGE5-03)", () => {
+    expect(resolveComputerCardDensity()).toBe("status")
+    expect(resolveComputerCardDensity({ live: true })).toBe("status")
+    expect(resolveComputerCardDensity({ live: true, feedActive: true })).toBe("inline")
+
+    const statusOffer = computerToCard({ attachPhase: "consenting" })
+    expect(statusOffer.eventDensity).toBe("status")
+    expect(statusOffer.id).toBe("computer:status")
+    expect(statusOffer.meta).toBe("Status")
+    expect(statusOffer.previewKind).toBe("none")
+
+    const statusLive = computerToCard({ live: true, feedActive: false })
+    expect(statusLive.eventDensity).toBe("status")
+
+    const inlineSrcdoc = computerToCard({ live: true, feedActive: true, feedSrcdoc: "<html></html>" })
+    expect(inlineSrcdoc.eventDensity).toBe("inline")
+    expect(inlineSrcdoc.id).toBe("computer:inline")
+    expect(inlineSrcdoc.previewKind).toBe("srcdoc")
+    expect(inlineSrcdoc.actions?.map((a) => a.id)).toEqual(["view", "take-control"])
+
+    const stream = buildStreamCards({
+      shellMode: "conversation",
+      computerLive: true,
+      computerFeedActive: true,
+      computerFeedUrl: "https://example.test/app",
+    })
+    const computer = stream.find((c) => c.type === "computer")
+    expect(computer?.eventDensity).toBe("inline")
+    expect(computer?.previewUrl).toBe("https://example.test/app")
   })
 
   test("team card from roster; empty roster omitted", () => {

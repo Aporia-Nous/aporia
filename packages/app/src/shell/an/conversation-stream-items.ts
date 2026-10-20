@@ -41,6 +41,8 @@ export function buildContextCards(input: {
   computerUserControl?: boolean
   computerController?: "none" | "bot" | "user"
   computerAttachPhase?: "disconnected" | "consenting" | "attached"
+  computerFeedUrl?: string
+  computerFeedSrcdoc?: boolean | string
   shellMode?: string
   includeComputer?: boolean
   quietComputerEntry?: boolean
@@ -85,6 +87,8 @@ export function buildContextCards(input: {
         feedActive: input.computerFeedActive,
         userControl: input.computerUserControl,
         attachPhase: input.computerAttachPhase,
+        feedUrl: input.computerFeedUrl,
+        feedSrcdoc: input.computerFeedSrcdoc,
       }),
     )
   }

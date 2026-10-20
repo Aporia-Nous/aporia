@@ -208,6 +208,7 @@ export {
   questionToDecisionCard,
   sessionToTaskCard,
   computerToCard,
+  resolveComputerCardDensity,
   rosterToTeamCard,
   teamHandoffToCard,
   shouldIncludeComputerStreamCard,
@@ -225,4 +226,5 @@ export {
   type AnCardType,
   type AnCardModel,
   type AnCardAction,
+  type AnComputerEventDensity,
 } from "./cards"

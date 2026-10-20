@@ -1,6 +1,7 @@
 export {
   AN_CARD_TYPES,
   AN_CARD_LABEL,
+  AN_COMPUTER_EVENT_DENSITIES,
   anCardLabel,
   isAnCardType,
   type AnCardType,
@@ -9,6 +10,8 @@ export {
   type AnCardActionVariant,
   type AnCardStatusTone,
   type AnCardSource,
+  type AnComputerEventDensity,
+  type AnCardPreviewKind,
 } from "./types"
 export {
   attentionToApprovalCards,
@@ -16,6 +19,7 @@ export {
   questionToDecisionCard,
   sessionToTaskCard,
   computerToCard,
+  resolveComputerCardDensity,
   rosterToTeamCard,
   teamHandoffToCard,
   toolPartToCard,

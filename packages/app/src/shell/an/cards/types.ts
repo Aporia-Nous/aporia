@@ -36,6 +36,15 @@ export type AnCardSource =
   | "edit"
   | "message"
 
+/**
+ * Option C event densities (not shell modes).
+ * Status = quiet compact Computer entry; Inline = denser Live preview in Conversation.
+ */
+export const AN_COMPUTER_EVENT_DENSITIES = ["status", "inline"] as const
+export type AnComputerEventDensity = (typeof AN_COMPUTER_EVENT_DENSITIES)[number]
+
+export type AnCardPreviewKind = "url" | "srcdoc" | "pending" | "none"
+
 export type AnCardModel = {
   id: string
   type: AnCardType
@@ -53,6 +62,12 @@ export type AnCardModel = {
   members?: Array<{ id: string; name: string; avatar?: string }>
   actions?: AnCardAction[]
   source?: AnCardSource
+  /** AP-STAGE5-03: Status vs Inline for Computer cards. */
+  eventDensity?: AnComputerEventDensity
+  /** Inline watch-only preview URL when feed has a navigable src. */
+  previewUrl?: string
+  previewKind?: AnCardPreviewKind
+  previewLabel?: string
 }
 
 export function isAnCardType(value: string): value is AnCardType {

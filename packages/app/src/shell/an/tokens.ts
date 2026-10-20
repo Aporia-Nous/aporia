@@ -260,7 +260,8 @@ export { AN_NAV_ILLUSTRATED } from "./nav-illustrated"
 
 /**
  * Three-state shell modes only (AP-STAGE5-MODES decision C).
- * Status / Inline = event card densities, not modes. Side Panel = Computer View synonym in docs.
+ * Status / Inline = event card densities (AP-STAGE5-02/03), not modes.
+ * Side Panel = Computer View synonym in docs.
  */
 export const AN_SHELL_MODES = ["conversation", "view", "takeover"] as const
 export type AnShellMode = (typeof AN_SHELL_MODES)[number]

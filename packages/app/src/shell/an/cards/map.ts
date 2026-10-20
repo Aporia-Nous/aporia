@@ -1,6 +1,11 @@
 import type { SessionMessageAssistantTool, SessionMessageInfo } from "@opencode/client/promise"
 import type { AnAttentionItem, AnRosterMember } from "../types"
-import type { AnCardModel, AnCardStatusTone } from "./types"
+import type {
+  AnCardModel,
+  AnCardPreviewKind,
+  AnCardStatusTone,
+  AnComputerEventDensity,
+} from "./types"
 
 /** Tool names that map to Proof cards when completed (file edits / writes). */
 const EDIT_TOOL_NAMES = new Set([
@@ -368,7 +373,19 @@ function teammateLabel(id: string, members: readonly AnRosterMember[]): string {
   return hit?.name?.trim() || id
 }
 
-/** Stream Computer card (quiet entry / relevant status) — never titled "Computer View". */
+/**
+ * AP-STAGE5-03 Option C: Inline when Live + feed (denser preview);
+ * Status for quiet entry / Live without feed — never a fourth shell mode.
+ */
+export function resolveComputerCardDensity(input?: {
+  live?: boolean
+  feedActive?: boolean
+}): AnComputerEventDensity {
+  if (input?.live && input?.feedActive) return "inline"
+  return "status"
+}
+
+/** Stream Computer card (Status/Inline density) — never titled "Computer View". */
 export function computerToCard(input?: {
   live?: boolean
   feedActive?: boolean
@@ -376,6 +393,12 @@ export function computerToCard(input?: {
   userControl?: boolean
   /** AP-STAGE5-02: consenting = Live attach offer quiet entry. */
   attachPhase?: "disconnected" | "consenting" | "attached"
+  /** Watch-only feed URL for Inline preview (never widens scope). */
+  feedUrl?: string
+  /** Workspace srcdoc present — Inline shows labeled preview honesty. */
+  feedSrcdoc?: boolean | string
+  /** Force density; default from Live+feed. */
+  eventDensity?: AnComputerEventDensity
   title?: string
   detail?: string
 }): AnCardModel {
@@ -383,36 +406,74 @@ export function computerToCard(input?: {
   const feedActive = !!input?.feedActive
   const userControl = !!input?.userControl
   const consenting = input?.attachPhase === "consenting"
+  const eventDensity = input?.eventDensity ?? resolveComputerCardDensity({ live, feedActive })
+  const feedUrl = typeof input?.feedUrl === "string" ? input.feedUrl.trim() : ""
+  const hasSrcdoc =
+    typeof input?.feedSrcdoc === "string" ? input.feedSrcdoc.trim().length > 0 : !!input?.feedSrcdoc
+  const previewKind: AnCardPreviewKind =
+    eventDensity !== "inline"
+      ? "none"
+      : feedUrl
+        ? "url"
+        : hasSrcdoc
+          ? "srcdoc"
+          : feedActive
+            ? "pending"
+            : "none"
+  const previewLabel =
+    previewKind === "url"
+      ? "Watch-only inline preview"
+      : previewKind === "srcdoc"
+        ? "Watch-only workspace preview"
+        : previewKind === "pending"
+          ? "Watch-only preview · feed pending"
+          : undefined
   const detailDefault = !live
     ? consenting
       ? "Live attach offer — confirm a local browser workspace to go Live."
       : "No live attach — connect a local browser workspace to go Live."
     : userControl
       ? "You hold the control lock (Takeover). Bot is paused until Hand back or Stop."
-      : feedActive
-        ? "Local browser workspace attached with watch-only page feed. Bot holds the lock; Bot cursor is overlay chrome only."
-        : "Local browser workspace attached (consented). Page feed pending."
+      : eventDensity === "inline"
+        ? "Inline Live preview in Conversation — Open in Computer View or Take control (view-only until Takeover)."
+        : feedActive
+          ? "Local browser workspace attached with watch-only page feed. Bot holds the lock; Bot cursor is overlay chrome only."
+          : "Local browser workspace attached (consented). Page feed pending."
+  const actions: AnCardModel["actions"] = [
+    {
+      id: "view",
+      label: "Open in Computer View",
+      variant: "secondary",
+      // Mode switch is always available; Live gate lives on Takeover / attach.
+    },
+  ]
+  if (eventDensity === "inline") {
+    actions.push({
+      id: "take-control",
+      label: "Take control",
+      variant: "primary",
+      stub: !live || userControl,
+      stubReason: !live
+        ? "Attach a Live browser workspace before Takeover."
+        : userControl
+          ? "Already in Takeover — use Hand back on the mode dock."
+          : undefined,
+    })
+  }
   return {
-    id: "computer:live",
+    id: eventDensity === "inline" ? "computer:inline" : "computer:status",
     type: "computer",
     title: input?.title?.trim() || "Computer",
     detail: input?.detail?.trim() || detailDefault,
     status: live ? (userControl ? "You control" : "Live") : consenting ? "Attach offer" : "Unavailable",
     statusTone: live ? "ok" : consenting ? "warn" : "neutral",
     source: "computer",
-    actions: [
-      {
-        id: "view",
-        label: "Open in Computer View",
-        variant: "secondary",
-        stub: !live,
-        stubReason: live
-          ? undefined
-          : consenting
-            ? "Confirm attach in Computer View to go Live."
-            : "No browser workspace attached — open Computer View from the mode switcher.",
-      },
-    ],
+    eventDensity,
+    previewUrl: previewKind === "url" ? feedUrl : undefined,
+    previewKind,
+    previewLabel,
+    meta: eventDensity === "inline" ? "Inline" : eventDensity === "status" ? "Status" : undefined,
+    actions,
   }
 }
 
@@ -492,6 +553,9 @@ export function buildStreamCards(input: {
   computerController?: "none" | "bot" | "user"
   /** AP-BF-01 attach phase — consenting = Live attach offer quiet entry. */
   computerAttachPhase?: "disconnected" | "consenting" | "attached"
+  /** Watch-only feed for Inline density preview. */
+  computerFeedUrl?: string
+  computerFeedSrcdoc?: boolean | string
   /** Shell mode — View/Takeover suppress stream Computer (one live panel). */
   shellMode?: string
   /** Explicit override; default = residency helper (relevant only). */
@@ -542,6 +606,8 @@ export function buildStreamCards(input: {
         feedActive: input.computerFeedActive,
         userControl: input.computerUserControl,
         attachPhase: input.computerAttachPhase,
+        feedUrl: input.computerFeedUrl,
+        feedSrcdoc: input.computerFeedSrcdoc,
       }),
     )
   }

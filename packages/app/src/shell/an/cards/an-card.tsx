@@ -26,12 +26,16 @@ export type AnCardProps = {
 
 export function AnCard(props: AnCardProps): JSX.Element {
   const card = () => props.card
-  const density = () => props.density ?? "stream"
+  const eventDensity = () => card().eventDensity
+  /** Status Computer uses compact chrome; Inline uses stream (denser preview, not wallpaper). */
+  const density = () =>
+    props.density ?? (eventDensity() === "status" ? "compact" : "stream")
   const progressPct = () => {
     const p = card().progress
     if (!p || p.total <= 0) return undefined
     return Math.max(0, Math.min(100, Math.round((p.current / p.total) * 100)))
   }
+  const showInlinePreview = () => card().type === "computer" && eventDensity() === "inline"
 
   return (
     <article
@@ -39,6 +43,7 @@ export function AnCard(props: AnCardProps): JSX.Element {
       data-component="an-card"
       data-type={card().type}
       data-density={density()}
+      data-event-density={eventDensity() || undefined}
       data-source={card().source ?? "unknown"}
     >
       <header class="an-card-header">
@@ -71,8 +76,41 @@ export function AnCard(props: AnCardProps): JSX.Element {
 
       <div class="an-card-body">
         <strong class="an-card-title">{card().title}</strong>
-        <Show when={card().detail}>
+        <Show when={card().detail && eventDensity() !== "status"}>
           <p class="an-card-detail">{card().detail}</p>
+        </Show>
+        <Show when={card().detail && eventDensity() === "status"}>
+          <p class="an-card-detail an-card-detail--status">{card().detail}</p>
+        </Show>
+        <Show when={showInlinePreview()}>
+          <div
+            class="an-card-preview"
+            data-an-part="computer-inline-preview"
+            data-preview-kind={card().previewKind ?? "pending"}
+            data-watch-only="true"
+          >
+            <span class="an-card-preview-label">{card().previewLabel ?? "Watch-only inline preview"}</span>
+            <Show
+              when={card().previewKind === "url" && card().previewUrl}
+              fallback={
+                <div class="an-card-preview-placeholder" data-an-part="computer-inline-placeholder">
+                  {card().previewKind === "srcdoc"
+                    ? "Workspace feed active — open Computer View for the full panel."
+                    : "Feed pending — attach stays watch-only until pixels arrive."}
+                </div>
+              }
+            >
+              <iframe
+                class="an-card-preview-frame"
+                title="Inline Computer preview"
+                src={card().previewUrl}
+                sandbox="allow-scripts allow-same-origin"
+                tabindex={-1}
+                data-an-part="computer-inline-frame"
+                data-watch-only="true"
+              />
+            </Show>
+          </div>
         </Show>
 
         <Show when={progressPct() !== undefined}>
