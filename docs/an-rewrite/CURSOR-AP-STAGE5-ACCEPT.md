@@ -7,6 +7,7 @@
 | branch | `stage4-an-shell` |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | code tip | `6e73823dc7` (STAGE5-08) |
+| docs tip | `96b2dfedac` |
 | merge/push/install | **No** |
 
 ## Gates
