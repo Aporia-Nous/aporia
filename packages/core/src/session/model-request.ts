@@ -105,8 +105,9 @@ export const baseTranscript = (input: {
   readonly tools: Tool.Snapshot
   readonly initial: string
   /**
-   * FLOW-GENIUS-02: optional shared lean pack text. Merged into `initial` once
-   * (no duplicate paste). Callers that already folded the pack into `initial` may omit this.
+   * FLOW-GENIUS-02/03: optional shared lean pack text. Merged into `initial` once
+   * (no duplicate paste). SessionRunner drain auto-wires via mission-fold when linked;
+   * callers that already folded the pack into `initial` may omit this.
    */
   readonly leanPack?: string
   readonly messages: ReadonlyArray<SessionMessage.Info>
