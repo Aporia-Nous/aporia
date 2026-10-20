@@ -156,14 +156,14 @@ Heartbeats remain connection-local and outside the feed.
 
 ### Encoding failure
 
-If one accepted public event cannot be encoded:
+If one accepted public event cannot be encoded (E20 blast-radius fix):
 
 1. Log its ID, type, and cause.
-2. Fail every currently connected queue with `EncodingError`.
-3. Skip the malformed volatile event.
-4. Keep the feed available for later connections and valid events.
+2. Increment encode-failure metrics.
+3. Skip the malformed volatile frame (do **not** fail or clear other subscribers).
+4. Continue delivering later valid events to existing connections.
 
-Keeping current clients connected would create a silent gap. Permanently terminating the feed would poison future connections.
+A silent gap on one bad frame is preferable to disconnecting every desktop/web SSE client at once. Per-subscriber overflow still fails only that connection.
 
 ## HTTP And Code Generation
 
@@ -221,7 +221,8 @@ Behavioral tests cover:
 - independent slow-subscriber overflow;
 - healthy delivery of events after another subscriber overflows;
 - filtering internal events before capacity;
-- failure of current subscribers after malformed public encoding;
-- continued delivery to later subscribers after an encoding failure.
+- skip of malformed public encoding without disconnecting current subscribers;
+- continued delivery after an encoding failure;
+- optional sessionID/directory subscribe filters with global credential pass-through.
 
 Package typechecks and the existing Core event/event-logger suites protect the Core interface migration.

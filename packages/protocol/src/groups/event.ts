@@ -5,6 +5,12 @@ import type { Definition } from "@opencode/schema/event"
 import { Schema } from "effect"
 import { HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "effect/http-api"
 
+/** Optional SSE fanout filter (E20). Omitted → global stream (default; multi-window / TUI). */
+export const EventSubscribeQuery = Schema.Struct({
+  sessionID: Schema.optional(Schema.String),
+  directory: Schema.optional(Schema.String),
+}).annotate({ identifier: "EventSubscribeQuery" })
+
 const fields = {
   id: Event.ID,
   metadata: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
@@ -42,13 +48,14 @@ const make = <const Definitions extends ReadonlyArray<Definition>>(definitions: 
     group: HttpApiGroup.make("server.event")
       .add(
         HttpApiEndpoint.get("event.subscribe", "/api/event", {
+          query: EventSubscribeQuery,
           success: HttpApiSchema.StreamSse({ data: EventSchema }),
         }).annotateMerge(
           OpenApi.annotations({
             identifier: "event.subscribe",
             summary: "Subscribe to events",
             description:
-              "Subscribe to native events and plugin RPC events across all server locations. Volatile by contract: a slow consumer overflows and fails the stream, and events during disconnection are missed.",
+              "Subscribe to native events and plugin RPC events across all server locations. Optional sessionID/directory query filters fanout per connection while still delivering global credential/MCP events. Default (no query) remains the global stream. Volatile by contract: a slow consumer overflows and fails only that stream; encode failures skip the bad frame without killing other subscribers; events during disconnection are missed.",
           }),
         ),
       )
