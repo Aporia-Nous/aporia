@@ -1,0 +1,23 @@
+recorded=2026-10-19
+task=AP-BF-01
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=Browser-first Computer View consent/attach + honest computerLive + labeled Bot cursor (consent gate; not page feed)
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=997aaf54c0
+tip=a6dd3ebbaa
+base=13a31f0fbd
+report=docs/an-rewrite/CURSOR-AP-BF-01.md
+architecture=business-control/BROWSER-FIRST-COMPUTER-VIEW.md
+architecture_verified=computer-attach state machine disconnected→consenting→attached; backend local-browser only; isComputerLive requires phase attached + consented + local-browser + no error; UI Connect/Confirm/Disconnect; Bot cursor overlay only when Live; session rescope clears Live; home cannot attach without session
+tests_re_ran=packages/app bun test src/shell/an src/aporia/flows-util.test.ts → 49 pass 0 fail
+live_cdp_bf01_full_path=bun docs/an-rewrite/evidence/cdp-probe-stage4-bf01-attach.mjs (2nd run from disconnected) → before live=false hasConnect; consenting phase consenting live=false hasConfirm; live phase=attached live=true hasCursor backend=local-browser; afterDisconnect live=false hasCursor=false; RESULT ok:true liveOk:true disconnectOk:true composerOwned:true streamOwned:true marker AP-BF-01 attach 1792414911054
+live_cdp_4e_non_regression=bun docs/an-rewrite/evidence/cdp-probe-stage4-4e-contraptions.mjs → RESULT ok:true mountOk:true ownershipOk:true panel 420x736 subtitle Automations & integrations; ownedComposer=composer streamOwn=true
+live_cdp_stage4_12_non_regression=bun docs/an-rewrite/evidence/cdp-probe-stage4-12-composer-after.mjs → RESULT ok:true marker AP-STAGE4-12 composer 1792414928178 owned=composer composerOnly=true timelineDisplay=none YOU turns visible (STAGE4-11 stream + STAGE4-12 composer ownership not regressed)
+screenshots=business-control/evidence/2026-10-19-26-bf01-computer-live-attach.png (Live + Bot cursor + Disconnect); business-control/evidence/2026-10-19-27-bf01-computer-disconnected.png (Unavailable + Connect browser; toast Live cleared)
+diff_scope=13a31f0fbd..997aaf54c0 — computer-attach.ts(+test) + session-layout wire + an-shell panel/cursor/CSS + tokens/types/cards; composer ownedAttr + stream ownership markers retained (token pin tests pass)
+known_residual_ok=page pixel feed = AP-BF-02; control lock = AP-BF-03; external Edge/Chrome = AP-BF-04; consent gate does not yet open plugin-browser pane RPC; confirmComputerAttach API also accepts disconnected→attached but Confirm button only renders in consenting phase
+isolation=no merge/push; product C:\Tools\aporia not this branch; verifier did not implement new features (re-ran tests + live CDP + board/evidence/report status only)
+not_claimed=Stage 4 complete; page feed; control lock; merge; push; Stage 8 / running-DEV acceptance PASS; plugin-browser RPC attach
+deferred=AP-BF-02; AP-BF-03; AP-CE-01

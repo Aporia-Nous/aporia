@@ -1,0 +1,39 @@
+recorded=2026-10-19
+tasks=AP-ENGINE-E10
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=E10 InstructionState.PrepareGate observe once per drain; SessionContext.instructionDirtyEpoch; skip re-observe while clean; fresh instructionPrepared Map per drain; EnginePort send non-regress
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=0296c74fb7
+tip=f3617b6685
+base=988fd1cb66
+head_verified=f3617b668593788b4c304de437d41339a221000c matches claimed tip; code 0296c74fb7 + base 988fd1cb66 ancestors
+report=docs/an-rewrite/CURSOR-AP-ENGINE-E10.md
+audit=business-control/ENGINE-EFFICIENCY-AUDIT.md §E10
+
+source_bar=
+  InstructionState.PrepareGate { epoch, prepared Map }; prepare returns early when prepared.get(sessionID)===epoch()
+  SessionContext.instructionDirtyEpoch = catalogGeneration*1e6 + entriesEpoch
+  llm drain: instructionPrepared = new Map() at beginDrain; cleared on endDrain (force observe after move/new drain)
+  prepareContext passes gate using context.instructionDirtyEpoch; ungated prepare still observes every call
+
+tests_re_ran=
+  packages/core bun test test/instruction-state.test.ts test/session-context-cache.test.ts → 17 pass 0 fail
+  packages/core bun run typecheck → exit 0
+
+source_bar_tests=
+  AP-ENGINE-E10: prepare gate skips re-observe while epoch is clean
+  AP-ENGINE-E10: prepare gate re-observes after dirty epoch (AGENTS.md-style invalidate)
+  AP-ENGINE-E10: prepare without gate still observes every call
+  AP-ENGINE-E10: instructionDirtyEpoch stays stable until catalog invalidation
+
+live_cdp=bun docs/an-rewrite/evidence/cdp-probe-engine-e10.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-ENGINE-E10 send 1792431999148
+live_cdp_detail=engine=oc-server enginePort=01 owned=composer timelineDisplay=none; ws.close+process.exit in probe finally
+writer_prior_marker=AP-ENGINE-E10 send 1792431821273 (prior live-DEV; retained)
+
+residuals_ok=E05/E13 later; PORT-02 alone; no mtime poll (notify/next-drain fallback); unit is source of truth for E10 gate
+isolation=no merge/push; no product features added by verifier; product C:\Tools\aporia not this branch
+not_claimed=Stage 4 complete; E05; E13; PORT-02; merge; push; install; Stage 8 / running-DEV acceptance PASS
+deferred=next ranked E05/E13 after Ali; AP-ENGINE-PORT-02 Settings
+worktree_note=unrelated dirty docs/screenshot mods present at review time; verifier did not implement product code

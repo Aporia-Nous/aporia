@@ -2,9 +2,9 @@
 
 | Field | Value |
 |-------|-------|
-| status | **OPEN implemented+live-DEV** (**not** INDEPENDENT PASS; **not** self-PASS; **not** Stage 4 complete; **no** merge/push) |
+| status | **INDEPENDENT PASS** (**not** Stage 4 complete; **no** merge/push) |
 | branch | `stage4-an-shell` |
-| tip | `b48a736f05` |
+| tip | `1606bc7af9` |
 | code | `7c3aef6cbd` |
 | base | `a842027e63` (AP-ENGINE-E22 INDEPENDENT PASS) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
@@ -32,23 +32,26 @@ Stop one public-event encode defect from clearing **all** SSE subscribers. Keep 
 ### Spec
 - `specs/v2/event-stream-architecture.md` encoding-failure law updated to E20 skip-not-kill.
 
-## Verification (writer; not independent PASS)
+## Independent verification (2026-10-19)
 
-- `bun test` `packages/server/test/event-feed.test.ts` → **9 pass / 0 fail**
-- `bun test` `packages/app/src/shell/an` → **118 pass / 0 fail**
-- Live CDP `cdp-probe-engine-e20.mjs` (`APORETIC_CDP_PORT=9223`) → RESULT `ok:true` **EXIT=0** marker `AP-ENGINE-E20 send 1792460755145` (ws closed)
+- HEAD `1606bc7af9` verified; code `7c3aef6cbd` + base `a842027e63` ancestors
+- Source bar: encode-fail log+skip (no `subscribers.clear` in feed); optional filter; default `event.subscribe()` still unfiltered; E21 `reconnectBackoffMs` + pinned `reconnectSyncDirectories` + coalesced bootstrap intact
+- `bun test` packages/server `test/event-feed.test.ts` → **9 pass / 0 fail**
+- `bun test` packages/app `src/shell/an` → **118 pass / 0 fail**
+- Live CDP `cdp-probe-engine-e20.mjs` (`APORETIC_CDP_PORT=9223`) → RESULT `ok:true` **EXIT=0** marker `AP-ENGINE-E20 send 1792460938516` (ws closed)
   - enginePort=`03`; typed+sendClick; Settings `02` AN-owned; Message Grok…; 4E Contraptions
-- Shots: `84`–`86`
+- Shots: `84`–`86` (re-shot)
 
 ## Honest residuals
 
 - Default clients still use global unfiltered SSE (volume reduction only when callers opt into query)
 - Generated Promise clients not regenerated this slice (optional query server-side; zero-arg subscribe still works)
+- CDP `markerHit` may prefix-match a prior E20 YOU turn on a crowded stream; typed+sendClick+RESULT still met non-regress bar
 - Live DEV binary may still be pre-E20 until hard restart — CDP proves EnginePort/sessions/Settings non-regress
 - E25 native compact / E11 left alone
-- **Not** claimed: INDEPENDENT PASS; Stage 4/8 PASS; merge; push
+- **Not** claimed: Stage 4/8 PASS; merge; push; E25/E11
 
 ## Board
 
-- `AP-ENGINE-E20` → **OPEN implemented+live-DEV** (do not self-PASS)
-- Next act-first catalog: E25 / E11 (after independent verifier on E20)
+- `AP-ENGINE-E20` → **DONE** INDEPENDENT PASS
+- Next act-first catalog: E25 / E11

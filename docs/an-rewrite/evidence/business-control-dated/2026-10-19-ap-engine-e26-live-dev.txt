@@ -1,0 +1,32 @@
+AP-ENGINE-E26 OPEN implemented+live-DEV (writer) — 2026-10-19
+worktree: C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+branch: stage4-an-shell
+code: eb7179f500
+base: d683e31f80 (E08 INDEPENDENT PASS)
+tip: 7b2867c797
+
+Shipped (harness / measure — not product code PASS):
+- perf/engine-hotpath.md (distinct from perf/test-suite.md)
+- packages/core/script/engine-hotpath-lib.ts + benchmark-engine-hotpath.ts
+- packages/core test/engine-hotpath-bench.test.ts
+- package script benchmark:engine-hotpath
+- select / due-estimate / durable publish / optional EventFeed SSE metrics
+- evidence JSON 2026-10-19-ap-engine-e26-metrics.json
+
+Tests (writer):
+- packages/core test/engine-hotpath-bench.test.ts: 1 pass / 0 fail
+- bun run benchmark:engine-hotpath: E26_METRICS + evidence write
+- packages/app src/shell/an: 118 pass / 0 fail
+
+Live CDP:
+- probe: docs/an-rewrite/evidence/cdp-probe-engine-e26.mjs
+- APORETIC_CDP_PORT=9223
+- RESULT ok:true EXIT=0
+- marker: AP-ENGINE-E26 send 1792463706791
+- ws closed
+- enginePort=03; Settings 02 AN-owned hasOcScreen=false; Message Grok…; Contraptions 4E
+- shots: 99-engine-E26-before-send.png, 100-engine-E26-after-send-you.png, 101-engine-E26-contraptions-light.png
+
+NOT claimed: INDEPENDENT PASS; product code PASS; wall-clock win vs baseline compare; self-PASS; merge; push; Stage 4/8 PASS; E12; E14
+Residuals: E12/E14 opportunistic; mock harness ≠ provider RTT; CDP markerHit may prefix-match prior turns
+Await: independent verifier → DONE MEASURED (not product optimization PASS)

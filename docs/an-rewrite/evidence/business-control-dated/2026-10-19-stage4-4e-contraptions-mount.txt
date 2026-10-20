@@ -1,0 +1,27 @@
+AP-STAGE4-4E — Contraptions mount in AnShell
+Work date / recorded: 2026-10-19 (America/Chicago)
+Worktree: C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4 branch stage4-an-shell
+Base tip: 5f810a9d51 (AP-STAGE4-12)
+Code: af9ab9943a
+Tip: 13a31f0fbd
+
+Implemented:
+- AnShell nav item Contraptions + ice-glass drawer data-an-part=contraptions
+- Subtitle Automations & integrations; Redstone Easter-egg title only
+- Reuses AutomationsTab / FlowsSection (flow_* unchanged)
+- STAGE4-11/12 ownership markers not redefined (unit pin)
+
+Tests: bun test src/shell/an + flows-util → 41 pass / 0 fail
+
+live-DEV verified (executor CDP, home screen):
+- Probe: docs/an-rewrite/evidence/cdp-probe-stage4-4e-contraptions.mjs
+- RESULT ok:true mountOk:true panel 420x736; subtitle + redstone + FlowsSection present
+- Shot: business-control/evidence/2026-10-19-25-contraptions-mounted-dev.png
+- Also: worktree screenshots-2026-10-18/25-contraptions-mounted-dev.png
+
+Superseded: INDEPENDENT PASS recorded in 2026-10-19-stage4-4e-independent-pass.txt (verifier 2026-10-19).
+
+Not claimed by executor open note (historical):
+- Stage 4 complete
+- Full AporiaRightPanel (Details/Library/Browser/Call) under AnShell
+- merge / push / install / production

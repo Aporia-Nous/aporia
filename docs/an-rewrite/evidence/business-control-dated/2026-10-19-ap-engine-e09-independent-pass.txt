@@ -1,0 +1,39 @@
+recorded=2026-10-19
+tasks=AP-ENGINE-E09
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=E09 inline UsageUpdated from applyUsage RETURNING; publishUsageTotals from projection path; drop subscribe+SELECT UsageUpdated loop; EnginePort send non-regress
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=a59abe5b93
+tip=988fd1cb66
+base=cec15203f8
+head_verified=988fd1cb669c4ca4e3ce83b0d281ab7491b9729c matches claimed tip; code a59abe5b93 + base cec15203f8 ancestors
+report=docs/an-rewrite/CURSOR-AP-ENGINE-E09.md
+audit=business-control/ENGINE-EFFICIENCY-AUDIT.md §E09
+
+source_bar=
+  packages/core/src/session/projector.ts applyUsage .returning(cost/input/output/reasoning/cacheRead/cacheWrite)
+  publishUsageTotals(bus, sessionID, row) publishes SessionEvent.UsageUpdated from RETURNING row
+  UsageRecorded / Step.Ended / Step.Failed(with cost+tokens) call applyUsage + publishUsageTotals
+  Step.Failed without usage → touch only (no UsageUpdated)
+  removed bus.subscribe([Step.Ended, Step.Failed, UsageRecorded]) + publishSessionUsage SELECT fanout
+
+tests_re_ran=
+  packages/core bun test test/session-projector.test.ts → 17 pass 0 fail
+  packages/core bun run typecheck → exit 0
+
+source_bar_tests=
+  publishes UsageUpdated from UsageRecorded with cumulative RETURNING totals
+  does not publish UsageUpdated when Step.Failed has no usage
+  projects ended and failed step terminal state (incl. Step.Ended UsageUpdated path)
+
+live_cdp=bun docs/an-rewrite/evidence/cdp-probe-engine-e09.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-ENGINE-E09 send 1792431515126
+live_cdp_detail=engine=oc-server enginePort=01 owned=composer timelineDisplay=none; ws.close+process.exit in probe finally
+writer_prior_marker=AP-ENGINE-E09 send 1792431274552 (prior live-DEV; retained)
+
+residuals_ok=E10/E05/E13 later; PORT-02 alone; running-DEV may need core reload for in-process projector path (unit is source of truth for E09)
+isolation=no merge/push; no product features added by verifier; product C:\Tools\aporia not this branch
+not_claimed=Stage 4 complete; E10; E05; E13; PORT-02; merge; push; install; Stage 8 / running-DEV acceptance PASS
+deferred=next ranked E10 after Ali; AP-ENGINE-PORT-02 Settings
+worktree_note=unrelated dirty docs/screenshot mods present at review time; verifier did not implement product code

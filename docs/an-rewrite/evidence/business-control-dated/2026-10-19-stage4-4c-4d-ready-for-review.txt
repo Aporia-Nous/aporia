@@ -1,0 +1,36 @@
+AP-STAGE4-4C + AP-STAGE4-4D — ready for review (2026-10-19 America/Chicago)
+
+Ali: "okay do it" — presence + Computer View on SEPARATE worktree (avoid MODELS-01a collision).
+
+worktree=C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4-presence
+branch=stage4-presence-computer-view
+base=4f1fe0fea9 (stage4-an-shell tip at cut)
+code=dc84ca2517 feat(an-shell): presence signals + Computer View chrome (AP-STAGE4-4C/4D)
+tip=c2a2952ab9 docs(an-rewrite): AP-STAGE4-4C/4D ready for review
+report=docs/an-rewrite/CURSOR-AP-STAGE4-4C-4D.md
+
+tests=packages/app shell/an tokens+bind+cards 33 pass / 0 fail
+evidence=docs/an-rewrite/evidence/2026-10-19-an-shell-stage4-4c-4d.txt
+shots=
+  docs/an-rewrite/evidence/screenshots-2026-10-18/16-presence-conversation.png
+  docs/an-rewrite/evidence/screenshots-2026-10-18/17-computer-view-mode.png
+shot_note=Edge headless fixture chrome (stage4-4c-4d-fixture*.html); CDP/running-DEV down — not live DEV proof
+
+presence_map=
+  call listening/thinking/speaking → same
+  permission awaiting → waiting
+  session running + tool → working
+  session running + stream text → speaking
+  session running + reasoning → thinking
+  session running (generic) → thinking
+  idle/missing → unknown (never invent listening)
+
+computer_view=
+  mode id stays view
+  user-facing label Computer View
+  badge Unavailable when computerLive false
+  no live control backend invented
+
+status=OPEN for review
+not_claimed=independent PASS; merge into stage4-an-shell; running-DEV load; push; Stage 4 complete; Stage 5 modes
+main_stage4_worktree=untouched (MODELS-01a path separate)

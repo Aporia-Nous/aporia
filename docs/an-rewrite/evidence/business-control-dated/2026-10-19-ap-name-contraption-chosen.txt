@@ -1,0 +1,17 @@
+AP-NAME-AUTOMATION — Contraption chosen — 2026-10-19 America/Chicago
+
+Chosen (Ali): Contraption / Contraptions (user-facing automation brand).
+Redstone: Easter egg only — not primary UI brand (hover title on helper copy).
+
+Ali concern (same day): Contraption is a generic English word → weaker exclusive trademark + needs category gloss for clarity.
+Mitigation (do not abandon unless Ali switches): always pair brand with subtitle/helper
+  - Tab/nav: Contraptions
+  - Subtitle/helper: Automations & integrations
+  - One item: a Contraption = one saved automation
+Open question for Ali: keep Contraptions + subtitle vs pick a more distinctive coined name later.
+
+Board: AP-NAME-AUTOMATION → DONE (naming decision).
+UI slice: AP-STAGE4-10 OPEN (user-facing rename implemented in Stage4 worktree; not independent PASS; no merge/push to install).
+
+Engine IDs unchanged: F1, flow_*, /api/flow, FlowRunner, FlowCommands, CSS ap-flow-*.
+Product = Aporetic; ice glass intact.

@@ -1,0 +1,27 @@
+recorded=2026-10-19
+task=AP-BF-05
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=Browser-first Computer View live CDP page pixels / screencast into Computer View (consented Edge/Chrome via loopback HTTP relay; local iframe preserved; not VM; not remote)
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=ca279b5593
+tip=c4be6688a8
+base=bf6e89c418
+head_verified=c4be6688a864963af785550ee87e3027ecee00c2 matches claimed tip; code ca279b5593 ancestor; base bf6e89c418 ancestor (ice PASS; untouched)
+report=docs/an-rewrite/CURSOR-AP-BF-05.md
+architecture=business-control/BROWSER-FIRST-COMPUTER-VIEW.md
+architecture_verified=External Live → pixelSource=cdp-screencast with data:image JPEG frames; Local Live → pixelSource=iframe; computerLive only from BF-01 attach; no fake Live; BF-03 Takeover on external Live (controller=user userInput=true); disconnect clears frames+feed+lock; STAGE4-12 composer ownership + stream own retained
+tests_re_ran=packages/app bun test src/shell/an src/aporia/flows-util.test.ts → 95 pass 0 fail; bun test ../core/src/mission/control.test.ts → 6 pass 0 fail
+live_cdp_bf05=bun docs/an-rewrite/evidence/cdp-probe-stage4-bf05-screencast.mjs → RESULT ok:true screencastOk+takeoverOk+disconnectOk+localOk marker AP-BF-05 screencast 1792421520886; endpoint http://127.0.0.1:9333 region FED1F704783FB755F2F28EA8F4B4A136; frames streaming data:image
+relay_required_for_pass=YES for electron-vite DEV — standalone bun packages/app/scripts/computer-cdp-relay-server.mjs on http://127.0.0.1:5199 (loopback-only Page.captureScreenshot poll). Documented residual: Electron renderer blocks CDP WebSocket; true Page.startScreencast WS when host allows; packaged relay ownership OPEN
+live_cdp_stage4_16_non_regression=RESULT ok:true marker AP-STAGE4-16 ice-punch 1792421539714 iceOk+ownershipOk blur 40/64
+live_cdp_4e_non_regression=first run after prior probes toggle-closed (known flake); re-run RESULT ok:true mountOk:true ownershipOk:true panel 420x736 subtitle Automations & integrations
+live_cdp_stage4_12_non_regression=RESULT ok:true marker AP-STAGE4-12 composer 1792421559909 timelineDisplay=none owned=composer composerOnly=true
+screenshots=worktree docs/an-rewrite/evidence/screenshots-2026-10-18/56-bf05-external-consent.png; 57-bf05-screencast-live.png; 58-bf05-screencast-takeover.png; 59-bf05-screencast-disconnected.png; board copies business-control/evidence/2026-10-19-56..59-bf05-*.png
+diff_scope=bf6e89c418..ca279b5593 — computer-screencast*.ts(+test) + relay/vite.computer-cdp + AnShell Computer View img frame; ice base untouched
+known_residual_ok=Electron uses HTTP relay (WS screencast when host allows); packaged/desktop relay ownership OPEN; toast stack can accumulate across CDP runs; Stage 5 3-vs-4 OPEN; VM/Podman deferred Stage 7/4F (not this BF-05)
+isolation=no merge/push; product C:\Tools\aporia not this branch; verifier did not implement new features (re-ran tests + live CDP + board/evidence/report status only)
+not_claimed=Stage 4 complete; merge; push; Stage 8 / running-DEV acceptance PASS; packaged relay; true WS Page.startScreencast in Electron; VM/Podman; remote browser access
+deferred=AP-CE-01; AP-STAGE4-4F; packaged relay / WS path; Stage 5 3-vs-4
+worktree_note=unrelated dirty docs/screenshot mods present at review time; not part of BF-05 verdict; not committed

@@ -1,0 +1,21 @@
+recorded=2026-10-19
+task=AP-STAGE4-10
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=Contraptions UI rename (Flows → Contraption(s) + Automations & integrations subtitle; Redstone Easter-egg only)
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=3e5553fd5c
+implementation_tip=2957aad00b
+verifier_tip=d35b59cee5
+tip=4f1fe0fea9
+base=22e43a666d
+report=docs/an-rewrite/CURSOR-AP-STAGE4-10.md
+copy_verified=tab Contraptions; section Contraptions + Automations & integrations · 0 model tokens; singular/actions Contraption(s); slash category Contraptions + Automations & integrations description; no user-facing Flows left in aporia/ UI strings
+redstone=title="redstone stays the private joke" on helper span only — not tab/nav/brand
+internals_ok=flow_* FlowsSection sdk.api.flow ap-flow-* engine F1 unchanged
+tests_re_ran=packages/app bun test src/aporia/flows-util.test.ts → 4 pass 0 fail
+known_gap_ok=AnShell does not mount AporiaRightPanel — Contraptions tab/subtitle not visible in current AnShell chrome; not a fail of copy rename. FlowCommands mounted under AnShell; slash entries when definitions exist.
+isolation=Stage0 untouched; no merge/push; product C:\Tools\aporia not this branch; verifier did not modify product code
+not_claimed=Stage 4 complete; merge; push; running-DEV acceptance PASS; AnShell right-panel mount
+deferred=mount Contraptions surface in AnShell chrome; Podman chrome; presence; Stage 4b-5

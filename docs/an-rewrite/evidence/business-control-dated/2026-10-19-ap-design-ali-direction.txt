@@ -1,0 +1,30 @@
+AP-DESIGN — Ali design direction recorded (coordination only)
+recorded_date: 2026-10-19
+work_date: 2026-10-19
+timezone: America/Chicago
+actor: Cursor agent (coordination)
+product_code_modified: false
+stage4_code_touched: false
+reason_skip_code: active dock worktree cursor-aporetic-stage4-dock; stage4 tip dirty / other agents — prefer record+recommend
+
+Authority sources:
+- Ali paste 2026-10-19 (parent chat): Aporetic by Aporia Nous; AN black/gold glass; Bot Team left; conversation center; Conversation / Computer View / Takeover; companion+workspace; Grok presence reference; anti-Cursor-chrome; presence signals listening/thinking/speaking/working/waiting; V8/scaffold ≠ working features; ice/glass feel keep compatible
+- Library URL: https://chatgpt.com/api/library/files/libfile_7a695976991481919f4eda2fa2c8f0be/download
+- Local HTML: ../aporetic-design-reference/aporetic-an-exact-flow-v11-selfcontained.html (opened for Ali this session)
+- Note written: ../aporetic-design-reference/DESIGN-DIRECTION-ALI.md
+
+Stage 4 worktree observed (read-only):
+- path: C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+- branch: stage4-an-shell
+- tip: e742188554 (docs sync after STAGE4-08)
+- mode labels in tokens: Conversation / View / Takeover (not "Computer View")
+- AnPresence: online | working | idle | sleeping | unknown (not listening/thinking/speaking/waiting)
+- bind.ts: running→working else unknown only
+- cards: Task/Approval/Decision/Proof/Computer/Team language present with known OpenCode residual gaps
+- NOT claimed: Computer View live watch, Takeover real control, Grok presence personality, Stage 4 complete, Stage 8 PASS
+
+Recommended next owned slices (not started):
+1. Bot presence chrome (listening/thinking/speaking/working/waiting)
+2. Computer View user-facing label/copy (View → Computer View)
+
+not_claimed: [implementation PASS, independent PASS, merge, push, Stage 4 complete, features already work]

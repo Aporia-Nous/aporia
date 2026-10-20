@@ -1,0 +1,29 @@
+AP-STAGE4-18 — OPEN implemented+live-DEV (NOT INDEPENDENT PASS)
+Recording date: 2026-10-19 (America/Chicago)
+Worktree: C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+Branch: stage4-an-shell
+Base: 927b414095 (AP-STAGE4-17 / AP-BF-06 tip)
+Code: daacb54dda
+Tip: a9b68f07e4
+
+Writer tests:
+- bun test src/shell/an src/aporia/flows-util.test.ts → 107 pass / 0 fail
+- bun test ../core/src/mission/control.test.ts → 6 pass / 0 fail
+
+Live CDP:
+- docs/an-rewrite/evidence/cdp-probe-stage4-18-holo-review-bind.mjs
+- RESULT ok:true marker AP-STAGE4-18 holo-bind 1792423764700
+- CDP port 9223 (isolated Stage4 DEV; OPENCODE_DB=opencode-aporia-dev.db)
+- motionOk: data-holo=stage4-18; holo sweep; --an-ease-holo; an-review-in + an-ice-depth-pulse
+- codeBind: ready, 270 lines tokens.ts in review-code-body
+- docBind: ready, document preview HTML heading from CURSOR-AP-STAGE4-17.md
+- composer owned (STAGE4-12 non-regress)
+- Shots 64–67 (worktree + board copies 2026-10-19-64..67-*.png)
+
+Shipped:
+1. Deeper holographic ice (continuous sheen, depth pulse, ambient shell light, springier easings)
+2. Review Code + Documents bound to real viewable content via file.read
+3. ws dependency on @opencode/app for vite.computer-cdp.mjs under electron-vite
+
+Do NOT self-PASS. No merge/push.
+Preserve STAGE4-11…17, BF-01…06.

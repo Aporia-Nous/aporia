@@ -1,12 +1,12 @@
 # AP-ENGINE-E10 — Instruction observe once per drain (dirty-bit)
 
-**Status:** OPEN implemented+live-DEV (NOT INDEPENDENT PASS; NOT self-PASS)  
+**Status:** INDEPENDENT PASS  
 **Work date / recorded:** 2026-10-19 (America/Chicago)  
 **Worktree:** `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4`  
 **Branch:** `stage4-an-shell`  
 **Base:** `988fd1cb66` (AP-ENGINE-E09 INDEPENDENT PASS)  
-**Code:** `0296c74fb7` · **Tip:** `4f75fb992b`  
-**Board evidence:** `business-control/evidence/2026-10-19-ap-engine-e10-live-dev.txt`
+**Code:** `0296c74fb7` · **Tip:** `f3617b6685`  
+**Board evidence:** `business-control/evidence/2026-10-19-ap-engine-e10-independent-pass.txt`
 
 ## Scope
 
@@ -16,11 +16,13 @@
 
 **Left alone:** E05/E13; PORT-02; merge/push.
 
-## Proof (writer live-DEV)
+## Proof (independent verifier)
 
-- Unit: `instruction-state` **14** + `session-context-cache` **3** = **17** pass; `typecheck` exit 0
-- Source: `PrepareGate` on `InstructionState.prepare`; `instructionDirtyEpoch` (catalogGeneration + entriesEpoch); `instructionPrepared` Map reset each drain
-- Live CDP (`APORETIC_CDP_PORT=9223`): `cdp-probe-engine-e10.mjs` → `ok:true` EXIT=0 marker `AP-ENGINE-E10 send 1792431821273`; EnginePort send/stream non-regress; `ws.close` + `process.exit`
+- HEAD tip `f3617b6685` matches claimed; code `0296c74fb7` on base `988fd1cb66` (ancestors verified)
+- Unit re-run: `instruction-state` **14** + `session-context-cache` **3** = **17** pass (incl. gate skip / dirty re-observe / ungated / dirty-epoch stable); `typecheck` exit 0
+- Source bars: `PrepareGate` on `InstructionState.prepare`; `instructionDirtyEpoch` (catalogGeneration + entriesEpoch); `instructionPrepared` Map reset each drain
+- Live CDP (`APORETIC_CDP_PORT=9223`): `cdp-probe-engine-e10.mjs` → `ok:true` EXIT=0 marker `AP-ENGINE-E10 send 1792431999148`; EnginePort send/stream non-regress; `ws.close` + `process.exit`
+- Writer prior live-DEV marker retained: `AP-ENGINE-E10 send 1792431821273`
 
 ## Do-not-break (checked)
 

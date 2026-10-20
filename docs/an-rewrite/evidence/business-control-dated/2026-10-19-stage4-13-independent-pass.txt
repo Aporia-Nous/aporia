@@ -1,0 +1,25 @@
+recorded=2026-10-19
+task=AP-STAGE4-13
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=AN composer chrome under data-an-owned=composer (hide OC model/agent chips + mic/call; Message {bot}… placeholder; gold send; YOU turn visible)
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=17762b3fe7
+tip=747401a865
+base=a8437782b3
+head_verified=747401a865baa0397dc321254fc2423967221e02 matches claimed tip; code 17762b3fe7 ancestor (parent a8437782b3); base a8437782b3 ancestor
+report=docs/an-rewrite/CURSOR-AP-STAGE4-13.md
+architecture_verified=AN_COMPOSER_SURFACE STAGE4-13 pins hideOcChips/hideMicCall/keepGoldSend/placeholderTemplate Message {bot}…; owned dock hides composer-controls + model action + mic/call; placeholder Message Grok… live; gold submit visible; data-an-owned=composer + STAGE4-12 composer-only retained; AnConversationStream YOU turns after send; OC timeline display none
+tests_re_ran=packages/app bun test src/shell/an src/aporia/flows-util.test.ts → 79 pass 0 fail
+live_cdp_stage4_13=bun docs/an-rewrite/evidence/cdp-probe-stage4-13-composer-chrome.mjs → RESULT ok:true marker AP-STAGE4-13 chrome 1792418108662; controlsHidden modelHidden micAbsentOrHidden callAbsentOrHidden; placeholder Message Grok…; submitVisible submitGoldish; owned=composer; timelineDisplay=none; YOU text includes marker; convH=287
+live_cdp_stage4_12_non_regression=bun docs/an-rewrite/evidence/cdp-probe-stage4-12-composer-after.mjs → RESULT ok:true marker AP-STAGE4-12 composer 1792418118512 owned=composer composerOnly=true panelPassthrough+dockOwnedIce; timelineDisplay=none convH=294
+live_cdp_4e_non_regression=first run after STAGE4-12 probe panel already open → probe toggled closed (known flake, not product fail); re-run RESULT ok:true mountOk:true ownershipOk:true panel 420x736 subtitle Automations & integrations redstone title attr
+live_cdp_bf01_non_regression=bun docs/an-rewrite/evidence/cdp-probe-stage4-bf01-attach.mjs → RESULT ok:true marker AP-BF-01 attach 1792418127502 liveOk+disconnectOk composerOwned+streamOwned
+screenshots=business-control/evidence/2026-10-19-39-before-composer-chrome.png; 2026-10-19-40-composer-chrome-an.png; 2026-10-19-41-composer-chrome-typed.png; 2026-10-19-42-after-send-composer-chrome.png; worktree screenshots-2026-10-18/39–42
+visual_bar=shot 40: Message Grok…; no OC model/agent chips; no mic/call; gold send; shot 42: YOU turn AP-STAGE4-13 chrome 1792418108662 visible
+known_residual_ok=model/agent still reachable via settings/commands (hidden not redesigned); attach + remains; Mission cards above stream; presence Unknown; ice subtle; Stage 5 3-vs-4 OPEN
+isolation=no merge/push; product C:\Tools\aporia not this branch; verifier did not implement new features (re-ran tests + live CDP + board/evidence/report status only); BF-05/CE-01/4F untouched
+not_claimed=Stage 4 complete; OpenCode fully replaced; merge; push; Stage 8 / running-DEV acceptance PASS
+deferred=AP-CE-01; AP-BF-05; AP-STAGE4-4F; Stage 5 3-vs-4
+worktree_note=unrelated dirty docs/screenshot mods present at review time; not part of STAGE4-13 verdict; not committed

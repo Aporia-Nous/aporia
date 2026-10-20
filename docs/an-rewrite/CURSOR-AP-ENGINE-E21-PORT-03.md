@@ -2,9 +2,9 @@
 
 | Field | Value |
 |-------|-------|
-| status | **OPEN implemented+live-DEV** (NOT INDEPENDENT PASS; NOT self-PASS; **not** Stage 4 complete) |
+| status | **INDEPENDENT PASS** (**not** Stage 4 complete; **no** merge/push) |
 | branch | `stage4-an-shell` |
-| tip | `f8000e0cb8` (docs; code `68a9021161`) |
+| tip | `0550905a33` |
 | code | `68a9021161` |
 | base | `741abaa063` (AP-ENGINE-PORT-02 INDEPENDENT PASS) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
@@ -28,12 +28,14 @@ Kill client reconnect → full bootstrap + all-directory sync storms (E21), pair
 - AnShell `session-layout` forwards OC bus → `observeServerEvent`; stream UI still tracks solid Data via `listMessages`.
 - Session shell marker `data-an-engine-port="03"` (`AN_ENGINE_PORT`); Settings remains `"02"`.
 
-## Writer verification (2026-10-19)
+## Independent verification (2026-10-19)
 
-- `bun test` client solid-connection + app server-sync/queue + `src/shell/an` → **118 pass / 0 fail**
-- Live CDP `cdp-probe-engine-e21-port-03.mjs` (`APORETIC_CDP_PORT=9223`) → RESULT `ok:true` **EXIT=0** marker `AP-ENGINE-E21-PORT-03 send 1792459569747`
+- HEAD `0550905a33` verified; code `68a9021161` + base `741abaa063` ancestors
+- `bun test` `src/shell/an` → **118 pass / 0 fail**; + solid-connection + server-sync/queue → **131 pass / 0 fail**
+- Live CDP `cdp-probe-engine-e21-port-03.mjs` (`APORETIC_CDP_PORT=9223`) → RESULT `ok:true` **EXIT=0** marker `AP-ENGINE-E21-PORT-03 send 1792459779733`
   - enginePort=`03`; send → YOU; Settings `02` non-regress; Message Grok…; 4E Contraptions; ws closed
-- Shots: `78`–`80` under `docs/an-rewrite/evidence/screenshots-2026-10-18/`
+- Shots: `78`–`80` (re-shot during independent CDP)
+- Evidence: `business-control/evidence/2026-10-19-ap-engine-e21-port-03-independent-pass.txt`
 
 ## Honest residuals
 
@@ -42,9 +44,9 @@ Kill client reconnect → full bootstrap + all-directory sync storms (E21), pair
 - Reconnect with zero pinned dirs syncs none until access (child-store onBootstrap)
 - Durable aggregate-seq replay still unavailable on volatile SSE (no Last-Event-ID)
 - Attention poll (5s) and classic non-AnShell paths unchanged
-- **Not** claimed: INDEPENDENT PASS; Stage 4 complete; merge/push
+- **Not** claimed: Stage 4 complete; merge/push
 
 ## Board
 
-- `AP-ENGINE-E21` + `AP-ENGINE-PORT-03` → **OPEN implemented+live-DEV** (await independent verifier)
+- `AP-ENGINE-E21` + `AP-ENGINE-PORT-03` → **DONE** INDEPENDENT PASS
 - Next act-first catalog: E22 / E20 / E25 / E11

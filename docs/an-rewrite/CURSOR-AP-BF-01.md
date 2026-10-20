@@ -2,9 +2,9 @@
 
 | Field | Value |
 |-------|-------|
-| status | **OPEN for independent review** — implemented + live-DEV verified (executor); **not** Stage 4 complete; **not** INDEPENDENT PASS until verifier |
+| status | **INDEPENDENT PASS** (consent/attach + honest `computerLive` scope) — **not** Stage 4 complete; page feed remains **AP-BF-02** |
 | branch | `stage4-an-shell` |
-| tip | `997aaf54c0` |
+| tip | `a6dd3ebbaa` |
 | code | `997aaf54c0` |
 | base | `13a31f0fbd` (after AP-STAGE4-4E tip sync; code base `af9ab9943a`) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
@@ -26,12 +26,13 @@
 - `packages/app/src/shell/an/an-shell.tsx` / `an-shell.css` — panel actions + cursor
 - `packages/app/src/shell/an/tokens.ts` / `types.ts` / `index.ts` / `cards/map.ts`
 
-## Checks
+## Independent verification (2026-10-19)
 
-- `bun test src/shell/an src/aporia/flows-util.test.ts` → **49 pass / 0 fail** (expected after commit)
-- Live CDP `cdp-probe-stage4-bf01-attach.mjs` → RESULT `ok:true` (`liveOk` + `disconnectOk`; composerOwned+streamOwned)
+- `bun test src/shell/an src/aporia/flows-util.test.ts` → **49 pass / 0 fail**
+- Live CDP `cdp-probe-stage4-bf01-attach.mjs` (full path from disconnected) → RESULT `ok:true` (`liveOk` + `disconnectOk`; consenting→Confirm; backend `local-browser`; composerOwned+streamOwned); marker `AP-BF-01 attach 1792414911054`
+- Non-regression: 4E Contraptions CDP RESULT `ok:true`; STAGE4-12 composer CDP RESULT `ok:true` marker `1792414928178` (timeline `none`; YOU turns)
 - Shots: `26-bf01-computer-live-attach.png`, `27-bf01-computer-disconnected.png`
-- Board copies: `business-control/evidence/2026-10-19-26-…` / `27-…`
+- Board evidence: `business-control/evidence/2026-10-19-ap-bf-01-independent-pass.txt`
 
 ## Honest residuals
 
@@ -43,5 +44,5 @@
 
 ## Board
 
-- `AP-BF-01` → OPEN (implemented + live-DEV verified; await independent PASS)
-- `AP-STAGE4-4E` unchanged (still await independent PASS)
+- `AP-BF-01` → **DONE** (INDEPENDENT PASS consent/attach scope)
+- `AP-STAGE4-4E` remains DONE (INDEPENDENT PASS); non-regression re-verified

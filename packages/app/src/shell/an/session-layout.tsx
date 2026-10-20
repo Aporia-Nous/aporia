@@ -11,6 +11,8 @@ import { UpdateWatcher } from "@/aporia/update"
 import { useData, useServer } from "@/runtime/server/current"
 import { useServerSDK } from "@/runtime/server/client"
 import { formatServerError } from "@/runtime/server/errors"
+import { flushComposerEditorDom } from "@/composer/session-draft"
+import { anDraftApplyIdentity, anDraftSaveIdentity, anDraftSwitch } from "@/shell/an/session-draft-store"
 import { useCommand } from "@/shell/commands/command"
 import { useLanguage } from "@/runtime/i18n/language"
 import { sessionHref } from "@/shell/routes/session"
@@ -21,7 +23,7 @@ import { Session } from "@opencode/schema/session"
 import { getDirectory, getFilename } from "@opencode/util/path"
 import { useTheme } from "@opencode/ui/theme/context"
 import { useNavigate } from "@solidjs/router"
-import { Show, createEffect, createMemo, createResource, createSignal, onCleanup, type ParentProps } from "solid-js"
+import { Show, createEffect, createMemo, createResource, createSignal, on, onCleanup, type ParentProps } from "solid-js"
 import { Portal } from "solid-js/web"
 import { AnShell } from "./an-shell"
 import { buildStreamCards } from "./cards"
@@ -417,6 +419,25 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     setComputerControl((prev) => rescopeComputerControl(prev, sessionID))
   })
 
+  // AP-STAGE4-B1: when the bound session/agent identity settles after a roster switch, restore its draft.
+  createEffect(
+    on(
+      () => ({
+        sessionID: props.view.sessionID(),
+        agent: currentAgent(),
+        slug: roster.bound().roster.find((m) => m.selected)?.id,
+      }),
+      (identity) => {
+        if (!identity.sessionID && !identity.agent && !identity.slug) return
+        queueMicrotask(() => {
+          requestAnimationFrame(() => {
+            anDraftApplyIdentity(identity)
+          })
+        })
+      },
+    ),
+  )
+
   /** Keep page feed honest with Live attach — open on attach, clear on disconnect/rescope. */
   createEffect(() => {
     const attach = computerAttach()
@@ -611,12 +632,23 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   )
 
   const openMember = async (slug: string) => {
+    // AP-STAGE4-B1: per-session/teammate draft map — save DOM draft before leave, restore after enter.
+    flushComposerEditorDom()
+    const selectedSlug = roster.bound().roster.find((m) => m.selected)?.id
+    const fromIdentity = {
+      sessionID: props.view.sessionID(),
+      agent: currentAgent(),
+      slug: selectedSlug,
+    }
     const agent = agentFor(slug)
     const existing = engine.listSessions().find((s) => s.agent === agent && !s.parentID && !s.time.archived)
     if (existing) {
+      anDraftSwitch(fromIdentity, { sessionID: existing.id, agent, slug })
       navigate(sessionHref(server.key, existing.id))
       return
     }
+    // No existing session yet — still park the leaving draft under the current identity.
+    anDraftSaveIdentity(fromIdentity)
     if (!roster.available()) {
       aporiaAlerts.push({
         title: "Could not open teammate",
@@ -644,6 +676,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       await created.request
       await bots({ op: "attachSession", slug: bot.slug, sessionID: created.id })
       refreshBots()
+      anDraftSwitch(fromIdentity, { sessionID: created.id, agent, slug })
       navigate(sessionHref(server.key, created.id))
     } catch (err) {
       aporiaAlerts.push({

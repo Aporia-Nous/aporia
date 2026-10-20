@@ -1,0 +1,15 @@
+AP-STAGE4-11 OPEN for review — 2026-10-19 (America/Chicago)
+Worktree: C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+Branch: stage4-an-shell
+Tip: ed17538810
+Commit: feat(an-shell): AnShell owns Conversation stream (AP-STAGE4-11)
+
+Architecture: AnShell owns Conversation turns from SessionMessageInfo; OpenCode timeline suppressed; composer kept as OpenCode dock under .an-stream-legacy--composer-only.
+
+Root cause fixed: Mission cards .an-stream > * { flex:1 } crushed Conversation (~16px). Cards now max-height 28% + Conversation min-height 140px.
+
+Live proof: docs/an-rewrite/evidence/screenshots-2026-10-18/20-after-message-visible.png
+CDP: docs/an-rewrite/evidence/cdp-probe-stage4-11-own-stream.mjs RESULT ok:true
+
+NOT claimed: INDEPENDENT PASS, Stage 4 complete, OpenCode fully replaced, merge, push.
+Honesty: prior STAGE4 / 4C/4D INDEPENDENT PASS = source/unit/chrome scope only.

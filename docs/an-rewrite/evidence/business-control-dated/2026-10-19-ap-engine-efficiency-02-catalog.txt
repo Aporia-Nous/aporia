@@ -1,0 +1,27 @@
+AP-ENGINE-EFFICIENCY-02 — OPEN (pass-2 audit catalog only; NOT INDEPENDENT PASS; no product patches)
+tasks=AP-ENGINE-EFFICIENCY-02
+recorded_date=2026-10-19
+work_date=2026-10-19
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+tip=741abaa063
+code=a560ea9824
+base_context=AP-ENGINE-PORT-02 INDEPENDENT PASS tip 741abaa063; top-10 E07…E13 INDEPENDENT PASS tip 4c42d1d289
+doc=business-control/ENGINE-EFFICIENCY-AUDIT.md (§0 Pass 2 + §5 E20–E27 + §5c ranked)
+method=read-only deep-read; no product code edits; no profiler p95
+
+surfaces=
+- server EventFeed SSE fanout (packages/server/src/event-feed.ts, handlers/event.ts)
+- client reconnect + dual bootstrap/sync (packages/client/src/solid/connection.ts; app runtime sync.tsx + global-sync/queue.ts)
+- MCP ToolsChanged → tools.reload (packages/core/src/tool/mcp.ts; mcp/index.ts recover/watch)
+- SQLite WAL + bus durableLocks multi-session (database/database.ts; bus.ts; run-coordinator.ts)
+- @opencode/ai streamPrepared / overflow classify (packages/ai/src/route/client.ts; provider-error.ts; framing.ts)
+- native compaction (session/compaction.ts compactNatively; provider-context.ts encode = E11)
+- perf/test-suite.md = test-suite speed only (E26)
+
+findings=E20,E21,E22,E23,E24,E25,E26,E27
+top_act_first=E21,E22,E20,E25,E11
+wall_clock_notes=structural constants only (reconnectDelay 1s; idleTimeout 45s; heartbeat 15s; MCP debounce 100ms; refresh queue concurrency 2; busy_timeout 5000); no measured p95
+residuals_pass1=E08,E11,E12,E14
+not_claimed=product patches; INDEPENDENT PASS; merge; push; measured runtime wins; Stage 4/8 PASS
+next=Ali authorize owned slices; coordinate E21 with PORT-03

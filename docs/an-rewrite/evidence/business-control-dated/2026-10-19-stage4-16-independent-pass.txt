@@ -1,0 +1,26 @@
+recorded=2026-10-19
+task=AP-STAGE4-16
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+not_claimed=Stage 4 complete; merge; push; OpenCode fully replaced; Stage 8; photographic nebula underlay
+scope=Ice material punch — stronger blur/translucency/specular; AN ice-glass vs opaque charcoal (Contraptions drawer frost)
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+HEAD=bf6e89c41836965577876737df0169de52a059dc
+code=f153ce1936e4222e3c5ff2d20b3e522a319d25b2
+base=5167449bd7a8fee08eb55ac6e563d1c0d3a7ab44
+base_is_ancestor=true
+code_is_ancestor=true
+report=docs/an-rewrite/CURSOR-AP-STAGE4-16.md
+tests=packages/app bun test src/shell/an src/aporia/flows-util.test.ts → 86 pass 0 fail (413 expect)
+live_cdp_stage4_16=bun docs/an-rewrite/evidence/cdp-probe-stage4-16-ice-punch.mjs → RESULT ok:true marker AP-STAGE4-16 ice-punch 1792420288469; blur 40px / blurStrong 64px / saturate 1.32; panel α 0.28 / raised 0.36 / glass 0.2; sheen 0.14 / edge 0.28; specular inset; gold #f0c66d; void #020509; roster/card blur 40; nav/dock blur 64; iceDrawer true blur 64 bg α 0.38→0.52 (not 0.72/0.88); composerOwned; timeline none; streamCards computer+team; missionCompact
+live_cdp_non_regress_STAGE4-12=RESULT ok:true marker AP-STAGE4-12 composer 1792420318578 owned=composer YOU visible
+live_cdp_non_regress_STAGE4-13=RESULT ok:true marker AP-STAGE4-13 chrome 1792420320832 controlsHidden placeholder Message Grok…
+live_cdp_non_regress_STAGE4-15=RESULT ok:true marker AP-STAGE4-15 cards-in-stream 1792420323482 missionCompact streamCards stackPresent=false computer+team in-stream
+live_cdp_non_regress_STAGE4-14=RESULT ok:true marker AP-STAGE4-14 presence 1792420326771 rosterLen=13 fiveCount=13 unknownCount=0 counts.listening=13
+live_cdp_non_regress_4E=first run ok:false (panel already open → toggle closed flake); re-run RESULT ok:true mountOk+ownershipOk panelW=420 subtitle Automations & integrations
+live_cdp_non_regress_BF01=RESULT ok:true marker AP-BF-01 attach 1792420338489 liveOk+disconnectOk
+screenshots=worktree 52–55 (re-captured this verify); board 2026-10-19-52..55
+visual=frost improved vs prior charcoal void; Contraptions drawer translucent over content; ownership markers + gold text readable
+residual_ok=frost still subtle on near-void underlays; no photographic nebula; no purple/nebula slop
+isolation=no merge/push; no new features; not Stage 4 complete

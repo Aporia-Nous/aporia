@@ -1,0 +1,35 @@
+recorded=2026-10-19
+tasks=AP-ENGINE-E25,AP-ENGINE-E11
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=E25 needsLocalHistoryForNativeRetain — reuse context.messages unless native checkpoint bound; SessionHistory.load(local) only when checkpoint would hide earlier users; E11 jsonSanitize walk + Schema.decodeUnknownSync(Schema.Json) — no JSON.stringify→fromJsonString in encode; EnginePort send/Settings/Contraptions non-regress
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=377670f168
+tip=8d2317def5
+base=1606bc7af9
+head_verified=8d2317def56f3dfd903dfea3a1571baad90e1466 matches claimed tip; code 377670f168 + base 1606bc7af9 ancestors (0 behind / 5 ahead of base)
+report=docs/an-rewrite/CURSOR-AP-ENGINE-E25-E11.md
+audit=business-control/ENGINE-EFFICIENCY-AUDIT.md §E25 §E11
+
+source_bar=
+  packages/core/src/session/compaction.ts — needsLocalHistoryForNativeRetain = messages.some(isCheckpoint); compactNatively trigger path reuses context.messages when false, SessionHistory.load(..., "local") when true
+  packages/core/src/session/provider-context.ts — jsonSanitize (omit undefined keys; array undefined→null; toJSON/Media base64; Date→ISO); encode uses Schema.decodeUnknownSync(Schema.Json)(jsonSanitize(replacement)); no stringify→fromJsonString on encode path (JSON.stringify remains only for provenance endpoint hash)
+  packages/core/test/session-native-compaction.test.ts — E25 unit + live trigger/endpoint retain fixtures
+  packages/core/test/session-provider-context.test.ts — E11 encode equals prior stringify sanitize; media/optional-metadata fixtures
+
+tests_re_ran=
+  packages/core bun test test/session-provider-context.test.ts test/session-native-compaction.test.ts → 16 pass 0 fail
+  packages/app bun test src/shell/an → 118 pass 0 fail
+
+live_cdp=bun docs/an-rewrite/evidence/cdp-probe-engine-e25-e11.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-ENGINE-E25-E11 send 1792461578667; ws.close+process.exit
+live_cdp_detail=enginePort=03; typed marker in composer + sendClick ok; Settings owned=settings enginePort=02 hasOcScreen=false mark Aporetic/Aporia Nous; STAGE4-12/13 owned=composer timeline none Message Grok…; 4E Contraptions ok
+writer_prior_marker=AP-ENGINE-E25-E11 send 1792461336772 (prior live-DEV)
+
+screenshots=worktree docs/an-rewrite/evidence/screenshots-2026-10-18/87-engine-e25-e11-before-send.png; 88-engine-e25-e11-after-send-you.png; 89-engine-e25-e11-contraptions-light.png; board copies business-control/evidence/2026-10-19-87..89-engine-e25-e11-*.png (re-shot during independent CDP)
+
+residuals_ok=after prior native checkpoint local reload still required (correctness); CDP markerHit may prefix-match prior E25-E11 YOU turn on crowded stream (typed+sendClick+RESULT ok still met bar; last-5 userTexts showed writer marker 1792461336772); running-DEV may need hard restart for core tip; pass-2 next ranked E27/E23/E24
+isolation=no merge/push; product C:\Tools\aporia not this branch; no product features added by verifier
+not_claimed=Stage 4 complete; OpenCode replaced; agent loop rewrite; merge; push; install; Stage 8 / running-DEV acceptance PASS
+deferred=AP-ENGINE-EFFICIENCY-02 next ranked E27+
+worktree_note=unrelated dirty docs/screenshot mods present at review time; verifier did not implement product code

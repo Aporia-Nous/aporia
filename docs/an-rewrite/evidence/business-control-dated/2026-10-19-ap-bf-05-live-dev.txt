@@ -1,0 +1,36 @@
+AP-BF-05 writer live-DEV evidence (NOT INDEPENDENT PASS)
+Recording date: 2026-10-19 (America/Chicago)
+Worktree: C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+Branch: stage4-an-shell
+Base (ice PASS, do not rework): bf6e89c418
+Code: ca279b5593
+Tip (docs sync may advance): see git log stage4-an-shell
+
+Scope: Live CDP page pixels into Computer View for consented Edge/Chrome
+(closes BF-04 residual). Local-browser iframe pixels preserved.
+
+Unit:
+  bun test src/shell/an src/aporia/flows-util.test.ts → 95 pass / 0 fail
+  bun test ../core/src/mission/control.test.ts → 6 pass / 0 fail
+
+Live setup:
+  Edge --remote-debugging-port=9333 pixel page AP-BF-05
+  Loopback CDP relay http://127.0.0.1:5199 (Page.captureScreenshot)
+  Aporetic DEV CDP :9222
+
+Live CDP:
+  docs/an-rewrite/evidence/cdp-probe-stage4-bf05-screencast.mjs
+  RESULT ok:true screencastOk+takeoverOk+disconnectOk+localOk
+  marker AP-BF-05 screencast 1792421286447
+  frames streaming with data:image JPEG in Computer View
+  pixelSource=cdp-screencast; local path pixelSource=iframe
+
+Shots (worktree + board copies):
+  56-bf05-external-consent.png
+  57-bf05-screencast-live.png
+  58-bf05-screencast-takeover.png
+  59-bf05-screencast-disconnected.png
+
+Honesty: computerLive from attach only; no fake Live; disconnect clears frames.
+Residuals: Electron uses HTTP relay (WS blocked); packaged relay ownership OPEN;
+VM/Podman deferred; CE-01/4F left alone; not Stage 4 complete; no merge/push.

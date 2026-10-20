@@ -1,0 +1,26 @@
+AP-ENGINE-PORT-01 writer live-DEV evidence
+recorded_date: 2026-10-19 (America/Chicago)
+work_date: 2026-10-19
+status: OPEN implemented+live-DEV (NOT INDEPENDENT PASS; NOT self-PASS)
+worktree: C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+branch: stage4-an-shell
+base: d71979708d (AP-STAGE4-19)
+
+Unit:
+  bun test src/shell/an → 115 pass / 0 fail (incl. engine OcServerEnginePort 4)
+
+Live CDP (APORETIC_CDP_PORT=9223):
+  probe: docs/an-rewrite/evidence/cdp-probe-engine-port-01.mjs
+  RESULT ok:true EXIT=0
+  marker: AP-ENGINE-PORT-01 send 1792427538659
+  engine=oc-server enginePort=01
+  send→YOU visible; owned=composer; timelineDisplay=none
+  stage4-13 light placeholder Message Grok…
+  4E Contraptions open ok
+  shots: 72-engine-port-01-before-send.png
+         73-engine-port-01-after-send-you.png
+         74-engine-port-01-contraptions-light.png
+  ws.close + process.exit (STAGE4-18 hang fix retained)
+
+Not claimed: INDEPENDENT PASS, OpenCode replaced, agent loop rewrite, Stage 4 complete, Settings AN-native, merge/push/install
+Follow-up: AP-ENGINE-PORT-02 (AN Settings via port)

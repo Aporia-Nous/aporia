@@ -2,9 +2,10 @@
 
 | Field | Value |
 |-------|-------|
-| status | **OPEN for review** — vertical slice landed; **not** Stage 4 complete; **not** INDEPENDENT PASS claimed by this writer |
+| status | **INDEPENDENT PASS (own-stream / message-visibility scope)** — vertical slice verified live; **not** Stage 4 complete; OpenCode not fully replaced |
 | branch | `stage4-an-shell` |
-| tip | `ed17538810` |
+| tip | `ed17538810` (docs tip `799f176044`) |
+| verifier | independent re-ran shell/an **35 pass**; live CDP RESULT `ok:true` (marker `1792412305559`); shot `20` YOU visible; timeline `display:none` |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | scope | AnShell owns user+assistant text Conversation; suppress OpenCode timeline under AnShell; fix card flex crush |
 | running-DEV | ACTIVE (watch-as-you-build CDP); running ≠ PASS |
@@ -61,4 +62,8 @@ CDP probe: `docs/an-rewrite/evidence/cdp-probe-stage4-11-own-stream.mjs` → RES
 - Stage 4 complete
 - OpenCode fully replaced
 - Install merge / push / promote
-- INDEPENDENT PASS (leave for verifier)
+- running-DEV / Stage 8 acceptance PASS
+
+## Independent verification (2026-10-19)
+
+PASS on own-stream scope only. Evidence: `business-control/evidence/2026-10-19-stage4-11-independent-pass.txt`.

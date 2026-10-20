@@ -1,0 +1,7 @@
+﻿recorded=2026-10-18
+task=AP-STAGE4-03
+event=composer after screenshot + pixel samples
+before=01-conversation-default.png center #121B39
+after=05-composer-an-tokens-after.png center #020509
+hwnd=electron PID 59784 PrintWindow PW_RENDERFULLCONTENT
+pass_claim=false

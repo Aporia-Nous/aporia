@@ -1,0 +1,40 @@
+{
+  "finding": "E26",
+  "steps": 20,
+  "selectsPerStep": 6,
+  "select": {
+    "samples": 120,
+    "snapshotCalls": 20,
+    "hits": 100,
+    "misses": 20,
+    "p50Ms": 0.172,
+    "p95Ms": 0.538,
+    "maxMs": 3.291
+  },
+  "due": {
+    "iters": 40,
+    "messageCount": 48,
+    "cheapP50Ms": 0.001,
+    "cheapP95Ms": 0.005,
+    "preciseP50Ms": 0.012,
+    "preciseP95Ms": 0.059,
+    "lastCheapTokens": 1840,
+    "lastPreciseTokens": 1840
+  },
+  "publish": {
+    "samples": 32,
+    "p50Ms": 0.405,
+    "p95Ms": 1.142,
+    "maxMs": 2.045
+  },
+  "sse": {
+    "events": 48,
+    "subscribers": 2,
+    "offers": 48,
+    "encodeMicros": 137.7,
+    "offerP50Ms": 0.005,
+    "offerP95Ms": 0.02,
+    "overflowDrops": 0
+  },
+  "measuredAt": "2026-10-20T02:39:01.562Z"
+}

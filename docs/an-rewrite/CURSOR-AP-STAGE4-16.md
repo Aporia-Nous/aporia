@@ -2,11 +2,12 @@
 
 | Field | Value |
 |-------|-------|
-| status | **OPEN implemented+live-DEV** — **not** INDEPENDENT PASS; **not** Stage 4 complete |
+| status | **INDEPENDENT PASS** (ice material punch scope) — **not** Stage 4 complete |
 | branch | `stage4-an-shell` |
-| tip | `a9991fa848` (docs tip; code `f153ce1936`) |
+| tip | `bf6e89c418` (docs sync; code `f153ce1936`) |
 | code | `f153ce1936` |
 | base | `5167449bd7` (AP-STAGE4-15 INDEPENDENT PASS tip) |
+| independent_verify | 2026-10-19 — re-ran shell/an+flows **86 pass**; CDP `1792420288469`; non-regress 12/13/14/15/4E/BF-01; board evidence `2026-10-19-stage4-16-independent-pass.txt` |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | scope | Design-audit high: stronger blur / translucency / specular on AnShell panels, composer dock, Contraptions drawer — match approved AN ice-glass (not OpenCode void charcoal) |
 | merge/push/install | **No** |
@@ -33,7 +34,7 @@ STAGE4-08/09 residual: ice translucency subtle on void; live UI still read as op
 | `54-ice-punch-computer-view.png` | Computer View rails |
 | `55-ice-punch-conversation-final.png` | Back to Conversation |
 
-Live CDP: `cdp-probe-stage4-16-ice-punch.mjs` → RESULT `ok:true` marker `AP-STAGE4-16 ice-punch 1792420030131`  
+Live CDP (independent re-run): `cdp-probe-stage4-16-ice-punch.mjs` → RESULT `ok:true` marker `AP-STAGE4-16 ice-punch 1792420288469`  
 - `--an-blur=40px` / `--an-blur-strong=64px` / saturate 1.32  
 - panel α 0.28 / raised 0.36 / sheen 0.14 / edge 0.28  
 - roster/nav/card/dock backdrop blur live; composer void `#020509`; gold `#f0c66d`  
@@ -42,24 +43,27 @@ Live CDP: `cdp-probe-stage4-16-ice-punch.mjs` → RESULT `ok:true` marker `AP-ST
 
 ## Tests
 
-`bun test src/shell/an src/aporia/flows-util.test.ts` — **86 pass / 0 fail**.
+`bun test src/shell/an src/aporia/flows-util.test.ts` — **86 pass / 0 fail** (independent re-run).
 
-## Non-regression (live CDP)
+## Non-regression (live CDP, independent re-run)
 
-- STAGE4-12 → `ok:true` marker `AP-STAGE4-12 composer 1792420048328`
-- STAGE4-13 → `ok:true` marker `AP-STAGE4-13 chrome 1792420049489`
-- STAGE4-15 → `ok:true` marker `AP-STAGE4-15 cards-in-stream 1792420059078`
-- STAGE4-14 presence → `ok:true` marker `AP-STAGE4-14 presence 1792420090516` (13 Listening / 0 Unknown)
+- STAGE4-12 → `ok:true` marker `AP-STAGE4-12 composer 1792420318578`
+- STAGE4-13 → `ok:true` marker `AP-STAGE4-13 chrome 1792420320832`
+- STAGE4-15 → `ok:true` marker `AP-STAGE4-15 cards-in-stream 1792420323482`
+- STAGE4-14 presence → `ok:true` marker `AP-STAGE4-14 presence 1792420326771` (13 Listening / 0 Unknown)
 - 4E → first toggle-flake `ok:false`; re-run `ok:true` mountOk
-- BF-01 → `ok:true` marker `AP-BF-01 attach 1792420059040`
+- BF-01 → `ok:true` marker `AP-BF-01 attach 1792420338489`
 
 ## Honest residuals
 
 - Frost still subtle on near-void underlays (backdrop needs depth behind panels); token+CSS+drawer over content verified.
 - Photographic mockup nebula underlay still not shipped (gradients only; no purple/nebula AI-slop).
 - BF-05 / CE-01 / 4F left alone.
-- **Not** INDEPENDENT PASS (board OPEN implemented+live-DEV). Not Stage 4 complete. No merge/push.
+- Not Stage 4 complete; no merge/push.
 
 ## Not claimed
 
-INDEPENDENT PASS · Stage 4 complete · merge · push · Stage 8 · OpenCode fully replaced
+- Stage 4 complete
+- merge / push / promote
+- OpenCode fully replaced
+- Photographic nebula underlay / Stage 8

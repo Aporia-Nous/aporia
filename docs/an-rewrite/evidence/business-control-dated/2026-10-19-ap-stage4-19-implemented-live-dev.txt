@@ -1,0 +1,43 @@
+AP-STAGE4-19 — OPEN implemented+live-DEV (NOT INDEPENDENT PASS)
+tasks=AP-STAGE4-19
+work_date=2026-10-19
+recorded_date=2026-10-19
+actor=cursor-stage4-writer
+verdict=OPEN implemented+live-DEV
+not_claimed=INDEPENDENT PASS; Stage 4 complete; merge; push; self-PASS
+
+branch=stage4-an-shell
+tip=d71979708d
+code=5c42714fb6
+base=a9b68f07e4
+report=docs/an-rewrite/CURSOR-AP-STAGE4-19.md
+worktree=C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+
+scope=
+1. Presence character / micro-spring personality (AN ice-glass; not Grok copy)
+2. Fuller Documents viewer (MD fences/tables/quotes/ol + CSV + free-path docx text)
+3. Settings AN ice-glass ownership (data-an-owned=settings; STAGE4-13 bar)
+
+tests=
+bun test src/shell/an src/aporia/flows-util.test.ts → 115 pass / 0 fail
+bun test ../core/src/mission/control.test.ts → 6 pass / 0 fail
+
+live_cdp=
+bun docs/an-rewrite/evidence/cdp-probe-stage4-19-presence-docs-settings.mjs APORETIC_CDP_PORT=9223
+→ RESULT ok:true EXIT=0 marker AP-STAGE4-19 presence-docs-settings 1792425160597
+presenceOk=true (personality stage4-19; micro-spring; companion aura; 13 Listening / 0 Unknown)
+docsOk=true (fuller MD table+pre+bq; data-fuller=stage4-19)
+settingsOk=true (owned=settings; theme=an; blur(40px); OC wordmark hidden)
+ws.close+process.exit retained (STAGE4-18 hang fix)
+
+shots=68-stage4-19-presence-personality.png; 69-stage4-19-documents-fuller.png; 70-stage4-19-settings-an.png; 71-stage4-19-shell-nonregress.png
+
+residuals_ok=
+xlsx/pptx grids/slides not rendered (no paid Office deps)
+Settings skinned OC surface (not ground-up rewrite)
+About upstream credits faded not removed
+CDP back-nav shell remount flake after Settings (gates still ok)
+
+preserved=STAGE4-11…18; BF-01…06
+isolated_DEV=yes
+prod_DB=untouched

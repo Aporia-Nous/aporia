@@ -1,0 +1,29 @@
+AP-ENGINE-E07 + AP-ENGINE-E03 writer live-DEV evidence
+recorded_date: 2026-10-19 (America/Chicago)
+work_date: 2026-10-19
+status: OPEN implemented+live-DEV (NOT INDEPENDENT PASS; NOT self-PASS)
+worktree: C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+branch: stage4-an-shell
+base: 538e7b1999 (AP-ENGINE-PORT-01)
+code: 7467e14aee
+tip: ac95b11f0f
+
+Shipped:
+  E07 — boundRecentText + [recent truncated to keep] in splitConversation (Stage0 AP-CURSOR-09 port)
+  E03 — Compaction.Delta 100ms batch; flush stepFinish/success/interrupt; cancel on Failed
+
+Unit (packages/core):
+  bun run test -- test/session-compaction.test.ts → 24 pass
+  + compact/native/transport/projector focused → 42 pass / 0 fail
+  typecheck exit 0
+
+Live CDP (APORETIC_CDP_PORT=9223):
+  probe: docs/an-rewrite/evidence/cdp-probe-engine-e07-e03.mjs
+  RESULT ok:true EXIT=0
+  marker: AP-ENGINE-E07-E03 send 1792428034546
+  engine=oc-server enginePort=01 owned=composer timelineDisplay=none
+  note: EnginePort send non-regress; compaction behavior proven by unit
+  ws.close + process.exit
+
+Not claimed: INDEPENDENT PASS, E01/E02/E04, PORT-02, merge/push/install
+Follow-up: independent verifier; next ranked E01/E02/E04

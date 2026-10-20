@@ -1,0 +1,33 @@
+AP-ENGINE-E04 writer live-DEV evidence
+recorded_date: 2026-10-19 (America/Chicago)
+work_date: 2026-10-19
+status: OPEN implemented+live-DEV (NOT INDEPENDENT PASS; NOT self-PASS)
+worktree: C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+branch: stage4-an-shell
+base: 07a9b89719 (AP-ENGINE-E01/E02 INDEPENDENT PASS)
+code: ffcf38d2ae
+tip: b3c1e3de53
+
+Shipped:
+  E04 — skip end Snapshot.capture when no local tools ran
+       shouldCaptureEndSnapshot + toolMayTouchFilesystem heuristic
+       reuse start snapshot + files=[] on text-only steps
+       dual-capture when any local tool ran (prefer false positive)
+       publisher.recordedToolNames for FS-name safety net
+       configure(false) unchanged
+
+Unit (packages/core):
+  bun test test/session-step.test.ts test/snapshot.test.ts test/session-compaction.test.ts test/session-context-cache.test.ts → 47 pass
+  typecheck exit 0
+
+Live CDP (APORETIC_CDP_PORT=9223):
+  probe: docs/an-rewrite/evidence/cdp-probe-engine-e04.mjs
+  RESULT ok:true EXIT=0
+  marker: AP-ENGINE-E04 send 1792429606022
+  engine=oc-server enginePort=01 owned=composer timelineDisplay=none
+  note: EnginePort send non-regress; E04 behavior proven by unit
+  ws.close + process.exit
+
+Not claimed: INDEPENDENT PASS, E06, E09, PORT-02, merge/push/install
+Follow-up: independent verifier; next ranked E06 after PASS
+Left alone: E06, E09, PORT-02

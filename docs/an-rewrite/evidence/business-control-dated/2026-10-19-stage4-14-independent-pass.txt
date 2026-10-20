@@ -1,0 +1,25 @@
+recorded=2026-10-19
+task=AP-STAGE4-14
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+not_claimed=Stage 4 complete; merge; push; OpenCode fully replaced; Stage 8; simultaneous five moods at idle
+scope=Companion presence five-state live signals: idle/known→listening; Unknown only when no signal; busy selected→thinking; 4C not overclaimed as live five-state
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+HEAD=93d29c01b4ae5229f3ce804e7da16a41b1a85e9f
+code=e51a40692de8a594ea970214f618f8fb2ed16e72
+base=747401a865baa0397dc321254fc2423967221e02
+base_is_ancestor=true
+composer_chrome=untouched (AP-STAGE4-13 PASS retained)
+report=docs/an-rewrite/CURSOR-AP-STAGE4-14.md
+tests=packages/app bun test src/shell/an src/aporia/flows-util.test.ts → 80 pass 0 fail (387 expect)
+live_cdp_presence=bun docs/an-rewrite/evidence/cdp-probe-stage4-14-presence.mjs → RESULT ok:true marker AP-STAGE4-14 presence 1792418779486; rosterLen=13 fiveCount=13 unknownCount=0 counts.listening=13
+live_cdp_busy=bun docs/an-rewrite/evidence/cdp-probe-stage4-14-busy.mjs → RESULT ok:true marker AP-STAGE4-14 busy 1792418786240; selectedPresence=thinking counts.thinking=1 listening=12 unknownCount=0
+live_cdp_non_regress_STAGE4-12=RESULT ok:true marker AP-STAGE4-12 composer 1792418793902 owned=composer YOU visible
+live_cdp_non_regress_STAGE4-13=RESULT ok:true marker AP-STAGE4-13 chrome 1792418803270 controlsHidden placeholder Message Grok…
+live_cdp_non_regress_4E=first run ok:false (panel already open → toggle closed flake); re-run RESULT ok:true mountOk+ownershipOk panelW=420 subtitle Automations & integrations
+live_cdp_non_regress_BF01=RESULT ok:true marker AP-BF-01 attach 1792418803190 liveOk+disconnectOk
+screenshots=worktree 43–46; board 2026-10-19-43..46
+4C_honesty=AP-STAGE4-4C DONE retained chrome/source/fixture PASS only; live five-state = AP-STAGE4-14 (not 4C)
+residual_ok=waiting needs live permission; speaking/listening voice moods need active call; not all five moods simultaneous at idle (expected)
+isolation=no merge/push; BF-05/CE-01/cards-in-stream untouched; not Stage 4 complete

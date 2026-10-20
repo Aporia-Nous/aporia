@@ -1,0 +1,36 @@
+AP-ENGINE-E25 + AP-ENGINE-E11 — OPEN implemented+live-DEV (NOT INDEPENDENT PASS; NOT self-PASS)
+tasks=AP-ENGINE-E25,AP-ENGINE-E11
+work_date=2026-10-19
+recorded_date=2026-10-19
+actor=cursor-stage4-writer
+verdict=OPEN implemented+live-DEV
+not_claimed=INDEPENDENT PASS; self-PASS; Stage 4 complete; merge; push; Stage 8 PASS
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+base=1606bc7af9
+code=377670f168
+tip=8d2317def5
+report=docs/an-rewrite/CURSOR-AP-ENGINE-E25-E11.md
+audit=business-control/ENGINE-EFFICIENCY-AUDIT.md §E25 §E11
+
+shipped=
+- compaction.ts needsLocalHistoryForNativeRetain; trigger path reuses context.messages unless checkpoint bound
+- SessionHistory.load(local) only when native checkpoint would hide earlier real users
+- provider-context.ts jsonSanitize walk (omit undefined; toJSON/Media base64; array undefined→null)
+- encode uses Schema.decodeUnknownSync(Schema.Json)(jsonSanitize) — no stringify→fromJsonString
+- summarize / endpoint native / EnginePort send/stream left intact
+
+tests=bun test packages/core session-provider-context + session-native-compaction → 16 pass 0 fail; packages/app src/shell/an → 118 pass 0 fail
+cdp=bun docs/an-rewrite/evidence/cdp-probe-engine-e25-e11.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-ENGINE-E25-E11 send 1792461336772; ws.closed
+non_regress=enginePort=03; Settings 02 AN-owned hasOcScreen=false; STAGE4-12/13 owned=composer Message Grok…; 4E Contraptions; EnginePort send YOU
+shots=87,88,89
+
+residuals_ok=
+- after prior native checkpoint, local reload still required (correctness)
+- running-DEV may need hard restart to pick up core tip; CDP = EnginePort/sessions non-regress
+- CDP markerHit may prefix-match prior board markers on crowded stream
+- pass-2 next ranked E27/E23/E24 after independent PASS
+
+note=Completes pass-2 top-5 act-first after E21/E22/E20
+next=independent verifier PASS bar
+no_merge_push=1

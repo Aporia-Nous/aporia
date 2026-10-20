@@ -1,0 +1,24 @@
+recorded=2026-10-19
+tasks=AP-ENGINE-PORT-01
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=EnginePort + OcServerEnginePort; AnShell send/stream via port; Settings residual → PORT-02
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=da612fe6fb
+tip=538e7b1999
+base=d71979708d
+head_verified=538e7b1999fc47d25df3ce900ca8bca1107108f2 matches claimed tip; code da612fe6fb ancestor; base d71979708d ancestor (STAGE4-19 PASS)
+report=docs/an-rewrite/CURSOR-AP-ENGINE-PORT-01.md
+plan=business-control/ENGINE-PORT-TODAY.md
+tests_re_ran=packages/app bun test src/shell/an → 115 pass 0 fail (incl. OcServerEnginePort 4)
+live_cdp=bun docs/an-rewrite/evidence/cdp-probe-engine-port-01.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-ENGINE-PORT-01 send 1792427770079
+live_cdp_detail=engine=oc-server enginePort=01; send→YOU visible (userTexts include independent marker); owned=composer; composerOnly=true; ownConv=true; timelineDisplay=none; convH=578; ws.close+process.exit
+non_regress=STAGE4-12/13 light: owned=composer composerOnly timeline none placeholder Message Grok…; 4E Contraptions open ok part=contraptions Automations & integrations
+screenshots=worktree docs/an-rewrite/evidence/screenshots-2026-10-18/72-engine-port-01-before-send.png; 73-engine-port-01-after-send-you.png; 74-engine-port-01-contraptions-light.png; board copies business-control/evidence/2026-10-19-72..74-engine-port-01-*.png (re-shot during independent CDP)
+writer_prior_marker=AP-ENGINE-PORT-01 send 1792427538659 (retained in stream beside independent marker)
+known_residual_ok=Settings still skinned OC React → AP-ENGINE-PORT-02; dual sync/poll → PORT-03; classic layout outside AnShell still raw data.session.prompt
+isolation=no merge/push; product C:\Tools\aporia not this branch; no product features added by verifier
+not_claimed=Stage 4 complete; OpenCode replaced; agent loop rewritten; Settings AN-native; merge; push; install; Stage 8 / running-DEV acceptance PASS
+deferred=AP-ENGINE-PORT-02 Settings; AP-ENGINE-EFFICIENCY-01 catalog patches separately authorized
+worktree_note=unrelated dirty docs/screenshot mods may be present at review time; verifier did not implement product code

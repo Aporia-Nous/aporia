@@ -2,9 +2,9 @@
 
 | Field | Value |
 |-------|-------|
-| status | **OPEN implemented+live-DEV** (**not** INDEPENDENT PASS; **not** self-PASS; **not** Stage 4 complete; **no** merge/push) |
+| status | **INDEPENDENT PASS** (**not** Stage 4 complete; **no** merge/push) |
 | branch | `stage4-an-shell` |
-| tip | `f0c2547b10` |
+| tip | `a842027e63` |
 | code | `2bd8664241` |
 | base | `0550905a33` (AP-ENGINE-E21 + PORT-03 INDEPENDENT PASS) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
@@ -27,22 +27,25 @@ Stop MCP list-changed / session-recover / multi-server announce bursts from forc
 - Recover storm cap: **2 failures / 30s** → surface `failed` status, stop auto-retry (`recoverCapped` / `noteRecoverFailure`); `onSessionExpired` respects cap.
 - Successful recover clears storm tracker; left alone: OAuth Credential.Switched path, Code Mode flags, `onClose` no auto-restart.
 
-## Writer verification (2026-10-19) — not INDEPENDENT PASS
+## Independent verification (2026-10-19)
 
-- `bun test` packages/core MCP suites → **111 pass / 1 skip / 0 fail** (includes E22 fingerprint + multi-server coalesce + existing coalesce/plugin-transform)
+- HEAD `a842027e63` verified; code `2bd8664241` + base `0550905a33` ancestors
+- Source bar confirmed: 400ms debounce, `pendingServers`, `catalogFingerprint` skip, recover 2/30s
+- `bun test` packages/core MCP-named suites → **112 pass / 1 skip / 0 fail** (E22 fingerprint + multi-server coalesce + catalogFingerprint unit pass)
 - `bun test` packages/app `src/shell/an` → **118 pass / 0 fail**
-- Live CDP `cdp-probe-engine-e22.mjs` (`APORETIC_CDP_PORT=9223`) → RESULT `ok:true` **EXIT=0** marker `AP-ENGINE-E22 send 1792460226301` (ws closed)
-  - enginePort=`03`; send → YOU; Settings `02` AN-owned; Message Grok…; 4E Contraptions
-- Shots: `81`–`83`
+- Live CDP `cdp-probe-engine-e22.mjs` (`APORETIC_CDP_PORT=9223`) → RESULT `ok:true` **EXIT=0** marker `AP-ENGINE-E22 send 1792460442031` (ws closed)
+  - enginePort=`03`; typed+sendClick; Settings `02` AN-owned; Message Grok…; 4E Contraptions
+- Shots: `81`–`83` (re-shot)
 
 ## Honest residuals
 
 - True per-server incremental editor mutate left as future (fingerprint gate + full-catalog reload still correct when defs change)
 - E20 SSE fanout / E25 native compact / E11 left alone
+- CDP `markerHit` may prefix-match a prior E22 YOU turn on a crowded stream; typed+sendClick+RESULT still met non-regress bar
 - Running-DEV may still be on prior binary until hard restart picks up core tip — CDP proves EnginePort/sessions/Settings/BYOK path non-regress
-- **Not** claimed: INDEPENDENT PASS; self-PASS; merge; push; Stage 4/8 PASS
+- **Not** claimed: Stage 4/8 PASS; merge; push; E20/E25/E11
 
 ## Board
 
-- `AP-ENGINE-E22` → **OPEN** implemented+live-DEV (await independent verifier)
+- `AP-ENGINE-E22` → **DONE** INDEPENDENT PASS
 - Next act-first catalog: E20 / E25 / E11

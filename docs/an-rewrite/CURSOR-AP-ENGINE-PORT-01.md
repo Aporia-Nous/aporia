@@ -2,9 +2,9 @@
 
 | Field | Value |
 |-------|-------|
-| status | **OPEN — implemented + live-DEV** (writer verified; **not** INDEPENDENT PASS; **not** Stage 4 complete) |
+| status | **INDEPENDENT PASS** (EnginePort send/stream scope; Settings residual → PORT-02; **not** Stage 4 complete) |
 | branch | `stage4-an-shell` |
-| tip | `78dcfc1275` (docs; code `da612fe6fb`) |
+| tip | `538e7b1999` (docs; code `da612fe6fb`) |
 | code | `da612fe6fb` |
 | base | `d71979708d` (AP-STAGE4-19 INDEPENDENT PASS tip) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
@@ -45,10 +45,20 @@ Kill wrap tax: AnShell product UI talks a thin `EnginePort`; OC server/core Sess
 - Settings still skinned OC React (PORT-02) — not AN-native rewrite.
 - Dual sync/poll shrink deferred (PORT-03).
 - Queue/composer outside AnShell still use raw `data.session.prompt` (classic layout).
-- **Not** claimed: OpenCode replaced; agent loop rewritten; Stage 4 complete; INDEPENDENT PASS.
+- **Not** claimed: OpenCode replaced; agent loop rewritten; Stage 4 complete; Settings AN-native.
 - No merge/push/install/prod DB.
+
+## Independent verification (2026-10-19)
+
+- HEAD tip `538e7b1999` / code `da612fe6fb` / base `d71979708d` verified
+- `bun test src/shell/an` → **115 pass / 0 fail** (re-run)
+- Live CDP `cdp-probe-engine-port-01.mjs` (`APORETIC_CDP_PORT=9223`) → RESULT `ok:true` **EXIT=0** marker `AP-ENGINE-PORT-01 send 1792427770079`
+  - engine=`oc-server` enginePort=`01`; send → YOU; `data-an-owned=composer`; timeline `display:none`
+  - STAGE4-13 light: `Message Grok…`; 4E Contraptions open
+- Shots 72–74 re-captured; board evidence `business-control/evidence/2026-10-19-ap-engine-port-01-independent-pass.txt`
+- No product features added by verifier; no merge/push
 
 ## Board
 
-- `AP-ENGINE-PORT-01` → **OPEN** implemented + live-DEV (await independent verify — do **not** self-PASS)
+- `AP-ENGINE-PORT-01` → **DONE / INDEPENDENT PASS**
 - `AP-ENGINE-PORT-02` → OPEN (AN Settings via port; drop OC Settings React import)

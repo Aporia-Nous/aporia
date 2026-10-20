@@ -1,0 +1,18 @@
+﻿PLAN ONLY 2026-10-19 — AP-COMPUTER-ARCH
+
+Architecture: business-control/BROWSER-FIRST-COMPUTER-VIEW.md
+Default: browser-first (user-consented local browser workspace)
+Optional later: VM/Podman (AP-BF-05 / Stage 7)
+
+Audit (stage4 worktree) — exists:
+- AnShell Computer View chrome + computerLive:false honesty (shell/an/*)
+- plugin-browser attach + tools (packages/plugin-browser/)
+- gui-extensions browser pane + CDP (packages/gui-extensions/src/browser/)
+- Aporia iframe Browser tab (right-panel; replaces noVNC comment in prefs)
+- FlowRunner F1 (packages/core/src/flow/)
+- Missing: mission/control.ts (build-list Stage 5)
+
+Boarded: AP-CE-01..02, AP-BF-01..05
+Next slice recommend: AP-STAGE4-4E then AP-BF-01 (or BF-01 if Computer View prioritized)
+
+No product code. No fake Live. No exploit content. No merge/push.

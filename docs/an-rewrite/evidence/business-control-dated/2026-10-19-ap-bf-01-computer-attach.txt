@@ -1,0 +1,27 @@
+AP-BF-01 — Browser-first Computer View consent/attach + honest computerLive
+Work date / recorded: 2026-10-19 (America/Chicago)
+Worktree: C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4 branch stage4-an-shell
+Base tip: 13a31f0fbd (AP-STAGE4-4E tip sync)
+Code/tip: 997aaf54c0
+
+Implemented:
+- Consent → Confirm attach local-browser workspace (Edge/Chrome family Chromium path; not VM)
+- computerLive true only when consented+attached; Disconnect clears Live
+- Labeled Bot cursor overlay when Live (UI only; page pixels = BF-02)
+- Session rescope clears Live; home cannot attach without session
+- STAGE4-11/12 ownership markers preserved (unit + live CDP)
+
+Tests: bun test src/shell/an + flows-util → 49 pass / 0 fail
+
+live-DEV verified (executor CDP):
+- Probe: docs/an-rewrite/evidence/cdp-probe-stage4-bf01-attach.mjs
+- RESULT ok:true liveOk:true disconnectOk:true backend local-browser; composerOwned+streamOwned
+- Shots: business-control/evidence/2026-10-19-26-bf01-computer-live-attach.png
+         business-control/evidence/2026-10-19-27-bf01-computer-disconnected.png
+
+Not claimed:
+- INDEPENDENT PASS (await verifier)
+- Stage 4 complete
+- Page feed (BF-02) / control lock (BF-03) / external Edge connect (BF-04)
+- plugin-browser pane RPC open (consent gate only this slice)
+- merge / push / install / production

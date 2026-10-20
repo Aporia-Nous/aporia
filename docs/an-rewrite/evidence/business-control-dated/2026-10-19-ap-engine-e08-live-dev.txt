@@ -1,0 +1,31 @@
+AP-ENGINE-E08 OPEN implemented+live-DEV (writer) — 2026-10-19
+worktree: C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+branch: stage4-an-shell
+code: 45fdba0432
+base: 933595427f (E23 DONE MEASURED + E24 INDEPENDENT PASS)
+tip: d683e31f80
+
+Shipped:
+- recentMessageIDs optional on Compaction Running/Completed + Started/Ended
+- splitConversation IDs when boundRecentText does not truncate; dual-write recent string
+- SessionHistory expand IDs after checkpoint; clear in-memory recent on full expand
+- toLLMMessages omits recent-context when IDs set and recent cleared; string fallback otherwise
+- flatten uses dual-written string only when structured recent not already in context
+
+Tests (writer):
+- packages/core session-compaction + history-open-tools + runner-message: 60 pass / 0 fail
+- packages/core native + projector + provider-context: 33 pass / 0 fail
+- packages/app src/shell/an: 118 pass / 0 fail
+
+Live CDP:
+- probe: docs/an-rewrite/evidence/cdp-probe-engine-e08.mjs
+- APORETIC_CDP_PORT=9223
+- RESULT ok:true EXIT=0
+- marker: AP-ENGINE-E08 send 1792463120727
+- ws closed
+- enginePort=03; Settings 02 AN-owned hasOcScreen=false; Message Grok…; Contraptions 4E
+- shots: 96-engine-E08-before-send.png, 97-engine-E08-after-send-you.png, 98-engine-E08-contraptions-light.png
+
+NOT claimed: INDEPENDENT PASS; self-PASS; merge; push; Stage 4/8 PASS; E26/E12/E14
+Residuals: truncate→string-only; partial ID→string fallback; structured tool parts may exceed keep estimate; DEV may need hard restart for product path
+Await: independent verifier

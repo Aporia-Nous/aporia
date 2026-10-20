@@ -2,9 +2,9 @@
 
 | Field | Value |
 |-------|-------|
-| status | **OPEN implemented+live-DEV** (**no** self-PASS / INDEPENDENT PASS; **no** merge/push; **not** Stage 4/8 PASS) |
+| status | **INDEPENDENT PASS** (**no** merge/push; **not** Stage 4/8 PASS) |
 | branch | `stage4-an-shell` |
-| tip | `b3cc466cad` |
+| tip | `d683e31f80` |
 | code | `45fdba0432` |
 | base | `933595427f` (AP-ENGINE-E23 DONE MEASURED + E24 INDEPENDENT PASS) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
@@ -35,16 +35,16 @@ Stop re-sending stringified recent (tool calls as text) on every post-compact pr
 ### Projector / updater
 - Persist `recentMessageIDs` on Started/Ended.
 
-## Writer verification (2026-10-19) — OPEN implemented+live-DEV
+## Independent verification (2026-10-19) — INDEPENDENT PASS
 
-- Code `45fdba0432` on base `933595427f`
+- HEAD `d683e31f80` verified; code `45fdba0432` + base `933595427f` ancestors
 - `bun test` packages/core session-compaction + history-open-tools + runner-message → **60 pass / 0 fail**
-- `bun test` packages/core native + projector + provider-context → **33 pass / 0 fail**
 - `bun test` packages/app `src/shell/an` → **118 pass / 0 fail**
-- Live CDP `cdp-probe-engine-e08.mjs` (`APORETIC_CDP_PORT=9223`) → RESULT `ok:true` **EXIT=0** marker `AP-ENGINE-E08 send 1792463120727` (ws closed)
+- Live CDP `cdp-probe-engine-e08.mjs` (`APORETIC_CDP_PORT=9223`) → RESULT `ok:true` **EXIT=0** marker `AP-ENGINE-E08 send 1792463322944` (ws closed)
   - enginePort=`03`; typed+sendClick; Settings `02` AN-owned; Message Grok…; 4E Contraptions
-- Shots: `96`–`98`
-- Evidence: `business-control/evidence/2026-10-19-ap-engine-e08-live-dev.txt`
+- Shots: `96`–`98` re-shot
+- Evidence: `business-control/evidence/2026-10-19-ap-engine-e08-independent-pass.txt`
+- Source bar confirmed: dual-write; expand→turns; omit string on expand success; truncate/partial-ID fallback
 
 ## Honest residuals
 
@@ -54,9 +54,9 @@ Stop re-sending stringified recent (tool calls as text) on every post-compact pr
 - Live DEV binary may still be pre-E08 until hard restart — CDP proves EnginePort/sessions non-regress
 - CDP `markerHit` may prefix-match prior board markers on a crowded stream; typed+sendClick+RESULT still met bar
 - Left alone (same-slice conflict / L scope): E26, E12, E14
-- **Not** claimed: INDEPENDENT PASS; Stage 4/8 PASS; merge; push
+- **Not** claimed: Stage 4/8 PASS; merge; push
 
 ## Board
 
-- `AP-ENGINE-E08` → **OPEN** implemented+live-DEV (await independent verifier)
-- Next ranked residual after E08 PASS: E26 / E12 / E14
+- `AP-ENGINE-E08` → **DONE** INDEPENDENT PASS
+- Next ranked residual: E26 / E12 / E14

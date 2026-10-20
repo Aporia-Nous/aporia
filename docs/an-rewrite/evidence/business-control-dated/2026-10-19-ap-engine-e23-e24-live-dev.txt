@@ -1,0 +1,41 @@
+AP-ENGINE-E23 + AP-ENGINE-E24 — OPEN implemented+live-DEV (NOT INDEPENDENT PASS; NOT self-PASS)
+tasks=AP-ENGINE-E23,AP-ENGINE-E24
+work_date=2026-10-19
+recorded_date=2026-10-19
+actor=cursor-stage4-writer
+verdict=OPEN implemented+live-DEV
+not_claimed=INDEPENDENT PASS; self-PASS; Stage 4 complete; merge; push; Stage 8 PASS; E23 product code PASS; wall-clock win vs baseline
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+base=98fe8869b9
+code=3ef4237673
+tip=933595427f
+report=docs/an-rewrite/CURSOR-AP-ENGINE-E23-E24.md
+audit=business-control/ENGINE-EFFICIENCY-AUDIT.md §E23 §E24
+
+shipped_E23_measure=
+- bus-multi-session-stress.test.ts: 8 sessions × 24 durable publishes on file WAL
+- assert journal_mode=wal; busyOrLocked=0; seq complete
+- metrics → evidence/2026-10-19-ap-engine-e23-metrics.json
+- sample: publishes=192 busyOrLocked=0 p50Ms≈0.37 p95Ms≈26.2 maxMs≈40
+- notify-outside-lock already E27 — bus locks left alone
+
+shipped_E24_code=
+- CONTEXT_OVERFLOW_CODES set checked before phrase heuristics
+- narrow false-positive exclusions (concurrent/output-limit/config) without breaking Workers AI 413→context-overflow
+- unit fixtures for structured codes + false positives
+
+tests=provider-error 39; bus+E23 stress 55; shell/an 118
+cdp=bun docs/an-rewrite/evidence/cdp-probe-engine-e23-e24.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-ENGINE-E23-E24 send 1792462372432; ws.closed
+non_regress=enginePort=03; Settings 02 AN-owned hasOcScreen=false; STAGE4-12/13 owned=composer Message Grok…; 4E Contraptions; EnginePort send YOU
+shots=93,94,95
+
+residuals_ok=
+- E23 measure-only — OPEN with metrics; not product code PASS
+- single SQLite writer + notifyLocks serial remain
+- per-provider overflow corpus / frames-sec telemetry deferred
+- CDP markerHit may prefix-match prior board markers on crowded stream
+
+note=E23 does not claim code PASS; E24 awaits independent verifier; no self-PASS
+next=independent verifier for E24; E23 stays OPEN measure evidence unless Ali elevates
+no_merge_push=1

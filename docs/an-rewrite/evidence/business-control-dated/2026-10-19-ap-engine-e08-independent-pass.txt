@@ -1,0 +1,36 @@
+recorded=2026-10-19
+tasks=AP-ENGINE-E08
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=structured recentMessageIDs dual-write; history expand into turns + clear recent; toLLMMessages omit string dump on expand success; truncate/missing-ID string fallback; EnginePort send/Settings/Contraptions non-regress
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=45fdba0432
+tip=d683e31f80
+base=933595427f
+head_verified=d683e31f80fe255f59cd53260ac4289dc5b98f16 matches claimed tip; code 45fdba0432 + base 933595427f ancestors
+report=docs/an-rewrite/CURSOR-AP-ENGINE-E08.md
+audit=business-control/ENGINE-EFFICIENCY-AUDIT.md §E08
+
+source_bar=
+  packages/schema session-message — optional recentMessageIDs on Compaction Running/Completed
+  packages/core session/compaction.ts — splitConversation dual-writes recent string + IDs when boundRecentText does not truncate; IDs undefined on truncate
+  packages/core session/history.ts — expandStructuredRecent inserts IDs after checkpoint; clears in-memory recent on full resolve; partial ID keeps dual-written string
+  packages/core session/runner/to-llm-message.ts — omits <recent-context> when recentMessageIDs set and recent cleared; string fallback when recent remains
+  projector/updater + session-event — persist recentMessageIDs on Started/Ended
+
+tests_re_ran=
+  packages/core bun test test/session-compaction.test.ts test/session-history-open-tools.test.ts test/session-runner-message.test.ts → 60 pass 0 fail
+  packages/app bun test src/shell/an → 118 pass 0 fail
+
+live_cdp=bun docs/an-rewrite/evidence/cdp-probe-engine-e08.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-ENGINE-E08 send 1792463322944; ws.close+process.exit
+live_cdp_detail=enginePort=03; typed marker + sendClick ok; Settings owned=settings enginePort=02 hasOcScreen=false mark Aporetic/Aporia Nous; STAGE4-12/13 owned=composer timeline none Message Grok…; 4E Contraptions ok
+writer_prior_marker=AP-ENGINE-E08 send 1792463120727 (prior live-DEV)
+
+screenshots=worktree docs/an-rewrite/evidence/screenshots-2026-10-18/96-engine-E08-before-send.png; 97-engine-E08-after-send-you.png; 98-engine-E08-contraptions-light.png; board copies business-control/evidence/2026-10-19-96..98-engine-E08-*.png (re-shot during independent CDP)
+
+residuals_ok=truncate→string-only (no IDs); partial ID→string fallback; structured tool parts may exceed keep estimate; CDP markerHit may prefix-match prior E08 YOU turn on crowded stream (typed+sendClick+RESULT ok still met bar; last-5 userTexts showed writer marker 1792463120727); DEV hard-restart may still be needed for product E08 path
+isolation=no merge/push; product C:\Tools\aporia not this branch; no product features added by verifier
+not_claimed=Stage 4 complete; OpenCode replaced; agent loop rewrite; merge; push; install; Stage 8 / running-DEV acceptance PASS
+deferred=AP-ENGINE-EFFICIENCY-02 next ranked residual E26/E12/E14
+worktree_note=unrelated dirty docs/screenshot mods present at review time; verifier did not implement product code

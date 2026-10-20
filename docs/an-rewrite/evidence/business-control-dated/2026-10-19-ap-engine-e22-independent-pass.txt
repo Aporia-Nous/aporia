@@ -1,0 +1,34 @@
+recorded=2026-10-19
+tasks=AP-ENGINE-E22
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=E22 MCP ToolsChanged RECONCILE_DEBOUNCE 400ms + pendingServers multi-server coalesce + catalogFingerprint skip tools.reload when unchanged + recover storm cap 2 failures / 30s; EnginePort/Settings/Contraptions non-regress
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=2bd8664241
+tip=a842027e63
+base=0550905a33
+head_verified=a842027e63dcb9733ef7a10d23e58f261925b919 matches claimed tip; code 2bd8664241 + base 0550905a33 ancestors
+report=docs/an-rewrite/CURSOR-AP-ENGINE-E22.md
+audit=business-control/ENGINE-EFFICIENCY-AUDIT.md §E22
+
+source_bar=
+  packages/core/src/tool/mcp.ts — RECONCILE_DEBOUNCE "400 millis"; pendingServers Set; catalogFingerprint sha1; applyCatalog skip → no tools.reload
+  packages/core/src/mcp/index.ts — RECOVER_FAIL_LIMIT=2; RECOVER_FAIL_WINDOW_MS=30_000; recoverCapped / noteRecoverFailure / onSessionExpired respects cap
+  packages/core/test/mcp.test.ts — E22 fingerprint skip + multi-server coalesce + catalogFingerprint unit
+
+tests_re_ran=
+  packages/core bun test mcp*.test.ts + plugin/mcp-codemode-defaults → 112 pass 1 skip 0 fail (E22 three tests pass)
+  packages/app bun test src/shell/an → 118 pass 0 fail
+
+live_cdp=bun docs/an-rewrite/evidence/cdp-probe-engine-e22.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-ENGINE-E22 send 1792460442031; ws.close+process.exit
+live_cdp_detail=enginePort=03; typed marker in composer + sendClick ok; Settings owned=settings enginePort=02 hasOcScreen=false mark Aporetic/Aporia Nous; STAGE4-12/13 owned=composer timeline none Message Grok…; 4E Contraptions ok
+writer_prior_marker=AP-ENGINE-E22 send 1792460226301 (prior live-DEV)
+
+screenshots=worktree docs/an-rewrite/evidence/screenshots-2026-10-18/81-engine-e22-before-send.png; 82-engine-e22-after-send-you.png; 83-engine-e22-contraptions-light.png; board copies business-control/evidence/2026-10-19-81..83-engine-e22-*.png (re-shot during independent CDP)
+
+residuals_ok=per-server incremental editor mutate deferred; E20 SSE / E25 native / E11 alone; CDP markerHit may prefix-match prior E22 YOU turn on crowded stream (typed+sendClick+RESULT ok still met bar); running-DEV may need hard restart for core tip
+isolation=no merge/push; product C:\Tools\aporia not this branch; no product features added by verifier
+not_claimed=Stage 4 complete; OpenCode replaced; agent loop rewrite; merge; push; install; Stage 8 / running-DEV acceptance PASS; E20; E25; E11
+deferred=AP-ENGINE-EFFICIENCY-02 next act-first E20/E25/E11
+worktree_note=unrelated dirty docs/screenshot mods present at review time; verifier did not implement product code

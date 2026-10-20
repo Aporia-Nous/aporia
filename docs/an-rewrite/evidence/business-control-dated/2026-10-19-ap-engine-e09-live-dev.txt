@@ -1,0 +1,31 @@
+AP-ENGINE-E09 writer live-DEV evidence
+recorded_date: 2026-10-19 (America/Chicago)
+work_date: 2026-10-19
+status: OPEN implemented+live-DEV (NOT INDEPENDENT PASS; NOT self-PASS)
+worktree: C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+branch: stage4-an-shell
+base: cec15203f8 (AP-ENGINE-E06 INDEPENDENT PASS)
+code: a59abe5b93
+tip: 988fd1cb66
+
+Shipped:
+  E09 — inline UsageUpdated from applyUsage RETURNING
+       drop bus.subscribe([Step.Ended, Step.Failed, UsageRecorded]) session SELECT
+       publishUsageTotals from UsageRecorded / Step.Ended / Step.Failed(with usage)
+       Failed without cost/tokens still skips UsageUpdated
+
+Unit (packages/core):
+  bun test test/session-projector.test.ts → 17 pass
+  typecheck exit 0
+
+Live CDP (APORETIC_CDP_PORT=9223):
+  probe: docs/an-rewrite/evidence/cdp-probe-engine-e09.mjs
+  RESULT ok:true EXIT=0
+  marker: AP-ENGINE-E09 send 1792431274552
+  engine=oc-server enginePort=01 owned=composer timelineDisplay=none
+  note: EnginePort send non-regress; E09 behavior proven by unit
+  ws.close + process.exit
+
+Not claimed: INDEPENDENT PASS, E10, E05, E13, PORT-02, merge/push/install
+Follow-up: independent verifier; next ranked E10 after PASS
+Left alone: E10, E05, E13, PORT-02

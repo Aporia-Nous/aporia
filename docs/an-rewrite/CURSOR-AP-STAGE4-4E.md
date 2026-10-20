@@ -2,10 +2,11 @@
 
 | Field | Value |
 |-------|-------|
-| status | **OPEN for independent review** — implemented + live-DEV verified (executor); **not** Stage 4 complete; **not** INDEPENDENT PASS until verifier |
+| status | **INDEPENDENT PASS (Contraptions mount scope)** — verified live; **not** Stage 4 complete |
 | branch | `stage4-an-shell` |
-| tip | `3c42a81c0e` (docs after code `af9ab9943a`) |
+| tip | `13a31f0fbd` (docs sync; intermediate `3c42a81c0e`; code `af9ab9943a`) |
 | code | `af9ab9943a` |
+| verifier | independent re-ran shell/an+flows **41 pass**; live CDP 4E RESULT `ok:true`; STAGE4-12 non-regression RESULT `ok:true` marker `1792414609976` |
 | base | `5f810a9d51` (AP-STAGE4-12 tip) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | scope | Mount Contraptions under AnShell chrome (Automations & integrations; Redstone Easter-egg only); keep STAGE4-11 stream + STAGE4-12 composer ownership |
@@ -28,16 +29,17 @@
 
 ## Checks
 
-- `bun test src/shell/an src/aporia/flows-util.test.ts` → **41 pass / 0 fail**
-- Live CDP `cdp-probe-stage4-4e-contraptions.mjs` → RESULT `ok:true` (`mountOk:true`)
+- Independent re-ran `bun test src/shell/an src/aporia/flows-util.test.ts` → **41 pass / 0 fail**
+- Live CDP `cdp-probe-stage4-4e-contraptions.mjs` → RESULT `ok:true` (`mountOk:true`; panel 420×736; subtitle + Redstone title attr)
 - Shot: `docs/an-rewrite/evidence/screenshots-2026-10-18/25-contraptions-mounted-dev.png`
 - Board copy: `business-control/evidence/2026-10-19-25-contraptions-mounted-dev.png`
+- STAGE4-12 CDP non-regression `cdp-probe-stage4-12-composer-after.mjs` → RESULT `ok:true` marker `AP-STAGE4-12 composer 1792414609976`
 
 ## Ownership non-regression
 
 - Did **not** modify Conversation stream (`AnConversationStream`) or composer dock ownership CSS/markers.
 - Unit test still asserts `AN_COMPOSER_SURFACE.ownedAttr === 'data-an-owned="composer"'`.
-- Live CDP was on **home** (no session) — session-context ownership markers absent by design; not a fail of 4E mount. Prior STAGE4-11/12 session CDP evidence retained.
+- Independent session CDP re-verify: `owned=composer`, `composerOnly`, OpenCode timeline `display:none`, YOU turn visible (STAGE4-11 stream + STAGE4-12 composer intact after Contraptions mount).
 
 ## Honest residuals
 
@@ -48,5 +50,6 @@
 
 ## Board
 
-- `AP-STAGE4-4E` → OPEN (implemented + live-DEV verified; await independent PASS)
+- `AP-STAGE4-4E` → **INDEPENDENT PASS** (Contraptions mount scope); not Stage 4 complete
 - `AP-STAGE4-10` gap closed for AnShell visibility (rename still DONE)
+- Evidence: `business-control/evidence/2026-10-19-stage4-4e-independent-pass.txt`

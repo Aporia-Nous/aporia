@@ -1,0 +1,24 @@
+recorded=2026-10-19
+task=AP-BF-03
+actor=implementer+self-verify
+verdict=OPEN implemented+live-DEV (NOT independent PASS — await independent review)
+scope=Browser-first Computer View single control lock + Takeover/Hand back/Stop; View watch-only until user Takeover
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=10cc4f0751
+tip=919dc1995e
+base=ec74cc7c4d
+report=docs/an-rewrite/CURSOR-AP-BF-03.md
+architecture=business-control/BROWSER-FIRST-COMPUTER-VIEW.md
+architecture_verified=mission/control.ts single controller none|bot|user; Live+view bot watch-only; Live+takeover user input botPaused; Hand back/Stop releaseToBot needsFreshObservation; no Live never grants user input; BF-02 pointer-events none until Takeover; Bot cursor hidden during user control
+pre_non_regress_bf02=bun docs/an-rewrite/evidence/cdp-probe-stage4-bf02-feed.mjs → RESULT ok:true marker AP-BF-02 feed 1792415759505
+tests_re_ran=packages/app bun test src/shell/an src/aporia/flows-util.test.ts → 64 pass 0 fail; packages/core bun test ./src/mission/control.test.ts → 6 pass 0 fail
+live_cdp_bf03=bun docs/an-rewrite/evidence/cdp-probe-stage4-bf03-control.mjs → RESULT ok:true viewOk+takeoverOk+handbackOk+stopOk+disconnectOk+ownershipOk marker AP-BF-03 control 1792416292479; takeover pointer-events auto + You control; handback/stop restore none + needsObservation
+live_cdp_4e_non_regression=bun docs/an-rewrite/evidence/cdp-probe-stage4-4e-contraptions.mjs → RESULT ok:true mountOk:true ownershipOk:true
+live_cdp_stage4_12_non_regression=bun docs/an-rewrite/evidence/cdp-probe-stage4-12-composer-after.mjs → RESULT ok:true timelineDisplay=none YOU turns
+screenshots=business-control/evidence/2026-10-19-31-bf03-live-view-watch-only.png; 2026-10-19-32-bf03-takeover-user-control.png; 2026-10-19-33-bf03-handback-bot-lock.png; 2026-10-19-34-bf03-stop-to-view.png
+diff_scope=ec74cc7c4d..10cc4f0751 — mission/control.ts(+test) + computer-control.ts(+test) + an-shell Takeover wiring/CSS + session-layout sync; BF-01/02 honesty retained
+known_residual_ok=independent PASS still OPEN; bot drive = lock state only (plugin-browser RPC not yet); Stage 5 3-vs-4 OPEN; BF-04 external Edge/Chrome deferred
+isolation=no merge/push; product C:\Tools\aporia not this branch
+not_claimed=INDEPENDENT PASS; Stage 4 complete; merge; push; Stage 8 / running-DEV acceptance PASS; plugin-browser RPC attach
+deferred=independent review; AP-BF-04; AP-CE-01; AP-STAGE4-13 left alone

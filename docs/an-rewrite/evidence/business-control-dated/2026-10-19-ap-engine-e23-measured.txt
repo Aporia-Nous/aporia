@@ -1,0 +1,36 @@
+recorded=2026-10-19
+tasks=AP-ENGINE-E23
+actor=independent-verifier
+verdict=DONE MEASURED (not product code PASS; not INDEPENDENT PASS for product optimization)
+scope=E23 measure-only multi-session SQLite WAL stress + p50/p95 evidence; bus locks left alone (E27); EnginePort non-regress incidental
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=3ef4237673
+tip=933595427f
+base=98fe8869b9
+head_verified=933595427f21057322ea90b1abb5dc6e4244734b matches claimed tip; code 3ef4237673 + base 98fe8869b9 ancestors
+report=docs/an-rewrite/CURSOR-AP-ENGINE-E23-E24.md
+audit=business-control/ENGINE-EFFICIENCY-AUDIT.md §E23
+metrics=business-control/evidence/2026-10-19-ap-engine-e23-metrics.json
+
+source_bar=
+  packages/core/test/bus-multi-session-stress.test.ts — 8 sessions × 24 durable publishes on file WAL
+  asserts journal_mode=wal; busyOrLocked=0; per-aggregate seq complete; records p50/p95
+  bus locks / notify path untouched (E27 scope)
+
+metrics_coherence=
+  writer sample: publishes=192 busyOrLocked=0 p50Ms≈0.374 p95Ms≈26.247 maxMs≈40.031
+  independent re-run: publishes=192 busyOrLocked=0 otherFailures=0 journalMode=wal p50Ms≈0.386 p95Ms≈26.185 maxMs≈39.948
+  JSON keys coherent with stress fixture; no invented wall-clock win vs baseline
+
+tests_re_ran=
+  packages/core bun test test/bus-multi-session-stress.test.ts → 1 pass 0 fail (rewrote metrics JSON)
+  packages/app bun test src/shell/an → 118 pass 0 fail (paired E24 bar)
+  live CDP cdp-probe-engine-e23-e24.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-ENGINE-E23-E24 send 1792462584279; ws closed
+
+screenshots=worktree 93–95 re-shot during independent CDP; board copies evidence/2026-10-19-93..95-engine-E23-E24-*.png
+
+residuals_ok=measure-only — no product runtime PASS; single SQLite writer remains; notifyLocks serial (E27); E26 harness compare deferred; CDP markerHit may prefix-match prior E23-E24 turn
+isolation=no merge/push; no product features added by verifier
+not_claimed=product code PASS; INDEPENDENT PASS (optimization); wall-clock win vs baseline; Stage 4/8 PASS; merge; push
+deferred=optional E26 harness compare; pass-2 residual E08/E12/E14

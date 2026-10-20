@@ -1,0 +1,18 @@
+recorded=2026-10-19
+task=AP-STAGE4-13
+status=OPEN implemented+live-DEV
+verdict=NOT INDEPENDENT PASS (executor self-label forbidden)
+worktree=C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+branch=stage4-an-shell
+tip=747401a865
+code=17762b3fe7
+base=a8437782b3
+scope=AN composer chrome: hide OC model/agent chips + mic/call; placeholder Message {bot}…; keep gold send; preserve data-an-owned=composer
+tests=bun test src/shell/an src/aporia/flows-util.test.ts → 79 pass / 0 fail
+cdp=cdp-probe-stage4-13-composer-chrome.mjs RESULT ok:true marker AP-STAGE4-13 chrome 1792417797912
+shots=39-before-composer-chrome.png; 40-composer-chrome-an.png (Message Grok…; chips/mic/call gone; gold send); 41-composer-chrome-typed.png; 42-after-send-composer-chrome.png
+non_regress=STAGE4-12 CDP ok marker 1792417808624; 4E Contraptions CDP ok; BF-01 attach CDP ok marker 1792417832789
+isolation=no merge/push; product C:\Tools\aporia not this branch; BF-05/CE-01 untouched
+deferred=independent review; residual model select via settings; Mission cards in-stream; presence Unknown; ice subtle; Stage 5 3-vs-4
+not_claimed=INDEPENDENT PASS; Stage 4 complete; OpenCode fully replaced
+report=docs/an-rewrite/CURSOR-AP-STAGE4-13.md

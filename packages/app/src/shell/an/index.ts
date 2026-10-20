@@ -112,6 +112,20 @@ export {
   sessionActivityFromMessages,
   type AnPresenceSignal,
 } from "./bind"
+export {
+  anDraftApply,
+  anDraftApplyIdentity,
+  anDraftHas,
+  anDraftHasIdentity,
+  anDraftKey,
+  anDraftKeys,
+  anDraftLoad,
+  anDraftLoadIdentity,
+  anDraftSave,
+  anDraftSaveIdentity,
+  anDraftSwitch,
+  type AnDraftIdentity,
+} from "./session-draft-store"
 export { AnShellSessionLayout, AnShellDraftLayout, AnShellHomeLayout } from "./session-layout"
 export { AnConversationStream } from "./conversation-stream"
 export { messagesToConversationTurns, type AnConversationTurn } from "./conversation-turns"

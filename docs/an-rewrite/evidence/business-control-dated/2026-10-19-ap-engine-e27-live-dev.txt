@@ -1,0 +1,37 @@
+AP-ENGINE-E27 — OPEN implemented+live-DEV (NOT INDEPENDENT PASS; NOT self-PASS)
+tasks=AP-ENGINE-E27
+work_date=2026-10-19
+recorded_date=2026-10-19
+actor=cursor-stage4-writer
+verdict=OPEN implemented+live-DEV
+not_claimed=INDEPENDENT PASS; self-PASS; Stage 4 complete; merge; push; Stage 8 PASS; E23; E24
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+base=8d2317def5
+code=3aad10e48c
+tip=98fe8869b9
+report=docs/an-rewrite/CURSOR-AP-ENGINE-E27.md
+audit=business-control/ENGINE-EFFICIENCY-AUDIT.md §E27
+
+shipped=
+- bus.ts notifyLocks KeyedMutex parallel to durableLocks
+- notifyDurable(aggregateID, events) serial notify outside durable write lock
+- publish / publishAll / replay({publish}): commit + durable wake under durableLocks; then notifyDurable
+- ephemeral notify path unchanged
+- unit: concurrent durable publish commits while prior listener still blocked; batch non-interleave retained
+
+tests=bun test packages/core test/bus.test.ts → 54 pass 0 fail; packages/app src/shell/an → 118 pass 0 fail
+cdp=bun docs/an-rewrite/evidence/cdp-probe-engine-e27.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-ENGINE-E27 send 1792461898423; ws.closed
+non_regress=enginePort=03; Settings 02 AN-owned hasOcScreen=false; STAGE4-12/13 owned=composer Message Grok…; 4E Contraptions; EnginePort send YOU
+shots=90,91,92
+
+residuals_ok=
+- notify still serial per aggregate via notifyLocks (write lock released only)
+- E23 multi-session SQLite measure left alone (M)
+- E24 overflow harden left alone
+- running-DEV may need hard restart to pick up core tip; CDP = EnginePort/sessions non-regress
+- CDP markerHit may prefix-match prior board markers on crowded stream
+
+note=Prefer E27 alone; E23/E24 not in this slice
+next=independent verifier PASS bar
+no_merge_push=1

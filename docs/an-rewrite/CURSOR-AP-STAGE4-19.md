@@ -2,15 +2,15 @@
 
 | Field | Value |
 |-------|-------|
-| status | **OPEN implemented+live-DEV** — **not** INDEPENDENT PASS; **not** Stage 4 complete |
+| status | **INDEPENDENT PASS** — **not** Stage 4 complete |
 | branch | `stage4-an-shell` |
-| tip | `78ebd8a6bf` (docs sync; code `5c42714fb6`) |
+| tip | `d71979708d` (docs sync; code `5c42714fb6`) |
 | code | `5c42714fb6` |
 | base | `a9b68f07e4` (AP-STAGE4-18 INDEPENDENT PASS tip) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | scope | (1) Presence character / micro-spring personality (2) Fuller Documents viewer (3) Settings AN ice-glass (Ali add-on) |
 | merge/push/install | **No** |
-| independent verify | Pending — do not self-PASS |
+| independent verify | **PASS** 2026-10-19 — evidence `business-control/evidence/2026-10-19-ap-stage4-19-independent-pass.txt` |
 
 ## Intent (Ali)
 
@@ -55,8 +55,18 @@
 - About legal/anomaly assets still present at reduced opacity (upstream credits).
 - Non-regress shell remount after Settings nav can flake in CDP back-nav (presence/docs/settings gates still ok).
 - BF-01…06 + STAGE4-11…18 preserved.
-- **Not** Stage 4 complete. No merge/push. **Not** self-PASS.
+- **Not** Stage 4 complete. No merge/push.
+
+## Independent verify (2026-10-19)
+
+- HEAD tip `d71979708d` / code `5c42714fb6` / base `a9b68f07e4` confirmed
+- Re-ran shell/an+flows **115** + core control **6** pass
+- Live CDP RESULT `ok:true` **EXIT=0** marker `AP-STAGE4-19 presence-docs-settings 1792425563403`
+- Aura on selected + live CSV table + live docx-text extract confirmed
+- Non-regress: STAGE4-12 owned composer; STAGE4-13 `Message Grok…` (clean remount); STAGE4-18 Review tabs/inputs; 4E Contraptions
+- Residuals OK: Settings skinned≠rewritten; xlsx/pptx; post-Settings remount flake
+- **Not** Stage 4 complete. No merge/push.
 
 ## Board
 
-- `AP-STAGE4-19` → **OPEN** implemented+live-DEV
+- `AP-STAGE4-19` → **DONE** INDEPENDENT PASS

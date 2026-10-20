@@ -2,9 +2,9 @@
 
 | Field | Value |
 |-------|-------|
-| status | **OPEN implemented+live-DEV** (**no** self-PASS / INDEPENDENT PASS) |
+| status | **INDEPENDENT PASS** (both; **not** Stage 4/8 PASS; **not** wall-clock win) |
 | branch | `stage4-an-shell` |
-| tip | `49921e3ed4` |
+| tip | `a19d6dbc63` |
 | code | `d18a68bb93` |
 | base | `7b2867c797` (AP-ENGINE-E26 DONE MEASURED) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
@@ -25,25 +25,26 @@ Pass-1 residuals: avoid cloning every prompt for hooks that are not registered; 
 - `Buffer.byteLength` + `countLogicalLines` before truncate decision (no `text.split("\n")` on the fit path).
 - Truncate path uses `keepPreviewLines` prefix walk under maxLines/maxBytes.
 
-## Writer verification (2026-10-19) — OPEN implemented+live-DEV
+## Independent verification (2026-10-19) — INDEPENDENT PASS
 
-- Base `7b2867c797`
-- `bun test` packages/core `session-prompt` + `tool-output` + session-owned prompt hooks → pass
+- HEAD `a19d6dbc63` verified; code `d18a68bb93` + base `7b2867c797` ancestors
+- E26 board confirm: **DONE MEASURED** tip `7b2867c797` (no re-measure)
+- `bun test` packages/core `session-prompt` + `tool-output` → **51** pass
+- `bun test` packages/core `session-owned` → **20** pass (owned-prompt hooks)
 - `bun test` packages/app `src/shell/an` → **118** pass / 0 fail
-- Live CDP `cdp-probe-engine-e12-e14.mjs` (`APORETIC_CDP_PORT=9223`) → RESULT `ok:true` **EXIT=0** marker `AP-ENGINE-E12-E14 send 1792464278283` (ws closed)
+- Live CDP `cdp-probe-engine-e12-e14.mjs` (`APORETIC_CDP_PORT=9223`) → RESULT `ok:true` **EXIT=0** marker `AP-ENGINE-E12-E14 send 1792464544921` (ws closed)
   - enginePort=`03`; Settings `02` AN-owned; Message Grok…; 4E Contraptions
-- Shots: `102`–`104`
-- Evidence: `business-control/evidence/2026-10-19-ap-engine-e12-e14-live-dev.txt`
+- Shots: `102`–`104` re-shot; board copies `business-control/evidence/2026-10-19-102..104-engine-E12-E14-*.png`
+- Evidence: `business-control/evidence/2026-10-19-ap-engine-e12-e14-independent-pass.txt`
 
 ## Honest residuals
 
-- **Do not self-PASS** — await independent verifier → INDEPENDENT PASS
-- running-DEV may need core reload for in-process prompt/tool-output path (unit is source of truth)
 - Full file still read for attachment size/MIME (no FS range API); E12 wins are clone-skip + line-slice allocate
 - CDP `markerHit` may prefix-match prior board markers on a crowded stream
-- **Not** claimed: INDEPENDENT PASS; Stage 4/8 PASS; merge; push; wall-clock win
+- running-DEV may need core reload for in-process prompt/tool-output path
+- **Not** claimed: Stage 4/8 PASS; merge; push; wall-clock win vs baseline
 
 ## Board
 
-- `AP-ENGINE-E12` / `AP-ENGINE-E14` → **OPEN** implemented+live-DEV
-- Await independent verifier
+- `AP-ENGINE-E12` / `AP-ENGINE-E14` → **DONE** INDEPENDENT PASS
+- `AP-ENGINE-E26` remains **DONE MEASURED** (confirmed)

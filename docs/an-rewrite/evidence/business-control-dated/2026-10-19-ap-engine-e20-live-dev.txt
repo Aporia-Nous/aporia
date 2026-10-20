@@ -1,0 +1,35 @@
+AP-ENGINE-E20 — OPEN implemented+live-DEV (NOT INDEPENDENT PASS; NOT self-PASS)
+tasks=AP-ENGINE-E20
+work_date=2026-10-19
+recorded_date=2026-10-19
+actor=cursor-stage4-writer
+verdict=OPEN implemented+live-DEV
+not_claimed=INDEPENDENT PASS; self-PASS; Stage 4 complete; merge; push; E25; E11; Stage 8 PASS
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+base=a842027e63
+code=7c3aef6cbd
+tip=1606bc7af9
+report=docs/an-rewrite/CURSOR-AP-ENGINE-E20.md
+audit=business-control/ENGINE-EFFICIENCY-AUDIT.md §E20
+
+shipped=
+- event-feed.ts: EncodingError log+skip (no subscribers.clear); matchesSubscribeFilter; metrics
+- handlers/event.ts: optional sessionID/directory → feed.subscribe(filter)
+- protocol EventSubscribeQuery on event.subscribe; default global stream unchanged
+- specs/v2/event-stream-architecture.md encode-fail law updated
+- server.connected + heartbeat + overflow-per-subscriber retained
+
+tests=bun test packages/server/test/event-feed.test.ts → 9 pass 0 fail; packages/app src/shell/an → 118 pass 0 fail
+cdp=bun docs/an-rewrite/evidence/cdp-probe-engine-e20.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-ENGINE-E20 send 1792460755145; ws.closed
+non_regress=enginePort=03; Settings 02 AN-owned hasOcScreen=false; STAGE4-12/13 owned=composer Message Grok…; 4E Contraptions; EnginePort send YOU
+shots=84,85,86
+
+residuals_ok=
+- clients still default global SSE until they pass optional query
+- Promise client codegen not regenerated this slice
+- running-DEV may need hard restart to pick up server tip; CDP = EnginePort/sessions non-regress
+- E25/E11 left alone
+
+next=independent verifier PASS bar; then E25/E11 ranked
+no_merge_push=1

@@ -2,14 +2,15 @@
 
 | Field | Value |
 |-------|-------|
-| status | **OPEN for review** (composer-own scope) — **not** Stage 4 complete; **no PASS claim** |
+| status | **INDEPENDENT PASS (composer-own scope)** — vertical slice verified live; **not** Stage 4 complete; OpenCode not fully replaced |
 | branch | `stage4-an-shell` |
-| tip | `bc0acb4ca8` |
+| tip | `5f810a9d51` (code `cf083186a3`; docs intermediate `bc0acb4ca8`) |
 | code | `cf083186a3` |
+| verifier | independent re-ran shell/an **36 pass**; live CDP RESULT `ok:true` (marker `1792414064184`); shots `21`–`24` YOU visible; panel passthrough + dock ice |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | base | `799f176044` (AP-STAGE4-11 tip) |
 | scope | AnShell owns composer dock presentation; suppress residual OpenCode panel chrome fighting AN; keep send/session wiring to core |
-| running-DEV | ACTIVE watch-as-you-build CDP; running ≠ PASS |
+| running-DEV | ACTIVE (watch-as-you-build CDP); running ≠ PASS |
 | merge/push/install | **No** |
 
 ## Architecture choice
@@ -36,11 +37,11 @@ Home / draft (not composer-only) keeps prior ice strip behavior.
 CDP probes:
 
 - `docs/an-rewrite/evidence/cdp-probe-stage4-12-composer-before.mjs`
-- `docs/an-rewrite/evidence/cdp-probe-stage4-12-composer-after.mjs` → RESULT `ok: true` (marker `1792413819698`)
+- `docs/an-rewrite/evidence/cdp-probe-stage4-12-composer-after.mjs` → RESULT `ok: true` (executor marker `1792413819698`; independent re-run marker `1792414064184`)
 
 ## Tests
 
-`bun test src/shell/an` from `packages/app` — **36 pass** (includes AP-STAGE4-12 owned-marker test).
+`bun test src/shell/an` from `packages/app` — **36 pass** (includes AP-STAGE4-12 owned-marker test). Independent verifier re-ran **36 pass**.
 
 ## Honest residual OpenCode / wrapper jank (not done)
 
@@ -53,7 +54,7 @@ CDP probes:
 
 ## Not claimed
 
-- Independent PASS / running-DEV acceptance PASS
 - Stage 4 complete
 - OpenCode fully replaced
+- running-DEV acceptance PASS / Stage 8 PASS
 - Install merge / push / promote

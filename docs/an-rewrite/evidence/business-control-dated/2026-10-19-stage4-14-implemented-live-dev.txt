@@ -1,0 +1,23 @@
+recorded=2026-10-19
+task=AP-STAGE4-14
+actor=cursor-stage4-writer
+verdict=OPEN implemented+live-DEV
+not_claimed=INDEPENDENT PASS; Stage 4 complete; merge; push; OpenCode fully replaced
+scope=Companion presence five-state: wire AnShell/session/call signals → listening|thinking|speaking|working|waiting; Unknown only when truly unknown; correct 4C overclaim
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+base=747401a865
+tip=93d29c01b4
+code=e51a40692d
+composer_chrome=untouched (AP-STAGE4-13 PASS retained)
+code_files=packages/app/src/shell/an/bind.ts; session-layout.tsx; tokens.ts; bind.test.ts
+report=docs/an-rewrite/CURSOR-AP-STAGE4-14.md
+mapping=idle/known→listening; call connecting→thinking; call error→unknown; empty→unknown; busy tool/stream/reasoning unchanged
+tests=packages/app bun test src/shell/an src/aporia/flows-util.test.ts → 80 pass 0 fail
+live_cdp_presence=bun docs/an-rewrite/evidence/cdp-probe-stage4-14-presence.mjs → RESULT ok:true marker AP-STAGE4-14 presence 1792418494792; rosterLen=13 fiveCount=13 unknownCount=0 counts.listening=13
+live_cdp_busy=bun docs/an-rewrite/evidence/cdp-probe-stage4-14-busy.mjs → RESULT ok:true marker AP-STAGE4-14 busy 1792418535797; selectedPresence=thinking counts.thinking=1 listening=12 unknownCount=0
+live_cdp_non_regress=STAGE4-12 composer ok; 4E Contraptions ok mountOk+ownershipOk; BF-01 attach ok liveOk+disconnectOk marker AP-BF-01 attach 1792418511481
+screenshots=worktree screenshots-2026-10-18/43–46; board copies 2026-10-19-43..46
+4C_honesty=AP-STAGE4-4C DONE retained as chrome/source/fixture PASS only; does not deliver live five-state
+isolation=no merge/push; BF-05/CE-01/cards-in-stream untouched
+deferred=independent review for PASS; AP-CE-01; AP-BF-05; AP-STAGE4-4F; Stage 5 3-vs-4

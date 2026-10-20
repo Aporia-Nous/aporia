@@ -1,0 +1,38 @@
+recorded=2026-10-19
+tasks=AP-ENGINE-E05
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=E05 narrow settleStaleToolCalls via SessionHistory.assistantsWithOpenTools SQL EXISTS; decode only streaming|running assistants; same latest compaction bound; EnginePort send non-regress
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=7edeb4596c
+tip=72dce8c771
+base=f3617b6685
+head_verified=72dce8c7714dfe466bec0e89794b1868aafe043a matches claimed tip; code 7edeb4596c + base f3617b6685 ancestors
+report=docs/an-rewrite/CURSOR-AP-ENGINE-E05.md
+audit=business-control/ENGINE-EFFICIENCY-AUDIT.md §E05
+
+source_bar=
+  SessionHistory.assistantsWithOpenTools: type=assistant + json_each EXISTS tool state.status in (streaming,running)
+  post-compaction bound via latestCompaction(...,"latest") + gte(seq) — same as prior store.context / load latest
+  settleStaleToolCalls iterates only assistantsWithOpenTools; no store.context; SessionStore dropped from settle path deps
+
+tests_re_ran=
+  packages/core bun test test/session-history-open-tools.test.ts → 2 pass 0 fail
+  packages/core bun test test/session-runner.test.ts -t "left running|stale subagent|pending tool input|abandoned compaction" → 6 pass 0 fail
+  packages/core bun run typecheck → exit 0
+
+source_bar_tests=
+  returns only assistants with streaming or running tools
+  ignores open tools behind a completed compaction boundary
+  settles abandoned compactions / left-running local / stale subagent / hosted / pending tool input (runner)
+
+live_cdp=bun docs/an-rewrite/evidence/cdp-probe-engine-e05.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-ENGINE-E05 send 1792432641425
+live_cdp_detail=engine=oc-server enginePort=01 owned=composer timelineDisplay=none; ws.close+process.exit in probe finally
+writer_prior_marker=AP-ENGINE-E05 send 1792432372919 (prior live-DEV; retained)
+
+residuals_ok=E13 later; PORT-02 alone; unit is source of truth for E05 settle narrow; longer open_tools side-table / full load cache out of scope
+isolation=no merge/push; no product features added by verifier; product C:\Tools\aporia not this branch
+not_claimed=Stage 4 complete; E13; PORT-02; merge; push; install; Stage 8 / running-DEV acceptance PASS
+deferred=next ranked E13 after Ali; AP-ENGINE-PORT-02 Settings
+worktree_note=unrelated dirty docs/screenshot mods present at review time; verifier did not implement product code

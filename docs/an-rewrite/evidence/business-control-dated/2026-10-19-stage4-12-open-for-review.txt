@@ -1,0 +1,25 @@
+AP-STAGE4-12 OPEN for review (composer-own scope) — 2026-10-19
+No PASS claim. No merge/push/install.
+
+Worktree: C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+Branch: stage4-an-shell
+Code: cf083186a3
+Tip: 5f810a9d51
+Base: 799f176044 (AP-STAGE4-11)
+
+Scope:
+- AnShell owns composer dock presentation (data-an-owned=composer)
+- SessionPanelFrame passthrough under .an-stream-legacy--composer-only
+- Single void/gold ice dock (blur 42 / radius 18 / an-dock-settle)
+- Send/session wiring kept on core Prompt — no new polling
+
+Proof:
+- bun test src/shell/an (packages/app): 36 pass
+- CDP after probe RESULT ok:true marker AP-STAGE4-12 composer 1792413819698
+- Shots 21–24 under docs/an-rewrite/evidence/screenshots-2026-10-18/
+
+Residual OK (not done):
+- OC model/agent chips + mic/call controls (skinned, not AN-native)
+- Mission cards above Conversation
+- Nested void input inside ice dock
+- OpenCode not fully replaced

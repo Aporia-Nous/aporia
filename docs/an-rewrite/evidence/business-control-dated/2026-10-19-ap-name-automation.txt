@@ -1,0 +1,28 @@
+AP-NAME-AUTOMATION — 2026-10-19 America/Chicago (shortlist v3)
+
+Work: brandable metaphor shortlist per Ali criteria. No code rename. No merge/push.
+
+Criteria (Ali, authoritative):
+1. Recognizable automation/integrations vibe
+2. Unused as a major product name in this space
+3. Secretly genius metaphor
+4. Easy to say
+Brandable + clever, instantly graspable — not settings-label generics.
+
+Rejected: Poros / obscure Greek.
+Not brand pick: Playbooks / Automations / Integrations.
+
+Full shortlist evaluated (recommended Flint):
+Flint, Cue, Hitch, Rivet, Domino, Fuse, Stitch, Cascade, Cog, Lever, Hinge, Nudge, Tap, Relay, Loom
+
+Hard demote: Relay (Relay.app), Loom (Loom video)
+
+Updated:
+- business-control/FLOW-GENIUS-PLAN.md (product name section)
+- tasks.json id AP-NAME-AUTOMATION
+- README.md / SOURCES.md / OWNERSHIP.md
+- events.jsonl AP-NAME-AUTOMATION-shortlist-v3
+
+Recommended default: Flint
+Why: spark that starts the chain — trigger→run; easy; unused among Zapier/n8n/Make majors; brandable without Settings-row feel.
+Interim: keep Flows in code/UI until Ali picks

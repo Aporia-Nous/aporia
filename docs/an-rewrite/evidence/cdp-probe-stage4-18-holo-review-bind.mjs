@@ -53,7 +53,7 @@ if (!aporeticPage?.webSocketDebuggerUrl) {
 }
 console.log("aporetic", aporeticPage.title, aporeticPage.url)
 
-const { send } = await connect(aporeticPage.webSocketDebuggerUrl)
+const { ws, send } = await connect(aporeticPage.webSocketDebuggerUrl)
 await send("Page.enable")
 await send("Runtime.enable")
 await send("Page.reload", { ignoreCache: true })
@@ -278,4 +278,9 @@ const result = {
 }
 
 console.log("RESULT", JSON.stringify(result))
-if (!result.ok) process.exit(2)
+try {
+  ws.close()
+} catch {
+  // ignore close races
+}
+process.exit(result.ok ? 0 : 2)

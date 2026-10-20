@@ -1,0 +1,21 @@
+recorded=2026-10-19
+task=AP-STAGE4-04
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=glass + always-on Attention/Live computer rail + Conversation/View/Takeover three-state
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=05b0142d73
+tip=b5831ea1cb
+base=369a549991
+report=docs/an-rewrite/CURSOR-AP-STAGE4-04.md
+tests_re_ran=packages/app shell/an tokens+bind 16 pass; packages/ui an-theme 3 pass
+shots=06-conversation-glass-rail.png; 07-view-mode.png; 08-takeover-mode.png
+cdp_glass=panel-glass rgba(6,12,18,0.42); blur-strong 32px; nav backdrop blur(32px); radial atmosphere true
+cdp_rail=data-attention-always-on; collapsed=false; computer always in DOM; conversation attWidth=320
+cdp_modes=conversation compact/320; view large/420; takeover primary+Hand back/Stop; Hand back->conversation; Stop->view
+three_state_only=Conversation/View/Takeover exactThree=true
+isolation=Stage0 cursor-aporetic tip b4d2a22a93 untouched; C:/Tools/aporia not this branch; no merge/push
+non_blocking=takeover CSS roster fallback 240 unused while --an-roster-width=280; layout still flips
+not_claimed=Stage 4 complete; merge; push; Stage 8 / running-DEV acceptance PASS
+deferred=DESIGN-GAPS #4-7/#10; photographic atmosphere; Stage 5 four-mode

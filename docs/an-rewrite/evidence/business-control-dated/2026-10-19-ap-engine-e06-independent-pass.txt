@@ -1,0 +1,41 @@
+recorded=2026-10-19
+tasks=AP-ENGINE-E06
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=E06 skip tool-schema clone when no request hooks; hasToolHooks fast path by-reference inputSchema; clone+rename when hooks present; EnginePort send non-regress
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=c78aa04d69
+tip=cec15203f8
+base=b3c1e3de53
+head_verified=cec15203f86e5ecfb0d4a8f3465589d37be3075d matches claimed tip; code c78aa04d69 + base b3c1e3de53 ancestors
+report=docs/an-rewrite/CURSOR-AP-ENGINE-E06.md
+audit=business-control/ENGINE-EFFICIENCY-AUDIT.md §E06
+
+source_bar=
+  packages/core/src/session/model-request.ts hasToolHooks via hooks.has("session", toolHook, providerID)
+  toolHook: primary→context, compaction→compaction, generate→generate; title undefined
+  hasToolHooks true → identity Map + { ...inputSchema } clone + rename isolation
+  hasToolHooks false → by-reference inputSchema (no clone Map)
+  given?.get(d) ?? byName.get(name) after shape
+
+tests_re_ran=
+  packages/core bun run test -- test/session-model-request-hooks.test.ts test/session-model-request.test.ts test/session-generate.test.ts → 17 pass 0 fail
+  packages/core bun run test -- test/session-runner.test.ts -t "executes a tool renamed by a session context hook" → 1 pass 0 fail
+  packages/core bun run typecheck → exit 0
+
+source_bar_tests=
+  session-model-request-hooks E06: by-reference when no context hooks
+  session-model-request-hooks E06: clones + honors rename when context hook registered (registry isolated)
+  session-model-request-hooks E06: primary still skips clone when only compaction hooks registered
+  session-runner: executes a tool renamed by a session context hook
+
+live_cdp=bun docs/an-rewrite/evidence/cdp-probe-engine-e06.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-ENGINE-E06 send 1792430610895
+live_cdp_detail=engine=oc-server enginePort=01 owned=composer timelineDisplay=none; ws.close+process.exit in probe finally
+writer_prior_marker=AP-ENGINE-E06 send 1792430280671 (prior live-DEV; retained)
+
+residuals_ok=E09/E10 later; PORT-02 alone; running-DEV may need core reload for in-process prepare path (unit is source of truth for E06)
+isolation=no merge/push; no product features added by verifier; product C:\Tools\aporia not this branch
+not_claimed=Stage 4 complete; E09; E10; PORT-02; merge; push; install; Stage 8 / running-DEV acceptance PASS
+deferred=next ranked E09 after Ali; AP-ENGINE-PORT-02 Settings
+worktree_note=unrelated dirty docs/screenshot mods present at review time; verifier did not implement product code

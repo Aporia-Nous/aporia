@@ -1,0 +1,35 @@
+AP-ENGINE-E22 — OPEN implemented+live-DEV (NOT INDEPENDENT PASS; NOT self-PASS)
+tasks=AP-ENGINE-E22
+work_date=2026-10-19
+recorded_date=2026-10-19
+actor=cursor-stage4-writer
+verdict=OPEN implemented+live-DEV
+not_claimed=INDEPENDENT PASS; self-PASS; Stage 4 complete; merge; push; E20; E25; E11; Stage 8 PASS
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+base=0550905a33
+code=2bd8664241
+tip=a842027e63
+head=a842027e63dc
+report=docs/an-rewrite/CURSOR-AP-ENGINE-E22.md
+audit=business-control/ENGINE-EFFICIENCY-AUDIT.md §E22
+
+shipped=
+- tool/mcp.ts RECONCILE_DEBOUNCE 400ms (was 100ms)
+- coalesce multi-server ToolsChanged via pendingServers + sliding PubSub
+- catalogFingerprint sha1; skip tools.reload when unchanged (no E01 revision bump)
+- mcp/index.ts recover storm cap 2 failures / 30s → failed status; onSessionExpired respects cap
+- first flush registration / permission names / Code Mode / OAuth Credential.Switched left intact
+
+tests=bun test packages/core mcp* → 111 pass 1 skip 0 fail; packages/app src/shell/an → 118 pass 0 fail
+cdp=bun docs/an-rewrite/evidence/cdp-probe-engine-e22.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-ENGINE-E22 send 1792460226301; ws.closed
+non_regress=enginePort=03; Settings 02 AN-owned hasOcScreen=false; STAGE4-12/13 owned=composer Message Grok…; 4E Contraptions; EnginePort send YOU
+shots=81,82,83
+
+residuals_ok=
+- per-server incremental editor mutate deferred (fingerprint+full reload when defs change still correct)
+- E20 SSE fanout / E25 native / E11 left alone
+- running-DEV may need hard restart to pick up core tip; CDP = EnginePort/sessions non-regress
+
+next=independent verifier PASS bar; then E20/E25/E11 ranked
+no_merge_push=1

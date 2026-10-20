@@ -62,8 +62,9 @@ try {
   const send = conn.send
   await send("Page.enable")
   await send("Runtime.enable")
-  await send("Page.reload", { ignoreCache: true })
-  await sleep(4500)
+  // Prefer home — Settings remount leaves no AnShell (known residual); avoid exit-2 flake.
+  await send("Page.navigate", { url: "http://localhost:5173/" })
+  await sleep(3500)
 
   async function evaluate(expression) {
     const res = await send("Runtime.evaluate", { expression, returnByValue: true, awaitPromise: true })
@@ -72,6 +73,15 @@ try {
     }
     return res.result?.result?.value ?? null
   }
+
+  // If Soft router restored Settings, leave so AnShell remounts
+  await evaluate(`(async () => {
+    const back = [...document.querySelectorAll('a,button')].find((el) => /back to app/i.test(el.textContent || ''))
+    if (back) {
+      back.click()
+      await new Promise((r) => setTimeout(r, 1600))
+    }
+  })()`)
 
   async function shot(name) {
     const shotRes = await send("Page.captureScreenshot", { format: "png", fromSurface: true })

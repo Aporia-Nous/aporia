@@ -2,14 +2,15 @@
 
 | Field | Value |
 |-------|-------|
-| status | **OPEN implemented+live-DEV** — **not** INDEPENDENT PASS; **not** Stage 4 complete |
+| status | **INDEPENDENT PASS** (holo + Code/Documents bind scope) — **not** Stage 4 complete |
 | branch | `stage4-an-shell` |
-| tip | `1b9f14aefb` (docs sync; code `daacb54dda`) |
+| tip | `a9b68f07e4` (docs sync; code `daacb54dda`) |
 | code | `daacb54dda` |
 | base | `927b414095` (AP-STAGE4-17 / AP-BF-06 tip) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | scope | Deeper holographic ice motion; bind Review Code + Documents to real viewable content |
 | merge/push/install | **No** |
+| independent verify | `2026-10-19` — re-ran shell/an+flows **107** + core **6**; live CDP `EXIT=0` marker `1792424309329`; shots 64–67; board evidence `2026-10-19-ap-stage4-18-independent-pass.txt` |
 
 ## Intent (Ali)
 
@@ -44,14 +45,27 @@
   - STAGE4-12 composer ownership non-regress
 - Shots: `64`–`67` under `docs/an-rewrite/evidence/screenshots-2026-10-18/` (+ board evidence copies)
 
+## Independent verification (2026-10-19)
+
+- HEAD `a9b68f07e4`; code `daacb54dda` ancestor; base `927b414095` ancestor.
+- Re-ran `bun test src/shell/an src/aporia/flows-util.test.ts` → **107 pass / 0 fail**
+- Re-ran `bun test ../core/src/mission/control.test.ts` → **6 pass / 0 fail**
+- Live CDP `cdp-probe-stage4-18-holo-review-bind.mjs` (`APORETIC_CDP_PORT=9223`) → RESULT `ok:true` **EXIT=0** marker `AP-STAGE4-18 holo-bind 1792424309329`
+  - `motionOk`: `data-holo=stage4-18`, sweep, `--an-ease-holo`, `an-review-in` + `an-ice-depth-pulse`
+  - `codeBind`: `ready`, 270 lines `tokens.ts` via `file.read`
+  - `docBind`: preview heading from `CURSOR-AP-STAGE4-17.md`
+  - Files tab surface + STAGE4-12 `composerOwned`
+- **Exit `-1` flake root cause:** probe printed `ok:true` then hung on open CDP WebSocket (missing `ws.close()` / `process.exit(0)`); forced kill → `4294967295`. Not Electron crash, port conflict, relay, or PrintWindow. Evidence harness exit path stabilized (matches STAGE4-16 pattern).
+- Shots 64–67 refreshed; board evidence `business-control/evidence/2026-10-19-ap-stage4-18-independent-pass.txt`.
+
 ## Honest residuals vs Grok-bot bar
 
 - Continuous sheen + depth pulse close the STAGE4-17 gap but still short of full Grok presence character / micro-spring personality.
 - Doc preview is lightweight markdown-ish (not a full MD engine / Office viewer).
 - Relative paths require a session workspace directory; absolute paths work from home.
-- BF-01…06 + STAGE4-11…17 preserved; no self-PASS.
+- BF-01…06 + STAGE4-11…17 preserved.
 - **Not** Stage 4 complete. No merge/push.
 
 ## Board
 
-- `AP-STAGE4-18` → **OPEN** implemented+live-DEV (await independent verifier)
+- `AP-STAGE4-18` → **DONE** INDEPENDENT PASS (holo + bind scope)

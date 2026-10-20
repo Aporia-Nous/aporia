@@ -1,0 +1,35 @@
+recorded=2026-10-19
+tasks=AP-ENGINE-E24
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=E24 CONTEXT_OVERFLOW_CODES before phrase scan; narrow concurrent/output/config exclusions; Workers AI 413→context-overflow retained; EnginePort send/Settings/Contraptions non-regress
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=3ef4237673
+tip=933595427f
+base=98fe8869b9
+head_verified=933595427f21057322ea90b1abb5dc6e4244734b matches claimed tip; code 3ef4237673 + base 98fe8869b9 ancestors
+report=docs/an-rewrite/CURSOR-AP-ENGINE-E23-E24.md
+audit=business-control/ENGINE-EFFICIENCY-AUDIT.md §E24
+
+source_bar=
+  packages/ai/src/provider-error.ts — CONTEXT_OVERFLOW_CODES Set checked before isContextOverflow phrase heuristics in classifyProviderFailure
+  exclusions narrow: concurrent/simultaneous/parallel caps; output token limit/cap; missing/unconfigured context window
+  Workers AI "input and maximum output tokens … context window" still context-overflow despite HTTP 413 (413 payload-too-large path after overflow classify)
+  packages/ai/test/provider-error.test.ts — structured codes + false-positive exclusions + Workers AI 413 fixtures
+
+tests_re_ran=
+  packages/ai bun test test/provider-error.test.ts → 39 pass 0 fail
+  packages/app bun test src/shell/an → 118 pass 0 fail
+
+live_cdp=bun docs/an-rewrite/evidence/cdp-probe-engine-e23-e24.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-ENGINE-E23-E24 send 1792462584279; ws.close+process.exit
+live_cdp_detail=enginePort=03; typed marker + sendClick ok; Settings owned=settings enginePort=02 hasOcScreen=false mark Aporetic/Aporia Nous; STAGE4-12/13 owned=composer timeline none Message Grok…; 4E Contraptions ok
+writer_prior_marker=AP-ENGINE-E23-E24 send 1792462372432 (prior live-DEV)
+
+screenshots=worktree docs/an-rewrite/evidence/screenshots-2026-10-18/93-engine-E23-E24-before-send.png; 94-engine-E23-E24-after-send-you.png; 95-engine-E23-E24-contraptions-light.png; board copies business-control/evidence/2026-10-19-93..95-engine-E23-E24-*.png (re-shot during independent CDP)
+
+residuals_ok=per-provider overflow corpus expansion still open; frames/sec telemetry not shipped; CDP markerHit may prefix-match prior E23-E24 YOU turn on crowded stream (typed+sendClick+RESULT ok still met bar; last-5 userTexts showed writer marker 1792462372432); E23 measure boarded separately as DONE MEASURED
+isolation=no merge/push; product C:\Tools\aporia not this branch; no product features added by verifier
+not_claimed=Stage 4 complete; OpenCode replaced; agent loop rewrite; merge; push; install; Stage 8 / running-DEV acceptance PASS
+deferred=AP-ENGINE-EFFICIENCY-02 next ranked residual E08/E26/E12/E14
+worktree_note=unrelated dirty docs/screenshot mods present at review time; verifier did not implement product code

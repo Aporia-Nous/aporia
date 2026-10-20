@@ -1,0 +1,25 @@
+recorded=2026-10-19
+task=AP-STAGE4-15
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+not_claimed=Stage 4 complete; merge; push; OpenCode fully replaced; Stage 8; full mockup card fidelity
+scope=Cards in Conversation stream + collapsed Mission stack + compact Mission header (mockup path)
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+HEAD=5167449bd7a8fee08eb55ac6e563d1c0d3a7ab44
+code=e87ff135c097b5c7ddf2298a612ad8ca6fb744b9
+base=93d29c01b4ae5229f3ce804e7da16a41b1a85e9f
+base_is_ancestor=true
+report=docs/an-rewrite/CURSOR-AP-STAGE4-15.md
+tests=packages/app bun test src/shell/an src/aporia/flows-util.test.ts → 85 pass 0 fail (399 expect)
+live_cdp_stage4_15=bun docs/an-rewrite/evidence/cdp-probe-stage4-15-cards-in-stream.mjs → RESULT ok:true marker AP-STAGE4-15 cards-in-stream 1792419613028; missionCompact; streamCardsInStream; convCardsInStream; ownConversation; inConversationCardCount=2 cardTypes=[computer,team]; stackPresent=false; convH=578; composerOwned; timeline none; unknownCount=0
+live_cdp_non_regress_STAGE4-12=RESULT ok:true marker AP-STAGE4-12 composer 1792419628428 owned=composer YOU visible
+live_cdp_non_regress_STAGE4-13=RESULT ok:true marker AP-STAGE4-13 chrome 1792419629523 controlsHidden placeholder Message Grok…
+live_cdp_non_regress_STAGE4-14=RESULT ok:true marker AP-STAGE4-14 presence 1792419660415 rosterLen=13 fiveCount=13 unknownCount=0 counts.listening=13
+live_cdp_non_regress_4E=first run ok:false (panel already open → toggle closed flake); re-run RESULT ok:true mountOk+ownershipOk panelW=420 subtitle Automations & integrations
+live_cdp_non_regress_BF01=RESULT ok:true marker AP-BF-01 attach 1792419639036 liveOk+disconnectOk
+screenshots=worktree 47–50 (re-captured this verify); board 2026-10-19-47..50
+live_card_types_observed=computer,team
+unit_covers_task_proof_approval=conversation-stream-items.test.ts + cards/map.test.ts (Task/Proof when tools; Approval when sourced)
+residual_ok=tool Task/Proof in-stream only with active/edit tools; quiet session shows ambient computer+team; right-rail Computer View remains BF path; full mockup card fidelity deferred
+isolation=no merge/push; no new features; not Stage 4 complete

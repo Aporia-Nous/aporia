@@ -2,11 +2,12 @@
 
 | Field | Value |
 |-------|-------|
-| status | **OPEN — implemented + live-DEV verified** (screencast / page-pixel scope) — **not** INDEPENDENT PASS; **not** Stage 4 complete |
+| status | **INDEPENDENT PASS** (screencast / page-pixel scope) — **not** Stage 4 complete |
 | branch | `stage4-an-shell` |
-| tip | `7343c8b678` (docs sync; code `ca279b5593`) |
+| tip | `c4be6688a8` (docs sync; code `ca279b5593`) |
 | code | `ca279b5593` |
 | base | `bf6e89c418` (AP-STAGE4-16 tip; ice punch — do not rework) |
+| independent_verify | 2026-10-19 — re-ran shell/an+flows **95 pass** + core control **6 pass**; live CDP `1792421520886`; non-regress STAGE4-16 / 4E / STAGE4-12; board evidence `2026-10-19-ap-bf-05-independent-pass.txt` |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | scope | Real CDP page pixels in Computer View for consented Edge/Chrome; local-browser keeps iframe pixels; honesty preserved |
 | merge/push/install | **No** |
@@ -51,7 +52,18 @@ Former plan slot “VM/Podman isolation” remains deferred (Stage 7 / 4F) — *
 - VM/Podman isolation = deferred (not this BF-05). CE-01 / 4F left alone.
 - Stage 5 three-vs-four modes still OPEN. **Not** Stage 4 complete. No merge/push.
 
+## Independent verify (2026-10-19)
+
+- Re-ran `bun test src/shell/an src/aporia/flows-util.test.ts` → **95 pass / 0 fail**
+- Re-ran `bun test ../core/src/mission/control.test.ts` → **6 pass / 0 fail**
+- Relay `:5199` **required for electron-vite DEV PASS** (`bun scripts/computer-cdp-relay-server.mjs`); Edge `:9333` pixel page present
+- Live CDP `cdp-probe-stage4-bf05-screencast.mjs` → RESULT `ok:true` marker `AP-BF-05 screencast 1792421520886` (`screencastOk` + `takeoverOk` + `disconnectOk` + `localOk`)
+- Non-regress: STAGE4-16 ice `ok:true` `1792421539714`; 4E Contraptions `ok:true` (re-run after known toggle flake); STAGE4-12 composer `ok:true` `1792421559909`
+- Shots 56–59 re-captured under worktree + board `evidence/2026-10-19-56..59-bf05-*.png`
+- No product code changes by verifier; no merge/push
+
 ## Board
 
-- `AP-BF-05` → **OPEN** (implemented + live-DEV) — do **not** self-label INDEPENDENT PASS
+- `AP-BF-05` → **DONE** (INDEPENDENT PASS — pixel scope)
 - `AP-BF-01`…`04` remain DONE; non-regression via unit + this live path
+- Residuals OK: WS screencast when host allows; packaged relay ownership OPEN; VM/Podman deferred

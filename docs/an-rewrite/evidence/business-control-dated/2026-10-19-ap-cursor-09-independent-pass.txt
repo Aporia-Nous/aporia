@@ -1,0 +1,30 @@
+recorded=2026-10-19
+task=AP-CURSOR-09
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=keep-exceeding single message truncate (source/unit)
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic
+branch=compaction-j2-j6-recovery
+code=ac2925d92d
+tip=2469aed5d7
+docs_intermediate=08e5d0d2c8
+base=b4d2a22a93
+report=docs/an-rewrite/CURSOR-AP-CURSOR-09.md
+executor_evidence=docs/an-rewrite/evidence/2026-10-19-*-keep-exceed.txt
+
+criteria_confirmed=
+- Ali-authorized truncate (not fail, not split)
+- boundRecentText + splitConversation apply; marker [recent truncated to keep]
+- newest message still selected whole; retained recent text truncated to keep
+- user + assistant overshoot fixtures status completed with marker
+- same family as S4 boundSummaryOutput / tool truncation
+
+independent_re_run=
+- bun test session-compaction + session-runner + session-compact + session-provider-context + session-compaction-transport: 263 pass / 0 fail
+- bun test session-compaction.test.ts focused: 22 pass / 0 fail (incl. 3 AP-CURSOR-09 pins)
+- bun run typecheck: exit 0
+
+stage4=untouched (verifier did not edit cursor-aporetic-stage4 or stage4-dock)
+product_code_modified=false
+not_claimed=running-DEV; merge; push; installed Aporetic
+location_note=isolated worktree only — not merged into C:/Tools/aporia

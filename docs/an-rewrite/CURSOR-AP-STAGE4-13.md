@@ -2,14 +2,15 @@
 
 | Field | Value |
 |-------|-------|
-| status | **OPEN (implemented + live-DEV)** — **not** INDEPENDENT PASS; **not** Stage 4 complete |
+| status | **INDEPENDENT PASS (AN composer chrome scope)** — **not** Stage 4 complete |
 | branch | `stage4-an-shell` |
-| tip | `3dd1df6c69` (docs sync; code `17762b3fe7`) |
+| tip | `747401a865` (docs sync; code `17762b3fe7`) |
 | code | `17762b3fe7` |
 | base | `a8437782b3` (AP-BF-04 tip) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | scope | Residual OC model/agent chips + mic/call → AN companion strip; placeholder `Message {bot}…`; keep gold send; preserve STAGE4-12 `data-an-owned=composer` |
 | merge/push/install | **No** |
+| independent | 2026-10-19 verifier re-ran shell/an+flows **79 pass**; live CDP STAGE4-13 `ok:true` marker `1792418108662`; non-regress STAGE4-12 / 4E / BF-01 ok; evidence `business-control/evidence/2026-10-19-stage4-13-independent-pass.txt` |
 
 ## What shipped
 
@@ -29,17 +30,20 @@
 | `41-composer-chrome-typed.png` | Marker typed |
 | `42-after-send-composer-chrome.png` | YOU turn visible; timeline `none` |
 
-CDP: `cdp-probe-stage4-13-composer-chrome.mjs` → RESULT `ok:true` marker `AP-STAGE4-13 chrome 1792417797912`.
+Executor CDP: `cdp-probe-stage4-13-composer-chrome.mjs` → RESULT `ok:true` marker `AP-STAGE4-13 chrome 1792417797912`.
+
+**Independent re-run CDP:** RESULT `ok:true` marker `AP-STAGE4-13 chrome 1792418108662` (placeholder `Message Grok…`; chips/mic/call hidden; gold send; YOU turn visible).
 
 ## Tests
 
-`bun test src/shell/an src/aporia/flows-util.test.ts` from `packages/app` — **79 pass / 0 fail**.
+`bun test src/shell/an src/aporia/flows-util.test.ts` from `packages/app` — **79 pass / 0 fail** (executor + independent re-run).
 
 ## Non-regression (live CDP)
 
-- STAGE4-12 composer → RESULT `ok:true` marker `1792417808624`
-- 4E Contraptions → RESULT `ok:true` (`mountOk` + `ownershipOk`)
-- BF-01 attach → RESULT `ok:true` marker `1792417832789` (`composerOwned` + `streamOwned`)
+Independent re-run:
+- STAGE4-12 composer → RESULT `ok:true` marker `1792418118512`
+- 4E Contraptions → RESULT `ok:true` (`mountOk` + `ownershipOk`; first run toggle-flake when panel already open, re-run PASS)
+- BF-01 attach → RESULT `ok:true` marker `1792418127502` (`composerOwned` + `streamOwned`)
 
 ## Honest residuals
 
@@ -51,7 +55,7 @@ CDP: `cdp-probe-stage4-13-composer-chrome.mjs` → RESULT `ok:true` marker `AP-S
 
 ## Not claimed
 
-- INDEPENDENT PASS
 - Stage 4 complete
 - OpenCode fully replaced
 - merge / push / promote
+- Stage 8 / running-DEV acceptance PASS

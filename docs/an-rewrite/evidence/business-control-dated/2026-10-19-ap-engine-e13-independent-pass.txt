@@ -1,0 +1,42 @@
+recorded=2026-10-19
+tasks=AP-ENGINE-E13
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=E13 MAX_AUTO_COMPACTS_PER_DRAIN=2; auto/overflow completions counted; Failed — stall/churn (compaction.stall); manual uncapped; overflow recovery once preserved; EnginePort send non-regress
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=1f7e4c25c8
+tip=4c42d1d289
+base=72dce8c771
+head_verified=4c42d1d289e2ac62884457963d3430f669c492da matches claimed tip; code 1f7e4c25c8 + base 72dce8c771 ancestors
+report=docs/an-rewrite/CURSOR-AP-ENGINE-E13.md
+audit=business-control/ENGINE-EFFICIENCY-AUDIT.md §E13
+
+source_bar=
+  drain-compact-budget.ts: MAX_AUTO_COMPACTS_PER_DRAIN=2; STALL_CHURN_ERROR type=compaction.stall message=Failed — stall/churn
+  SessionRunner.autoOrOverflowCompact: reserve before auto/overflow; recordAutoCompactCompleted only on status=completed
+  drain() creates fresh DrainCompactBudget; cleared in ensuring endDrain
+  manual /compact path calls compaction.compact({ reason: "manual" }) directly — uncapped
+  recoverOverflow: stall/churn → StepFailedError (not prompt-too-long fallthrough); overflow-once unit kept
+
+tests_re_ran=
+  packages/core bun test test/drain-compact-budget.test.ts → 3 pass 0 fail
+  packages/core bun test test/session-runner.test.ts -t "AP-ENGINE-E13|persists a second context overflow|compacts before requesting an undersized|recovers an overflowing|does not recover provider context overflow|recovers once from a raw context overflow" → 6 pass 0 fail
+  packages/core bun run typecheck → exit 0
+
+source_bar_tests=
+  allows MAX_AUTO_COMPACTS_PER_DRAIN completed auto/overflow slots
+  reserves fail with Failed — stall/churn after the cap
+  skipped attempts do not consume the budget until completed
+  AP-ENGINE-E13: caps auto-compacts per drain with Failed — stall/churn (2 Compaction.Started then stall)
+  recovers once from a raw context overflow / persists second overflow / undersized auto / native overflow / disabled auto
+
+live_cdp=bun docs/an-rewrite/evidence/cdp-probe-engine-e13.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-ENGINE-E13 send 1792433542528
+live_cdp_detail=engine=oc-server enginePort=01 owned=composer timelineDisplay=none; ws.close+process.exit in probe finally
+writer_prior_marker=AP-ENGINE-E13 send 1792433267590 (prior live-DEV; retained)
+
+residuals_ok=original top-10 act-first list complete; PORT-02 alone; second-pass audit alone
+isolation=no merge/push; no product features added by verifier; product C:\Tools\aporia not this branch
+not_claimed=Stage 4 complete; PORT-02; second-pass audit; merge; push; install; Stage 8 / running-DEV acceptance PASS
+deferred=AP-ENGINE-PORT-02 Settings; second-pass SSE/MCP/sqlite/perf audit
+worktree_note=unrelated dirty docs/screenshot mods present at review time; verifier did not implement product code
