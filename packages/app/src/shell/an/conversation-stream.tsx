@@ -1,9 +1,15 @@
-import { For, Show, createEffect, type JSX } from "solid-js"
+import { For, Show, createEffect, on, type JSX } from "solid-js"
 import { AnCard } from "./cards/an-card"
 import type { AnCardAction, AnCardModel } from "./cards/types"
 import type { AnConversationTurn } from "./conversation-turns"
 import type { AnStreamItem } from "./conversation-stream-items"
 import { aporiaAlerts } from "@/aporia/alerts"
+import type { AnDraftIdentity } from "./session-draft-store"
+import {
+  anScrollApplyIdentity,
+  anScrollHasIdentity,
+  anScrollSaveIdentity,
+} from "./session-scroll-store"
 
 function TurnArticle(props: { turn: AnConversationTurn }): JSX.Element {
   return (
@@ -35,8 +41,12 @@ export function AnConversationStream(props: {
   turns?: AnConversationTurn[]
   emptyHint?: string
   onCardAction?: (action: AnCardAction, card: AnCardModel) => void
+  /** AP-STAGE4-MISSION-RESTART — restore/save scroll for this teammate/mission identity. */
+  scrollIdentity?: AnDraftIdentity
 }): JSX.Element {
   let root: HTMLDivElement | undefined
+  /** After restore, skip one pin-to-bottom so mid-thread scroll survives A→B→A. */
+  let restorePending = false
 
   const items = (): AnStreamItem[] => {
     if (props.items) return props.items
@@ -49,6 +59,30 @@ export function AnConversationStream(props: {
 
   const hasContent = () => items().length > 0
 
+  const identityKey = () => {
+    const id = props.scrollIdentity
+    if (!id) return ""
+    return `${id.agent ?? ""}|${id.slug ?? ""}|${id.sessionID ?? ""}`
+  }
+
+  createEffect(
+    on(identityKey, (key) => {
+      if (!key || !root) return
+      restorePending = true
+      requestAnimationFrame(() => {
+        if (!root || !props.scrollIdentity) return
+        const applied = anScrollApplyIdentity(root, props.scrollIdentity)
+        if (!applied) restorePending = false
+        else {
+          // Keep restorePending true until after the content-effect runs once.
+          requestAnimationFrame(() => {
+            restorePending = false
+          })
+        }
+      })
+    }),
+  )
+
   createEffect(() => {
     const list = items()
     const count = list.length
@@ -56,10 +90,22 @@ export function AnConversationStream(props: {
     void last?.kind === "turn" ? last.turn.text : last?.card.title
     void last?.kind === "turn" ? last.turn.streaming : undefined
     if (!root || count === 0) return
-    requestAnimationFrame(() => {
-      root?.scrollTo({ top: root.scrollHeight, behavior: "smooth" })
-    })
+    if (restorePending) return
+    const streaming = last?.kind === "turn" && last.turn.streaming
+    const hasSaved =
+      !!props.scrollIdentity && anScrollHasIdentity(props.scrollIdentity)
+    // Pin to bottom on streaming / no identity / no saved mid-scroll; keep restored position otherwise.
+    if (streaming || !props.scrollIdentity || !hasSaved) {
+      requestAnimationFrame(() => {
+        root?.scrollTo({ top: root.scrollHeight, behavior: "auto" })
+      })
+    }
   })
+
+  const onScroll = () => {
+    if (!root || !props.scrollIdentity || restorePending) return
+    anScrollSaveIdentity(props.scrollIdentity, root.scrollTop)
+  }
 
   const handleCardAction = (action: AnCardAction, card: AnCardModel) => {
     if (props.onCardAction) {
@@ -79,11 +125,22 @@ export function AnConversationStream(props: {
     <div
       ref={(el) => {
         root = el
+        if (el && props.scrollIdentity) {
+          restorePending = true
+          requestAnimationFrame(() => {
+            anScrollApplyIdentity(el, props.scrollIdentity!)
+            requestAnimationFrame(() => {
+              restorePending = false
+            })
+          })
+        }
       }}
       class="an-conversation"
       data-component="an-conversation"
       data-an-cards-in-stream="true"
+      data-an-scroll-key={identityKey() || undefined}
       aria-label="Conversation"
+      onScroll={onScroll}
     >
       <Show
         when={hasContent()}

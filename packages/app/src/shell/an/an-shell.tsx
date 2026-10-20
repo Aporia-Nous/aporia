@@ -33,6 +33,7 @@ import {
   type AnShellMode,
 } from "./tokens"
 import type { AnShellProps } from "./types"
+import type { AnDraftIdentity } from "./session-draft-store"
 import "./an-shell.css"
 
 function StreamRegion(
@@ -47,6 +48,7 @@ function StreamRegion(
     conversationEmpty?: string
     /** When true, AN owns message list; children keep composer / home chrome. */
     ownConversation?: boolean
+    scrollIdentity?: AnDraftIdentity
     onCardAction?: (actionId: string, card: AnCardModel) => void
   }>,
 ) {
@@ -70,6 +72,7 @@ function StreamRegion(
           items={props.streamItems}
           turns={props.turns ?? []}
           emptyHint={props.conversationEmpty}
+          scrollIdentity={props.scrollIdentity}
           onCardAction={onAction}
         />
       </Show>
@@ -746,6 +749,7 @@ export function AnShell(props: AnShellProps): JSX.Element {
               turns={conversationTurns()}
               conversationEmpty={props.conversationEmpty}
               ownConversation={ownConversation()}
+              scrollIdentity={props.conversationScrollIdentity}
               onCardAction={props.onStreamCardAction}
             >
               {props.children}
@@ -769,6 +773,7 @@ export function AnShell(props: AnShellProps): JSX.Element {
               turns={conversationTurns()}
               conversationEmpty={props.conversationEmpty}
               ownConversation={ownConversation()}
+              scrollIdentity={props.conversationScrollIdentity}
               onCardAction={props.onStreamCardAction}
             >
               {props.children}

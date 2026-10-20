@@ -1,5 +1,5 @@
 /**
- * AP-STAGE4-B1 — AnShell per-session/teammate composer draft map.
+ * AP-STAGE4-B1 + AP-STAGE4-MISSION-RESTART — AnShell per-session/teammate composer draft map.
  *
  * ComposerPersistenceProvider keys drafts by route session id, but roster switches can
  * change the selected teammate without a durable URL/session remount order that flushes
@@ -8,6 +8,10 @@
  *
  * Keys are aliased across session id + agent + roster slug so home (`/`) and session
  * routes resolve the same teammate draft.
+ *
+ * MISSION-RESTART: Map is also mirrored to localStorage (`an.shell.drafts.v1`) so
+ * quit/reopen / renderer reload keeps identity-aliased drafts even when the in-memory
+ * Map is cleared (ComposerPersistenceProvider remains the session-id path).
  */
 import {
   findComposerEditor,
@@ -15,9 +19,44 @@ import {
   readComposerEditorText,
 } from "@/composer/session-draft"
 
+const STORAGE_KEY = "an.shell.drafts.v1"
 const drafts = new Map<string, string>()
+let hydrated = false
 
 export type AnDraftIdentity = { sessionID?: string; agent?: string; slug?: string }
+
+function canUseStorage(): boolean {
+  try {
+    return typeof localStorage !== "undefined" && !!localStorage
+  } catch {
+    return false
+  }
+}
+
+function hydrate() {
+  if (hydrated) return
+  hydrated = true
+  if (!canUseStorage()) return
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return
+    const obj = JSON.parse(raw) as Record<string, unknown>
+    for (const [key, value] of Object.entries(obj)) {
+      if (typeof value === "string") drafts.set(key, value)
+    }
+  } catch {
+    /* ignore corrupt UI state */
+  }
+}
+
+function persist() {
+  if (!canUseStorage()) return
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(Object.fromEntries(drafts)))
+  } catch {
+    /* quota / private mode */
+  }
+}
 
 export function anDraftKeys(input: AnDraftIdentity): string[] {
   const keys: string[] = []
@@ -35,25 +74,31 @@ export function anDraftKey(input: AnDraftIdentity): string {
 }
 
 export function anDraftSave(key: string, text?: string): string {
+  hydrate()
   const value = text ?? readComposerEditorText(findComposerEditor())
   drafts.set(key, value)
+  persist()
   flushComposerEditorDom()
   return value
 }
 
 /** Save under all identity aliases so leave/enter can use session or agent keys. */
 export function anDraftSaveIdentity(input: AnDraftIdentity, text?: string): string {
+  hydrate()
   const value = text ?? readComposerEditorText(findComposerEditor())
   for (const key of anDraftKeys(input)) drafts.set(key, value)
+  persist()
   flushComposerEditorDom()
   return value
 }
 
 export function anDraftLoad(key: string): string | undefined {
+  hydrate()
   return drafts.get(key)
 }
 
 export function anDraftLoadIdentity(input: AnDraftIdentity): string | undefined {
+  hydrate()
   for (const key of anDraftKeys(input)) {
     if (drafts.has(key)) return drafts.get(key)
   }
@@ -61,15 +106,18 @@ export function anDraftLoadIdentity(input: AnDraftIdentity): string | undefined 
 }
 
 export function anDraftHas(key: string): boolean {
+  hydrate()
   return drafts.has(key)
 }
 
 export function anDraftHasIdentity(input: AnDraftIdentity): boolean {
+  hydrate()
   return anDraftKeys(input).some((key) => drafts.has(key))
 }
 
 /** Write a stored draft into the live editor and notify the Solid onInput path. */
 export function anDraftApply(key: string): boolean {
+  hydrate()
   if (!drafts.has(key)) return false
   const text = drafts.get(key) ?? ""
   const editor = findComposerEditor()
@@ -116,17 +164,27 @@ export function anDraftSwitch(from: AnDraftIdentity, to: AnDraftIdentity): { sav
   return { saved }
 }
 
-/** Test helper — clear the in-memory draft map. */
+/** Test helper — clear the in-memory draft map (+ durable mirror). */
 export function anDraftClearForTests() {
   drafts.clear()
+  hydrated = false
+  if (canUseStorage()) {
+    try {
+      localStorage.removeItem(STORAGE_KEY)
+    } catch {
+      /* ignore */
+    }
+  }
 }
 
 export function anDraftSizeForTests() {
+  hydrate()
   return drafts.size
 }
 
 /** DEV/CDP probe surface — no secrets; draft text only. */
 export function anDraftInstallWindowProbe(target: Record<string, unknown> = globalThis as never) {
+  hydrate()
   const probe = {
     key: anDraftKey,
     keys: anDraftKeys,
@@ -134,7 +192,11 @@ export function anDraftInstallWindowProbe(target: Record<string, unknown> = glob
     load: anDraftLoadIdentity,
     apply: anDraftApplyIdentity,
     has: anDraftHasIdentity,
-    size: () => drafts.size,
+    size: () => {
+      hydrate()
+      return drafts.size
+    },
+    storageKey: STORAGE_KEY,
   }
   ;(target as { __anDraft?: typeof probe }).__anDraft = probe
   return probe

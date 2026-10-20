@@ -136,6 +136,6 @@ describe("AN shell bind", () => {
   test("mission-switch survival stays on existing app patterns", () => {
     expect(anShellMissionSwitchNote()).toContain("ComposerPersistenceProvider")
     expect(anShellMissionSwitchNote()).toContain("AP-STAGE4-B1")
-    expect(anShellMissionSwitchNote()).toContain("per-session store")
+    expect(anShellMissionSwitchNote()).toContain("MISSION-RESTART")
   })
 })

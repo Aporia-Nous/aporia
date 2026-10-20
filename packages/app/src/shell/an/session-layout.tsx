@@ -19,6 +19,10 @@ import {
   anDraftSaveIdentity,
   anDraftSwitch,
 } from "@/shell/an/session-draft-store"
+import {
+  anScrollInstallWindowProbe,
+  anScrollSaveFromDom,
+} from "@/shell/an/session-scroll-store"
 import { useCommand } from "@/shell/commands/command"
 import { useLanguage } from "@/runtime/i18n/language"
 import { sessionHref } from "@/shell/routes/session"
@@ -425,8 +429,14 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     setComputerControl((prev) => rescopeComputerControl(prev, sessionID))
   })
 
-  // AP-STAGE4-B1: restore draft when the teammate key changes (string key — ignore roster poll churn).
+  // AP-STAGE4-B1 / MISSION-RESTART: restore draft when the teammate key changes.
   anDraftInstallWindowProbe()
+  anScrollInstallWindowProbe()
+  const conversationScrollIdentity = createMemo(() => ({
+    sessionID: props.view.sessionID(),
+    agent: currentAgent(),
+    slug: roster.bound().roster.find((m) => m.selected)?.id,
+  }))
   createEffect(
     on(
       () =>
@@ -645,13 +655,17 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   )
 
   const openMember = async (slug: string) => {
-    // AP-STAGE4-B1: per-session/teammate draft map — save DOM draft before leave, restore after enter.
+    // AP-STAGE4-B1 / MISSION-RESTART: save DOM draft + scroll before leave; restore after enter.
     flushComposerEditorDom()
     const selectedSlug = roster.bound().roster.find((m) => m.selected)?.id
     const fromIdentity = {
       sessionID: props.view.sessionID(),
       agent: currentAgent(),
       slug: selectedSlug,
+    }
+    // Only park scroll when actually leaving this teammate (re-click must not write 0 over durable mid-scroll).
+    if (selectedSlug && selectedSlug !== slug) {
+      anScrollSaveFromDom(fromIdentity)
     }
     const agent = agentFor(slug)
     const existing = engine.listSessions().find((s) => s.agent === agent && !s.parentID && !s.time.archived)
@@ -1010,6 +1024,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
           missionStackCards={missionStackCards()}
           streamItems={streamItems()}
           conversationTurns={conversationTurns()}
+          conversationScrollIdentity={conversationScrollIdentity()}
           conversationEmpty="No messages yet — send from the composer below. Conversation is owned by AnShell."
           computerEmpty={computerAttachEmptyCopy(computerAttach())}
           computerTitle="Computer View"

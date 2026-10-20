@@ -241,7 +241,7 @@ export function attentionBindResult(input: {
   }
 }
 
-/** Mission-switch survival: shell is presentational chrome only; draft/scroll live in ComposerPersistenceProvider + session tabs + AnShell draft map. */
+/** Mission-switch survival: draft/scroll via ComposerPersistenceProvider + AnShell maps (localStorage for quit/reopen). */
 export function anShellMissionSwitchNote() {
-  return "AnShell does not own composer/scroll state; Mission A→B→A survival uses tab + ComposerPersistenceProvider + AP-STAGE4-B1 anDraftSwitch per-session store before teammate navigate."
+  return "Mission A→B→A + quit/reopen uses ComposerPersistenceProvider + AP-STAGE4-B1 anDraftSwitch + AP-STAGE4-MISSION-RESTART an.shell.drafts/scroll localStorage before teammate navigate."
 }

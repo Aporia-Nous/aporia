@@ -2,6 +2,7 @@ import type { AnPresence, AnShellMode } from "./tokens"
 import type { AnCardModel } from "./cards/types"
 import type { AnStreamItem } from "./conversation-stream-items"
 import type { AnConversationTurn } from "./conversation-turns"
+import type { AnDraftIdentity } from "./session-draft-store"
 import type { JSX, ParentProps } from "solid-js"
 
 export type AnNavItem = {
@@ -67,6 +68,8 @@ export type AnShellProps = ParentProps<{
   conversationTurns?: AnConversationTurn[]
   /** Empty-state hint for the AN conversation list. */
   conversationEmpty?: string
+  /** AP-STAGE4-MISSION-RESTART — identity for conversation scroll save/restore. */
+  conversationScrollIdentity?: AnDraftIdentity
   /** Approved three-state framing (Conversation / Computer View / Takeover); shares one BF-03 control lock. */
   mode?: AnShellMode
   /** Interactive mode switch — layout changes; backends may still be stubbed. */

@@ -64,4 +64,13 @@ describe("AP-STAGE4-B1 AnShell session draft store", () => {
     expect(anDraftLoadIdentity({ agent: "aporia-grok" })).toBe("leaving-A")
     expect(anDraftLoadIdentity({ agent: "aporia-dev" })).toBe("keep-B")
   })
+
+  test("MISSION-RESTART durable localStorage mirrors identity drafts", () => {
+    anDraftSaveIdentity({ agent: "aporia-grok", slug: "grok" }, "survive-reload")
+    const raw = localStorage.getItem("an.shell.drafts.v1")
+    expect(raw).toBeTruthy()
+    const parsed = JSON.parse(raw!) as Record<string, string>
+    expect(parsed["agent:aporia-grok"]).toBe("survive-reload")
+    expect(parsed["slug:grok"]).toBe("survive-reload")
+  })
 })
