@@ -139,6 +139,13 @@ import {
   installAnCdpIsolationWindowProbe,
   shouldAutoPauseOnUserTargetInteraction,
 } from "./computer-cdp-isolation"
+import {
+  applyOsPointerAutoPause,
+  installAnOsPointerPauseWindowProbe,
+  shouldApplyComputerChromeAutoPause,
+  shouldApplyExternalPageAutoPause,
+  type CdpPageInteractionProbe,
+} from "./computer-os-pointer-pause"
 import { AnContraptionsPanel } from "./contraptions-panel"
 import { AnSettingsPanel } from "./settings-panel"
 import { extractDocxPlainText, officePreviewResidual } from "./docx-text"
@@ -589,6 +596,28 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       onError: (error) => {
         setComputerScreencast((prev) => failComputerScreencast(prev, error))
       },
+      // AP-STAGE5-07: external CDP page pointer/key/focus → auto-pause (no Takeover grant).
+      onUserTargetInteraction: (probe: CdpPageInteractionProbe) => {
+        const aporeticFocused =
+          typeof document !== "undefined" ? document.hasFocus() : true
+        if (
+          !shouldApplyExternalPageAutoPause({
+            live: computerLive(),
+            control: computerControl(),
+            aporeticWindowFocused: aporeticFocused,
+            page: probe,
+          })
+        ) {
+          return
+        }
+        setComputerControl((prev) => applyOsPointerAutoPause(prev, computerLive()))
+        aporiaAlerts.push({
+          title: `${computerControllerBotName()} paused`,
+          detail:
+            "Paused on your interaction with the external browser target. Resume restores drive; Take over grants input.",
+          level: "info",
+        })
+      },
     })
     screencastSession = session
     onCleanup(() => {
@@ -774,6 +803,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       surface: AN_PODMAN_SURFACE,
     })
     installAnCdpIsolationWindowProbe()
+    installAnOsPointerPauseWindowProbe()
     void refreshPodmanStatus()
   })
 
@@ -1077,6 +1107,19 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     })
   }
 
+  const onComputerUserTargetChromeInteraction = (kind: "chrome-pointer" | "chrome-focus") => {
+    if (!shouldApplyComputerChromeAutoPause(computerLive(), computerControl())) return
+    setComputerControl((prev) => applyOsPointerAutoPause(prev, computerLive()))
+    aporiaAlerts.push({
+      title: `${computerControllerBotName()} paused`,
+      detail:
+        kind === "chrome-focus"
+          ? "Paused when you focused the feed URL for this target. Resume restores drive; Take over grants input."
+          : "Paused on your pointer interaction with the Live feed. Resume restores drive; Take over grants input.",
+      level: "info",
+    })
+  }
+
   const onComputerFeedNavigate = (input: string) => {
     if (!computerLive()) {
       aporiaAlerts.push({
@@ -1292,6 +1335,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
           computerNote={computerControlNote(computerLive(), computerControl())}
           onComputerFeedDraftChange={setComputerFeedDraft}
           onComputerFeedNavigate={onComputerFeedNavigate}
+          onComputerUserTargetChromeInteraction={onComputerUserTargetChromeInteraction}
           onComputerConnect={onComputerConnect}
           onComputerConfirmAttach={onComputerConfirmAttach}
           onComputerCancelConsent={onComputerCancelConsent}

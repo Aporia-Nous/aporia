@@ -21,6 +21,7 @@ import {
 import { AN_COMPUTER_SCOPE_SURFACE } from "./computer-scope"
 import { AN_COMPUTER_CDP_ISOLATION_SURFACE } from "./computer-cdp-isolation"
 import { AN_COMPUTER_FEED_SURFACE } from "./computer-feed"
+import { AN_COMPUTER_OS_POINTER_PAUSE_SURFACE } from "./computer-os-pointer-pause"
 import {
   AN_COMPUTER_SCREENCAST_SURFACE,
   type ComputerPixelSource,
@@ -154,6 +155,8 @@ function LiveComputerPanel(props: {
   controllerBotName?: string
   onFeedDraftChange?: (value: string) => void
   onFeedNavigate?: (url: string) => void
+  /** AP-STAGE5-07: user pointer/focus on Live Computer chrome (not Takeover grant). */
+  onUserTargetChromeInteraction?: (kind: "chrome-pointer" | "chrome-focus") => void
   onConnect?: () => void
   onConfirmAttach?: () => void
   onCancelConsent?: () => void
@@ -216,6 +219,10 @@ function LiveComputerPanel(props: {
         props.nativeCaptureBlocked !== false && !AN_COMPUTER_CDP_ISOLATION_SURFACE.nativeWindowCapture
           ? "blocked"
           : "unavailable"
+      }
+      data-an-part-os-pointer={AN_COMPUTER_OS_POINTER_PAUSE_SURFACE.part}
+      data-os-pointer-pause={
+        props.live && AN_COMPUTER_OS_POINTER_PAUSE_SURFACE.computerChromeAutoPause ? "on" : "off"
       }
       data-controller={controller()}
       data-bot-paused={props.botPaused ? "true" : "false"}
@@ -283,6 +290,7 @@ function LiveComputerPanel(props: {
                   placeholder="https://…"
                   value={props.feedDraft ?? props.feedUrl ?? ""}
                   onInput={(event) => props.onFeedDraftChange?.(event.currentTarget.value)}
+                  onFocus={() => props.onUserTargetChromeInteraction?.("chrome-focus")}
                 />
                 <button type="submit" class="an-computer-btn an-computer-btn--feed" data-action="computer-feed-go">
                   Go
@@ -297,6 +305,8 @@ function LiveComputerPanel(props: {
                 data-user-input={props.userInput ? "true" : "false"}
                 data-pixel-source={pixelSource()}
                 data-screencast-phase={props.screencastPhase ?? "idle"}
+                data-action="computer-feed-surface"
+                onPointerDown={() => props.onUserTargetChromeInteraction?.("chrome-pointer")}
               >
                 <Show when={showScreencastPixels()}>
                   <img
@@ -773,6 +783,7 @@ export function AnShell(props: AnShellProps): JSX.Element {
               controllerBotName={props.computerControllerBotName}
               onFeedDraftChange={props.onComputerFeedDraftChange}
               onFeedNavigate={props.onComputerFeedNavigate}
+              onUserTargetChromeInteraction={props.onComputerUserTargetChromeInteraction}
               onConnect={props.onComputerConnect}
               onConfirmAttach={props.onComputerConfirmAttach}
               onCancelConsent={props.onComputerCancelConsent}
@@ -891,6 +902,7 @@ export function AnShell(props: AnShellProps): JSX.Element {
             controllerBotName={props.computerControllerBotName}
             onFeedDraftChange={props.onComputerFeedDraftChange}
             onFeedNavigate={props.onComputerFeedNavigate}
+            onUserTargetChromeInteraction={props.onComputerUserTargetChromeInteraction}
             onConnect={props.onComputerConnect}
             onConfirmAttach={props.onComputerConfirmAttach}
             onCancelConsent={props.onComputerCancelConsent}

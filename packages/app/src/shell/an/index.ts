@@ -144,6 +144,17 @@ export {
   type CdpIsolationTarget,
   type NativeWindowCaptureAttempt,
 } from "./computer-cdp-isolation"
+export {
+  AN_COMPUTER_OS_POINTER_PAUSE_SURFACE,
+  applyOsPointerAutoPause,
+  installAnOsPointerPauseWindowProbe,
+  mapCdpKindsToPauseKinds,
+  parseCdpPageInteractionProbe,
+  shouldApplyComputerChromeAutoPause,
+  shouldApplyExternalPageAutoPause,
+  type CdpPageInteractionProbe,
+  type OsPointerPauseKind,
+} from "./computer-os-pointer-pause"
 export { buildAnShellModel, assertApprovedModesOnly, type AnShellModel } from "./shell-model"
 export {
   botsToRoster,

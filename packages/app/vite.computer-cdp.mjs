@@ -16,6 +16,50 @@ const execFileAsync = promisify(execFile)
 const FRAME_PATH = "/__an/computer-cdp/frame"
 const NAVIGATE_PATH = "/__an/computer-cdp/navigate"
 const OPEN_TAB_PATH = "/__an/computer-cdp/open-tab"
+const USER_INTERACTION_PATH = "/__an/computer-cdp/user-interaction"
+
+/** AP-STAGE5-07: sticky page listeners for user pointer/key/focus (consented CDP target). */
+const INSTALL_USER_INTERACTION_JS = `(() => {
+  const KEY = "__anUserTargetInteraction";
+  const existing = window[KEY];
+  if (existing && existing.installed) return { ok: true, already: true };
+  const state = {
+    installed: true,
+    pointer: false,
+    key: false,
+    focusGain: false,
+    lastFocus: !!(document.hasFocus && document.hasFocus()),
+  };
+  const mark = (field) => { state[field] = true; };
+  window.addEventListener("pointerdown", () => mark("pointer"), true);
+  window.addEventListener("keydown", () => mark("key"), true);
+  const syncFocus = () => {
+    const focused = !!(document.hasFocus && document.hasFocus());
+    if (focused && !state.lastFocus) mark("focusGain");
+    state.lastFocus = focused;
+  };
+  window.addEventListener("focus", syncFocus, true);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") syncFocus();
+  });
+  window[KEY] = state;
+  return { ok: true, installed: true };
+})()`
+
+const POLL_USER_INTERACTION_JS = `(() => {
+  const KEY = "__anUserTargetInteraction";
+  const s = window[KEY];
+  if (!s || !s.installed) return { ok: false, installed: false, hit: false, kinds: [] };
+  const kinds = [];
+  if (s.pointer) kinds.push("pointer");
+  if (s.key) kinds.push("key");
+  if (s.focusGain) kinds.push("focus");
+  const hit = kinds.length > 0;
+  s.pointer = false;
+  s.key = false;
+  s.focusGain = false;
+  return { ok: true, installed: true, hit, kinds };
+})()`
 
 function normalizeEndpoint(input) {
   const raw = String(input || "").trim()
@@ -159,6 +203,45 @@ async function navigatePage(endpoint, regionId, url) {
     const nav = await cdp.send("Page.navigate", { url })
     if (nav.error) return { ok: false, error: nav.error.message || "Page.navigate failed." }
     return { ok: true }
+  } finally {
+    cdp.close()
+  }
+}
+
+/** AP-STAGE5-07: ensure page listeners, then read+clear user interaction flags. */
+async function pollUserInteraction(endpoint, regionId) {
+  const resolved = await resolveWsUrl(endpoint, regionId)
+  if (!resolved.ok) return resolved
+  const cdp = await connectCdp(resolved.wsUrl)
+  try {
+    await cdp.send("Runtime.enable")
+    const installed = await cdp.send("Runtime.evaluate", {
+      expression: INSTALL_USER_INTERACTION_JS,
+      returnByValue: true,
+    })
+    if (installed.error) {
+      return { ok: false, error: installed.error.message || "Runtime.evaluate install failed." }
+    }
+    const polled = await cdp.send("Runtime.evaluate", {
+      expression: POLL_USER_INTERACTION_JS,
+      returnByValue: true,
+    })
+    if (polled.error) {
+      return { ok: false, error: polled.error.message || "Runtime.evaluate poll failed." }
+    }
+    const value = polled.result?.result?.value
+    if (!value || typeof value !== "object") {
+      return { ok: false, error: "User-interaction poll returned no value." }
+    }
+    const kinds = Array.isArray(value.kinds)
+      ? value.kinds.filter((k) => k === "pointer" || k === "key" || k === "focus")
+      : []
+    return {
+      ok: true,
+      installed: value.installed === true || value.ok === true,
+      hit: value.hit === true && kinds.length > 0,
+      kinds,
+    }
   } finally {
     cdp.close()
   }
@@ -420,7 +503,8 @@ export function computerCdpRelayPlugin() {
           if (
             (url.pathname === FRAME_PATH ||
               url.pathname === NAVIGATE_PATH ||
-              url.pathname === OPEN_TAB_PATH) &&
+              url.pathname === OPEN_TAB_PATH ||
+              url.pathname === USER_INTERACTION_PATH) &&
             req.method === "OPTIONS"
           ) {
             setCors(res)
@@ -499,6 +583,29 @@ export function computerCdpRelayPlugin() {
             res.statusCode = opened.ok ? 200 : opened.decision?.action === "refuse-second-window" ? 409 : 502
             res.setHeader("Content-Type", "application/json")
             res.end(JSON.stringify(opened))
+            return
+          }
+          if (url.pathname === USER_INTERACTION_PATH && req.method === "GET") {
+            setCors(res)
+            const ep = normalizeEndpoint(url.searchParams.get("endpoint"))
+            if (!ep.ok) {
+              res.statusCode = 400
+              res.setHeader("Content-Type", "application/json")
+              res.end(JSON.stringify({ ok: false, error: ep.error }))
+              return
+            }
+            const region = normalizeRegion(url.searchParams.get("region"))
+            if (!region.ok) {
+              res.statusCode = 400
+              res.setHeader("Content-Type", "application/json")
+              res.end(JSON.stringify({ ok: false, error: region.error }))
+              return
+            }
+            const probe = await pollUserInteraction(ep.endpoint, region.regionId)
+            res.statusCode = probe.ok ? 200 : 502
+            res.setHeader("Content-Type", "application/json")
+            res.setHeader("Cache-Control", "no-store")
+            res.end(JSON.stringify(probe))
             return
           }
         } catch (err) {

@@ -3,11 +3,16 @@
 // Electron: renderer WebSocket to CDP is blocked → fall back to DEV HTTP relay (captureScreenshot poll).
 
 import { normalizeExternalBrowserEndpoint, normalizeExternalBrowserRegion } from "./computer-external"
+import {
+  parseCdpPageInteractionProbe,
+  type CdpPageInteractionProbe,
+} from "./computer-os-pointer-pause"
 import { AN_COMPUTER_SCREENCAST_SURFACE } from "./computer-screencast"
 import {
   AN_COMPUTER_CDP_RELAY,
   buildComputerCdpFrameUrl,
   buildComputerCdpNavigateUrl,
+  buildComputerCdpUserInteractionUrl,
 } from "./computer-screencast-relay"
 
 export type ExternalBrowserTarget = {
@@ -46,6 +51,8 @@ export type StartComputerScreencastOptions = {
   onFrame: (frame: ComputerScreencastFrame) => void
   onError: (error: string) => void
   onStatus?: (status: "connecting" | "streaming" | "stopped") => void
+  /** AP-STAGE5-07: external page user pointer/key/focus (relay poll). */
+  onUserTargetInteraction?: (probe: CdpPageInteractionProbe) => void
   fetchImpl?: typeof fetch
   WebSocketImpl?: typeof WebSocket
   maxWidth?: number
@@ -163,9 +170,11 @@ function startRelayPollSession(options: StartComputerScreencastOptions): Compute
   const fetchImpl = options.fetchImpl ?? fetch
   let stopped = false
   let timer: ReturnType<typeof setTimeout> | undefined
+  let interactionTimer: ReturnType<typeof setTimeout> | undefined
   let frameSessionId = 0
   const origin = options.relayOrigin ?? (typeof window !== "undefined" ? window.location.origin : "")
   const frameUrl = buildComputerCdpFrameUrl(options.endpoint, options.regionId, origin)
+  const interactionUrl = buildComputerCdpUserInteractionUrl(options.endpoint, options.regionId, origin)
   if (!frameUrl.ok) {
     options.onError(frameUrl.error)
     return {
@@ -173,6 +182,29 @@ function startRelayPollSession(options: StartComputerScreencastOptions): Compute
         stopped = true
       },
       navigate: async () => ({ ok: false, error: frameUrl.error }),
+    }
+  }
+
+  const tickInteraction = async () => {
+    if (stopped || !options.onUserTargetInteraction || !interactionUrl.ok) return
+    try {
+      const res = await fetchImpl(interactionUrl.url, {
+        method: "GET",
+        signal: AbortSignal.timeout(4000),
+      })
+      if (stopped) return
+      if (res.ok) {
+        const body = (await res.json()) as unknown
+        const probe = parseCdpPageInteractionProbe(body)
+        if (probe.hit) options.onUserTargetInteraction(probe)
+      }
+    } catch {
+      // Soft-fail — pixel stream remains primary; interaction poll is best-effort.
+    }
+    if (!stopped) {
+      interactionTimer = setTimeout(() => {
+        void tickInteraction()
+      }, AN_COMPUTER_CDP_RELAY.userInteractionPollMs)
     }
   }
 
@@ -223,12 +255,16 @@ function startRelayPollSession(options: StartComputerScreencastOptions): Compute
 
   options.onStatus?.("connecting")
   void tick()
+  if (options.onUserTargetInteraction && interactionUrl.ok) {
+    void tickInteraction()
+  }
 
   return {
     stop: () => {
       if (stopped) return
       stopped = true
       if (timer) clearTimeout(timer)
+      if (interactionTimer) clearTimeout(interactionTimer)
       options.onStatus?.("stopped")
     },
     navigate: async (url: string) => {

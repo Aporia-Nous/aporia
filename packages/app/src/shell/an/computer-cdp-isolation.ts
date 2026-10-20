@@ -218,9 +218,9 @@ export function refuseSilentTabGroupWiden(
 }
 
 /**
- * Handoff H residual (STAGE5-05): auto-pause when user interacts with the same
- * controlled surface while bot may drive (e.g. feed Go). Does not grant user input.
- * External-browser OS pointer races stay OPEN (no CDP Input listener in this slice).
+ * Handoff H: auto-pause when user interacts with the same controlled surface
+ * while bot may drive (e.g. feed Go). Does not grant user input.
+ * External OS-pointer / CDP page focus → AP-STAGE5-07 (`computer-os-pointer-pause`).
  */
 export function shouldAutoPauseOnUserTargetInteraction(
   live: boolean,

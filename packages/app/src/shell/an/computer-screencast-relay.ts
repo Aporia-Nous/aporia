@@ -8,7 +8,10 @@ export const AN_COMPUTER_CDP_RELAY = {
   navigatePath: "/__an/computer-cdp/navigate",
   /** AP-BF-06: open tab in existing Edge/Chrome window (spawn only if none). */
   openTabPath: "/__an/computer-cdp/open-tab",
+  /** AP-STAGE5-07: install+poll page user pointer/key/focus flags (loopback CDP). */
+  userInteractionPath: "/__an/computer-cdp/user-interaction",
   pollMs: 450,
+  userInteractionPollMs: 700,
 } as const
 
 export function buildComputerCdpFrameUrl(
@@ -33,6 +36,22 @@ export function buildComputerCdpNavigateUrl(origin = ""): string {
 
 export function buildComputerCdpOpenTabUrl(origin = ""): string {
   return `${origin}${AN_COMPUTER_CDP_RELAY.openTabPath}`
+}
+
+export function buildComputerCdpUserInteractionUrl(
+  endpoint: string,
+  regionId: string,
+  origin = "",
+): { ok: true; url: string } | { ok: false; error: string } {
+  const ep = normalizeExternalBrowserEndpoint(endpoint)
+  if (!ep.ok) return ep
+  const region = normalizeExternalBrowserRegion(regionId)
+  if (!region.ok) return region
+  const qs = new URLSearchParams({
+    endpoint: ep.endpoint,
+    region: region.regionId,
+  })
+  return { ok: true, url: `${origin}${AN_COMPUTER_CDP_RELAY.userInteractionPath}?${qs.toString()}` }
 }
 
 export function parseComputerCdpRelayQuery(searchParams: URLSearchParams):

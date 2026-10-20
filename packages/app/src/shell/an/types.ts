@@ -144,6 +144,8 @@ export type AnShellProps = ParentProps<{
   computerNote?: string
   onComputerFeedDraftChange?: (value: string) => void
   onComputerFeedNavigate?: (url: string) => void
+  /** AP-STAGE5-07: pointer/focus on Live Computer chrome → auto-pause (no Takeover grant). */
+  onComputerUserTargetChromeInteraction?: (kind: "chrome-pointer" | "chrome-focus") => void
   onComputerConnect?: () => void
   onComputerConfirmAttach?: () => void
   onComputerCancelConsent?: () => void
