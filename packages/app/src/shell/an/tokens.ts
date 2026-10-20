@@ -258,13 +258,16 @@ export { AN_COMPUTER_EXTERNAL_SURFACE } from "./computer-external"
 export { AN_PODMAN_SURFACE } from "./podman-chrome"
 export { AN_NAV_ILLUSTRATED } from "./nav-illustrated"
 
-/** Three-state framing from approved mockups — Stage 5 four-mode work stays separate. */
+/**
+ * Three-state shell modes only (AP-STAGE5-MODES decision C).
+ * Status / Inline = event card densities, not modes. Side Panel = Computer View synonym in docs.
+ */
 export const AN_SHELL_MODES = ["conversation", "view", "takeover"] as const
 export type AnShellMode = (typeof AN_SHELL_MODES)[number]
 
 export const AN_SHELL_MODE_LABEL: Record<AnShellMode, string> = {
   conversation: "Conversation",
-  /** User-facing Computer View; mode id stays `view` (Stage 5 four-mode still OPEN). */
+  /** Mode pill + live panel title; stream Computer card never uses this label. */
   view: "Computer View",
   takeover: "Takeover",
 }

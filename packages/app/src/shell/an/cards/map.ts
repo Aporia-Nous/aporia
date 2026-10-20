@@ -259,7 +259,27 @@ export function sessionToTaskCard(input: {
   }
 }
 
-/** Computer View panel → Computer card (honest unavailable/empty; feed only when Live). */
+/**
+ * AP-STAGE5-01 Option C: stream Computer card residency.
+ * Conversation only, and only when relevant (Live / feed / Takeover lock) or explicit quiet entry.
+ * View / Takeover keep ONE live panel — never duplicate a Computer card in the stream.
+ * Status/Inline densities are event cards, not shell modes.
+ */
+export function shouldIncludeComputerStreamCard(input?: {
+  shellMode?: string
+  live?: boolean
+  feedActive?: boolean
+  userControl?: boolean
+  /** Rare override: quiet entry chip even when idle (still Conversation-only). */
+  quietEntry?: boolean
+}): boolean {
+  const mode = input?.shellMode
+  if (mode === "view" || mode === "takeover") return false
+  if (input?.quietEntry) return true
+  return !!(input?.live || input?.feedActive || input?.userControl)
+}
+
+/** Stream Computer card (quiet entry / relevant status) — never titled "Computer View". */
 export function computerToCard(input?: {
   live?: boolean
   feedActive?: boolean
@@ -272,7 +292,7 @@ export function computerToCard(input?: {
   const feedActive = !!input?.feedActive
   const userControl = !!input?.userControl
   const detailDefault = !live
-    ? "Computer View has no live attach — connect a local browser workspace."
+    ? "No live attach — connect a local browser workspace to go Live."
     : userControl
       ? "You hold the control lock (Takeover). Bot is paused until Hand back or Stop."
       : feedActive
@@ -281,7 +301,7 @@ export function computerToCard(input?: {
   return {
     id: "computer:live",
     type: "computer",
-    title: input?.title?.trim() || "Computer View",
+    title: input?.title?.trim() || "Computer",
     detail: input?.detail?.trim() || detailDefault,
     status: live ? (userControl ? "You control" : "Live") : "Unavailable",
     statusTone: live ? "ok" : "neutral",
@@ -289,10 +309,10 @@ export function computerToCard(input?: {
     actions: [
       {
         id: "view",
-        label: "Computer View",
+        label: "Open in Computer View",
         variant: "secondary",
         stub: !live,
-        stubReason: live ? undefined : "No browser workspace attached — Computer View is chrome-only.",
+        stubReason: live ? undefined : "No browser workspace attached — open Computer View from the mode switcher.",
       },
     ],
   }
@@ -326,7 +346,10 @@ export function rosterToTeamCard(members: readonly AnRosterMember[]): AnCardMode
   }
 }
 
-/** Build stream card stack for AnShell — real sources only; Computer always present as honest idle/live. */
+/**
+ * Build stream card stack for AnShell — real sources only.
+ * AP-STAGE5-01 Option C: Computer/Team are NOT wallpaper — Computer when relevant; Team on handoffs only.
+ */
 export function buildStreamCards(input: {
   attention?: readonly AnAttentionItem[]
   roster?: readonly AnRosterMember[]
@@ -336,6 +359,12 @@ export function buildStreamCards(input: {
   computerFeedActive?: boolean
   /** AP-BF-03: user holds Takeover control lock. */
   computerUserControl?: boolean
+  /** Shell mode — View/Takeover suppress stream Computer (one live panel). */
+  shellMode?: string
+  /** Explicit override; default = residency helper (relevant only). */
+  includeComputer?: boolean
+  quietComputerEntry?: boolean
+  /** Team card only on handoffs/events (default false — no wallpaper). */
   includeTeam?: boolean
   /** When true and no edit/proof tools exist, append honest Proof · unavailable (default false — avoid clutter). */
   includeProofUnavailable?: boolean
@@ -349,14 +378,26 @@ export function buildStreamCards(input: {
   if (input.includeProofUnavailable && !partCards.some((c) => c.type === "proof")) {
     cards.push(messageProofUnavailableCard())
   }
-  cards.push(
-    computerToCard({
-      live: input.computerLive,
-      feedActive: input.computerFeedActive,
-      userControl: input.computerUserControl,
-    }),
-  )
-  if (input.includeTeam !== false) {
+  const includeComputer =
+    input.includeComputer === true ||
+    (input.includeComputer !== false &&
+      shouldIncludeComputerStreamCard({
+        shellMode: input.shellMode,
+        live: input.computerLive,
+        feedActive: input.computerFeedActive,
+        userControl: input.computerUserControl,
+        quietEntry: input.quietComputerEntry,
+      }))
+  if (includeComputer) {
+    cards.push(
+      computerToCard({
+        live: input.computerLive,
+        feedActive: input.computerFeedActive,
+        userControl: input.computerUserControl,
+      }),
+    )
+  }
+  if (input.includeTeam === true) {
     const team = rosterToTeamCard(input.roster ?? [])
     if (team) cards.push(team)
   }

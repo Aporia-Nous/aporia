@@ -13,13 +13,25 @@ describe("AP-STAGE4-15 conversation stream items", () => {
     expect(buildMissionStackCards()).toEqual([])
   })
 
-  test("context cards include computer + team without inventing tools", () => {
-    const cards = buildContextCards({
+  test("context cards omit wallpaper; include computer when relevant (AP-STAGE5-01)", () => {
+    const idle = buildContextCards({
       roster: [{ id: "1", name: "Orion", role: "Lead", presence: "listening" }],
       session: { working: true, title: "Build", sessionID: "s1" },
       attention: [{ id: "a1", title: "Approve deploy" }],
+      shellMode: "conversation",
     })
-    expect(cards.map((c) => c.type)).toEqual(["task", "approval", "computer", "team"])
+    expect(idle.map((c) => c.type)).toEqual(["task", "approval"])
+
+    const live = buildContextCards({
+      roster: [{ id: "1", name: "Orion", role: "Lead", presence: "listening" }],
+      session: { working: true, title: "Build", sessionID: "s1" },
+      attention: [{ id: "a1", title: "Approve deploy" }],
+      shellMode: "conversation",
+      computerLive: true,
+      includeTeam: true,
+    })
+    expect(live.map((c) => c.type)).toEqual(["task", "approval", "computer", "team"])
+    expect(live.find((c) => c.type === "computer")?.title).toBe("Computer")
   })
 
   test("interleaves turns with tool Task/Proof then context cards", () => {
@@ -67,34 +79,29 @@ describe("AP-STAGE4-15 conversation stream items", () => {
     const context = buildContextCards({
       roster: [{ id: "1", name: "Orion", role: "Lead", presence: "listening" }],
       computerLive: false,
+      shellMode: "conversation",
     })
     const items = buildConversationStreamItems({ messages, contextCards: context })
     const kinds = items.map((i) => (i.kind === "turn" ? `turn:${i.turn.role}` : `card:${i.card.type}`))
-    expect(kinds).toEqual([
-      "turn:user",
-      "turn:assistant",
-      "card:proof",
-      "card:computer",
-      "card:team",
-    ])
+    expect(kinds).toEqual(["turn:user", "turn:assistant", "card:proof"])
     expect(items.find((i) => i.kind === "card" && i.card.type === "proof")?.card.title).toContain(
       "src/a.ts",
     )
     const flat = flattenStreamItems(items)
     expect(flat.turns).toHaveLength(2)
     expect(flat.cards.some((c) => c.type === "proof")).toBe(true)
-    expect(flat.cards.some((c) => c.type === "computer")).toBe(true)
+    expect(flat.cards.some((c) => c.type === "computer")).toBe(false)
   })
 
-  test("empty session still places ambient computer+team in Conversation items", () => {
+  test("empty idle session has no wallpaper computer+team cards (AP-STAGE5-01)", () => {
     const items = buildConversationStreamItems({
       messages: [],
       turns: [],
       contextCards: buildContextCards({
         roster: [{ id: "1", name: "Orion", role: "Lead", presence: "listening" }],
+        shellMode: "conversation",
       }),
     })
-    expect(items.every((i) => i.kind === "card")).toBe(true)
-    expect(items.map((i) => (i.kind === "card" ? i.card.type : ""))).toEqual(["computer", "team"])
+    expect(items).toEqual([])
   })
 })

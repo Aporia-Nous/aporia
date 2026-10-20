@@ -20,6 +20,7 @@ export {
   toolPartToCard,
   messagesToPartCards,
   messageProofUnavailableCard,
+  shouldIncludeComputerStreamCard,
   shouldSurfaceToolCard,
   buildStreamCards,
   missionChromePills,

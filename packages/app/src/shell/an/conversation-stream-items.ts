@@ -6,6 +6,7 @@ import {
   messagesToPartCards,
   rosterToTeamCard,
   sessionToTaskCard,
+  shouldIncludeComputerStreamCard,
   shouldSurfaceToolCard,
   toolPartToCard,
 } from "./cards/map"
@@ -20,7 +21,8 @@ export type AnStreamItem =
 
 /**
  * Context cards not derived from a specific message tool part
- * (session task, attention, computer, team, optional proof unavailable).
+ * (session task, attention, optional computer/team, optional proof unavailable).
+ * AP-STAGE5-01 Option C: Computer when relevant; Team on handoffs only — no wallpaper.
  */
 export function buildContextCards(input: {
   attention?: readonly AnAttentionItem[]
@@ -29,6 +31,10 @@ export function buildContextCards(input: {
   computerLive?: boolean
   computerFeedActive?: boolean
   computerUserControl?: boolean
+  shellMode?: string
+  includeComputer?: boolean
+  quietComputerEntry?: boolean
+  /** Team card only on handoffs/events (default false). */
   includeTeam?: boolean
   includeProofUnavailable?: boolean
 }): AnCardModel[] {
@@ -39,14 +45,26 @@ export function buildContextCards(input: {
   if (input.includeProofUnavailable) {
     cards.push(messageProofUnavailableCard())
   }
-  cards.push(
-    computerToCard({
-      live: input.computerLive,
-      feedActive: input.computerFeedActive,
-      userControl: input.computerUserControl,
-    }),
-  )
-  if (input.includeTeam !== false) {
+  const includeComputer =
+    input.includeComputer === true ||
+    (input.includeComputer !== false &&
+      shouldIncludeComputerStreamCard({
+        shellMode: input.shellMode,
+        live: input.computerLive,
+        feedActive: input.computerFeedActive,
+        userControl: input.computerUserControl,
+        quietEntry: input.quietComputerEntry,
+      }))
+  if (includeComputer) {
+    cards.push(
+      computerToCard({
+        live: input.computerLive,
+        feedActive: input.computerFeedActive,
+        userControl: input.computerUserControl,
+      }),
+    )
+  }
+  if (input.includeTeam === true) {
     const team = rosterToTeamCard(input.roster ?? [])
     if (team) cards.push(team)
   }

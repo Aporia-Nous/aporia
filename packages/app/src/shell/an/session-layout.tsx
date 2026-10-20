@@ -841,11 +841,13 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       computerLive: computerLive(),
       computerFeedActive: computerFeedActive(),
       computerUserControl: computerUserInput(),
-      includeTeam: true,
+      shellMode: mode(),
+      // AP-STAGE5-01 Option C: Team only on handoffs (none yet); Computer via residency helper.
+      includeTeam: false,
     }),
   )
 
-  /** Context cards (task/approval/computer/team) — tool cards interleaved from messages. */
+  /** Context cards (task/approval + relevant computer) — tool cards interleaved from messages. */
   const contextCards = createMemo(() =>
     buildContextCards({
       attention: attention.bound().attention,
@@ -859,7 +861,8 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       computerLive: computerLive(),
       computerFeedActive: computerFeedActive(),
       computerUserControl: computerUserInput(),
-      includeTeam: true,
+      shellMode: mode(),
+      includeTeam: false,
     }),
   )
 

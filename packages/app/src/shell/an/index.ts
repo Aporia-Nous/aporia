@@ -209,6 +209,7 @@ export {
   sessionToTaskCard,
   computerToCard,
   rosterToTeamCard,
+  shouldIncludeComputerStreamCard,
   buildStreamCards,
   missionChromePills,
   AnCard,

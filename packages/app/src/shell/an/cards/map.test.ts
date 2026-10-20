@@ -11,6 +11,7 @@ import {
   questionToDecisionCard,
   rosterToTeamCard,
   sessionToTaskCard,
+  shouldIncludeComputerStreamCard,
   shouldSurfaceToolCard,
   toolPartToCard,
 } from "./map"
@@ -72,13 +73,14 @@ describe("AN card mapping", () => {
     expect(task?.progress).toBeUndefined()
   })
 
-  test("computer card stays honest unavailable without live feed", () => {
+  test("computer card titled Computer — never Computer View (AP-STAGE5-01)", () => {
     const idle = computerToCard()
     expect(idle.type).toBe("computer")
-    expect(idle.title).toBe("Computer View")
+    expect(idle.title).toBe("Computer")
+    expect(idle.title).not.toBe("Computer View")
     expect(idle.status).toBe("Unavailable")
     expect(idle.detail?.toLowerCase()).toContain("no live")
-    expect(idle.actions?.[0]?.label).toBe("Computer View")
+    expect(idle.actions?.[0]?.label).toBe("Open in Computer View")
     expect(idle.actions?.[0]?.stub).toBe(true)
   })
 
@@ -104,13 +106,42 @@ describe("AN card mapping", () => {
     expect(team?.members).toHaveLength(1)
   })
 
-  test("stream stack includes computer + mapped attention", () => {
-    const cards = buildStreamCards({
+  test("stream stack omits wallpaper computer+team; includes relevant computer", () => {
+    const idle = buildStreamCards({
       attention: [{ id: "a1", title: "Approve" }],
       roster: [{ id: "1", name: "Orion", role: "Lead", presence: "unknown" }],
       session: { working: true, title: "Mission" },
+      shellMode: "conversation",
     })
-    expect(cards.map((c) => c.type)).toEqual(["task", "approval", "computer", "team"])
+    expect(idle.map((c) => c.type)).toEqual(["task", "approval"])
+
+    const live = buildStreamCards({
+      attention: [{ id: "a1", title: "Approve" }],
+      roster: [{ id: "1", name: "Orion", role: "Lead", presence: "unknown" }],
+      session: { working: true, title: "Mission" },
+      shellMode: "conversation",
+      computerLive: true,
+      computerFeedActive: true,
+    })
+    expect(live.map((c) => c.type)).toEqual(["task", "approval", "computer"])
+    expect(live.find((c) => c.type === "computer")?.title).toBe("Computer")
+
+    const view = buildStreamCards({
+      shellMode: "view",
+      computerLive: true,
+      computerFeedActive: true,
+      includeTeam: true,
+      roster: [{ id: "1", name: "Orion", role: "Lead", presence: "unknown" }],
+    })
+    expect(view.map((c) => c.type)).toEqual(["team"])
+  })
+
+  test("shouldIncludeComputerStreamCard follows Option C residency", () => {
+    expect(shouldIncludeComputerStreamCard({ shellMode: "conversation" })).toBe(false)
+    expect(shouldIncludeComputerStreamCard({ shellMode: "conversation", live: true })).toBe(true)
+    expect(shouldIncludeComputerStreamCard({ shellMode: "view", live: true })).toBe(false)
+    expect(shouldIncludeComputerStreamCard({ shellMode: "takeover", live: true })).toBe(false)
+    expect(shouldIncludeComputerStreamCard({ shellMode: "conversation", quietEntry: true })).toBe(true)
   })
 
   test("mission pills mark Private/Efficient/Verified unavailable", () => {
@@ -220,8 +251,11 @@ describe("AN card mapping", () => {
     const cards = buildStreamCards({
       roster: [{ id: "1", name: "Orion", role: "Lead", presence: "unknown" }],
       includeProofUnavailable: true,
+      shellMode: "conversation",
+      computerLive: true,
     })
     expect(cards.some((c) => c.id === "proof:unavailable")).toBe(true)
     expect(cards.map((c) => c.type)).toContain("computer")
+    expect(cards.find((c) => c.type === "computer")?.title).toBe("Computer")
   })
 })
