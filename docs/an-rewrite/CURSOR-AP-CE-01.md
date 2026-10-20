@@ -5,7 +5,7 @@
 | status | **IMPLEMENTED + measured fixtures** — OPEN until independent PASS |
 | branch | `stage4-an-shell` |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
-| tip | *(filled after commit)* |
+| tip / code | `27af7302f7` |
 | base | Stage 5 ACCEPT docs tip `c2b65acad2` / code `6e73823dc7` |
 | merge/push/install | **No** |
 
