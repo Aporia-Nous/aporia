@@ -5,8 +5,8 @@
 | status | **OPEN** (writer implemented + measured; await independent PASS) |
 | branch | `stage4-an-shell` |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
-| tip / code | *(set after commit)* |
-| docs tip | *(set after docs commit)* |
+| tip / code | `de36bb2047` |
+| docs tip | *(docs pin commit)* |
 | base | AP-CE-01 `27af7302f7` / docs `eac2f57495` |
 | merge/push/install | **No** |
 
