@@ -7,7 +7,7 @@
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | tip / code | `9fa0c2b278` |
 | docs tip | `f15c801e92` |
-| HEAD | *(pin after this commit)* |
+| HEAD | `1743b67072` (docs pin; code+docs tips ancestors) |
 | base | FLOW-GENIUS-03 `51c192330c` / docs `233e9174e0` / HEAD `8e89d7c72d` |
 | merge/push/install | **No** |
 
