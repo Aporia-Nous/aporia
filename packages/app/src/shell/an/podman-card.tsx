@@ -49,6 +49,18 @@ export function AnPodmanChromeCard(props: {
         <Show when={detail()}>
           <span class="an-podman-chrome-detail">{detail()}</span>
         </Show>
+        <Show when={props.status.measured}>
+          {(m) => (
+            <span
+              class="an-podman-chrome-measured"
+              data-an-part="isolation-runtime-measure"
+              data-phase={m().phase}
+              data-source={m().source}
+            >
+              {m().line}
+            </span>
+          )}
+        </Show>
       </span>
       <Show when={props.onRefresh && phase() !== "checking"}>
         <button

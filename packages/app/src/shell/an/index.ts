@@ -224,6 +224,8 @@ export {
   podmanStatusTitle,
   probePodmanWhich,
   resolvePodmanStatus,
+  withMeasuredResources,
+  type AnPodmanMeasuredResources,
   type AnPodmanPhase,
   type AnPodmanStatus,
 } from "./podman-chrome"

@@ -1,6 +1,7 @@
 /**
  * AP-STAGE4-4F — honest Podman chrome (understated local-runtime status).
- * Not Stage 7 runtime seam. Never invent online/running counts. Never auto-install.
+ * AP-STAGE7-01 may attach a measured idle/active resource line when the isolation
+ * seam provides a real snapshot — never invent online/running counts. Never auto-install.
  * Browser-first Computer View remains the default path (see AP-COMPUTER-ARCH).
  */
 
@@ -12,7 +13,10 @@ export const AN_PODMAN_SURFACE = {
   subtitle: "Local runtime",
   neverAutoInstall: true,
   neverFakeOnline: true,
-  /** Chrome only — measured idle/active + task-scoped runtimes stay Stage 7. */
+  /**
+   * Chrome surface itself is still 4F honesty.
+   * Measured idle/active come from AP-STAGE7-01 IsolationRuntimePort when attached.
+   */
   stage7RuntimeSeam: false,
   /** Do not make VM/Podman the default Computer View. */
   notDefaultComputerView: true,
@@ -21,12 +25,25 @@ export const AN_PODMAN_SURFACE = {
 /** Honest phases only — no "running" / "online" without Stage 7 measured proof. */
 export type AnPodmanPhase = "checking" | "missing" | "present" | "probe-unavailable"
 
+/** Optional measured resources from AP-STAGE7-01 seam — omit when not measured. */
+export type AnPodmanMeasuredResources = {
+  phase: "idle" | "active"
+  /** Understated line already formatted by the seam (cpu / mem / runtimes). */
+  line: string
+  source: "fixture" | "host-podman"
+}
+
 export type AnPodmanStatus = {
   phase: AnPodmanPhase
   /** Absolute path when `which` found the binary — never invent. */
   path?: string
   /** Understated detail for expanded chrome — never invent container/GB counts. */
   detail?: string
+  /**
+   * Set only when IsolationRuntimePort.measure() returned a snapshot.
+   * Missing Podman ⇒ leave undefined (do not invent zeros).
+   */
+  measured?: AnPodmanMeasuredResources
 }
 
 export type AnPodmanWhichResult = {
@@ -44,12 +61,18 @@ export function initialPodmanStatus(): AnPodmanStatus {
 }
 
 /** Map a which() result into chrome status — binary present ≠ online/active. */
-export function resolvePodmanStatus(result: AnPodmanWhichResult | null | undefined): AnPodmanStatus {
+export function resolvePodmanStatus(
+  result: AnPodmanWhichResult | null | undefined,
+  measured?: AnPodmanMeasuredResources | null,
+): AnPodmanStatus {
+  const measuredAttach =
+    measured && (measured.phase === "idle" || measured.phase === "active") ? measured : undefined
   if (result == null) {
     return {
       phase: "probe-unavailable",
       detail:
         "Desktop bridge which() unavailable — not inventing Podman online. Isolation runtime status unknown.",
+      measured: measuredAttach,
     }
   }
   if (!result.found) {
@@ -57,6 +80,8 @@ export function resolvePodmanStatus(result: AnPodmanWhichResult | null | undefin
       phase: "missing",
       detail:
         "Podman not found on PATH. Isolation runtime unavailable. Not auto-installed. Browser Computer View stays the default.",
+      // Host missing: never attach invented resource zeros.
+      measured: undefined,
     }
   }
   const path = result.path?.trim() || undefined
@@ -64,9 +89,29 @@ export function resolvePodmanStatus(result: AnPodmanWhichResult | null | undefin
     phase: "present",
     path,
     detail: path
-      ? `Binary found at ${path}. Task-scoped isolation is Stage 7 — not claiming containers online.`
-      : "Binary found on PATH. Task-scoped isolation is Stage 7 — not claiming containers online.",
+      ? `Binary found at ${path}.${measuredAttach ? ` ${measuredAttach.line}.` : " Idle/active only when Stage 7 seam measures — not claiming containers online."}`
+      : measuredAttach
+        ? `Binary found on PATH. ${measuredAttach.line}.`
+        : "Binary found on PATH. Idle/active only when Stage 7 seam measures — not claiming containers online.",
+    measured: measuredAttach,
   }
+}
+
+/** Attach a Stage 7 measured line onto an existing status (no phase upgrade to running). */
+export function withMeasuredResources(
+  status: AnPodmanStatus,
+  measured: AnPodmanMeasuredResources | null | undefined,
+): AnPodmanStatus {
+  if (status.phase === "missing" || status.phase === "checking") {
+    return { ...status, measured: undefined }
+  }
+  if (!measured) return { ...status, measured: undefined }
+  return resolvePodmanStatus(
+    status.phase === "probe-unavailable"
+      ? null
+      : { found: true, path: status.path },
+    measured,
+  )
 }
 
 export function podmanStatusTitle(status: AnPodmanStatus): string {

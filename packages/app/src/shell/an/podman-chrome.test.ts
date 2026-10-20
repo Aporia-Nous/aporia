@@ -8,6 +8,7 @@ import {
   podmanStatusTitle,
   podmanStatusTone,
   resolvePodmanStatus,
+  withMeasuredResources,
 } from "./podman-chrome"
 import { AN_NAV_ILLUSTRATED, isAnNavIconName } from "./nav-illustrated"
 
@@ -32,7 +33,13 @@ describe("AP-STAGE4-4F Podman chrome honesty", () => {
     expect(podmanStatusTone(status)).toBe("warn")
     expect(status.detail?.toLowerCase()).toContain("not auto-installed")
     expect(podmanStatusTitle(status).toLowerCase()).not.toContain("running")
-    expect(status.detail?.toLowerCase()).not.toContain("container")
+    expect(status.measured).toBeUndefined()
+    // Invented measure must not attach on missing even if caller passes one.
+    const forced = resolvePodmanStatus(
+      { found: false },
+      { phase: "idle", line: "idle · cpu 0.00 · mem 0.0 MiB · runtimes 0", source: "fixture" },
+    )
+    expect(forced.measured).toBeUndefined()
   })
 
   test("present binary is installed — not fake online / container counts", () => {
@@ -46,6 +53,22 @@ describe("AP-STAGE4-4F Podman chrome honesty", () => {
     expect(podmanStatusTitle(status).toLowerCase()).not.toContain("running")
     expect(status.detail?.toLowerCase()).not.toMatch(/\d+\s*containers?/)
     expect(status.detail?.toLowerCase()).not.toMatch(/\d+(\.\d+)?\s*gb/)
+    expect(status.measured).toBeUndefined()
+  })
+
+  test("AP-STAGE7-01 measured line attaches only when binary present", () => {
+    const measured = {
+      phase: "idle" as const,
+      line: "idle · cpu 0.01 · mem 48.0 MiB · runtimes 0",
+      source: "fixture" as const,
+    }
+    const status = resolvePodmanStatus({ found: true, path: "C:\\Tools\\podman\\podman.exe" }, measured)
+    expect(status.phase).toBe("present")
+    expect(status.measured?.line).toContain("idle")
+    expect(status.detail?.toLowerCase()).toContain("idle")
+    expect(podmanStatusTitle(status).toLowerCase()).not.toContain("running")
+    const missingKept = withMeasuredResources(resolvePodmanStatus({ found: false }), measured)
+    expect(missingKept.measured).toBeUndefined()
   })
 
   test("null probe is probe-unavailable — does not invent online", () => {

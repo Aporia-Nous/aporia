@@ -23,3 +23,5 @@ export * as ComputerControl from "./control.js"
 /** FLOW-GENIUS-02/04 / Stage 6: Mnemosyne audit map + product port. */
 export * as MissionMemory from "./memory.js"
 export * as MnemosynePortModule from "./mnemosyne-port.js"
+/** AP-STAGE7-01: isolation runtime seam (honest missing + measured idle/active). */
+export * as IsolationRuntime from "../runtime/isolation-port.js"
