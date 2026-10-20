@@ -1,6 +1,7 @@
 # AP-STAGE4-NEW-TEAMMATE — create/import/edit/cancel/archive lifecycle
 
 **Status:** OPEN implemented+live-DEV (not independent PASS; not Stage 4 complete)  
+**Tip:** `1604bd75e1` (head `1604bd75e144765921b5b7e0e28767ddde7671af`)  
 **Base:** `0dbd710e1e` (MISSION-RESTART INDEPENDENT PASS)  
 **Work date:** 2026-10-20  
 **Worktree:** `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4`  
