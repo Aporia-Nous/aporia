@@ -12,7 +12,7 @@
 
 ## Intent
 
-After FLOW-GENIUS-04 INDEPENDENT PASS: run Stage 6 acceptance gates from `APORETIC-DEV-BUILD-LIST` / brief I–J — I tests 1–7 and J fixtures 2, 3, 6 on fixtures. Preserve Stage 5 UX + CE + lean pack + mission fold + MnemosynePort. Host `mnemosyne.db` auto-open stays **BLOCKED** (no board authorization; isolated DEV keeps default unavailable).
+After FLOW-GENIUS-04 INDEPENDENT PASS: run Stage 6 acceptance gates from `APORETIC-DEV-BUILD-LIST` / brief I–J — I tests 1–7 and J fixtures 2, 3, 6 on fixtures. Preserve Stage 5 UX + CE + lean pack + mission fold + MnemosynePort. (Follow-on: Ali authorized DEV-local built-in shared memory — see `CURSOR-AP-STAGE6-HOST-DB.md`; host opencode `mnemosyne.db` remains refused.)
 
 ## What shipped
 
@@ -34,13 +34,13 @@ After FLOW-GENIUS-04 INDEPENDENT PASS: run Stage 6 acceptance gates from `APORET
 - FG non-regress: mnemosyne-wire **7** + mission-fold **6** + lean-pack **6**
 - I-7 measure: fullTokens **751** → leanTokens **177** (tokensSaved **574**)
 
-## Host DB auto-open
+## Host / shared memory note
 
-**BLOCKED** — board does not authorize opening host `~/.config/opencode/mnemosyne/mnemosyne.db`; default `MnemosynePort` remains unavailable. No install/secrets.
+Historical IJ bar kept default unavailable. **Superseded for product default** by AP-STAGE6-HOST-DB (`e603321625`): DEV-local built-in available; host `~/.config/opencode/mnemosyne/mnemosyne.db` refused.
 
-## Not claimed
+## Not claimed (IJ slice)
 
-- Independent PASS
-- Stage 6 complete (needs independent PASS + Ali ACCEPT; host DB residual BLOCKED; UI memory chrome residual)
+- Host opencode mnemosyne.db open
 - Electron DEV relaunch (I-1 = synthetic seed reopen)
 - Merge / push / install
+- See HOST-DB report for built-in default independent PASS
