@@ -6,7 +6,7 @@
 | decision | Option C continues (AP-STAGE5-MODES DONE) |
 | branch | `stage4-an-shell` |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
-| tip | *(code commit tip — fill after commit)* |
+| tip | `165a4b11a5` |
 | base | STAGE5-04 tip `b90015847a` / docs `d7a3368c44` |
 | merge/push/install | **No** |
 
