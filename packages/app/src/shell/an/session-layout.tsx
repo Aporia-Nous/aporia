@@ -109,8 +109,11 @@ import {
   feedIsWatchOnly,
   initialComputerControlState,
   isBotCursorShown,
+  pauseBot,
   releaseToBot,
   rescopeComputerControl,
+  resolveComputerControllerBotName,
+  resumeBot,
   stopUserControl,
   syncComputerControl,
   userMayInput,
@@ -465,8 +468,11 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   const computerPixelSrc = createMemo(() =>
     computerPixelSource(computerAttach(), computerScreencast(), computerFeedActive()),
   )
-  const computerControllerBotName = createMemo(
-    () => roster.bound().roster.find((m) => m.selected)?.name?.trim() || "Bot",
+  const computerControllerBotName = createMemo(() =>
+    resolveComputerControllerBotName({
+      rosterName: roster.bound().roster.find((m) => m.selected)?.name,
+      currentAgent: currentAgent(),
+    }),
   )
   const computerBoundaryVisible = createMemo(() =>
     isComputerBoundaryVisible(computerLive(), computerScope()),
@@ -476,6 +482,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     return computerScopeBannerCopy({
       live: true,
       userControl: computerUserInput(),
+      botPaused: computerControl().botPaused && !computerUserInput(),
       botName: computerControllerBotName(),
       scope: computerScope(),
     }).line
@@ -612,6 +619,34 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       detail: computerLive()
         ? "Switched to Computer View (watch-only). Bot holds the lock; fresh observation required before bot drives."
         : "Switched to Computer View. No Live attach — no page input was granted.",
+      level: "info",
+    })
+  }
+
+  const onTakeOver = () => {
+    onModeChange("takeover")
+  }
+
+  const onPauseBot = () => {
+    setComputerControl((prev) => pauseBot(prev, computerLive()))
+    const name = computerControllerBotName()
+    aporiaAlerts.push({
+      title: `${name} paused`,
+      detail: computerLive()
+        ? `${name} drive paused. Feed stays watch-only. Resume restores drive; Take over grants you input.`
+        : "Pause needs a Live attach.",
+      level: "info",
+    })
+  }
+
+  const onResumeBot = () => {
+    setComputerControl((prev) => resumeBot(prev, computerLive()))
+    const name = computerControllerBotName()
+    aporiaAlerts.push({
+      title: `${name} resumed`,
+      detail: computerLive()
+        ? `${name} may drive again. Takeover still pauses the bot and grants you input.`
+        : "Resume needs a Live attach.",
       level: "info",
     })
   }
@@ -1163,6 +1198,9 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
           onModeChange={onModeChange}
           onHandBack={onHandBack}
           onStopTakeover={onStopTakeover}
+          onTakeOver={onTakeOver}
+          onPauseBot={onPauseBot}
+          onResumeBot={onResumeBot}
           navItems={navItems()}
           roster={roster.bound().roster}
           rosterFooter={rosterFooter()}

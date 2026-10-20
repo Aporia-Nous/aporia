@@ -2518,6 +2518,24 @@
   border-color: rgba(231, 154, 29, 0.35);
 }
 
+.an-computer-drive-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.an-computer-btn--takeover,
+.an-computer-btn--resume {
+  border-color: rgba(231, 154, 29, 0.55);
+  color: var(--an-gold);
+}
+
+.an-computer-btn--pause {
+  border-color: var(--an-border-strong);
+  color: var(--an-gold-soft);
+}
+
 .an-takeover-stage {
   display: flex;
   flex-direction: column;

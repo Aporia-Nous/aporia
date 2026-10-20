@@ -83,6 +83,10 @@ export type AnShellProps = ParentProps<{
   /** AP-BF-03: Hand back / Stop — release user lock to bot (when Live). */
   onHandBack?: () => void
   onStopTakeover?: () => void
+  /** AP-STAGE5-05: Pause / Resume bot drive without Takeover; Take over enters Takeover mode. */
+  onPauseBot?: () => void
+  onResumeBot?: () => void
+  onTakeOver?: () => void
   rosterFooter?: JSX.Element
   attentionEmpty?: string
   /** Honest empty copy for the always-on Computer View panel. */

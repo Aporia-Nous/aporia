@@ -245,11 +245,12 @@ export function isComputerBoundaryVisible(live: boolean, state: ComputerScopeSta
 
 /**
  * Handoff H control banner — text + gold; gold never means verified/success.
- * Bot name defaults to "Bot" (Builder when preferred by caller).
+ * Caller should pass resolveComputerControllerBotName() — generic "Bot" only as last resort.
  */
 export function computerScopeBannerCopy(input: {
   live: boolean
   userControl: boolean
+  botPaused?: boolean
   botName?: string
   scope: ComputerScopeState
 }): { pill: string; copy: string; line: string } {
@@ -270,10 +271,18 @@ export function computerScopeBannerCopy(input: {
       line,
     }
   }
+  if (input.botPaused) {
+    const line = `${bot} paused · ${target}`
+    return {
+      pill: `${bot} paused`,
+      copy: `${bot} drive paused. Resume restores drive; Take over grants you input. Scope stays ${computerScopeKindLabel(input.scope.kind)}.`,
+      line,
+    }
+  }
   const line = `${bot} is controlling · ${target}`
   return {
     pill: `${bot} is controlling`,
-    copy: `Scoped surface: ${target}. Takeover pauses the bot. Opening Computer View never widens scope.`,
+    copy: `Scoped surface: ${target}. Pause / Takeover stop bot drive. Opening Computer View never widens scope.`,
     line,
   }
 }

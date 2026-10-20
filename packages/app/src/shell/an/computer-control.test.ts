@@ -14,7 +14,10 @@ import {
   feedIsWatchOnly,
   initialComputerControlState,
   isBotCursorShown,
+  pauseBot,
   releaseToBot,
+  resolveComputerControllerBotName,
+  resumeBot,
   stopUserControl,
   syncComputerControl,
   userMayInput,
@@ -144,5 +147,50 @@ describe("AP-BF-03 computer control lock", () => {
     state = clearComputerControl("ses_1")
     expect(state.controller).toBe("none")
     expect(userMayInput(state)).toBe(false)
+  })
+
+  test("AP-STAGE5-05 Pause / Resume without granting user input; sync preserves pause", () => {
+    let state = syncComputerControl(initialComputerControlState("ses_p"), {
+      live: true,
+      mode: "view",
+      sessionID: "ses_p",
+    })
+    expect(botMayDrive(state)).toBe(true)
+    expect(isBotCursorShown(true, state)).toBe(true)
+
+    state = pauseBot(state, true)
+    expect(state.controller).toBe("bot")
+    expect(state.botPaused).toBe(true)
+    expect(userMayInput(state)).toBe(false)
+    expect(botMayDrive(state)).toBe(false)
+    expect(feedIsWatchOnly(state)).toBe(true)
+    expect(isBotCursorShown(true, state)).toBe(false)
+    expect(
+      computerControlBannerCopy(true, state, { botName: "Grok", targetName: "Local browser workspace" })
+        .copy,
+    ).toBe("Grok paused · Local browser workspace")
+
+    state = syncComputerControl(state, { live: true, mode: "view", sessionID: "ses_p" })
+    expect(state.botPaused).toBe(true)
+    expect(botMayDrive(state)).toBe(false)
+
+    state = resumeBot(state, true)
+    expect(state.botPaused).toBe(false)
+    expect(botMayDrive(state)).toBe(true)
+    expect(isBotCursorShown(true, state)).toBe(true)
+
+    const takeover = syncComputerControl(state, { live: true, mode: "takeover", sessionID: "ses_p" })
+    const resumeBlocked = resumeBot(takeover, true)
+    expect(userMayInput(resumeBlocked)).toBe(true)
+    expect(resumeBlocked.error).toMatch(/Hand back/i)
+  })
+
+  test("AP-STAGE5-05 resolveComputerControllerBotName prefers roster then agent slug", () => {
+    expect(resolveComputerControllerBotName({ rosterName: "Grok", currentAgent: "aporia-other" })).toBe(
+      "Grok",
+    )
+    expect(resolveComputerControllerBotName({ currentAgent: "aporia-builder" })).toBe("Builder")
+    expect(resolveComputerControllerBotName({ currentAgent: "aporia-dev-bot" })).toBe("Dev Bot")
+    expect(resolveComputerControllerBotName({})).toBe("Bot")
   })
 })

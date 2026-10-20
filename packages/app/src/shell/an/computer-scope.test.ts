@@ -131,6 +131,16 @@ describe("AP-STAGE5-04 computer scope axis + gold boundary", () => {
     expect(bot.line).toBe("Grok is controlling · Local browser workspace")
     expect(bot.pill).toMatch(/Grok is controlling/)
 
+    const paused = computerScopeBannerCopy({
+      live: true,
+      userControl: false,
+      botPaused: true,
+      botName: "Grok",
+      scope,
+    })
+    expect(paused.line).toBe("Grok paused · Local browser workspace")
+    expect(paused.pill).toBe("Grok paused")
+
     const you = computerScopeBannerCopy({
       live: true,
       userControl: true,

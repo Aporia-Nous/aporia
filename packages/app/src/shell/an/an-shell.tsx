@@ -146,6 +146,8 @@ function LiveComputerPanel(props: {
   botPaused?: boolean
   userInput?: boolean
   needsFreshObservation?: boolean
+  /** Display name for banner / cursor tag (AP-STAGE5-05). */
+  controllerBotName?: string
   onFeedDraftChange?: (value: string) => void
   onFeedNavigate?: (url: string) => void
   onConnect?: () => void
@@ -157,6 +159,10 @@ function LiveComputerPanel(props: {
   onExternalProbe?: () => void
   /** AP-BF-06: open tab in existing Edge/Chrome (spawn only if none). */
   onExternalOpenTab?: () => void
+  /** AP-STAGE5-05 handoff H: Take over / Pause / Resume while Live + bot lock. */
+  onTakeOver?: () => void
+  onPauseBot?: () => void
+  onResumeBot?: () => void
 }) {
   const badge = () => (props.live ? "Live" : "Unavailable")
   const phase = () => props.attachPhase ?? (props.live ? "attached" : "disconnected")
@@ -166,11 +172,14 @@ function LiveComputerPanel(props: {
   const feedActive = () => !!props.live && !!props.feedActive
   const watchOnly = () => props.feedWatchOnly !== false && !props.userInput
   const controller = () => props.controller ?? (props.live ? "bot" : "none")
+  const botName = () => props.controllerBotName?.trim() || "Bot"
+  const cursorLabel = () => `${botName()} cursor`
   const pixelSource = () => props.pixelSource ?? "none"
   const scopeKind = () => props.scopeKind ?? "none"
   const boundaryVisible = () => !!props.boundaryVisible
   const showScreencastPixels = () =>
     pixelSource() === "cdp-screencast" && !!props.screencastFrameUrl
+  const showBotDriveControls = () => !!props.live && !props.userInput
   return (
     <section
       class="an-computer"
@@ -315,11 +324,11 @@ function LiveComputerPanel(props: {
               <div
                 class="an-computer-cursor"
                 data-an-part="computer-cursor"
-                title={AN_COMPUTER_ATTACH_SURFACE.cursorLabel}
-                aria-label={AN_COMPUTER_ATTACH_SURFACE.cursorLabel}
+                title={cursorLabel()}
+                aria-label={cursorLabel()}
               >
                 <i class="an-computer-cursor-pointer" />
-                <span class="an-computer-cursor-tag">{AN_COMPUTER_ATTACH_SURFACE.cursorLabel}</span>
+                <span class="an-computer-cursor-tag">{cursorLabel()}</span>
               </div>
             </Show>
             <Show when={!feedActive()}>
@@ -432,6 +441,45 @@ function LiveComputerPanel(props: {
           <button type="button" class="an-computer-btn an-computer-btn--cancel" data-action="computer-cancel" onClick={() => props.onCancelConsent?.()}>
             Cancel
           </button>
+        </Show>
+        <Show when={showBotDriveControls()}>
+          <div
+            class="an-computer-drive-controls"
+            data-an-part="computer-drive-controls"
+            role="toolbar"
+            aria-label="Bot drive controls"
+          >
+            <button
+              type="button"
+              class="an-computer-btn an-computer-btn--takeover"
+              data-action="computer-take-over"
+              onClick={() => props.onTakeOver?.()}
+            >
+              Take over
+            </button>
+            <Show
+              when={props.botPaused}
+              fallback={
+                <button
+                  type="button"
+                  class="an-computer-btn an-computer-btn--pause"
+                  data-action="computer-pause"
+                  onClick={() => props.onPauseBot?.()}
+                >
+                  Pause
+                </button>
+              }
+            >
+              <button
+                type="button"
+                class="an-computer-btn an-computer-btn--resume"
+                data-action="computer-resume"
+                onClick={() => props.onResumeBot?.()}
+              >
+                Resume
+              </button>
+            </Show>
+          </div>
         </Show>
         <Show when={props.live}>
           <button type="button" class="an-computer-btn an-computer-btn--disconnect" data-action="computer-disconnect" onClick={() => props.onDisconnect?.()}>
@@ -692,6 +740,7 @@ export function AnShell(props: AnShellProps): JSX.Element {
               botPaused={props.computerBotPaused}
               userInput={computerUserInput()}
               needsFreshObservation={props.computerNeedsFreshObservation}
+              controllerBotName={props.computerControllerBotName}
               onFeedDraftChange={props.onComputerFeedDraftChange}
               onFeedNavigate={props.onComputerFeedNavigate}
               onConnect={props.onComputerConnect}
@@ -702,6 +751,9 @@ export function AnShell(props: AnShellProps): JSX.Element {
               onExternalDraftChange={props.onComputerExternalDraftChange}
               onExternalProbe={props.onComputerExternalProbe}
               onExternalOpenTab={props.onComputerExternalOpenTab}
+              onTakeOver={props.onTakeOver}
+              onPauseBot={props.onPauseBot}
+              onResumeBot={props.onResumeBot}
             />
             <div class="an-takeover-bar" role="toolbar" aria-label="Takeover controls">
               <button
@@ -804,6 +856,7 @@ export function AnShell(props: AnShellProps): JSX.Element {
             botPaused={props.computerBotPaused}
             userInput={computerUserInput()}
             needsFreshObservation={props.computerNeedsFreshObservation}
+            controllerBotName={props.computerControllerBotName}
             onFeedDraftChange={props.onComputerFeedDraftChange}
             onFeedNavigate={props.onComputerFeedNavigate}
             onConnect={props.onComputerConnect}
@@ -814,6 +867,9 @@ export function AnShell(props: AnShellProps): JSX.Element {
             onExternalDraftChange={props.onComputerExternalDraftChange}
             onExternalProbe={props.onComputerExternalProbe}
             onExternalOpenTab={props.onComputerExternalOpenTab}
+            onTakeOver={props.onTakeOver}
+            onPauseBot={props.onPauseBot}
+            onResumeBot={props.onResumeBot}
           />
         </Show>
 

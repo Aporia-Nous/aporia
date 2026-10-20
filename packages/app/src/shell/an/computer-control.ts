@@ -48,9 +48,9 @@ export function feedIsWatchOnly(state: ComputerControlState): boolean {
   return !userMayInput(state)
 }
 
-/** Labeled Bot cursor only when Live and bot holds (or may hold) the lock — not during user Takeover. */
+/** Labeled Bot cursor only when Live and bot may drive — hidden during Takeover and Pause. */
 export function isBotCursorShown(live: boolean, state: ComputerControlState): boolean {
-  return live && !userMayInput(state)
+  return live && botMayDrive(state)
 }
 
 export function syncComputerControl(
@@ -79,14 +79,82 @@ export function syncComputerControl(
   }
 
   // Leaving user Takeover requires a fresh observation before bot drives again.
+  // Explicit Pause while bot holds the lock survives mode/live sync (AP-STAGE5-05).
   const leftUserControl = state.controller === "user"
   return {
     controller: "bot",
-    botPaused: false,
+    botPaused: leftUserControl ? false : state.botPaused,
     userInputGranted: false,
     needsFreshObservation: leftUserControl || state.needsFreshObservation,
     sessionID: input.sessionID ?? state.sessionID,
   }
+}
+
+/** Pause queued bot drive without granting user input (handoff H Pause). */
+export function pauseBot(state: ComputerControlState, live: boolean): ComputerControlState {
+  if (!live || state.controller === "none") {
+    return {
+      ...state,
+      error: "Pause needs a Live attach with bot control.",
+    }
+  }
+  if (userMayInput(state)) {
+    // Already paused for Takeover — no-op on drive; user still holds input.
+    return { ...state, botPaused: true, error: undefined }
+  }
+  return {
+    ...state,
+    controller: "bot",
+    botPaused: true,
+    userInputGranted: false,
+    error: undefined,
+  }
+}
+
+/** Resume bot drive after Pause (not after Takeover — use Hand back / releaseToBot). */
+export function resumeBot(state: ComputerControlState, live: boolean): ComputerControlState {
+  if (!live) {
+    return initialComputerControlState(state.sessionID)
+  }
+  if (userMayInput(state)) {
+    return {
+      ...state,
+      error: "Hand back or Stop first — Resume does not end Takeover.",
+    }
+  }
+  return {
+    ...state,
+    controller: "bot",
+    botPaused: false,
+    userInputGranted: false,
+    error: undefined,
+  }
+}
+
+/**
+ * Resolve controlling-banner bot display name.
+ * Prefer roster selected name; else title-case agent slug (`aporia-grok` → `Grok`).
+ * Generic "Bot" only when neither is available.
+ */
+export function resolveComputerControllerBotName(input: {
+  rosterName?: string
+  currentAgent?: string
+  fallback?: string
+}): string {
+  const fromRoster = input.rosterName?.trim()
+  if (fromRoster) return fromRoster
+  const agent = input.currentAgent?.trim()
+  if (agent) {
+    const slug = agent
+      .replace(/^aporia-/i, "")
+      .replace(/[-_]+/g, " ")
+      .trim()
+    if (slug) {
+      return slug.replace(/\b[a-zA-Z]/g, (ch) => ch.toUpperCase())
+    }
+  }
+  const fallback = input.fallback?.trim()
+  return fallback || "Bot"
 }
 
 export function acquireUserControl(state: ComputerControlState, live: boolean): ComputerControlState {
@@ -144,7 +212,7 @@ export function rescopeComputerControl(
 
 /**
  * Takeover / control banner. Optional botName + targetName enable handoff H lines
- * (`{bot} is controlling · [target]` / `You are controlling · Bot paused`).
+ * (`{bot} is controlling · [target]` / `{bot} paused` / `You are controlling · Bot paused`).
  * Gold is boundary tone only — never means verified/success.
  */
 export function computerControlBannerCopy(
@@ -171,11 +239,19 @@ export function computerControlBannerCopy(
         : "You are controlling · Bot paused. Hand back or Stop releases the lock.",
     }
   }
+  if (state.botPaused) {
+    return {
+      pill: `${bot} paused`,
+      copy: target
+        ? `${bot} paused · ${target}`
+        : `${bot} paused. Resume restores bot drive; Take over grants you input.`,
+    }
+  }
   return {
     pill: `${bot} is controlling`,
     copy: target
       ? `${bot} is controlling · ${target}`
-      : "Bot holds the control lock. Page feed stays watch-only until Takeover.",
+      : `${bot} holds the control lock. Page feed stays watch-only until Takeover.`,
   }
 }
 
@@ -186,8 +262,11 @@ export function computerControlNote(live: boolean, state: ComputerControlState):
   if (userMayInput(state)) {
     return "Takeover: you hold the lock; bot paused. Hand back / Stop returns bot control (fresh observation required)."
   }
+  if (state.botPaused) {
+    return "Live + watch-only. Bot drive paused — Resume restores drive; Take over grants you input."
+  }
   if (state.needsFreshObservation) {
     return "Live + watch-only. Bot holds the lock after Hand back — fresh observation required before bot drives."
   }
-  return "Live = consented attach + watch-only feed. Bot holds the lock. Takeover grants you input and pauses the bot."
+  return "Live = consented attach + watch-only feed. Bot holds the lock. Pause / Takeover stop bot drive."
 }
