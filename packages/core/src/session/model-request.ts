@@ -37,7 +37,7 @@ import { SessionProviderContext } from "./provider-context.js"
 import { SessionRunnerModel } from "./runner/model.js"
 import { SessionSchema } from "./schema.js"
 import { SessionSystemPrompt } from "./system-prompt.js"
-import { mergeLeanPackIntoInitial } from "./lean-pack.js"
+import { mergeLeanPackIntoInitial, omitRecentSectionFromPackText } from "./lean-pack.js"
 import { toLLMMessages } from "./runner/to-llm-message.js"
 import type { SessionMessage } from "./message.js"
 
@@ -108,12 +108,18 @@ export const baseTranscript = (input: {
    * FLOW-GENIUS-02/03: optional shared lean pack text. Merged into `initial` once
    * (no duplicate paste). SessionRunner drain auto-wires via mission-fold when linked;
    * callers that already folded the pack into `initial` may omit this.
+   *
+   * AP-STAGE6-EFFICIENCY: when `messages` are non-empty, any `### Recent messages`
+   * block is stripped before merge so recent turns are not double-costed against
+   * `toLLMMessages`. Header guard still blocks re-paste into the same initial.
    */
   readonly leanPack?: string
   readonly messages: ReadonlyArray<SessionMessage.Info>
 }) => {
   const providerMetadataKey = input.model.model.route.providerMetadataKey ?? input.model.model.provider
-  const initial = mergeLeanPackIntoInitial(input.initial, input.leanPack)
+  const leanPack =
+    input.messages.length > 0 ? omitRecentSectionFromPackText(input.leanPack) : (input.leanPack?.trim() ?? "")
+  const initial = mergeLeanPackIntoInitial(input.initial, leanPack.length > 0 ? leanPack : undefined)
   return {
     providerMetadataKey,
     system: [

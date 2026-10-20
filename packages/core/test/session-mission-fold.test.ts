@@ -192,11 +192,30 @@ describe("FLOW-GENIUS-03 mission fold (live DB auto-wire)", () => {
       expect(loaded!.pack.text).toContain("FG-03 linked mission")
       expect(loaded!.pack.text).toContain("Auto-wire drain")
       expect(loaded!.pack.text).toContain("### Done + evidence")
-      expect(loaded!.pack.text).toContain("continue the wire")
+      // AP-STAGE6-EFFICIENCY: messages supplied → omit recent (already in transcript path).
+      expect(loaded!.pack.text).not.toContain("continue the wire")
+      expect(loaded!.pack.text).not.toContain("### Recent messages")
+      expect(loaded!.pack.recentOmittedForTranscript).toBe(true)
       expect(loaded!.pack.sections).toContain("objective")
       expect(loaded!.pack.sections).toContain("task")
+      expect(loaded!.pack.sections).not.toContain("recent")
       expect(loaded!.retrievalCount).toBe(0)
       expect(loaded!.mnemosyneAvailability).toBe("available")
+      // Explicit force-recent still available for standalone pack consumers.
+      const withRecent = yield* loadLeanPackForSession({
+        sessionID,
+        messages: [
+          {
+            id: "msg_1",
+            type: "user",
+            text: "continue the wire",
+            time: { created: 1 },
+          } as never,
+        ],
+        omitRecent: false,
+      })
+      expect(withRecent!.pack.text).toContain("continue the wire")
+      expect(withRecent!.pack.sections).toContain("recent")
       // CE gate / Stage 5 not touched by this module; product default is built-in DEV-local available.
       expect(mnemosyneMap().status).toBe("implemented")
     }),

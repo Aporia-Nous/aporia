@@ -43,9 +43,11 @@ export const generate = Effect.fn("SessionGenerate.generate")(function* (input: 
       selection.instructions,
       SessionProviderContext.provenance(model) ?? "local",
     )
+    // AP-STAGE6-EFFICIENCY: omit recent — history.messages already enter toLLMMessages.
     const missionLean = yield* loadLeanPackForSession({
       sessionID: selection.session.id,
       messages: history.messages,
+      omitRecent: true,
     })
     const transcript = SessionModelRequest.baseTranscript({
       agent: selection.agent.info,

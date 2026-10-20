@@ -263,6 +263,10 @@ const layer = Layer.effect(
       let initial: SessionContext.Loaded | undefined = first
       let recoverOverflow = true
       let recoverContinuation = true
+      // AP-STAGE6-EFFICIENCY: assemble lean pack once per logical step (drain), not every
+      // model attempt. Recent is omitted — messages already go through toLLMMessages.
+      let drainLeanPackText: string | undefined
+      let drainLeanPackResolved = false
       while (true) {
         // Reuse boundary preparation once; retries refresh context without delivering more input.
         const loaded = initial ?? (yield* prepareContext(sessionID).pipe(Effect.flatMap(context.load)))
@@ -274,18 +278,23 @@ const layer = Layer.effect(
           continue
         }
         const stepLimitReached = loaded.agent.info.steps !== undefined && step >= loaded.agent.info.steps
-        // FLOW-GENIUS-03/04: auto-wire mission/task lean pack when session is mission-linked.
-        // Unlinked sessions omit leanPack (no empty header). MnemosynePort default unavailable.
-        const missionLean = yield* loadLeanPackForSession({
-          sessionID,
-          messages: loaded.messages,
-        })
+        // FLOW-GENIUS-03/04 + AP-STAGE6-EFFICIENCY: mission-linked lean pack (no recent overlap).
+        // Unlinked sessions omit leanPack (no empty header). Header guard blocks double-merge.
+        if (!drainLeanPackResolved) {
+          const missionLean = yield* loadLeanPackForSession({
+            sessionID,
+            messages: loaded.messages,
+            omitRecent: true,
+          })
+          drainLeanPackText = missionLean?.pack.text
+          drainLeanPackResolved = true
+        }
         const transcript = SessionModelRequest.baseTranscript({
           agent: loaded.agent.info,
           model: loaded.model,
           tools: loaded.tools,
           initial: loaded.initial,
-          leanPack: missionLean?.pack.text,
+          leanPack: drainLeanPackText,
           messages: loaded.messages,
         })
         const prepared = yield* context.request.primary({

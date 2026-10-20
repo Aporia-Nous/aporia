@@ -79,6 +79,11 @@ export type MissionFoldFacts = {
   readonly cards?: ReadonlyArray<MissionFoldCard>
   readonly messages?: ReadonlyArray<MessageFact>
   readonly recentMessageLimit?: number
+  /**
+   * When true, lean pack skips Recent messages (SessionRunner / Generate transcript
+   * already carries those turns via toLLMMessages).
+   */
+  readonly omitRecent?: boolean
   readonly focusTaskId?: string
   /** Explicit retrieval (tests); when omitted, optional mnemosyne port may recall. */
   readonly retrieval?: ReadonlyArray<CitedRetrieval>
@@ -191,6 +196,7 @@ export function foldMissionLeanInput(facts: MissionFoldFacts): LeanPackInput {
     taskCard: focus ? taskCardOf(focus) : undefined,
     messages: facts.messages,
     recentMessageLimit: facts.recentMessageLimit ?? DEFAULT_RECENT_MESSAGES,
+    omitRecent: facts.omitRecent,
     retrieval,
   }
 }
@@ -270,6 +276,11 @@ export const loadLeanPackForSession = Effect.fn("SessionMissionFold.loadLeanPack
   readonly sessionID: string
   readonly messages?: ReadonlyArray<SessionMessage.Info>
   readonly recentMessageLimit?: number
+  /**
+   * Default: omit recent when `messages` are supplied (SessionRunner / Generate
+   * already put those turns on the transcript). Pass `false` to force recent in pack.
+   */
+  readonly omitRecent?: boolean
   readonly focusTaskId?: string
   readonly mnemosyne?: MnemosynePort
   readonly retrievalScope?: MnemosyneScope
@@ -332,6 +343,8 @@ export const loadLeanPackForSession = Effect.fn("SessionMissionFold.loadLeanPack
   }))
 
   const cards = foldAttentionCards(events)
+  const hasTranscriptMessages = (input.messages?.length ?? 0) > 0
+  const omitRecent = input.omitRecent ?? hasTranscriptMessages
   const facts: MissionFoldFacts = {
     mission: {
       id: missionRow.id,
@@ -348,6 +361,7 @@ export const loadLeanPackForSession = Effect.fn("SessionMissionFold.loadLeanPack
     cards: cardFacts(cards),
     messages: input.messages ? sessionMessagesToLeanFacts(input.messages) : undefined,
     recentMessageLimit: input.recentMessageLimit,
+    omitRecent,
     focusTaskId: input.focusTaskId,
     mnemosyne,
     retrievalScope: input.retrievalScope,

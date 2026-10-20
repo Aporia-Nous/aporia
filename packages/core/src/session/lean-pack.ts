@@ -74,6 +74,11 @@ export type LeanPackInput = {
   readonly messages?: ReadonlyArray<MessageFact>
   /** Caps recent messages; default DEFAULT_RECENT_MESSAGES. */
   readonly recentMessageLimit?: number
+  /**
+   * AP-STAGE6-EFFICIENCY: skip the Recent messages section when those turns are
+   * already supplied via `toLLMMessages` / SessionRunner transcript (avoid double-cost).
+   */
+  readonly omitRecent?: boolean
   readonly retrieval?: ReadonlyArray<CitedRetrieval>
 }
 
@@ -94,6 +99,8 @@ export type LeanPack = {
   readonly recentKept: number
   readonly recentDropped: number
   readonly toolPointers: number
+  /** True when recent was omitted because the transcript already carries those turns. */
+  readonly recentOmittedForTranscript: boolean
 }
 
 export type ArtifactPointer = {
@@ -218,8 +225,18 @@ export function assembleLeanPack(input: LeanPackInput): LeanPack {
 
   const limit = input.recentMessageLimit ?? DEFAULT_RECENT_MESSAGES
   const { kept, dropped } = selectRecentMessages(input.messages ?? [], limit)
-  if (kept.length > 0) {
+  const omitRecent = input.omitRecent === true
+  let recentKept = 0
+  let recentDropped = dropped
+  let recentOmittedForTranscript = false
+  if (omitRecent) {
+    // Transcript path: do not paste recent; count would-be keeps as omitted (honest metrics).
+    recentOmittedForTranscript = kept.length > 0
+    recentDropped = dropped + kept.length
+    recentKept = 0
+  } else if (kept.length > 0) {
     sections.push("recent")
+    recentKept = kept.length
     const lines = kept.map((m) => {
       const pointed = artifactPointer(m.text)
       if (pointed.truncated) toolPointers += 1
@@ -249,9 +266,10 @@ export function assembleLeanPack(input: LeanPackInput): LeanPack {
     text,
     estimatedTokens: Token.estimate(text),
     sections,
-    recentKept: kept.length,
-    recentDropped: dropped,
+    recentKept,
+    recentDropped,
     toolPointers,
+    recentOmittedForTranscript,
   }
 }
 
@@ -261,8 +279,27 @@ export function hasLeanPack(text: string | undefined): boolean {
 }
 
 /**
+ * Strip `### Recent messages` from an assembled pack (defense-in-depth when the
+ * same turns are already in `toLLMMessages`). Leaves other sections intact.
+ * Header-only remainder → empty string (caller omits leanPack).
+ */
+export function omitRecentSectionFromPackText(packText: string | undefined): string {
+  const pack = packText?.trim() ?? ""
+  if (pack.length === 0) return ""
+  if (!pack.includes("### Recent messages")) return pack
+  // Drop the Recent section through the next ### heading or end of pack.
+  const stripped = pack
+    .replace(/\n*### Recent messages\n[\s\S]*?(?=\n### |\n*$)/, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+  if (stripped.length === 0 || stripped === LEAN_PACK_HEADER) return ""
+  return stripped
+}
+
+/**
  * Merge lean pack into the SessionRunner `initial` instruction layer once.
  * Empty pack → unchanged initial. Already-present pack → unchanged (no duplicate).
+ * Honest header guard: `LEAN_PACK_HEADER` presence blocks re-inject into the same initial.
  */
 export function mergeLeanPackIntoInitial(initial: string, packText: string | undefined): string {
   const pack = packText?.trim() ?? ""
