@@ -198,6 +198,9 @@ export function configured(options?: Options) {
         const projectors = new Map<string, Subscriber[]>()
         const listeners = new Array<Subscriber>()
         const durableLocks = KeyedMutex.makeUnsafe<string>()
+        // E27: durable commit holds durableLocks; listener/SSE notify serializes on a
+        // separate per-aggregate lock so a slow bus.listen cannot extend write serialization.
+        const notifyLocks = KeyedMutex.makeUnsafe<string>()
         const { db } = yield* Database.Service
         const logReadPageSize = options?.logReadPageSize ?? 512
         const persist = options?.persist ?? false
@@ -466,15 +469,13 @@ export function configured(options?: Options) {
                 return yield* commitDurableEvent(definition, event as Event.Payload, undefined, commit).pipe(
                   Effect.as(event),
                 )
-              return yield* durableLocks.withLock(aggregateID)(
-                Effect.gen(function* () {
-                  const committed = yield* commitDurableEvent(definition, event as Event.Payload, undefined, commit)
-                  if (!committed) return event
-                  event = committed.event as Event.Payload<D>
-                  yield* notify(event as Event.Payload, true)
-                  return event
-                }),
+              const committed = yield* durableLocks.withLock(aggregateID)(
+                commitDurableEvent(definition, event as Event.Payload, undefined, commit),
               )
+              if (!committed) return event
+              event = committed.event as Event.Payload<D>
+              yield* notifyDurable(aggregateID, [event as Event.Payload])
+              return event
             }
             const route = yield* prepareRoutes([event as Event.Payload])
             route()
@@ -502,6 +503,14 @@ export function configured(options?: Options) {
             if (typed) yield* PubSub.publish(typed, event)
             yield* PubSub.publish(pubsub.live, event)
           })
+        }
+
+        /** After durable commit: notify outside durableLocks, ordered per aggregate. */
+        function notifyDurable(aggregateID: string, events: readonly Event.Payload[]) {
+          if (events.length === 0) return Effect.void
+          return notifyLocks.withLock(aggregateID)(
+            Effect.forEach(events, (event) => notify(event, true), { discard: true }),
+          )
         }
 
         function publish<D extends Event.Definition>(definition: D, data: Event.Data<D>, options?: PublishOptions) {
@@ -572,10 +581,10 @@ export function configured(options?: Options) {
                 }),
               )
             }
-            return yield* durableLocks.withLock(aggregateID)(
+            const committed = yield* durableLocks.withLock(aggregateID)(
               Effect.uninterruptible(
                 Effect.gen(function* () {
-                  const committed = yield* db
+                  const batch = yield* db
                     .transaction(
                       () =>
                         Effect.gen(function* () {
@@ -652,7 +661,7 @@ export function configured(options?: Options) {
                       { behavior: "immediate" },
                     )
                     .pipe(Effect.orDie)
-                  committed.route()
+                  batch.route()
                   yield* Effect.forEach(
                     pubsub.durable.get(aggregateID) ?? [],
                     (wake) => PubSub.publish(wake, undefined),
@@ -660,11 +669,12 @@ export function configured(options?: Options) {
                       discard: true,
                     },
                   )
-                  yield* Effect.forEach(committed.events, (event) => notify(event, true), { discard: true })
-                  return committed.events as PublishResult<I>
+                  return batch.events as PublishResult<I>
                 }),
               ),
             )
+            yield* notifyDurable(aggregateID, committed)
+            return committed
           })
         }
 
@@ -678,7 +688,7 @@ export function configured(options?: Options) {
               return yield* Effect.die(
                 new InvalidDurableEventError({ type: event.type, message: `Unknown durable event type ${event.type}` }),
               )
-            yield* durableLocks.withLock(event.aggregateID)(
+            const committed = yield* durableLocks.withLock(event.aggregateID)(
               Effect.gen(function* () {
                 const payload = {
                   id: event.id,
@@ -686,17 +696,17 @@ export function configured(options?: Options) {
                   type: definition.type,
                   data: Schema.decodeUnknownSync(definition.data)(event.data),
                 } as Event.Payload
-                const committed = yield* commitDurableEvent(definition, payload, {
+                return yield* commitDurableEvent(definition, payload, {
                   seq: event.seq,
                   aggregateID: event.aggregateID,
                   ownerID: options?.ownerID,
                   strictOwner: options?.strictOwner,
                 })
-                if (committed && options?.publish) {
-                  yield* notify(committed.event, true)
-                }
               }),
             )
+            if (committed && options?.publish) {
+              yield* notifyDurable(event.aggregateID, [committed.event])
+            }
           })
         }
 
