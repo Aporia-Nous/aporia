@@ -34,6 +34,15 @@ export type AnReviewPanelProps = {
   /** When true, prefer showing Computer View / page feed note in Browser tab. */
   computerLive?: boolean
   computerFeedUrl?: string
+  /**
+   * AP-STAGE5-08: Computer View host (LiveComputerPanel). When set, replaces the casual iframe
+   * on the Computer tab — Conversation stays primary; this is Review chrome only.
+   */
+  computer?: JSX.Element
+  /** Takeover Hand-back / Stop dock — in-view option while Computer View is open (not a peer tab). */
+  takeoverDock?: JSX.Element
+  /** When true, show takeoverDock under Computer View. */
+  showTakeoverDock?: boolean
 }
 
 function normalizeReviewUrl(input: string): { ok: true; url: string } | { ok: false; error: string } {
@@ -227,6 +236,9 @@ export function AnReviewPanel(props: AnReviewPanelProps): JSX.Element {
       data-collapsed="false"
       data-holo="stage4-19"
       data-docs="stage4-19"
+      data-hosts-computer={AN_REVIEW_SURFACE.hostsComputerView ? "true" : "false"}
+      data-review-slice={AN_REVIEW_SURFACE.slice}
+      data-takeover-in-view={props.showTakeoverDock ? "true" : "false"}
       aria-label={`${AN_REVIEW_SURFACE.label} — ${AN_REVIEW_SURFACE.subtitle}`}
     >
       <div class="an-review-holo-sweep" aria-hidden="true" />
@@ -267,56 +279,71 @@ export function AnReviewPanel(props: AnReviewPanelProps): JSX.Element {
 
       <div class="an-review-body" data-tab={tab()}>
         <Show when={tab() === "browser"}>
-          <div class="an-review-browser" data-an-part="review-browser" style={{ display: browserUsed() ? undefined : "none" }}>
-            <form
-              class="an-review-browser-bar"
-              onSubmit={(event) => {
-                event.preventDefault()
-                openUrl(draft())
-              }}
-            >
-              <input
-                class="an-review-browser-url"
-                data-an-part="review-browser-url"
-                type="text"
-                spellcheck={false}
-                autocomplete="off"
-                aria-label="Review browser URL"
-                placeholder="https://…"
-                value={draft()}
-                onInput={(event) => setDraft(event.currentTarget.value)}
-              />
-              <button type="submit" class="an-review-btn" data-action="review-browser-go">
-                Go
-              </button>
-            </form>
-            <Show when={error()}>
-              <p class="an-review-error" data-an-part="review-error">
-                {error()}
-              </p>
-            </Show>
-            <Show when={props.computerLive}>
-              <p class="an-review-hint" data-an-part="review-computer-hint">
-                Computer View stays Live in AnShell. This Review Browser is the in-app side surface — not a separate OS
-                window.
-              </p>
-            </Show>
+          <div
+            class="an-review-browser"
+            data-an-part="review-browser"
+            data-an-computer-host={props.computer ? "true" : "false"}
+            style={{ display: browserUsed() ? undefined : "none" }}
+          >
             <Show
-              when={src()}
+              when={props.computer}
               fallback={
-                <div class="an-review-empty" data-an-part="review-browser-empty">
-                  <strong>No page yet</strong>
-                  <span>Open a URL here to review in-app — stays in Aporetic, no extra window.</span>
-                </div>
+                <>
+                  <form
+                    class="an-review-browser-bar"
+                    onSubmit={(event) => {
+                      event.preventDefault()
+                      openUrl(draft())
+                    }}
+                  >
+                    <input
+                      class="an-review-browser-url"
+                      data-an-part="review-browser-url"
+                      type="text"
+                      spellcheck={false}
+                      autocomplete="off"
+                      aria-label="Review browser URL"
+                      placeholder="https://…"
+                      value={draft()}
+                      onInput={(event) => setDraft(event.currentTarget.value)}
+                    />
+                    <button type="submit" class="an-review-btn" data-action="review-browser-go">
+                      Go
+                    </button>
+                  </form>
+                  <Show when={error()}>
+                    <p class="an-review-error" data-an-part="review-error">
+                      {error()}
+                    </p>
+                  </Show>
+                  <Show
+                    when={src()}
+                    fallback={
+                      <div class="an-review-empty" data-an-part="review-browser-empty">
+                        <strong>No page yet</strong>
+                        <span>Open a URL here to review in-app — stays in Aporetic, no extra window.</span>
+                      </div>
+                    }
+                  >
+                    <iframe
+                      class="an-review-frame"
+                      data-an-part="review-browser-frame"
+                      title="Review browser"
+                      src={src()}
+                      sandbox="allow-scripts allow-same-origin allow-forms"
+                    />
+                  </Show>
+                </>
               }
             >
-              <iframe
-                class="an-review-frame"
-                data-an-part="review-browser-frame"
-                title="Review browser"
-                src={src()}
-                sandbox="allow-scripts allow-same-origin allow-forms"
-              />
+              <div class="an-review-computer" data-an-part="review-computer" data-hosts-computer-view="true">
+                {props.computer}
+                <Show when={props.showTakeoverDock && props.takeoverDock}>
+                  <div class="an-review-takeover-dock" data-an-part="review-takeover-dock">
+                    {props.takeoverDock}
+                  </div>
+                </Show>
+              </div>
             </Show>
           </div>
         </Show>

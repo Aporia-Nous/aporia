@@ -35,7 +35,7 @@ import { useTheme } from "@opencode/ui/theme/context"
 import { useNavigate } from "@solidjs/router"
 import { Show, createEffect, createMemo, createResource, createSignal, on, onCleanup, onMount, type ParentProps } from "solid-js"
 import { Portal } from "solid-js/web"
-import { AnShell } from "./an-shell"
+import { AnLiveComputerPanel, AnShell } from "./an-shell"
 import { buildStreamCards } from "./cards"
 import {
   AnTeammateFooterActions,
@@ -636,6 +636,13 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     )
   })
 
+  const openReviewComputer = () => {
+    setContraptionsOpen(false)
+    setSettingsOpen(false)
+    setReviewInitialTab("browser")
+    setReviewOpen(true)
+  }
+
   const onModeChange = (next: AnShellMode) => {
     if (!isAnShellMode(next)) return
     if (next === "takeover" && !computerLive()) {
@@ -645,17 +652,40 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         level: "warn",
       })
     }
+    // AP-STAGE5-08: view/takeover open Review Computer — Conversation stays the main stream.
+    if (next === "view" || next === "takeover") {
+      openReviewComputer()
+    }
     setMode(next)
+  }
+
+  const onToggleReview = () => {
+    const nextOpen = !reviewOpen()
+    if (!nextOpen) {
+      // Collapsing Review ends Takeover input and returns control-lock to conversation.
+      if (mode() === "takeover") {
+        setComputerControl((prev) => stopUserControl(prev, computerLive()))
+      }
+      if (mode() === "view" || mode() === "takeover") {
+        setMode("conversation")
+      }
+      setReviewOpen(false)
+      return
+    }
+    openReviewComputer()
+    if (mode() === "conversation") setMode("view")
   }
 
   const onHandBack = () => {
     setComputerControl((prev) => releaseToBot(prev, computerLive()))
-    setMode("conversation")
+    // Stay in Review Computer View (watch-only); Conversation remains primary stream.
+    setMode("view")
+    openReviewComputer()
     aporiaAlerts.push({
       title: "Handed back",
       detail: computerLive()
-        ? "Returned to Conversation. Bot holds the lock again — fresh observation required before bot drives. Workspace stays attached until Disconnect."
-        : "Returned to Conversation. No Live attach — control was chrome-only.",
+        ? "Bot holds the lock again — fresh observation required before bot drives. Computer View stays in Review; Conversation remains the main stream."
+        : "Control was chrome-only. Computer View stays in Review.",
       level: "info",
     })
   }
@@ -663,11 +693,12 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   const onStopTakeover = () => {
     setComputerControl((prev) => stopUserControl(prev, computerLive()))
     setMode("view")
+    openReviewComputer()
     aporiaAlerts.push({
       title: "Takeover stopped",
       detail: computerLive()
-        ? "Switched to Computer View (watch-only). Bot holds the lock; fresh observation required before bot drives."
-        : "Switched to Computer View. No Live attach — no page input was granted.",
+        ? "Watch-only Computer View in Review. Bot holds the lock; fresh observation required before bot drives."
+        : "Computer View in Review. No Live attach — no page input was granted.",
       level: "info",
     })
   }
@@ -885,10 +916,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       return
     }
     if (id === AN_REVIEW_SURFACE.navId) {
-      setContraptionsOpen(false)
-      setSettingsOpen(false)
-      setReviewInitialTab("browser")
-      setReviewOpen((open) => !open)
+      onToggleReview()
       return
     }
     if (id === "settings") {
@@ -1063,12 +1091,9 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       setComputerScope((scopePrev) =>
         syncComputerScopeFromAttach(scopePrev, next, props.view.sessionID()),
       )
-      // Prefer in-app Review panel for browse/review (AP-STAGE4-17) — not a separate OS window.
-      if (next.backend === "local-browser") {
-        setReviewInitialTab("browser")
-        setReviewOpen(true)
-        setContraptionsOpen(false)
-      }
+      // AP-STAGE5-08: Computer View opens in collapsible Review sidebar (Conversation stays primary).
+      setMode("view")
+      openReviewComputer()
       aporiaAlerts.push({
         title:
           next.backend === "external-chromium"
@@ -1076,8 +1101,8 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
             : "Browser workspace attached",
         detail:
           next.backend === "external-chromium"
-            ? `Live on ${next.externalEndpoint} · region ${next.externalRegionId}. Watch-only until Takeover. Review stays in AnShell.`
-            : "Computer View is Live with watch-only page feed. Review Browser opened in-app (collapsible). Disconnect clears Live and feed.",
+            ? `Live on ${next.externalEndpoint} · region ${next.externalRegionId}. Watch-only until Takeover. Computer View in Review; Conversation stays primary.`
+            : "Computer View is Live (watch-only) in the Review sidebar. Conversation stays the main stream. Disconnect clears Live and feed.",
         level: "info",
       })
       return next
@@ -1281,6 +1306,8 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         <AnShell
           mode={mode()}
           onModeChange={onModeChange}
+          reviewOpen={reviewOpen()}
+          onToggleReview={onToggleReview}
           onHandBack={onHandBack}
           onStopTakeover={onStopTakeover}
           onTakeOver={onTakeOver}
@@ -1298,52 +1325,6 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
           conversationTurns={conversationTurns()}
           conversationScrollIdentity={conversationScrollIdentity()}
           conversationEmpty="No messages yet — send from the composer below. Conversation is owned by AnShell."
-          computerEmpty={computerAttachEmptyCopy(computerAttach())}
-          computerTitle="Computer View"
-          computerLive={computerLive()}
-          computerAttachPhase={computerAttach().phase}
-          computerAttachPath={computerAttach().path}
-          computerAttachBackend={computerAttach().backend}
-          computerAttachPathLabel={computerAttachPathLabel(computerAttach())}
-          computerExternalDraftEndpoint={computerAttach().externalDraftEndpoint}
-          computerExternalDraftRegion={computerAttach().externalDraftRegion}
-          computerExternalDraftFamily={computerAttach().externalDraftFamily}
-          computerExternalEndpoint={computerAttach().externalEndpoint}
-          computerExternalRegionId={computerAttach().externalRegionId}
-          computerCursorVisible={computerCursorVisible()}
-          computerScopeKind={computerScope().kind}
-          computerScopeTarget={computerScopeTargetLabel(computerScope())}
-          computerBoundaryVisible={computerBoundaryVisible()}
-          computerScopeBannerLine={computerScopeBannerLine()}
-          computerControllerBotName={computerControllerBotName()}
-          computerCdpIsolationLine={computerCdpIsolationLine()}
-          computerNativeCaptureBlocked={computerNativeCaptureBlocked()}
-          computerFeedActive={computerFeedActive()}
-          computerFeedUrl={computerFeed().url || undefined}
-          computerFeedSrcdoc={computerFeed().srcdoc}
-          computerFeedDraft={computerFeedDraft()}
-          computerFeedWatchOnly={computerFeedWatchOnly()}
-          computerScreencastPhase={computerScreencast().phase}
-          computerScreencastFrameUrl={computerScreencast().frameDataUrl}
-          computerScreencastFrameCount={computerScreencast().frameCount}
-          computerPixelSource={computerPixelSrc()}
-          computerScreencastStatus={computerScreencastStatusCopy(computerScreencast())}
-          computerController={computerControl().controller}
-          computerBotPaused={computerControl().botPaused}
-          computerUserInput={computerUserInput()}
-          computerNeedsFreshObservation={computerControl().needsFreshObservation}
-          computerNote={computerControlNote(computerLive(), computerControl())}
-          onComputerFeedDraftChange={setComputerFeedDraft}
-          onComputerFeedNavigate={onComputerFeedNavigate}
-          onComputerUserTargetChromeInteraction={onComputerUserTargetChromeInteraction}
-          onComputerConnect={onComputerConnect}
-          onComputerConfirmAttach={onComputerConfirmAttach}
-          onComputerCancelConsent={onComputerCancelConsent}
-          onComputerDisconnect={onComputerDisconnect}
-          onComputerAttachPathChange={onComputerAttachPathChange}
-          onComputerExternalDraftChange={onComputerExternalDraftChange}
-          onComputerExternalProbe={onComputerExternalProbe}
-          onComputerExternalOpenTab={() => void onComputerExternalOpenTab()}
           onSelectNav={onSelectNav}
           onSelectMember={(id) => void openMember(id)}
           onMemberContextMenu={(id, event) => {
@@ -1435,7 +1416,82 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
             onRequestPath={(path, tab) => {
               void loadReviewPath(path, tab)
             }}
-            onClose={() => setReviewOpen(false)}
+            onClose={() => onToggleReview()}
+            showTakeoverDock={mode() === "takeover"}
+            takeoverDock={
+              <div class="an-takeover-bar" role="toolbar" aria-label="Takeover controls" data-an-part="takeover-bar">
+                <button
+                  type="button"
+                  class="an-takeover-handback"
+                  data-action="computer-handback"
+                  onClick={() => onHandBack()}
+                >
+                  Hand back
+                </button>
+                <button
+                  type="button"
+                  class="an-takeover-stop"
+                  data-action="computer-stop-takeover"
+                  onClick={() => onStopTakeover()}
+                >
+                  Stop
+                </button>
+              </div>
+            }
+            computer={
+              <AnLiveComputerPanel
+                title="Computer View"
+                empty={computerAttachEmptyCopy(computerAttach())}
+                note={computerControlNote(computerLive(), computerControl())}
+                size="large"
+                live={computerLive()}
+                attachPhase={computerAttach().phase}
+                attachPath={computerAttach().path}
+                attachBackend={computerAttach().backend}
+                pathLabel={computerAttachPathLabel(computerAttach())}
+                externalDraftEndpoint={computerAttach().externalDraftEndpoint}
+                externalDraftRegion={computerAttach().externalDraftRegion}
+                externalDraftFamily={computerAttach().externalDraftFamily}
+                externalEndpoint={computerAttach().externalEndpoint}
+                externalRegionId={computerAttach().externalRegionId}
+                cursorVisible={computerCursorVisible()}
+                scopeKind={computerScope().kind}
+                scopeTarget={computerScopeTargetLabel(computerScope())}
+                boundaryVisible={computerBoundaryVisible()}
+                scopeBannerLine={computerScopeBannerLine()}
+                cdpIsolationLine={computerCdpIsolationLine()}
+                nativeCaptureBlocked={computerNativeCaptureBlocked()}
+                feedActive={computerFeedActive()}
+                feedUrl={computerFeed().url || undefined}
+                feedSrcdoc={computerFeed().srcdoc}
+                feedDraft={computerFeedDraft()}
+                feedWatchOnly={computerFeedWatchOnly()}
+                screencastPhase={computerScreencast().phase}
+                screencastFrameUrl={computerScreencast().frameDataUrl}
+                screencastFrameCount={computerScreencast().frameCount}
+                pixelSource={computerPixelSrc()}
+                screencastStatus={computerScreencastStatusCopy(computerScreencast())}
+                controller={computerControl().controller}
+                botPaused={computerControl().botPaused}
+                userInput={computerUserInput()}
+                needsFreshObservation={computerControl().needsFreshObservation}
+                controllerBotName={computerControllerBotName()}
+                onFeedDraftChange={setComputerFeedDraft}
+                onFeedNavigate={onComputerFeedNavigate}
+                onUserTargetChromeInteraction={onComputerUserTargetChromeInteraction}
+                onConnect={onComputerConnect}
+                onConfirmAttach={onComputerConfirmAttach}
+                onCancelConsent={onComputerCancelConsent}
+                onDisconnect={onComputerDisconnect}
+                onAttachPathChange={onComputerAttachPathChange}
+                onExternalDraftChange={onComputerExternalDraftChange}
+                onExternalProbe={onComputerExternalProbe}
+                onExternalOpenTab={() => void onComputerExternalOpenTab()}
+                onTakeOver={onTakeOver}
+                onPauseBot={onPauseBot}
+                onResumeBot={onResumeBot}
+              />
+            }
           />
         </Show>
       </div>

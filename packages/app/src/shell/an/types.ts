@@ -70,10 +70,16 @@ export type AnShellProps = ParentProps<{
   conversationEmpty?: string
   /** AP-STAGE4-MISSION-RESTART — identity for conversation scroll save/restore. */
   conversationScrollIdentity?: AnDraftIdentity
-  /** Approved three-state framing (Conversation / Computer View / Takeover); shares one BF-03 control lock. */
+  /**
+   * BF-03 control-lock mode (conversation | view | takeover).
+   * AP-STAGE5-08: not peer UI pills — Conversation stays primary; Computer/Takeover live in Review.
+   */
   mode?: AnShellMode
-  /** Interactive mode switch — layout changes; backends may still be stubbed. */
+  /** Control-lock transitions (Takeover / Hand-back); does not swap Conversation out of main. */
   onModeChange?: (mode: AnShellMode) => void
+  /** AP-STAGE5-08: collapsible Review right sidebar open state (hosts Computer View). */
+  reviewOpen?: boolean
+  onToggleReview?: () => void
   onSelectNav?: (id: string) => void
   onSelectMember?: (id: string) => void
   /** AP-STAGE4-NEW-TEAMMATE — roster context menu (edit/archive). */

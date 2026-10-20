@@ -1,4 +1,4 @@
-export { AnShell } from "./an-shell"
+export { AnShell, AnLiveComputerPanel } from "./an-shell"
 export {
   AN_DESIGN_SOURCE,
   AN_PRODUCT_NAME,
@@ -19,6 +19,7 @@ export {
   AN_NAV_ILLUSTRATED,
   AN_SHELL_MODES,
   AN_SHELL_MODE_LABEL,
+  AN_SHELL_UX,
   AN_PRESENCE,
   AN_PRESENCE_LABEL,
   anShellLayout,

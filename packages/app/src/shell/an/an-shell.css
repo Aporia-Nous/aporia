@@ -69,22 +69,14 @@
   z-index: 1;
 }
 
-/* Computer View: widen live-computer rail beside chat (watch only). */
-[data-component="an-shell"][data-mode="view"] {
+/* AP-STAGE5-08: Conversation always primary — view/takeover no longer swap main/attention columns.
+   Computer View + Takeover live in collapsible Review sidebar (absolute right chrome). */
+[data-component="an-shell"][data-conversation-primary="true"] {
   grid-template-columns:
     var(--an-nav-width, 56px)
     var(--an-roster-width, 280px)
     minmax(0, 1fr)
-    var(--an-attention-width-view, 420px);
-}
-
-/* Takeover: computer primary in main; conversation rides the right rail. */
-[data-component="an-shell"][data-mode="takeover"] {
-  grid-template-columns:
-    var(--an-nav-width, 56px)
-    var(--an-roster-width, 240px)
-    minmax(0, 1.35fr)
-    minmax(280px, 0.85fr);
+    var(--an-attention-width, 320px);
 }
 
 /* Always-on attention rail — never collapse to width 0 when empty. */
@@ -643,7 +635,8 @@
   color: var(--an-gold);
 }
 
-.an-mode-switch {
+/* AP-STAGE5-08: Review chrome replaces peer mode pills. */
+.an-review-chrome {
   display: inline-flex;
   flex: none;
   margin-left: auto;
@@ -660,7 +653,7 @@
   box-shadow: var(--an-specular);
 }
 
-.an-mode-btn {
+.an-review-chrome-btn {
   border: 1px solid transparent;
   border-radius: var(--an-radius-pill);
   padding: 4px 11px;
@@ -674,19 +667,56 @@
     color var(--an-ease),
     background var(--an-ease),
     border-color var(--an-ease),
-    box-shadow var(--an-ease),
-    transform var(--an-ease);
+    box-shadow var(--an-ease);
 }
 
-.an-mode-btn:hover {
+.an-review-chrome-btn:hover {
   color: var(--an-gold-soft);
 }
 
-.an-mode-btn[data-active="true"] {
+.an-review-chrome-btn[data-active="true"] {
   color: var(--an-void, #020509);
   background: linear-gradient(180deg, var(--an-gold), var(--an-gold-deep));
   border-color: transparent;
   box-shadow: 0 0 16px var(--an-glow);
+}
+
+.an-review-computer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  flex: 1;
+}
+
+.an-review-computer .an-computer {
+  flex: 1;
+  min-height: 220px;
+}
+
+.an-review-takeover-dock {
+  flex-shrink: 0;
+}
+
+.an-review[data-hosts-computer="true"] {
+  width: min(520px, 52vw);
+}
+
+/* Legacy Option C mode-pill styles kept for residual tests/screenshots — unused in STAGE5-08 chrome. */
+.an-mode-switch {
+  display: none;
+}
+
+.an-mode-btn {
+  border: 1px solid transparent;
+  border-radius: var(--an-radius-pill);
+  padding: 4px 11px;
+  background: transparent;
+  color: var(--an-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
 }
 
 .an-stream {
@@ -3171,8 +3201,7 @@
 
 @media (max-width: 1100px) {
   [data-component="an-shell"],
-  [data-component="an-shell"][data-mode="view"],
-  [data-component="an-shell"][data-mode="takeover"] {
+  [data-component="an-shell"][data-conversation-primary="true"] {
     grid-template-columns:
       var(--an-nav-width, 56px)
       minmax(200px, 30%)

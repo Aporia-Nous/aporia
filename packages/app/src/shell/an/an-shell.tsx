@@ -14,10 +14,7 @@ import {
   externalBrowserFamilyLabel,
   type ExternalBrowserFamily,
 } from "./computer-external"
-import {
-  AN_COMPUTER_CONTROL_SURFACE,
-  computerControlBannerCopy,
-} from "./computer-control"
+import { AN_COMPUTER_CONTROL_SURFACE } from "./computer-control"
 import { AN_COMPUTER_SCOPE_SURFACE } from "./computer-scope"
 import { AN_COMPUTER_CDP_ISOLATION_SURFACE } from "./computer-cdp-isolation"
 import { AN_COMPUTER_FEED_SURFACE } from "./computer-feed"
@@ -30,10 +27,10 @@ import {
 import {
   AN_PRESENCE_PERSONALITY,
   AN_PRODUCT_NAME,
-  AN_SHELL_MODES,
+  AN_REVIEW_SURFACE,
+  AN_SHELL_UX,
   anPresenceLabel,
   anShellLayout,
-  anShellModeLabel,
   presenceDotClass,
   type AnShellMode,
 } from "./tokens"
@@ -101,9 +98,6 @@ const DEFAULT_NAV = [
   { id: "settings", label: "Settings", icon: "settings" },
 ] as const
 
-const DEFAULT_COMPUTER_EMPTY =
-  "Computer View has no live feed yet. Watch/control backends are not attached — chrome only."
-
 function initials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean)
   if (parts.length === 0) return "?"
@@ -111,7 +105,8 @@ function initials(name: string) {
   return `${parts[0]![0] ?? ""}${parts[1]![0] ?? ""}`.toUpperCase()
 }
 
-function LiveComputerPanel(props: {
+/** Live Computer View panel — hosted in Review sidebar (AP-STAGE5-08), not a peer mode column. */
+export function AnLiveComputerPanel(props: {
   title: string
   empty: string
   note: string
@@ -532,32 +527,30 @@ function LiveComputerPanel(props: {
   )
 }
 
-function ModeSwitcher(props: {
-  mode: AnShellMode
-  onChange?: (mode: AnShellMode) => void
+/** Mission chrome: Review sidebar toggle — not Conversation/Computer View/Takeover peer pills. */
+function ReviewChromeToggle(props: {
+  open?: boolean
+  onToggle?: () => void
 }) {
   return (
     <div
-      class="an-mode-switch"
-      role="radiogroup"
-      aria-label="Shell mode (Conversation, Computer View, Takeover)"
+      class="an-review-chrome"
+      data-an-part="review-chrome"
+      data-shell-ux={AN_SHELL_UX.slice}
+      data-peer-mode-pills="false"
     >
-      <For each={[...AN_SHELL_MODES]}>
-        {(id) => (
-          <button
-            type="button"
-            class="an-mode-btn"
-            role="radio"
-            data-mode={id}
-            data-active={props.mode === id ? "true" : "false"}
-            aria-checked={props.mode === id}
-            title={anShellModeLabel(id)}
-            onClick={() => props.onChange?.(id)}
-          >
-            {anShellModeLabel(id)}
-          </button>
-        )}
-      </For>
+      <button
+        type="button"
+        class="an-review-chrome-btn"
+        data-action="review-toggle"
+        data-active={props.open ? "true" : "false"}
+        aria-pressed={props.open ? "true" : "false"}
+        aria-label={props.open ? "Collapse Review sidebar" : "Open Review sidebar"}
+        title={AN_REVIEW_SURFACE.label}
+        onClick={() => props.onToggle?.()}
+      >
+        {AN_REVIEW_SURFACE.label}
+      </button>
     </div>
   )
 }
@@ -574,31 +567,6 @@ export function AnShell(props: AnShellProps): JSX.Element {
   const conversationTurns = () => props.conversationTurns
   const ownConversation = () => conversationTurns() !== undefined
   const attentionCards = () => attentionToApprovalCards(attention())
-  const computerEmpty = () => props.computerEmpty ?? DEFAULT_COMPUTER_EMPTY
-  const computerTitle = () => props.computerTitle ?? "Computer View"
-  const computerLive = () => !!props.computerLive
-  const computerNote = () =>
-    props.computerNote ??
-    (props.computerLive
-      ? "Live = consented local browser attach + watch-only page feed. Bot holds the lock until Takeover. Bot cursor is overlay chrome — not in page captures."
-      : "Watch-only Computer View — connect a local browser workspace to go Live. Takeover needs Live.")
-  const computerUserInput = () => !!props.computerUserInput
-  const computerFeedWatchOnly = () =>
-    props.computerFeedWatchOnly !== undefined ? props.computerFeedWatchOnly : !computerUserInput()
-  const takeoverBanner = () =>
-    computerControlBannerCopy(
-      computerLive(),
-      {
-        controller: props.computerController ?? (computerLive() ? "bot" : "none"),
-        botPaused: !!props.computerBotPaused,
-        userInputGranted: computerUserInput(),
-        needsFreshObservation: !!props.computerNeedsFreshObservation,
-      },
-      {
-        botName: props.computerControllerBotName,
-        targetName: props.computerScopeTarget,
-      },
-    )
   const progress = () => {
     const value = props.mission?.progressPercent
     if (value === undefined || Number.isNaN(value)) return undefined
@@ -610,6 +578,10 @@ export function AnShell(props: AnShellProps): JSX.Element {
       data-component="an-shell"
       data-an-theme="an"
       data-mode={mode()}
+      data-conversation-primary={layout().conversationPrimary ? "true" : "false"}
+      data-review-hosts-computer={layout().reviewHostsComputer ? "true" : "false"}
+      data-shell-ux={AN_SHELL_UX.slice}
+      data-peer-mode-pills="false"
       data-attention-always-on=""
       data-presence-personality={AN_PRESENCE_PERSONALITY.markers.personality}
     >
@@ -728,195 +700,32 @@ export function AnShell(props: AnShellProps): JSX.Element {
               <i style={{ width: `${progress()}%` }} />
             </div>
           </Show>
-          <ModeSwitcher mode={mode()} onChange={props.onModeChange} />
+          <ReviewChromeToggle open={props.reviewOpen} onToggle={props.onToggleReview} />
         </header>
 
-        <Show when={layout().computerPrimary}>
-          <div
-            class="an-takeover-stage"
-            aria-label="Computer takeover"
-            data-an-part={AN_COMPUTER_CONTROL_SURFACE.part}
-            data-controller={props.computerController ?? (computerLive() ? "bot" : "none")}
-            data-user-input={computerUserInput() ? "true" : "false"}
-            data-bot-paused={props.computerBotPaused ? "true" : "false"}
+        {/* AP-STAGE5-08: Conversation always primary — Computer View / Takeover live in Review sidebar. */}
+        <div
+          class="an-stream"
+          data-an-own-conversation={ownConversation() ? "true" : "false"}
+          data-an-cards-in-stream={ownConversation() ? "true" : "false"}
+          data-conversation-primary="true"
+        >
+          <StreamRegion
+            cards={streamCards()}
+            missionStackCards={missionStackCards()}
+            streamItems={streamItems()}
+            turns={conversationTurns()}
+            conversationEmpty={props.conversationEmpty}
+            ownConversation={ownConversation()}
+            scrollIdentity={props.conversationScrollIdentity}
+            onCardAction={props.onStreamCardAction}
           >
-            <div class="an-takeover-banner" data-live={computerLive() ? "true" : "false"}>
-              <span class="an-takeover-pill">{takeoverBanner().pill}</span>
-              <span class="an-takeover-copy">{takeoverBanner().copy}</span>
-            </div>
-            <LiveComputerPanel
-              title={computerTitle()}
-              empty={computerEmpty()}
-              note={computerNote()}
-              size="primary"
-              live={computerLive()}
-              attachPhase={props.computerAttachPhase}
-              attachPath={props.computerAttachPath}
-              attachBackend={props.computerAttachBackend}
-              pathLabel={props.computerAttachPathLabel}
-              externalDraftEndpoint={props.computerExternalDraftEndpoint}
-              externalDraftRegion={props.computerExternalDraftRegion}
-              externalDraftFamily={props.computerExternalDraftFamily}
-              externalEndpoint={props.computerExternalEndpoint}
-              externalRegionId={props.computerExternalRegionId}
-              cursorVisible={props.computerCursorVisible}
-              scopeKind={props.computerScopeKind}
-              scopeTarget={props.computerScopeTarget}
-              boundaryVisible={props.computerBoundaryVisible}
-              scopeBannerLine={props.computerScopeBannerLine}
-              cdpIsolationLine={props.computerCdpIsolationLine}
-              nativeCaptureBlocked={props.computerNativeCaptureBlocked}
-              feedActive={props.computerFeedActive}
-              feedUrl={props.computerFeedUrl}
-              feedSrcdoc={props.computerFeedSrcdoc}
-              feedDraft={props.computerFeedDraft}
-              feedWatchOnly={computerFeedWatchOnly()}
-              screencastPhase={props.computerScreencastPhase}
-              screencastFrameUrl={props.computerScreencastFrameUrl}
-              screencastFrameCount={props.computerScreencastFrameCount}
-              pixelSource={props.computerPixelSource}
-              screencastStatus={props.computerScreencastStatus}
-              controller={props.computerController}
-              botPaused={props.computerBotPaused}
-              userInput={computerUserInput()}
-              needsFreshObservation={props.computerNeedsFreshObservation}
-              controllerBotName={props.computerControllerBotName}
-              onFeedDraftChange={props.onComputerFeedDraftChange}
-              onFeedNavigate={props.onComputerFeedNavigate}
-              onUserTargetChromeInteraction={props.onComputerUserTargetChromeInteraction}
-              onConnect={props.onComputerConnect}
-              onConfirmAttach={props.onComputerConfirmAttach}
-              onCancelConsent={props.onComputerCancelConsent}
-              onDisconnect={props.onComputerDisconnect}
-              onAttachPathChange={props.onComputerAttachPathChange}
-              onExternalDraftChange={props.onComputerExternalDraftChange}
-              onExternalProbe={props.onComputerExternalProbe}
-              onExternalOpenTab={props.onComputerExternalOpenTab}
-              onTakeOver={props.onTakeOver}
-              onPauseBot={props.onPauseBot}
-              onResumeBot={props.onResumeBot}
-            />
-            <div class="an-takeover-bar" role="toolbar" aria-label="Takeover controls">
-              <button
-                type="button"
-                class="an-takeover-handback"
-                data-action="computer-handback"
-                onClick={() => props.onHandBack?.()}
-              >
-                Hand back
-              </button>
-              <button
-                type="button"
-                class="an-takeover-stop"
-                data-action="computer-stop-takeover"
-                onClick={() => props.onStopTakeover?.()}
-              >
-                Stop
-              </button>
-            </div>
-          </div>
-        </Show>
-
-        <Show when={!layout().computerPrimary}>
-          <div
-            class="an-stream"
-            data-an-own-conversation={ownConversation() ? "true" : "false"}
-            data-an-cards-in-stream={ownConversation() ? "true" : "false"}
-          >
-            <StreamRegion
-              cards={streamCards()}
-              missionStackCards={missionStackCards()}
-              streamItems={streamItems()}
-              turns={conversationTurns()}
-              conversationEmpty={props.conversationEmpty}
-              ownConversation={ownConversation()}
-              scrollIdentity={props.conversationScrollIdentity}
-              onCardAction={props.onStreamCardAction}
-            >
-              {props.children}
-            </StreamRegion>
-          </div>
-        </Show>
+            {props.children}
+          </StreamRegion>
+        </div>
       </section>
 
-      <aside class="an-attention" aria-label="Attention and live computer">
-        <Show when={layout().computerPrimary}>
-          <div class="an-attention-header">Conversation</div>
-          <div
-            class="an-stream an-stream--rail"
-            data-an-own-conversation={ownConversation() ? "true" : "false"}
-            data-an-cards-in-stream={ownConversation() ? "true" : "false"}
-          >
-            <StreamRegion
-              cards={streamCards()}
-              missionStackCards={missionStackCards()}
-              streamItems={streamItems()}
-              turns={conversationTurns()}
-              conversationEmpty={props.conversationEmpty}
-              ownConversation={ownConversation()}
-              scrollIdentity={props.conversationScrollIdentity}
-              onCardAction={props.onStreamCardAction}
-            >
-              {props.children}
-            </StreamRegion>
-          </div>
-        </Show>
-
-        <Show when={!layout().computerPrimary}>
-          <LiveComputerPanel
-            title={computerTitle()}
-            empty={computerEmpty()}
-            note={computerNote()}
-            size={layout().computerBeside ? "large" : "compact"}
-            live={computerLive()}
-            attachPhase={props.computerAttachPhase}
-            attachPath={props.computerAttachPath}
-            attachBackend={props.computerAttachBackend}
-            pathLabel={props.computerAttachPathLabel}
-            externalDraftEndpoint={props.computerExternalDraftEndpoint}
-            externalDraftRegion={props.computerExternalDraftRegion}
-            externalDraftFamily={props.computerExternalDraftFamily}
-            externalEndpoint={props.computerExternalEndpoint}
-            externalRegionId={props.computerExternalRegionId}
-            cursorVisible={props.computerCursorVisible}
-            scopeKind={props.computerScopeKind}
-            scopeTarget={props.computerScopeTarget}
-            boundaryVisible={props.computerBoundaryVisible}
-            scopeBannerLine={props.computerScopeBannerLine}
-            cdpIsolationLine={props.computerCdpIsolationLine}
-            nativeCaptureBlocked={props.computerNativeCaptureBlocked}
-            feedActive={props.computerFeedActive}
-            feedUrl={props.computerFeedUrl}
-            feedSrcdoc={props.computerFeedSrcdoc}
-            feedDraft={props.computerFeedDraft}
-            feedWatchOnly={computerFeedWatchOnly()}
-            screencastPhase={props.computerScreencastPhase}
-            screencastFrameUrl={props.computerScreencastFrameUrl}
-            screencastFrameCount={props.computerScreencastFrameCount}
-            pixelSource={props.computerPixelSource}
-            screencastStatus={props.computerScreencastStatus}
-            controller={props.computerController}
-            botPaused={props.computerBotPaused}
-            userInput={computerUserInput()}
-            needsFreshObservation={props.computerNeedsFreshObservation}
-            controllerBotName={props.computerControllerBotName}
-            onFeedDraftChange={props.onComputerFeedDraftChange}
-            onFeedNavigate={props.onComputerFeedNavigate}
-            onUserTargetChromeInteraction={props.onComputerUserTargetChromeInteraction}
-            onConnect={props.onComputerConnect}
-            onConfirmAttach={props.onComputerConfirmAttach}
-            onCancelConsent={props.onComputerCancelConsent}
-            onDisconnect={props.onComputerDisconnect}
-            onAttachPathChange={props.onComputerAttachPathChange}
-            onExternalDraftChange={props.onComputerExternalDraftChange}
-            onExternalProbe={props.onComputerExternalProbe}
-            onExternalOpenTab={props.onComputerExternalOpenTab}
-            onTakeOver={props.onTakeOver}
-            onPauseBot={props.onPauseBot}
-            onResumeBot={props.onResumeBot}
-          />
-        </Show>
-
+      <aside class="an-attention" aria-label="Attention">
         <div class="an-attention-header">{props.attentionTitle ?? "Attention"}</div>
         <div class="an-attention-list">
           <Show

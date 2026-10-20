@@ -21,6 +21,7 @@ import {
   AN_PRODUCT_BYLINE,
   AN_PRODUCT_NAME,
   AN_SHELL_MODES,
+  AN_SHELL_UX,
   AN_TOKENS,
   anShellLayout,
   anShellModeLabel,
@@ -155,11 +156,15 @@ describe("AN Stage 4 tokens", () => {
     expect(AN_COMPOSER_SURFACE.ownedAttr).toBe('data-an-owned="composer"')
   })
 
-  test("Review panel + motion surface markers (AP-STAGE4-17)", () => {
+  test("Review panel + motion surface markers (AP-STAGE4-17 / AP-STAGE5-08)", () => {
     expect(AN_REVIEW_SURFACE.navId).toBe("review")
     expect(AN_REVIEW_SURFACE.partAttr).toBe('data-an-part="review"')
     expect(AN_REVIEW_SURFACE.collapsible).toBe(true)
     expect(AN_REVIEW_SURFACE.preferInAppOverOsWindow).toBe(true)
+    expect(AN_REVIEW_SURFACE.hostsComputerView).toBe(true)
+    expect(AN_REVIEW_SURFACE.takeoverInViewNotPeerTab).toBe(true)
+    expect(AN_REVIEW_SURFACE.tabLabel.browser).toBe("Computer")
+    expect(AN_REVIEW_SURFACE.subtitle).toContain("Computer")
     expect(AN_REVIEW_SURFACE.tabs).toEqual(["browser", "code", "files", "documents"])
     expect(AN_MOTION_SURFACE.feel).toBe("holographic-ice-companion")
     expect(AN_MOTION_SURFACE.intentionalMotions.length).toBeGreaterThanOrEqual(3)
@@ -263,15 +268,33 @@ describe("AN Stage 4 tokens", () => {
     expect(AN_COMPOSER_SURFACE.ownedAttr).toBe('data-an-owned="composer"')
   })
 
-  test("three-state layout flags (AP-STAGE4-04)", () => {
+  test("conversation-primary layout — Review hosts Computer (AP-STAGE5-08)", () => {
+    expect(AN_SHELL_UX.slice).toBe("AP-STAGE5-08")
+    expect(AN_SHELL_UX.conversationPrimary).toBe(true)
+    expect(AN_SHELL_UX.reviewSidebarHostsComputerView).toBe(true)
+    expect(AN_SHELL_UX.takeoverInReviewNotPeerMode).toBe(true)
+    expect(AN_SHELL_UX.noPeerModePills).toBe(true)
     expect(anShellLayout("conversation")).toEqual({
       mode: "conversation",
       attentionAlwaysOn: true,
+      conversationPrimary: true,
+      reviewHostsComputer: true,
       computerBeside: false,
       computerPrimary: false,
     })
-    expect(anShellLayout("view")).toMatchObject({ computerBeside: true, computerPrimary: false })
-    expect(anShellLayout("takeover")).toMatchObject({ computerBeside: false, computerPrimary: true })
+    // view/takeover keep control-lock mode but never swap Conversation out of main
+    expect(anShellLayout("view")).toMatchObject({
+      conversationPrimary: true,
+      reviewHostsComputer: true,
+      computerBeside: false,
+      computerPrimary: false,
+    })
+    expect(anShellLayout("takeover")).toMatchObject({
+      conversationPrimary: true,
+      reviewHostsComputer: true,
+      computerBeside: false,
+      computerPrimary: false,
+    })
   })
 })
 
@@ -300,9 +323,11 @@ describe("AN shell model", () => {
     expect(model.attention).toHaveLength(1)
   })
 
-  test("view and takeover layouts flip computer placement", () => {
-    expect(buildAnShellModel({ mode: "view" }).layout.computerBeside).toBe(true)
-    expect(buildAnShellModel({ mode: "takeover" }).layout.computerPrimary).toBe(true)
+  test("view and takeover keep Conversation primary (AP-STAGE5-08)", () => {
+    expect(buildAnShellModel({ mode: "view" }).layout.conversationPrimary).toBe(true)
+    expect(buildAnShellModel({ mode: "view" }).layout.computerBeside).toBe(false)
+    expect(buildAnShellModel({ mode: "takeover" }).layout.computerPrimary).toBe(false)
+    expect(buildAnShellModel({ mode: "takeover" }).layout.reviewHostsComputer).toBe(true)
     expect(buildAnShellModel({ mode: "status" as string }).mode).toBe("conversation")
   })
 })

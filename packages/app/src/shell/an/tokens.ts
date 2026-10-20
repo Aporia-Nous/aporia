@@ -65,23 +65,35 @@ export const AN_ICE_MATERIAL = {
   avoidPurpleNebula: true,
 } as const
 
-/** Layout flags for approved three-state chrome (not Stage 5 four-mode). */
+/**
+ * Layout flags (AP-STAGE5-08 UX correction).
+ * Conversation stays primary; Computer View / Takeover are not peer layout swaps.
+ * Control-lock modes (conversation|view|takeover) remain for BF-03 honesty.
+ */
 export type AnShellLayout = {
   mode: AnShellMode
-  /** Attention / live-computer rail never collapses to width 0. */
+  /** Attention rail never collapses to width 0. */
   attentionAlwaysOn: true
-  /** Computer View: live surface beside chat (watch only — no input grant). */
-  computerBeside: boolean
-  /** Takeover: computer primary; Hand back / Stop are chrome affordances. */
-  computerPrimary: boolean
+  /** Conversation is always the main stream (never replaced by Computer/Takeover). */
+  conversationPrimary: true
+  /** Computer View lives in the collapsible Review right sidebar. */
+  reviewHostsComputer: true
+  /**
+   * Legacy Option C peer-layout flags — always false after STAGE5-08.
+   * Takeover no longer makes computer primary in the main column.
+   */
+  computerBeside: false
+  computerPrimary: false
 }
 
 export function anShellLayout(mode: AnShellMode): AnShellLayout {
   return {
     mode,
     attentionAlwaysOn: true,
-    computerBeside: mode === "view",
-    computerPrimary: mode === "takeover",
+    conversationPrimary: true,
+    reviewHostsComputer: true,
+    computerBeside: false,
+    computerPrimary: false,
   }
 }
 
@@ -130,8 +142,9 @@ export const AN_CONTRAPTIONS_SURFACE = {
 } as const
 
 /**
- * AP-STAGE4-17: Collapsible in-app Review panel (ChatGPT/Cursor-style side surface).
- * Hosts browser / code / files / documents inside the main AnShell window — never a new Electron window.
+ * AP-STAGE4-17 + AP-STAGE5-08: Collapsible in-app Review right sidebar.
+ * Hosts Computer View (live attach/feed) + code / files / documents — never a new Electron window.
+ * Takeover is an in-view option on Computer View, not a peer shell tab.
  */
 export const AN_REVIEW_TABS = ["browser", "code", "files", "documents"] as const
 export type AnReviewTab = (typeof AN_REVIEW_TABS)[number]
@@ -141,10 +154,11 @@ export const AN_REVIEW_SURFACE = {
   partAttr: 'data-an-part="review"',
   navId: "review",
   label: "Review",
-  subtitle: "Browser · code · files · documents",
+  subtitle: "Computer · code · files · documents",
   tabs: AN_REVIEW_TABS,
   tabLabel: {
-    browser: "Browser",
+    /** Tab id stays `browser` for path bind; user-facing label is Computer (Computer View host). */
+    browser: "Computer",
     code: "Code",
     files: "Files",
     documents: "Documents",
@@ -152,6 +166,25 @@ export const AN_REVIEW_SURFACE = {
   /** Prefer this panel for in-app browse/review over spawning OS windows. */
   preferInAppOverOsWindow: true,
   collapsible: true,
+  /** AP-STAGE5-08: Computer View + Takeover affordance live here (not mode pills). */
+  hostsComputerView: true,
+  takeoverInViewNotPeerTab: true,
+  slice: "AP-STAGE5-08",
+} as const
+
+/**
+ * AP-STAGE5-08: Ali UX — Conversation primary + Review sidebar (revises Option C mode pills).
+ * Internal control modes stay conversation|view|takeover for BF-03 lock sync.
+ */
+export const AN_SHELL_UX = {
+  slice: "AP-STAGE5-08",
+  conversationPrimary: true,
+  reviewSidebarHostsComputerView: true,
+  takeoverInReviewNotPeerMode: true,
+  /** No Conversation / Computer View / Takeover peer mode pills in mission chrome. */
+  noPeerModePills: true,
+  /** Status / Inline remain event densities (STAGE5-02/03). */
+  statusInlineAreDensities: true,
 } as const
 
 /**
@@ -260,9 +293,9 @@ export { AN_PODMAN_SURFACE } from "./podman-chrome"
 export { AN_NAV_ILLUSTRATED } from "./nav-illustrated"
 
 /**
- * Three-state shell modes only (AP-STAGE5-MODES decision C).
+ * Control-lock modes (AP-STAGE5-MODES C + AP-STAGE5-08 UX correction).
  * Status / Inline = event card densities (AP-STAGE5-02/03), not modes.
- * Side Panel = Computer View synonym in docs.
+ * UI: Conversation primary; Computer View + Takeover live in Review sidebar (not peer pills).
  * Scope (tab group | window | local workspace) = separate axis (AP-STAGE5-04).
  */
 export const AN_SHELL_MODES = ["conversation", "view", "takeover"] as const
@@ -270,8 +303,9 @@ export type AnShellMode = (typeof AN_SHELL_MODES)[number]
 
 export const AN_SHELL_MODE_LABEL: Record<AnShellMode, string> = {
   conversation: "Conversation",
-  /** Mode pill + live panel title; stream Computer card never uses this label. */
+  /** Live panel / Review Computer title; stream Computer card never uses this label. */
   view: "Computer View",
+  /** In-Review control option — not a peer shell tab after STAGE5-08. */
   takeover: "Takeover",
 }
 
