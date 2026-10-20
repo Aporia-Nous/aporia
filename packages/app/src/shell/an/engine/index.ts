@@ -9,5 +9,10 @@ export type {
   EngineSessionCreateResult,
   PromptAdmission,
 } from "./types"
-export { createOcServerEnginePort, type OcServerData, type OcServerEnginePortOptions } from "./oc-server-port"
+export {
+  createOcServerEnginePort,
+  type EngineContraptionsGate,
+  type OcServerData,
+  type OcServerEnginePortOptions,
+} from "./oc-server-port"
 export { EnginePortProvider, tryUseEnginePort, useEnginePort } from "./context"

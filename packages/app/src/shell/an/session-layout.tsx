@@ -3,8 +3,10 @@ import { aporiaAlerts, AlertToasts } from "@/aporia/alerts"
 import { agentFor, bots, refreshBots, type Bot } from "@/aporia/bots"
 import { call } from "@/aporia/call"
 import { BotDispatcher } from "@/aporia/dispatch"
+import { listRegisteredContraptionIds } from "@/aporia/contraption-registry"
 import { FlowCommands } from "@/aporia/flows"
 import { ReactionsLayer } from "@/aporia/reactions"
+import { showToast } from "@/shell/notifications/toast"
 import { prettyTitle, projectName } from "@/aporia/session-list"
 import { touchedFiles } from "@/aporia/session-stats"
 import { UpdateWatcher } from "@/aporia/update"
@@ -405,6 +407,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     reviewSdk = undefined
   }
   // AP-ENGINE-PORT-01/02/03: single AnShell ingress for prompt/stream/Settings + session-event subscribe.
+  // AP-CE-02: contraptions gate — registered `/flow-id` → FlowRunner (0 model tokens), skips SessionRunner.
   const engine = createOcServerEnginePort(data, {
     connectKey: reviewSdk
       ? async (input) => {
@@ -419,6 +422,26 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
           await Promise.all([data.location.provider.sync(location), data.location.model.sync(location)]).catch(
             () => undefined,
           )
+        }
+      : undefined,
+    contraptions: reviewSdk?.api?.flow
+      ? {
+          registeredIds: () => listRegisteredContraptionIds(),
+          start: async (start) => {
+            const started = (await reviewSdk!.api.flow.start({
+              flowID: start.flowId,
+              requestId: start.requestId,
+              input: start.input,
+              trigger: start.trigger,
+            })) as { runId: string; created: boolean }
+            showToast({
+              title: started.created
+                ? `Started Contraption "${start.flowId}"`
+                : `Contraption "${start.flowId}" was already started for this request`,
+              variant: "success",
+            } as never)
+            return started
+          },
         }
       : undefined,
   })

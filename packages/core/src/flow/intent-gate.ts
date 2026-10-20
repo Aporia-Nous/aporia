@@ -1,8 +1,9 @@
-// AP-CE-01 — Contraptions efficiency intent gate (pure).
+// AP-CE-01/02 — Contraptions efficiency intent gate (pure) + mechanical route helper.
 // Mechanical-first: registered slash / explicit flow triggers prefer FlowRunner (0 model tokens).
-// Chat / unregistered slash stay SessionRunner. No SessionRunner wiring in this slice.
+// Chat / unregistered slash stay SessionRunner. CE-02 wires this into composer/EnginePort + flow.start.
 
-import { ID as FLOW_ID } from "./definition.js"
+/** Same contract as FlowDefinition.ID — kept local so this module stays dependency-free. */
+const FLOW_ID = /^[a-z][a-z0-9-]{0,39}$/
 
 export type IntentKind = "mechanical" | "session" | "coordination"
 
@@ -27,6 +28,14 @@ export type IntentDecision =
     }
 
 export type RegisteredFlows = ReadonlySet<string> | ReadonlyArray<string>
+
+/** Start params when the gate selects FlowRunner (never SessionRunner). */
+export type MechanicalStart = {
+  readonly flowId: string
+  readonly trigger: MechanicalTrigger
+  readonly input: Readonly<Record<string, unknown>>
+  readonly expectedModelTokens: 0
+}
 
 const asSet = (registered: RegisteredFlows): ReadonlySet<string> =>
   registered instanceof Set ? registered : new Set(registered)
@@ -103,3 +112,44 @@ export function classifyFlowTrigger(
 /** True when the decision must not invoke a model for F1 steps. */
 export const isZeroTokenPath = (decision: IntentDecision): boolean =>
   decision.kind === "mechanical" && decision.expectedModelTokens === 0
+
+/** Extract FlowRunner start params when gated mechanical; otherwise undefined (caller keeps SessionRunner). */
+export function mechanicalStartFromDecision(decision: IntentDecision): MechanicalStart | undefined {
+  if (decision.kind !== "mechanical" || !isZeroTokenPath(decision)) return undefined
+  return {
+    flowId: decision.flowId,
+    trigger: decision.trigger,
+    input: decision.input,
+    expectedModelTokens: 0,
+  }
+}
+
+/**
+ * AP-CE-02 — Composer/SessionRunner wire helper.
+ * Mechanical slash → startFlow (0 model tokens). Everything else → sessionPrompt.
+ * Attachments force the session path (Contraption slash is text-only).
+ */
+export async function routeComposerAdmission<TSession, TFlow>(input: {
+  readonly text: string
+  readonly registered: RegisteredFlows
+  readonly sessionPrompt: () => Promise<TSession>
+  readonly startFlow: (start: MechanicalStart) => Promise<TFlow>
+  readonly hasAttachments?: boolean
+}): Promise<
+  | { readonly path: "mechanical"; readonly result: TFlow; readonly modelTokens: 0; readonly start: MechanicalStart }
+  | { readonly path: "session"; readonly result: TSession }
+> {
+  if (input.hasAttachments) {
+    return { path: "session", result: await input.sessionPrompt() }
+  }
+  const start = mechanicalStartFromDecision(classifyComposerText(input.text, input.registered))
+  if (start) {
+    return {
+      path: "mechanical",
+      result: await input.startFlow(start),
+      modelTokens: 0,
+      start,
+    }
+  }
+  return { path: "session", result: await input.sessionPrompt() }
+}

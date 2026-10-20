@@ -8,6 +8,10 @@
 
 import type { Data } from "@opencode/client/solid"
 import type { SessionInfo } from "@opencode/client/promise"
+import {
+  routeComposerAdmission,
+  type MechanicalStart,
+} from "@/aporia/intent-gate"
 import type {
   EngineConnectByokInput,
   EngineEvent,
@@ -22,9 +26,19 @@ import type {
 
 export type OcServerData = Pick<Data, "session" | "location">
 
+/** AP-CE-02: mechanical Contraption slash → FlowRunner (0 model tokens); skips SessionRunner. */
+export type EngineContraptionsGate = {
+  registeredIds: () => ReadonlyArray<string> | ReadonlySet<string>
+  start: (start: MechanicalStart & { requestId: string }) => Promise<{ runId: string; created: boolean }>
+  /** Optional request id factory; defaults to admission id / timestamp. */
+  requestId?: (admission: PromptAdmission, start: MechanicalStart) => string
+}
+
 export type OcServerEnginePortOptions = {
   /** Wire OC integration.connect.key (and post-connect invalidate/sync) for BYOK. */
   connectKey?: (input: EngineConnectByokInput) => Promise<void>
+  /** AP-CE-02 intent gate — when set, registered `/flow-id` never calls data.session.prompt. */
+  contraptions?: EngineContraptionsGate
 }
 
 const FREE_PROVIDER_IDS = new Set(["opencode", "opencode-go"])
@@ -121,6 +135,37 @@ export function createOcServerEnginePort(data: OcServerData, options?: OcServerE
     },
 
     async prompt(admission: PromptAdmission): Promise<unknown> {
+      const gate = options?.contraptions
+      if (gate && typeof admission.text === "string") {
+        const hasAttachments = Array.isArray(admission.files) && admission.files.length > 0
+        const routed = await routeComposerAdmission({
+          text: admission.text,
+          registered: gate.registeredIds(),
+          hasAttachments,
+          sessionPrompt: () => data.session.prompt(admission),
+          startFlow: async (start) => {
+            const requestId =
+              gate.requestId?.(admission, start) ??
+              String(admission.id ?? `flow-${Date.now()}`).replace(/[^A-Za-z0-9_-]/g, "").slice(0, 64)
+            return gate.start({ ...start, requestId: requestId.length >= 8 ? requestId : `flow-${Date.now()}` })
+          },
+        })
+        if (routed.path === "mechanical") {
+          // Mechanical path: no SessionRunner / no model tokens. Status tick only (no fake message).
+          emit({ type: "status.changed", sessionID: admission.sessionID })
+          return {
+            mechanical: true,
+            modelTokens: 0 as const,
+            runId: routed.result.runId,
+            created: routed.result.created,
+            flowId: routed.start.flowId,
+          }
+        }
+        emit({ type: "messages.changed", sessionID: admission.sessionID })
+        emit({ type: "status.changed", sessionID: admission.sessionID })
+        return routed.result
+      }
+
       const result = await data.session.prompt(admission)
       emit({ type: "messages.changed", sessionID: admission.sessionID })
       emit({ type: "status.changed", sessionID: admission.sessionID })

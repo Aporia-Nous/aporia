@@ -103,6 +103,48 @@ describe("AP-ENGINE-PORT-01 OcServerEnginePort", () => {
     expect(promptCalls[0]).toMatchObject({ sessionID: "ses_1", text: "hello from AnShell", id: "msg_a" })
   })
 
+  test("AP-CE-02 gated slash skips session.prompt (modelTokens 0)", async () => {
+    const { data, promptCalls } = mockData()
+    const starts: Array<{ flowId: string; trigger: string }> = []
+    const engine = createOcServerEnginePort(data, {
+      contraptions: {
+        registeredIds: () => ["greet", "fetch-shape"],
+        start: async (start) => {
+          starts.push({ flowId: start.flowId, trigger: start.trigger })
+          expect(start.expectedModelTokens).toBe(0)
+          return { runId: "cor_test_1", created: true }
+        },
+      },
+    })
+
+    const result = (await engine.prompt({
+      sessionID: "ses_1",
+      id: "msg_gate",
+      text: '/greet {"who":"ali"}',
+    })) as { mechanical?: boolean; modelTokens?: number; flowId?: string }
+
+    expect(promptCalls).toHaveLength(0)
+    expect(starts).toEqual([{ flowId: "greet", trigger: "slash" }])
+    expect(result).toMatchObject({ mechanical: true, modelTokens: 0, flowId: "greet", runId: "cor_test_1" })
+  })
+
+  test("AP-CE-02 chat still hits session.prompt when gate present", async () => {
+    const { data, promptCalls } = mockData()
+    let flowCalls = 0
+    const engine = createOcServerEnginePort(data, {
+      contraptions: {
+        registeredIds: () => ["greet"],
+        start: async () => {
+          flowCalls += 1
+          return { runId: "x", created: true }
+        },
+      },
+    })
+    await engine.prompt({ sessionID: "ses_1", id: "msg_chat", text: "refactor the auth module" })
+    expect(promptCalls).toHaveLength(1)
+    expect(flowCalls).toBe(0)
+  })
+
   test("listMessages + stream items build from port messages (YOU turn)", () => {
     const { data } = mockData({
       messages: {

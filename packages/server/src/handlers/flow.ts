@@ -45,12 +45,24 @@ export const FlowHandler = HttpApiBuilder.group(Api, "server.flow", (handlers) =
       "flow.start",
       Effect.fn(function* (ctx) {
         const flows = yield* Flow.Flows.Service
+        const trigger = ctx.payload.trigger ?? "manual"
+        // AP-CE-02: classifyFlowTrigger — only registered Contraptions enter FlowRunner (0 model tokens).
+        const listed = yield* flows.list
+        const decision = Flow.FlowIntentGate.classifyFlowTrigger(
+          ctx.params.flowID,
+          trigger,
+          (ctx.payload.input ?? {}) as Readonly<Record<string, unknown>>,
+          listed.map((row) => row.id),
+        )
+        if (decision.kind !== "mechanical" || !Flow.FlowIntentGate.isZeroTokenPath(decision)) {
+          return yield* notFound(new Flow.FlowNotFoundError({ flowId: ctx.params.flowID }))
+        }
         const data = yield* flows
           .requestRun({
-            flowId: ctx.params.flowID,
+            flowId: decision.flowId,
             requestId: ctx.payload.requestId,
-            input: ctx.payload.input as Flow.FlowExpr.Item | undefined,
-            trigger: ctx.payload.trigger ?? "manual",
+            input: decision.input as Flow.FlowExpr.Item | undefined,
+            trigger: decision.trigger,
           })
           .pipe(Effect.catchTag("Flow.NotFound", notFound), Effect.catchTag("Flow.Invalid", invalid))
         return { data }

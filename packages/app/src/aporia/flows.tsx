@@ -7,6 +7,8 @@ import { useServerSDK } from "@/runtime/server/client"
 import { useCommand } from "@/shell/commands/command"
 import { showToast } from "@/shell/notifications/toast"
 import { EmptyState, Icon } from "./icons"
+import { setRegisteredContraptionIds } from "./contraption-registry"
+import { classifyFlowTrigger, isZeroTokenPath } from "./intent-gate"
 import {
   errorText,
   isOpen,
@@ -51,7 +53,9 @@ export function FlowsSection() {
     if (!api()) return
     try {
       const listed = await api().list()
-      setFlows([...(listed?.data ?? [])])
+      const next = [...(listed?.data ?? [])] as FlowSummary[]
+      setFlows(next)
+      setRegisteredContraptionIds(next.map((f) => f.id))
       setError("")
       const id = selected()
       if (id) {
@@ -94,11 +98,22 @@ export function FlowsSection() {
     setBusy(flow.id)
     setError("")
     try {
+      // AP-CE-02: classifyFlowTrigger before start — mechanical path only (0 model tokens).
+      const gate = classifyFlowTrigger(
+        flow.id,
+        "manual",
+        {},
+        flows().map((f) => f.id),
+      )
+      if (!isZeroTokenPath(gate) || gate.kind !== "mechanical") {
+        setError(`Contraption ${flow.id} is not registered for a mechanical run.`)
+        return
+      }
       const started = (await api().start({
-        flowID: flow.id,
+        flowID: gate.flowId,
         requestId: requestId("panel"),
-        input: {},
-        trigger: "manual",
+        input: gate.input,
+        trigger: gate.trigger,
       })) as { runId: string; created: boolean }
       setSelected(flow.id)
       await showRun(started.runId)
@@ -274,7 +289,10 @@ export function FlowCommands() {
       const next = [...(listed?.data ?? [])] as FlowSummary[]
       // Only replace the list when the set changed, so the command registry is not churned every poll.
       const key = (list: FlowSummary[]) => list.map((f) => `${f.id}:${f.name}`).join("|")
-      if (key(next) !== key(flows())) setFlows(next)
+      if (key(next) !== key(flows())) {
+        setFlows(next)
+        setRegisteredContraptionIds(next.map((f) => f.id))
+      }
     } catch {
       // The Contraptions tab shows errors; the slash list just keeps what it had.
     }
@@ -293,11 +311,22 @@ export function FlowCommands() {
       slashArguments: true,
       onSelect: async (_source?: unknown, input?: string) => {
         try {
+          // AP-CE-02: classifyFlowTrigger — mechanical slash never hits SessionRunner.
+          const registered = flows().map((f) => f.id)
+          const gate = classifyFlowTrigger(flow.id, "slash", slashInput(input), registered)
+          if (!isZeroTokenPath(gate) || gate.kind !== "mechanical") {
+            showToast({
+              title: `Contraption ${flow.name} did not start`,
+              description: "Not a registered mechanical Contraption.",
+              variant: "error",
+            } as never)
+            return
+          }
           const started = (await sdk.api.flow.start({
-            flowID: flow.id,
+            flowID: gate.flowId,
             requestId: requestId("slash"),
-            input: slashInput(input),
-            trigger: "slash",
+            input: gate.input,
+            trigger: gate.trigger,
           })) as { runId: string; created: boolean }
           showToast({ title: startedToast(flow.name, started.created), variant: "success" } as never)
         } catch (e) {
