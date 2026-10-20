@@ -315,8 +315,12 @@ export function rosterToTeamCard(members: readonly AnRosterMember[]): AnCardMode
         id: "configure",
         label: "Configure",
         variant: "primary",
-        stub: true,
-        stubReason: "Team configure sheet not wired — use roster to open a teammate.",
+        // AP-STAGE4-NEW-TEAMMATE: session-layout opens New teammate / edit sheet.
+      },
+      {
+        id: "new-teammate",
+        label: "New teammate",
+        variant: "ghost",
       },
     ],
   }

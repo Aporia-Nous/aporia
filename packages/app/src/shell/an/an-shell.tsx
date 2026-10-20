@@ -592,6 +592,11 @@ export function AnShell(props: AnShellProps): JSX.Element {
                 title={`${member.name} · ${anPresenceLabel(member.presence)}`}
                 aria-label={`${member.name}, ${member.role}, ${anPresenceLabel(member.presence)}`}
                 onClick={() => props.onSelectMember?.(member.id)}
+                onContextMenu={(event) => {
+                  if (!props.onMemberContextMenu) return
+                  event.preventDefault()
+                  props.onMemberContextMenu(member.id, event)
+                }}
               >
                 <span
                   class="an-roster-avatar"

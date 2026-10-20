@@ -150,6 +150,18 @@ export {
 } from "./settings-chrome"
 export { AnSettingsPanel, type AnSettingsPanelProps, type AnSettingsTab } from "./settings-panel"
 export {
+  AnTeammateSheet,
+  AnTeammateFooterActions,
+  anTeammateSlugify,
+  archiveTeammateCopy,
+  cancelCreateLeavesNoHalfBot,
+  parseTeammateTemplate,
+  resolveImportIdentity,
+  validateTeammateDraft,
+  type AnTeammateDraft,
+  type AnTeammateSheetMode,
+} from "./teammate"
+export {
   createOcServerEnginePort,
   EnginePortProvider,
   tryUseEnginePort,

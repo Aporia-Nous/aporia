@@ -76,6 +76,8 @@ export type AnShellProps = ParentProps<{
   onModeChange?: (mode: AnShellMode) => void
   onSelectNav?: (id: string) => void
   onSelectMember?: (id: string) => void
+  /** AP-STAGE4-NEW-TEAMMATE — roster context menu (edit/archive). */
+  onMemberContextMenu?: (id: string, event: MouseEvent) => void
   onSelectAttention?: (id: string) => void
   onStreamCardAction?: (actionId: string, card: AnCardModel) => void
   /** AP-BF-03: Hand back / Stop — release user lock to bot (when Live). */

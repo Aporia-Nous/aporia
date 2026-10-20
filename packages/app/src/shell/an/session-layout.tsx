@@ -38,6 +38,16 @@ import { Portal } from "solid-js/web"
 import { AnShell } from "./an-shell"
 import { buildStreamCards } from "./cards"
 import {
+  AnTeammateFooterActions,
+  AnTeammateRosterMenu,
+  AnTeammateSheet,
+  archiveTeammateCopy,
+  installAnTeammateWindowProbe,
+  parseTeammateTemplate,
+  resolveImportIdentity,
+  type AnTeammateSheetMode,
+} from "./teammate"
+import {
   buildContextCards,
   buildConversationStreamItems,
   buildMissionStackCards,
@@ -339,6 +349,13 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   const [reviewInitialTab, setReviewInitialTab] = createSignal<"browser" | "code" | "files" | "documents">("browser")
   const [reviewCodeContent, setReviewCodeContent] = createSignal<AnReviewLoadedContent | undefined>()
   const [reviewDocumentContent, setReviewDocumentContent] = createSignal<AnReviewLoadedContent | undefined>()
+  /** AP-STAGE4-NEW-TEAMMATE — create/import/edit sheet state. */
+  const [teammateSheet, setTeammateSheet] = createSignal<
+    { mode: AnTeammateSheetMode; bot?: Bot; importSeed?: unknown } | undefined
+  >()
+  const [teammateMenu, setTeammateMenu] = createSignal<
+    { x: number; y: number; slug: string; name: string } | undefined
+  >()
   let reviewSdk: ReturnType<typeof useServerSDK> | undefined
   try {
     reviewSdk = useServerSDK()
@@ -978,13 +995,71 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     })
   })
 
-  const onNewTeammate = () => {
-    aporiaAlerts.push({
-      title: "New teammate",
-      detail: "Teammate creation sheet not wired yet — stub only (AP-STAGE4-06).",
-      level: "info",
-    })
+  const existingSlugs = createMemo(() => roster.bound().roster.map((m) => m.id))
+
+  const openTeammateCreate = () => setTeammateSheet({ mode: "create" })
+  const openTeammateImport = (seed?: unknown) => setTeammateSheet({ mode: "import", importSeed: seed })
+  const openTeammateEdit = async (slug: string) => {
+    try {
+      const bot = (await bots({ op: "get", slug })) as Bot | undefined
+      if (!bot) {
+        aporiaAlerts.push({ title: "Teammate missing", detail: slug, level: "error" })
+        return
+      }
+      setTeammateSheet({ mode: "edit", bot })
+    } catch (err) {
+      aporiaAlerts.push({
+        title: "Could not load teammate",
+        detail: err instanceof Error ? err.message : String(err),
+        level: "error",
+      })
+    }
   }
+
+  const archiveTeammateQuick = async (slug: string, name: string) => {
+    try {
+      const bot = (await bots({ op: "get", slug })) as Bot | undefined
+      const copy = archiveTeammateCopy({ name, sessions: bot?.sessions })
+      if (!globalThis.confirm(`${copy.title}\n\n${copy.detail}`)) return
+      await bots({ op: "delete", slug })
+      refreshBots()
+      roster.refresh()
+      aporiaAlerts.push({
+        title: `Archived ${name}`,
+        detail: "Memory folder + bot.json backup kept.",
+        level: "success",
+      })
+    } catch (err) {
+      aporiaAlerts.push({
+        title: "Archive failed",
+        detail: err instanceof Error ? err.message : String(err),
+        level: "error",
+      })
+    }
+  }
+
+  installAnTeammateWindowProbe({
+    openCreate: openTeammateCreate,
+    openEdit: (slug) => void openTeammateEdit(slug),
+    openImport: () => openTeammateImport(),
+    applyImportJson: (raw) => {
+      const parsed = parseTeammateTemplate(raw)
+      if (!parsed.ok) {
+        aporiaAlerts.push({ title: "Import invalid", detail: parsed.error, level: "error" })
+        return
+      }
+      const identity = resolveImportIdentity(existingSlugs(), parsed.desiredName)
+      if (identity.duplicate) {
+        aporiaAlerts.push({
+          title: "Duplicate identity detected",
+          detail: `Slug "${identity.conflictSlug}" exists — sheet will use "${identity.suggestedName}".`,
+          level: "warn",
+        })
+      }
+      openTeammateImport(raw)
+    },
+    cancel: () => setTeammateSheet(undefined),
+  })
 
   const rosterFooter = () => {
     const reason = roster.bound().emptyReason
@@ -993,9 +1068,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         <Show when={reason}>
           <span class="an-roster-empty">{reason}</span>
         </Show>
-        <button type="button" class="an-new-teammate" onClick={onNewTeammate} title="New teammate (stub)">
-          + New teammate
-        </button>
+        <AnTeammateFooterActions onNew={openTeammateCreate} onImport={() => openTeammateImport()} />
       </div>
     )
   }
@@ -1066,7 +1139,20 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
           onComputerExternalOpenTab={() => void onComputerExternalOpenTab()}
           onSelectNav={onSelectNav}
           onSelectMember={(id) => void openMember(id)}
+          onMemberContextMenu={(id, event) => {
+            const member = roster.bound().roster.find((m) => m.id === id)
+            setTeammateMenu({
+              x: event.clientX,
+              y: event.clientY,
+              slug: id,
+              name: member?.name ?? id,
+            })
+          }}
           onStreamCardAction={(actionId, card) => {
+            if (card.type === "team" && (actionId === "configure" || actionId === "new-teammate")) {
+              openTeammateCreate()
+              return
+            }
             aporiaAlerts.push({
               title: `${card.type} · ${actionId}`,
               detail: "Card action stub — backend not bound for this control yet.",
@@ -1076,6 +1162,44 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         >
           <div class="an-stream-slot">{props.children}</div>
         </AnShell>
+        <Show when={teammateSheet()}>
+          {(sheet) => (
+            <AnTeammateSheet
+              mode={sheet().mode}
+              bot={sheet().bot}
+              importSeed={sheet().importSeed}
+              existingSlugs={existingSlugs()}
+              onClose={() => setTeammateSheet(undefined)}
+              onCommitted={(result) => {
+                roster.refresh()
+                if (result.op === "save" || result.op === "import") {
+                  void openMember(result.bot.slug)
+                }
+              }}
+            />
+          )}
+        </Show>
+        <Show when={teammateMenu()}>
+          {(menu) => (
+            <AnTeammateRosterMenu
+              x={menu().x}
+              y={menu().y}
+              slug={menu().slug}
+              name={menu().name}
+              onClose={() => setTeammateMenu(undefined)}
+              onEdit={() => {
+                const slug = menu().slug
+                setTeammateMenu(undefined)
+                void openTeammateEdit(slug)
+              }}
+              onArchive={() => {
+                const { slug, name } = menu()
+                setTeammateMenu(undefined)
+                void archiveTeammateQuick(slug, name)
+              }}
+            />
+          )}
+        </Show>
         <Show when={contraptionsOpen()}>
           <AnContraptionsPanel onClose={() => setContraptionsOpen(false)} />
         </Show>
