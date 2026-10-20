@@ -37,16 +37,25 @@ export const prepare = Effect.fn("SessionPrompt.prepare")(function* (request: {
   return yield* Effect.gen(function* () {
     yield* Plugin.awaitActivation
     const hooks = yield* PluginHooks.Service
+    // E12: clone prompt/metadata only when session.prompt hooks can mutate them.
+    const hasPromptHooks = yield* hooks.has("session", "prompt")
     const event = yield* hooks.trigger("session", "prompt", {
       sessionID: request.session.id,
       messageID: request.messageID,
-      prompt: structuredClone({
-        text: request.input.text,
-        files: request.input.files?.slice(),
-        agents: request.input.agents?.slice(),
-        skills: request.input.skills?.slice(),
-      }),
-      metadata: structuredClone(request.input.metadata),
+      prompt: hasPromptHooks
+        ? structuredClone({
+            text: request.input.text,
+            files: request.input.files?.slice(),
+            agents: request.input.agents?.slice(),
+            skills: request.input.skills?.slice(),
+          })
+        : {
+            text: request.input.text,
+            files: request.input.files,
+            agents: request.input.agents,
+            skills: request.input.skills,
+          },
+      metadata: hasPromptHooks ? structuredClone(request.input.metadata) : request.input.metadata,
       delivery: request.input.delivery ?? "steer",
     })
     const input = event.prompt
@@ -111,15 +120,10 @@ const materializeAttachment = Effect.fn("SessionPrompt.materializeAttachment")(f
     })
 
   const mime = resolved.mime ?? Mime.detect(resolved.bytes)
+  // E12: line-range text — single-pass byte walk (no full split/join allocate).
   const content =
     mime === "text/plain" && resolved.start !== undefined
-      ? Buffer.from(
-          Buffer.from(resolved.bytes)
-            .toString("utf8")
-            .split("\n")
-            .slice(resolved.start - 1, resolved.end)
-            .join("\n"),
-        )
+      ? sliceUtf8Lines(resolved.bytes, resolved.start, resolved.end)
       : resolved.bytes
   const normalized = yield* normalizeImageAttachment(input, Buffer.from(content).toString("base64"), mime)
   return FileAttachment.create({
@@ -228,4 +232,24 @@ function positiveInt(value: string | null) {
   if (value === null) return
   const parsed = Number(value)
   return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined
+}
+
+/** 1-based inclusive line slice matching `split("\\n").slice(start-1, end).join("\\n")`. */
+function sliceUtf8Lines(bytes: Uint8Array, start: number, end?: number): Buffer {
+  const text = Buffer.from(bytes).toString("utf8")
+  let line = 1
+  let i = 0
+  const len = text.length
+  while (i < len && line < start) {
+    if (text.charCodeAt(i) === 10) line++
+    i++
+  }
+  const from = i
+  if (end === undefined) return Buffer.from(text.slice(from))
+  while (i < len && line < end) {
+    if (text.charCodeAt(i) === 10) line++
+    i++
+  }
+  while (i < len && text.charCodeAt(i) !== 10) i++
+  return Buffer.from(text.slice(from, i))
 }

@@ -15,6 +15,36 @@ export const MAX_BYTES = 50 * 1024 // 50 KiB
 export const RETENTION = Duration.days(7)
 export const DIRECTORY = "tool-output"
 
+/** Logical lines as `split("\\n")` then drop trailing empty from a final newline. */
+function countLogicalLines(text: string) {
+  if (text.length === 0) return 0
+  let lines = 1
+  for (let i = 0; i < text.length; i++) {
+    if (text.charCodeAt(i) === 10) lines++
+  }
+  if (text.endsWith("\n")) lines--
+  return lines
+}
+
+/** Keep prefix lines under maxLines/maxBytes without a full `text.split` up front. */
+function keepPreviewLines(text: string, maxLines: number, maxBytes: number) {
+  const kept: string[] = []
+  let bytes = 0
+  let start = 0
+  for (let i = 0; i <= text.length && kept.length < maxLines; i++) {
+    if (i < text.length && text.charCodeAt(i) !== 10) continue
+    if (i === text.length && text.endsWith("\n") && start === i) break
+    const line = text.slice(start, i)
+    const size = Buffer.byteLength(line, "utf-8") + (kept.length > 0 ? 1 : 0)
+    if (bytes + size > maxBytes) break
+    kept.push(line)
+    bytes += size
+    start = i + 1
+    if (i === text.length) break
+  }
+  return kept
+}
+
 export const fileName = (timestamp?: number) => "tool_" + Identifier.create(false, timestamp)
 
 type Result = Tool.NormalizedResult
@@ -69,25 +99,18 @@ const layer = Layer.effect(
       const content = result.content
       const text = content.flatMap((item) => (item.type === "text" ? [item.text] : [])).join("\n")
       const limits = state.get()
-      const lines = text.split("\n")
-      if (text.endsWith("\n")) lines.pop()
+      // E14: byte-first + newline count before allocating a full lines[] split.
       const totalBytes = Buffer.byteLength(text, "utf-8")
-      if (lines.length <= limits.maxLines && totalBytes <= limits.maxBytes)
+      const lineCount = countLogicalLines(text)
+      if (lineCount <= limits.maxLines && totalBytes <= limits.maxBytes)
         return { ...result, metadata: { ...result.metadata, truncated: false } }
 
-      const kept: string[] = []
-      let bytes = 0
-      for (const line of lines.slice(0, limits.maxLines)) {
-        const size = Buffer.byteLength(line, "utf-8") + (kept.length > 0 ? 1 : 0)
-        if (bytes + size > limits.maxBytes) break
-        kept.push(line)
-        bytes += size
-      }
+      const kept = keepPreviewLines(text, limits.maxLines, limits.maxBytes)
       const file = path.join(directory, fileName())
       yield* fs.ensureDir(directory).pipe(Effect.orDie)
       yield* fs.writeFileString(file, text).pipe(Effect.orDie)
       const shown = kept.length > 0 ? `lines 1-${kept.length}` : "0 lines"
-      const marker = `[showing ${shown} of ${lines.length}; full output saved to ${file}]`
+      const marker = `[showing ${shown} of ${lineCount}; full output saved to ${file}]`
       const bounded: Tool.Content[] = []
       let remaining = kept.join("\n").length
       let seenText = false
