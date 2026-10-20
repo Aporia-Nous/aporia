@@ -232,6 +232,53 @@ Earlier work
     ])
   })
 
+  test("AP-ENGINE-E08: expanded structured recent omits recent-context string dump", () => {
+    const [checkpoint] = toLLMMessages(
+      [
+        SessionMessage.Compaction.make({
+          id: id("compaction"),
+          type: "compaction",
+          status: "completed",
+          reason: "auto",
+          summary: "Earlier work",
+          // History expand clears dual-written recent when IDs resolve.
+          recent: "",
+          recentMessageIDs: [id("user")],
+          time: { created },
+        }),
+      ],
+      model,
+    )
+
+    const text =
+      checkpoint?.content[0] && checkpoint.content[0].type === "text" ? checkpoint.content[0].text : ""
+    expect(text).toContain("<summary>\nEarlier work\n</summary>")
+    expect(text).toContain("Messages after this checkpoint continue the retained recent turns")
+    expect(text).not.toContain("recent-context")
+  })
+
+  test("AP-ENGINE-E08: IDs with dual-written recent keep string fallback when expand did not clear it", () => {
+    const [checkpoint] = toLLMMessages(
+      [
+        SessionMessage.Compaction.make({
+          id: id("compaction"),
+          type: "compaction",
+          status: "completed",
+          reason: "auto",
+          summary: "Earlier work",
+          recent: "Recent work",
+          recentMessageIDs: [id("user")],
+          time: { created },
+        }),
+      ],
+      model,
+    )
+
+    const text =
+      checkpoint?.content[0] && checkpoint.content[0].type === "text" ? checkpoint.content[0].text : ""
+    expect(text).toContain("<recent-context>\nRecent work\n</recent-context>")
+  })
+
   describe("model-switched", () => {
     const ref = (variant?: string) =>
       Model.Ref.make({

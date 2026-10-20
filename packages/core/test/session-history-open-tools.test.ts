@@ -86,6 +86,86 @@ const seed = Effect.fnUntraced(function* () {
   return db
 })
 
+describe("SessionHistory AP-ENGINE-E08 structured recent", () => {
+  it.effect("expands recentMessageIDs after the checkpoint and clears the string dump", () =>
+    Effect.gen(function* () {
+      const e08Session = SessionSchema.ID.make("ses_e08_structured")
+      const db = (yield* Database.Service).db
+      yield* db
+        .insert(ProjectTable)
+        .values({ id: Project.ID.global, worktree: AbsolutePath.make("/project"), sandboxes: [] })
+        .run()
+      yield* db
+        .insert(SessionTable)
+        .values({
+          id: e08Session,
+          project_id: Project.ID.global,
+          slug: "e08-structured",
+          directory: "/project",
+          version: "test",
+        })
+        .run()
+      const row = (id: SessionMessage.ID, seq: number, message: SessionMessage.Info) => {
+        const { id: _, type, ...data } = encodeMessage(message)
+        return { id, session_id: e08Session, type, seq, time_created: DateTime.toEpochMillis(created), data }
+      }
+      const userID = SessionMessage.ID.make("msg_e08_user")
+      const assistantID = SessionMessage.ID.make("msg_e08_assistant")
+      const checkpointID = SessionMessage.ID.make("msg_e08_compaction")
+      const afterID = SessionMessage.ID.make("msg_e08_after")
+      const user = SessionMessage.User.make({
+        id: userID,
+        type: "user",
+        text: "Keep me structured",
+        time: { created },
+      })
+      const assistantMsg = assistant("msg_e08_assistant", [completedTool("call_e08")])
+      yield* db
+        .insert(SessionMessageTable)
+        .values([
+          row(userID, 1, user),
+          row(assistantID, 2, assistantMsg),
+          row(
+            checkpointID,
+            3,
+            SessionMessage.CompactionCompleted.make({
+              id: checkpointID,
+              type: "compaction",
+              status: "completed",
+              reason: "auto",
+              summary: "## Objective\n- e08",
+              recent: "[User]: Keep me structured\n\n[Assistant tool call]: echo(...)",
+              recentMessageIDs: [userID, assistantID],
+              time: { created },
+            }),
+          ),
+          row(
+            afterID,
+            4,
+            SessionMessage.User.make({
+              id: afterID,
+              type: "user",
+              text: "After compact",
+              time: { created },
+            }),
+          ),
+        ])
+        .run()
+        .pipe(Effect.orDie)
+
+      const history = yield* SessionHistory.load(db, e08Session, "latest")
+      expect(history.map((message) => message.id)).toEqual([checkpointID, userID, assistantID, afterID])
+      const checkpoint = history[0]
+      expect(checkpoint?.type).toBe("compaction")
+      if (checkpoint?.type === "compaction" && checkpoint.status === "completed") {
+        expect(checkpoint.recent).toBe("")
+        expect(checkpoint.recentMessageIDs).toEqual([userID, assistantID])
+      }
+      expect(history[2]?.type).toBe("assistant")
+    }),
+  )
+})
+
 describe("SessionHistory.assistantsWithOpenTools", () => {
   it.effect("returns only assistants with streaming or running tools", () =>
     Effect.gen(function* () {

@@ -77,12 +77,47 @@ export class Service extends Context.Service<Service, Interface>()("@opencode/Se
 /** A summary fills `text` and `recent`; a native compaction fills `providerContext`. */
 type Result = {
   readonly text: string
-  // todo: this should become a msg reference, we shouldnt be stringifying the recent history (confuses some models...)
+  /**
+   * Legacy string dump of retained recent. Dual-written when `recentMessageIDs` is set so old
+   * readers/tests still see the text; LLM path prefers structured IDs (AP-ENGINE-E08).
+   */
   readonly recent: string
+  /** AP-ENGINE-E08: message IDs kept verbatim beside the summary (undefined = string-only legacy / truncate). */
+  readonly recentMessageIDs?: ReadonlyArray<SessionMessage.ID>
   // todo: consolidate these 2
   readonly providerState?: SessionMessage.ProviderState
   readonly providerContext?: SessionProviderContext.Info
   readonly metadata?: Record<string, unknown>
+}
+
+/** True when a checkpoint retains recent via structured message IDs (not string-only). */
+export const hasStructuredRecent = (
+  message: Pick<SessionMessage.CompactionCompleted, "recentMessageIDs"> | undefined,
+) => message?.recentMessageIDs !== undefined
+
+/**
+ * Whether `messages` already includes the checkpoint's structured recent turns immediately after it
+ * (history expand). When false, flatten/LLM may still need the dual-written `recent` string.
+ */
+export const structuredRecentPresent = (
+  checkpoint: Pick<SessionMessage.CompactionCompleted, "recentMessageIDs"> | undefined,
+  messages: ReadonlyArray<SessionMessage.Info>,
+) => {
+  const ids = checkpoint?.recentMessageIDs
+  if (!ids?.length) return false
+  const start = messages.findIndex((message) => message.id === (checkpoint as SessionMessage.Info).id)
+  if (start < 0) return false
+  return ids.every((id, index) => messages[start + 1 + index]?.id === id)
+}
+
+/** Legacy recent text when structured recent is not already present in the message list. */
+export const legacyRecentText = (
+  message: Pick<SessionMessage.CompactionCompleted, "id" | "recent" | "recentMessageIDs"> | undefined,
+  messages: ReadonlyArray<SessionMessage.Info> = [],
+) => {
+  if (!message?.recent) return ""
+  if (structuredRecentPresent(message, messages)) return ""
+  return message.recent
 }
 
 type Failure = {
@@ -377,11 +412,13 @@ export const layer = Layer.effect(
         Effect.gen(function* () {
           const prompted = LLMRequest.update(request, { messages: [...request.messages, Message.user(prompt)] })
           const reply = yield* stream(context, prompted, prepared.options)
-          if (filled(reply.text)) return { ...reply, recent: split.recent }
+          if (filled(reply.text))
+            return { ...reply, recent: split.recent, recentMessageIDs: split.recentMessageIDs }
 
           const nudged = LLMRequest.update(prompted, { messages: [...prompted.messages, Message.user(NUDGE)] })
           const retry = yield* stream(context, nudged, prepared.options)
-          if (filled(retry.text)) return { ...retry, recent: split.recent }
+          if (filled(retry.text))
+            return { ...retry, recent: split.recent, recentMessageIDs: split.recentMessageIDs }
           return yield* Effect.fail<Failure>({
             error: {
               type: "compaction.failed",
@@ -393,7 +430,7 @@ export const layer = Layer.effect(
         })
 
       const overhead = Token.estimate(prompt) + Token.estimate(NUDGE)
-      return yield* deliver(trigger, prepared, split.recent, budget - overhead, send)
+      return yield* deliver(trigger, prepared, split.recent, budget - overhead, send, split.recentMessageIDs)
     })
 
     /**
@@ -478,13 +515,20 @@ export const layer = Layer.effect(
       recent: string,
       target: number,
       send: (request: LLMRequest) => Effect.Effect<Result, AIError | Failure>,
+      recentMessageIDs?: ReadonlyArray<SessionMessage.ID>,
     ): Effect.fn.Return<Result, Failure> {
       const context = trigger.context
       // The runner opened the manual compaction's message when it delivered the `/compact` item.
       if (trigger.reason !== "manual") {
-        yield* bus.publish(SessionEvent.Compaction.Started, { sessionID: context.session.id, reason: "auto", recent })
+        yield* bus.publish(SessionEvent.Compaction.Started, {
+          sessionID: context.session.id,
+          reason: "auto",
+          recent,
+          recentMessageIDs: recentMessageIDs ? [...recentMessageIDs] : undefined,
+        })
       }
-      if (prepared.event.result) return yield* fromHook(context, prepared.event.result, recent)
+      if (prepared.event.result)
+        return yield* fromHook(context, prepared.event.result, recent, recentMessageIDs)
 
       const policy = yield* SessionRunnerRetry.policy(context.session.id)
       let rejections = 0
@@ -565,8 +609,11 @@ export const layer = Layer.effect(
       // TODO: Read the previous summary from the hooked request once it no longer merges summary and recent into one
       // message. Until then it is rebuilt from storage, which drops a compaction hook's edits to that message.
       const lead = summary
-        ? toLLMMessages([{ ...summary, recent: "" }], context.model.ref)
+        ? toLLMMessages([{ ...summary, recent: "", recentMessageIDs: undefined }], context.model.ref)
         : request.messages.slice(0, end)
+
+      // Prefer structured recent already in context after history expand; else dual-written string.
+      const legacyRecent = legacyRecentText(summary, context.messages)
 
       // A user message and everything after it, up to the next one, is one exchange: kept or dropped whole.
       const exchanges = request.messages.slice(end).reduce<string[]>(
@@ -577,7 +624,7 @@ export const layer = Layer.effect(
           else groups[groups.length - 1] += `\n${text}`
           return groups
         },
-        summary?.recent ? [summary.recent] : [],
+        legacyRecent ? [legacyRecent] : [],
       )
 
       const note = (omitted: number) =>
@@ -735,7 +782,12 @@ export const layer = Layer.effect(
     }
 
     /** A request hook supplied the summary itself, so no model call happens. */
-    const fromHook = (context: SessionContext.Loaded, supplied: SessionCompactionResult, recent: string) => {
+    const fromHook = (
+      context: SessionContext.Loaded,
+      supplied: SessionCompactionResult,
+      recent: string,
+      recentMessageIDs?: ReadonlyArray<SessionMessage.ID>,
+    ) => {
       const usage = supplied.tokens && {
         tokens: supplied.tokens,
         cost: SessionUsage.calculateCost(context.model.cost, supplied.tokens),
@@ -744,6 +796,7 @@ export const layer = Layer.effect(
         Effect.as<Result>({
           text: boundSummaryOutput(supplied.summary),
           recent,
+          recentMessageIDs,
           providerState: supplied.providerState,
           metadata: supplied.metadata,
         }),
@@ -794,6 +847,7 @@ export const layer = Layer.effect(
           // Bound again here so model-streamed text (not only hooks) cannot store more than SUMMARY_BUDGET.
           text: boundSummaryOutput(outcome.text),
           recent: outcome.recent,
+          recentMessageIDs: outcome.recentMessageIDs ? [...outcome.recentMessageIDs] : undefined,
           ...usage,
         },
         { metadata: outcome.metadata },
@@ -840,8 +894,9 @@ const transcript = (context: SessionContext.Loaded, messages: ReadonlyArray<Sess
   })
 
 /**
- * `older` gets summarized; `recent`, the newest messages within `keep` tokens, is kept verbatim as text beside
- * the summary. Undefined when there is nothing to compact.
+ * `older` gets summarized; `recent`, the newest messages within `keep` tokens, is kept verbatim beside
+ * the summary. Prefer structured `recentMessageIDs` (AP-ENGINE-E08); fall back to string-only when
+ * `boundRecentText` must truncate a single oversized message. Undefined when there is nothing to compact.
  */
 const splitConversation = (messages: ReadonlyArray<SessionMessage.Info>, keep: number) => {
   const entries = messages.flatMap((message, index) => {
@@ -857,9 +912,13 @@ const splitConversation = (messages: ReadonlyArray<SessionMessage.Info>, keep: n
   const retained =
     text && start > 0 && recent[0]?.message.type !== "user" ? `${MID_EXCHANGE}\n\n${text}` : text
   // Selection always keeps the newest message whole; if that message alone exceeds `keep`, truncate with a marker.
+  const bounded = boundRecentText(retained, keep)
+  // Truncation means we cannot round-trip whole messages by ID — keep the string path only.
+  const recentMessageIDs = bounded === retained ? recent.map((entry) => entry.message.id) : undefined
   return {
     older: messages.slice(0, recent[0]?.index ?? messages.length),
-    recent: boundRecentText(retained, keep),
+    recent: bounded,
+    recentMessageIDs,
   }
 }
 
@@ -887,8 +946,8 @@ const recentStart = (
   if (latestUser > 0) return latestUser
 
   // One exchange, nothing older. Summarize it all and keep nothing, unless a previous summary already
-  // kept recent text, in which case keep everything and summarize only the summary before it.
-  return previous?.recent ? 0 : entries.length
+  // kept recent (string or structured IDs), in which case keep everything and summarize only the summary before it.
+  return previous?.recent || hasStructuredRecent(previous) ? 0 : entries.length
 }
 
 const oldestToDrop = <T>(items: ReadonlyArray<T>, size: (item: T) => number, budget: number) => {

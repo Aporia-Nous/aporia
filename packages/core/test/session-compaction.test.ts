@@ -1045,9 +1045,11 @@ it.effect("J fixture 1: a session crossing the threshold keeps the correction, r
     const checkpoint = context[0]
     if (checkpoint?.type !== "compaction" || checkpoint.status !== "completed")
       throw new Error("expected a completed checkpoint")
+    // Dual-written string for legacy readers; structured IDs drive the LLM path (AP-ENGINE-E08).
     expect(checkpoint.recent).toContain("Restriction: do not push to the remote and do not run aporia-update.")
     expect(checkpoint.recent).toContain("Pending: add the J fixtures 1, 4 and 5.")
     expect(checkpoint.recent).not.toContain("Decision: build the shell from the recovered design mockup.")
+    expect(checkpoint.recentMessageIDs).toEqual([messages[4]!.id, messages[5]!.id])
   }),
 )
 

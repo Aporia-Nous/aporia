@@ -244,6 +244,9 @@ const CompactionUsage = {
   tokens: TokenUsage.Info.pipe(optional),
 }
 
+/** AP-ENGINE-E08: structured recent by message ID (legacy `recent` string still dual-written when present). */
+const RecentMessageIDs = Schema.Array(ID).pipe(optional)
+
 export interface CompactionRunning extends Schema.Schema.Type<typeof CompactionRunning> {}
 export const CompactionRunning = Schema.Struct({
   ...CompactionBase,
@@ -251,6 +254,7 @@ export const CompactionRunning = Schema.Struct({
   reason: Schema.Literals(["auto", "manual"]),
   summary: Schema.String,
   recent: Schema.String,
+  recentMessageIDs: RecentMessageIDs,
 }).annotate({ identifier: "Session.Message.Compaction.Running" })
 
 export interface CompactionCompleted extends Schema.Schema.Type<typeof CompactionCompleted> {}
@@ -262,6 +266,7 @@ export const CompactionCompleted = Schema.Struct({
   providerState: ProviderState.pipe(optional),
   summary: Schema.String,
   recent: Schema.String,
+  recentMessageIDs: RecentMessageIDs,
   providerContext: SessionProviderContext.Info.pipe(optional),
   ...CompactionUsage,
 }).annotate({ identifier: "Session.Message.Compaction.Completed" })
