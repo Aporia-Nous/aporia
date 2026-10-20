@@ -1,7 +1,7 @@
 # AP-STAGE4-4F — illustrated nav + honest Podman chrome
 
 **Status:** OPEN implemented+live-DEV (writer) — **not** INDEPENDENT PASS; **not** Stage 4 complete  
-**Tip (code):** fill after commit  
+**Tip (code):** `e14194835c` (`e14194835cad303bec25d050613c0696a033a2b8`)  
 **Base:** `1604bd75e1` (NEW-TEAMMATE INDEPENDENT PASS code tip; docs head was `83ee33df03`)  
 **Work date:** 2026-10-20  
 **Worktree:** `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4`  
