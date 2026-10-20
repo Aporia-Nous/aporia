@@ -1,0 +1,121 @@
+/**
+ * AP-STAGE4-19: Settings ice-glass AN ownership — same bar as STAGE4-13 composer.
+ * Targets [data-an-owned="settings"] only; does not rewrite Settings logic.
+ */
+
+.settings-screen[data-an-owned="settings"][data-an-theme="an"] {
+  --an-settings-void: #020509;
+  --an-settings-panel: rgba(6, 14, 22, 0.42);
+  --an-settings-panel-raised: rgba(8, 18, 28, 0.52);
+  --an-settings-border: rgba(240, 198, 109, 0.28);
+  --an-settings-ice: rgba(186, 220, 255, 0.14);
+  --an-settings-text: #f0e6d2;
+  --an-settings-muted: #cfac62;
+  --an-settings-gold: #f0c66d;
+  border-radius: 18px;
+  background:
+    linear-gradient(145deg, rgba(186, 220, 255, 0.1), transparent 42%),
+    linear-gradient(180deg, rgba(10, 22, 34, 0.38), var(--an-settings-panel));
+  box-shadow:
+    inset 0 1px 0 rgba(230, 242, 255, 0.28),
+    0 18px 48px rgba(0, 0, 0, 0.45),
+    0 0 0 1px var(--an-settings-border);
+  backdrop-filter: blur(40px) saturate(1.28);
+  -webkit-backdrop-filter: blur(40px) saturate(1.28);
+  color: var(--an-settings-text);
+  animation: an-settings-ice-settle 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes an-settings-ice-settle {
+  from {
+    opacity: 0.72;
+    transform: translateY(6px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.settings-screen[data-an-owned="settings"] .settings-sidebar,
+.settings-screen[data-an-owned="settings"] .settings-nav {
+  color: var(--an-settings-muted);
+}
+
+.settings-screen[data-an-owned="settings"] .settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"]:has([data-selected]) {
+  background: rgba(240, 198, 109, 0.14);
+  color: var(--an-settings-gold);
+  box-shadow: inset 0 0 0 1px rgba(240, 198, 109, 0.28);
+}
+
+.settings-screen[data-an-owned="settings"] .settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"]:not(:has([data-selected])):hover {
+  background: rgba(186, 220, 255, 0.08);
+}
+
+.settings-screen[data-an-owned="settings"] .settings-content,
+.settings-screen[data-an-owned="settings"] .settings-tab-header,
+.settings-screen[data-an-owned="settings"] .settings-panel {
+  color: var(--an-settings-text);
+}
+
+/* Kill OpenCode raised plastic cards under AN-owned Settings */
+.settings-screen[data-an-owned="settings"] [data-component="settings-project-card"],
+.settings-screen[data-an-owned="settings"] [data-component="settings-project-empty-card"],
+.settings-screen[data-an-owned="settings"] .settings-card,
+.settings-screen[data-an-owned="settings"] [class*="settings-"][class*="-card"] {
+  background: var(--an-settings-panel-raised) !important;
+  border: 1px solid rgba(240, 198, 109, 0.18) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(230, 242, 255, 0.12),
+    0 8px 24px rgba(0, 0, 0, 0.28) !important;
+  border-radius: 14px !important;
+}
+
+.settings-screen[data-an-owned="settings"] input,
+.settings-screen[data-an-owned="settings"] textarea,
+.settings-screen[data-an-owned="settings"] [data-component="text-input"],
+.settings-screen[data-an-owned="settings"] [data-component="textarea"] {
+  background: rgba(2, 5, 9, 0.72) !important;
+  border-color: rgba(240, 198, 109, 0.22) !important;
+  color: var(--an-settings-text) !important;
+}
+
+.settings-screen[data-an-owned="settings"] input:focus,
+.settings-screen[data-an-owned="settings"] textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 1px var(--an-settings-gold), 0 0 16px rgba(231, 154, 29, 0.2);
+}
+
+/* About: hide OpenCode animated wordmark; show Aporetic mark */
+.settings-screen[data-an-owned="settings"] .settings-about-wordmark {
+  display: none !important;
+}
+
+.settings-screen[data-an-owned="settings"] .settings-about-an-mark {
+  display: block;
+  margin: 18px 0 12px;
+  font-size: 28px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  color: var(--an-settings-gold);
+  text-shadow: 0 0 24px rgba(231, 154, 29, 0.28);
+}
+
+.settings-screen[data-an-owned="settings"] .settings-about-an-byline {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--an-settings-muted);
+}
+
+.settings-screen[data-an-owned="settings"] .settings-about-anomaly-brush,
+.settings-screen[data-an-owned="settings"] .settings-about-legal {
+  opacity: 0.35;
+  filter: grayscale(0.4) brightness(0.85);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-screen[data-an-owned="settings"] {
+    animation: none;
+  }
+}
