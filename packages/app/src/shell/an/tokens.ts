@@ -255,6 +255,8 @@ export { AN_COMPUTER_FEED_SURFACE } from "./computer-feed"
 export { AN_COMPUTER_CONTROL_SURFACE } from "./computer-control"
 export { AN_COMPUTER_SCREENCAST_SURFACE } from "./computer-screencast"
 export { AN_COMPUTER_EXTERNAL_SURFACE } from "./computer-external"
+export { AN_PODMAN_SURFACE } from "./podman-chrome"
+export { AN_NAV_ILLUSTRATED } from "./nav-illustrated"
 
 /** Three-state framing from approved mockups — Stage 5 four-mode work stays separate. */
 export const AN_SHELL_MODES = ["conversation", "view", "takeover"] as const

@@ -15,6 +15,8 @@ export {
   AN_MOTION_SURFACE,
   AN_PRESENCE_PERSONALITY,
   AN_SETTINGS_SURFACE,
+  AN_PODMAN_SURFACE,
+  AN_NAV_ILLUSTRATED,
   AN_SHELL_MODES,
   AN_SHELL_MODE_LABEL,
   AN_PRESENCE,
@@ -161,6 +163,19 @@ export {
   type AnTeammateDraft,
   type AnTeammateSheetMode,
 } from "./teammate"
+export {
+  initialPodmanStatus,
+  podmanDotLabel,
+  podmanMissionPill,
+  podmanStatusTitle,
+  probePodmanWhich,
+  resolvePodmanStatus,
+  type AnPodmanPhase,
+  type AnPodmanStatus,
+} from "./podman-chrome"
+export { AnPodmanChromeCard } from "./podman-card"
+export { AnNavIcon } from "./nav-icons"
+export { isAnNavIconName, type AnNavIconName } from "./nav-illustrated"
 export {
   createOcServerEnginePort,
   EnginePortProvider,

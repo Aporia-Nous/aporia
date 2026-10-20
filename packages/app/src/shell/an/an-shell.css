@@ -162,6 +162,13 @@
   display: block;
 }
 
+/* AP-STAGE4-4F — illustrated nav: soft gold wash under stroke. */
+.an-nav[data-an-nav="illustrated-line-fill"] .an-nav-icon {
+  width: 19px;
+  height: 19px;
+  filter: drop-shadow(0 0 6px rgba(240, 198, 109, 0.18));
+}
+
 .an-nav-icon-fallback {
   font-size: 12px;
   font-weight: 700;
@@ -1715,6 +1722,124 @@
   flex-direction: column;
   gap: 8px;
   width: 100%;
+}
+
+/* AP-STAGE4-4F — honest Podman chrome (understated; never fake online). */
+.an-podman-chrome {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 8px;
+  align-items: start;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--an-border-soft);
+  border-radius: var(--an-radius);
+  background:
+    linear-gradient(145deg, rgba(240, 198, 109, 0.06), transparent 55%),
+    rgba(4, 9, 13, 0.42);
+  box-shadow: var(--an-specular, inset 0 1px 0 rgba(210, 232, 255, 0.08));
+  color: var(--an-text-muted);
+}
+
+.an-podman-chrome-mark {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--an-border-soft);
+  color: var(--an-gold-soft);
+  background: rgba(240, 198, 109, 0.08);
+}
+
+.an-podman-chrome-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.an-podman-chrome-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.an-podman-chrome-copy strong {
+  color: var(--an-text, #f0e6d2);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.an-podman-chrome-sub {
+  font-size: 11px;
+  color: var(--an-text-muted);
+}
+
+.an-podman-chrome-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--an-gold-soft);
+}
+
+.an-podman-chrome-state[data-phase="missing"] {
+  color: #d4a574;
+}
+
+.an-podman-chrome-state[data-phase="present"] {
+  color: var(--an-gold-soft);
+}
+
+.an-podman-chrome-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.85;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.an-podman-chrome-dot[data-phase="checking"] {
+  animation: an-podman-pulse 1.2s ease-in-out infinite;
+}
+
+.an-podman-chrome-detail {
+  margin-top: 4px;
+  font-size: 10px;
+  line-height: 1.35;
+  color: var(--an-text-muted);
+  opacity: 0.92;
+}
+
+.an-podman-chrome-refresh {
+  align-self: start;
+  width: 24px;
+  height: 24px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--an-text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.an-podman-chrome-refresh:hover {
+  border-color: var(--an-border-soft);
+  color: var(--an-gold);
+}
+
+@keyframes an-podman-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .an-new-teammate,

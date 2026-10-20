@@ -6,6 +6,8 @@ import { AnConversationStream } from "./conversation-stream"
 import type { AnStreamItem } from "./conversation-stream-items"
 import type { AnConversationTurn } from "./conversation-turns"
 import { AN_COMPUTER_ATTACH_SURFACE, type ComputerAttachPath } from "./computer-attach"
+import { AN_NAV_ILLUSTRATED } from "./nav-illustrated"
+import { AnNavIcon } from "./nav-icons"
 import {
   AN_COMPUTER_EXTERNAL_SURFACE,
   EXTERNAL_BROWSER_FAMILIES,
@@ -98,71 +100,6 @@ const DEFAULT_NAV = [
 
 const DEFAULT_COMPUTER_EMPTY =
   "Computer View has no live feed yet. Watch/control backends are not attached — chrome only."
-
-/** Line icons toward mockup — not emoji glyphs. */
-function NavIcon(props: { name?: string }) {
-  const common = {
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    "stroke-width": "1.75",
-    "stroke-linecap": "round" as const,
-    "stroke-linejoin": "round" as const,
-    "aria-hidden": "true" as const,
-    class: "an-nav-icon",
-  }
-  switch (props.name) {
-    case "home":
-      return (
-        <svg {...common}>
-          <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5Z" />
-        </svg>
-      )
-    case "missions":
-      return (
-        <svg {...common}>
-          <rect x="4" y="4" width="7" height="7" rx="1.5" />
-          <rect x="13" y="4" width="7" height="7" rx="1.5" />
-          <rect x="4" y="13" width="7" height="7" rx="1.5" />
-          <rect x="13" y="13" width="7" height="7" rx="1.5" />
-        </svg>
-      )
-    case "contraptions":
-      return (
-        <svg {...common}>
-          <circle cx="9" cy="9" r="2.5" />
-          <path d="M9 3.5v1.2M9 13.3v1.2M4.4 5.8l.9.9M12.7 12.3l.9.9M3.5 9h1.2M13.3 9h1.2M4.4 12.2l.9-.9M12.7 5.7l.9-.9" />
-          <circle cx="16.5" cy="15.5" r="2" />
-          <path d="M16.5 11.8v.9M16.5 18.3v.9M13.2 13.3l.7.7M19.1 17l.7.7M12.8 15.5h.9M19.3 15.5h.9M13.2 17.7l.7-.7M19.1 14l.7-.7" />
-        </svg>
-      )
-    case "review":
-      return (
-        <svg {...common}>
-          <rect x="4" y="4" width="10" height="16" rx="1.5" />
-          <path d="M7 8h4M7 11h4M7 14h2.5" />
-          <path d="M16 7h4v10h-4" />
-          <path d="M16 10h4M16 13h3" />
-        </svg>
-      )
-    case "knowledge":
-      return (
-        <svg {...common}>
-          <path d="M5 5.5A2.5 2.5 0 0 1 7.5 3H19v16H7.5A2.5 2.5 0 0 0 5 21.5V5.5Z" />
-          <path d="M5 21.5A2.5 2.5 0 0 1 7.5 19H19" />
-        </svg>
-      )
-    case "settings":
-      return (
-        <svg {...common}>
-          <circle cx="12" cy="12" r="3" />
-          <path d="M12 3.5v2.2M12 18.3v2.2M4.9 6.5l1.6 1.6M17.5 15.9l1.6 1.6M3.5 12h2.2M18.3 12h2.2M4.9 17.5l1.6-1.6M17.5 8.1l1.6-1.6" />
-        </svg>
-      )
-    default:
-      return <span class="an-nav-icon-fallback">{props.name?.slice(0, 1) ?? "?"}</span>
-  }
-}
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean)
@@ -553,7 +490,12 @@ export function AnShell(props: AnShellProps): JSX.Element {
       data-attention-always-on=""
       data-presence-personality={AN_PRESENCE_PERSONALITY.markers.personality}
     >
-      <nav class="an-nav" aria-label="AN navigation">
+      <nav
+        class="an-nav"
+        aria-label="AN navigation"
+        data-an-part={AN_NAV_ILLUSTRATED.part}
+        data-an-nav={AN_NAV_ILLUSTRATED.style}
+      >
         <div class="an-nav-brand" title={props.brandTitle ?? AN_PRODUCT_NAME} aria-label={props.brandTitle ?? AN_PRODUCT_NAME}>
           {props.brandMark ?? "AN"}
         </div>
@@ -568,7 +510,7 @@ export function AnShell(props: AnShellProps): JSX.Element {
               aria-current={item.active ? "page" : undefined}
               onClick={() => props.onSelectNav?.(item.id)}
             >
-              <NavIcon name={item.icon ?? item.id} />
+              <AnNavIcon name={item.icon ?? item.id} />
             </button>
           )}
         </For>

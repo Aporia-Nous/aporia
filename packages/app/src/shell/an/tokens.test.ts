@@ -10,6 +10,8 @@ import {
   AN_DESIGN_SOURCE,
   AN_ICE_MATERIAL,
   AN_MOTION_SURFACE,
+  AN_NAV_ILLUSTRATED,
+  AN_PODMAN_SURFACE,
   AN_PRESENCE_PERSONALITY,
   AN_REVIEW_CONTENT_SURFACE,
   AN_REVIEW_SURFACE,
@@ -235,6 +237,18 @@ describe("AN Stage 4 tokens", () => {
     expect(AN_COMPUTER_SCREENCAST_SURFACE.partAttr).toBe('data-an-part="computer-screencast"')
     expect(AN_COMPUTER_SCREENCAST_SURFACE.framePart).toBe("computer-screencast-frame")
     expect(AN_COMPUTER_SCREENCAST_SURFACE.includeCursorInCapture).toBe(false)
+    expect(AN_COMPOSER_SURFACE.ownedAttr).toBe('data-an-owned="composer"')
+  })
+
+  test("illustrated nav + Podman chrome markers (AP-STAGE4-4F)", () => {
+    expect(AN_NAV_ILLUSTRATED.slice).toBe("AP-STAGE4-4F")
+    expect(AN_NAV_ILLUSTRATED.partAttr).toBe('data-an-part="nav-illustrated"')
+    expect(AN_NAV_ILLUSTRATED.icons.length).toBe(6)
+    expect(AN_PODMAN_SURFACE.slice).toBe("AP-STAGE4-4F")
+    expect(AN_PODMAN_SURFACE.partAttr).toBe('data-an-part="podman-chrome"')
+    expect(AN_PODMAN_SURFACE.neverAutoInstall).toBe(true)
+    expect(AN_PODMAN_SURFACE.neverFakeOnline).toBe(true)
+    expect(AN_PODMAN_SURFACE.stage7RuntimeSeam).toBe(false)
     expect(AN_COMPOSER_SURFACE.ownedAttr).toBe('data-an-owned="composer"')
   })
 

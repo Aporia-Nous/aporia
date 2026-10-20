@@ -133,6 +133,15 @@ describe("AN shell bind", () => {
     expect(mission.pills?.filter((p) => p.label.includes("unavailable")).length).toBe(3)
   })
 
+  test("AP-STAGE4-4F mission Podman pill stays honest (never Running)", () => {
+    const mission = missionFromSession({
+      title: "Ship Stage 4",
+      podmanPill: { label: "Podman · not installed", tone: "warn" },
+    })
+    expect(mission.pills?.some((p) => p.label === "Podman · not installed")).toBe(true)
+    expect(mission.pills?.some((p) => /running/i.test(p.label))).toBe(false)
+  })
+
   test("mission-switch survival stays on existing app patterns", () => {
     expect(anShellMissionSwitchNote()).toContain("ComposerPersistenceProvider")
     expect(anShellMissionSwitchNote()).toContain("AP-STAGE4-B1")

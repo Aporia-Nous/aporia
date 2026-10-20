@@ -33,7 +33,7 @@ import { Session } from "@opencode/schema/session"
 import { getDirectory, getFilename } from "@opencode/util/path"
 import { useTheme } from "@opencode/ui/theme/context"
 import { useNavigate } from "@solidjs/router"
-import { Show, createEffect, createMemo, createResource, createSignal, on, onCleanup, type ParentProps } from "solid-js"
+import { Show, createEffect, createMemo, createResource, createSignal, on, onCleanup, onMount, type ParentProps } from "solid-js"
 import { Portal } from "solid-js/web"
 import { AnShell } from "./an-shell"
 import { buildStreamCards } from "./cards"
@@ -47,6 +47,16 @@ import {
   resolveImportIdentity,
   type AnTeammateSheetMode,
 } from "./teammate"
+import { AnPodmanChromeCard } from "./podman-card"
+import {
+  AN_PODMAN_SURFACE,
+  initialPodmanStatus,
+  installAnPodmanWindowProbe,
+  podmanMissionPill,
+  probePodmanWhich,
+  resolvePodmanStatus,
+  type AnPodmanStatus,
+} from "./podman-chrome"
 import {
   buildContextCards,
   buildConversationStreamItems,
@@ -356,6 +366,8 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   const [teammateMenu, setTeammateMenu] = createSignal<
     { x: number; y: number; slug: string; name: string } | undefined
   >()
+  /** AP-STAGE4-4F — honest Podman chrome (never fake online; never auto-install). */
+  const [podmanStatus, setPodmanStatus] = createSignal<AnPodmanStatus>(initialPodmanStatus())
   let reviewSdk: ReturnType<typeof useServerSDK> | undefined
   try {
     reviewSdk = useServerSDK()
@@ -662,12 +674,30 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     { id: "settings", label: "Settings", icon: "settings", active: settingsOpen() },
   ]
 
+  const refreshPodmanStatus = async () => {
+    setPodmanStatus(initialPodmanStatus())
+    const result = await probePodmanWhich()
+    const next = resolvePodmanStatus(result)
+    setPodmanStatus(next)
+    return next
+  }
+
+  onMount(() => {
+    installAnPodmanWindowProbe({
+      status: () => podmanStatus(),
+      refresh: refreshPodmanStatus,
+      surface: AN_PODMAN_SURFACE,
+    })
+    void refreshPodmanStatus()
+  })
+
   const mission = createMemo(() =>
     missionFromSession({
       title: info()?.title ? prettyTitle(info()!.title) : undefined,
       agent: currentAgent(),
       directory: props.view.directory() ? projectName(props.view.directory()) : undefined,
       working: props.view.working(),
+      podmanPill: podmanMissionPill(podmanStatus()),
     }),
   )
 
@@ -1069,6 +1099,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
           <span class="an-roster-empty">{reason}</span>
         </Show>
         <AnTeammateFooterActions onNew={openTeammateCreate} onImport={() => openTeammateImport()} />
+        <AnPodmanChromeCard status={podmanStatus()} onRefresh={() => void refreshPodmanStatus()} />
       </div>
     )
   }

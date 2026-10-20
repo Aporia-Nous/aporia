@@ -164,12 +164,15 @@ export function attentionCardsToItems(cards: readonly AnBindAttentionCard[]): An
 }
 
 /** Mission header from live session info. Omits progress when task progress is unavailable.
- *  Pills: Local is real for desktop; Private/Efficient/Verified stay marked unavailable (no fake telemetry). */
+ *  Pills: Local is real for desktop; Private/Efficient/Verified stay marked unavailable (no fake telemetry).
+ *  AP-STAGE4-4F: optional honest Podman pill (never invent Running/online). */
 export function missionFromSession(input: {
   title?: string
   agent?: string
   directory?: string
   working?: boolean
+  /** When set, appends Podman · not installed / installed / unknown — never fake online. */
+  podmanPill?: { label: string; tone?: "neutral" | "ok" | "warn" }
 }): AnMissionHeader {
   const title = input.title?.trim() || input.agent?.trim() || "Mission"
   const subtitleParts = [input.agent?.trim(), input.directory?.trim()].filter(Boolean)
@@ -179,6 +182,7 @@ export function missionFromSession(input: {
     { label: "Efficient · unavailable", tone: "neutral" },
     { label: "Verified · unavailable", tone: "neutral" },
   ]
+  if (input.podmanPill) pills.push(input.podmanPill)
   if (input.working) pills.unshift({ label: "Working", tone: "ok" })
   return {
     title,
