@@ -127,6 +127,12 @@ const sharesConnections = () => process.env.APORIA_GLOBAL_MCP !== "0"
 const connectionKey = (name: ServerName, config: Mcp.ServerConfig) =>
   name + "\u0000" + createHash("sha1").update(JSON.stringify(config)).digest("hex")
 
+/** E22: cap session-expiry recover loops that fail repeatedly (surface failed; stop auto-retry). */
+const RECOVER_FAIL_WINDOW_MS = 30_000
+const RECOVER_FAIL_LIMIT = 2
+
+type RecoverStorm = { failures: number; windowStart: number }
+
 type Data = {
   servers: Map<ServerName, Types.DeepMutable<Mcp.ServerConfig>>
   removed: Set<ServerName>
@@ -413,12 +419,49 @@ export const layer = (options?: Options) =>
             ),
           )
 
+      // Tracks failed session-expiry recovers per server so a flaky remote cannot loop forever.
+      const recoverStorm = new Map<ServerName, RecoverStorm>()
+      const recoverCapped = (name: ServerName) => {
+        const storm = recoverStorm.get(name)
+        if (!storm || storm.failures < RECOVER_FAIL_LIMIT) return false
+        return Date.now() - storm.windowStart < RECOVER_FAIL_WINDOW_MS
+      }
+      const clearRecoverStorm = (name: ServerName) => {
+        recoverStorm.delete(name)
+      }
+      const noteRecoverFailure = (name: ServerName, entry: ServerEntry) =>
+        Effect.gen(function* () {
+          const now = Date.now()
+          const prev = recoverStorm.get(name)
+          const storm =
+            !prev || now - prev.windowStart >= RECOVER_FAIL_WINDOW_MS
+              ? { failures: 1, windowStart: now }
+              : { failures: prev.failures + 1, windowStart: prev.windowStart }
+          recoverStorm.set(name, storm)
+          if (storm.failures < RECOVER_FAIL_LIMIT) return
+          if (entry.status.status !== "failed") {
+            entry.status = {
+              status: "failed",
+              error: "MCP session recovery failed repeatedly; reconnect it from /mcps.",
+            }
+            yield* bus.publish(McpEvent.StatusChanged, { server: name })
+          }
+          yield* Effect.logWarning("mcp recover storm capped", {
+            server: name,
+            failures: storm.failures,
+          })
+        })
+
       // Re-establishes a server whose HTTP session the server dropped, unless another path already
       // replaced the connection while this one waited for the lock. Shared connections are rebuilt in
       // place so every location holding the server observes the fresh connection.
       const recover = (name: ServerName, entry: ServerEntry, connection: McpClient.Connection) =>
         Effect.gen(function* () {
           if (connectionOf(entry) !== connection) return
+          if (recoverCapped(name)) {
+            yield* Effect.logWarning("mcp recover skipped (storm capped)", { server: name })
+            return
+          }
           yield* Effect.logInfo("mcp session expired, reconnecting", { server: name })
           if (entry.handle && Option.isSome(sharedPool) && sharesConnections()) {
             const rebuilt = yield* Effect.gen(function* () {
@@ -435,6 +478,7 @@ export const layer = (options?: Options) =>
                 entry.handle = rebuilt.value.value
                 entry.tools = undefined
                 entry.status = { status: "connected" }
+                clearRecoverStorm(name)
                 const fresh = rebuilt.value.value.get().connection
                 watch(name, entry, fresh)
                 yield* bus.publish(McpEvent.ToolsChanged, { server: name })
@@ -444,9 +488,19 @@ export const layer = (options?: Options) =>
               }
               return
             }
+            yield* noteRecoverFailure(name, entry)
+            if (recoverCapped(name)) {
+              yield* stopServer(name, entry)
+              return
+            }
           }
           yield* stopServer(name, entry)
           yield* startServer(name, entry)
+          if (entry.status.status === "connected" || entry.status.status === "needs_auth") {
+            clearRecoverStorm(name)
+            return
+          }
+          yield* noteRecoverFailure(name, entry)
         }).pipe(locks.withLock(name))
 
       // Runs a request against the live connection and, if that request observed a session expiry,
@@ -519,7 +573,10 @@ export const layer = (options?: Options) =>
         )
         // Background refreshes (list-changed) can observe the expiry too; they do not retry, so
         // reconnect here for them. Foreground calls reconnect through `recovering`.
-        connection.onSessionExpired(() => fork(recover(name, entry, connection)))
+        connection.onSessionExpired(() => {
+          if (recoverCapped(name)) return
+          fork(recover(name, entry, connection))
+        })
         connection.onToolsChanged(() =>
           live(
             refreshTools(name, entry, connection).pipe(
