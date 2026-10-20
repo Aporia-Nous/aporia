@@ -12,7 +12,12 @@ import { useData, useServer } from "@/runtime/server/current"
 import { useServerSDK } from "@/runtime/server/client"
 import { formatServerError } from "@/runtime/server/errors"
 import { flushComposerEditorDom } from "@/composer/session-draft"
-import { anDraftApplyIdentity, anDraftSaveIdentity, anDraftSwitch } from "@/shell/an/session-draft-store"
+import {
+  anDraftApplyIdentity,
+  anDraftKey,
+  anDraftSaveIdentity,
+  anDraftSwitch,
+} from "@/shell/an/session-draft-store"
 import { useCommand } from "@/shell/commands/command"
 import { useLanguage } from "@/runtime/i18n/language"
 import { sessionHref } from "@/shell/routes/session"
@@ -419,16 +424,22 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     setComputerControl((prev) => rescopeComputerControl(prev, sessionID))
   })
 
-  // AP-STAGE4-B1: when the bound session/agent identity settles after a roster switch, restore its draft.
+  // AP-STAGE4-B1: restore draft when the teammate key changes (string key — ignore roster poll churn).
   createEffect(
     on(
-      () => ({
-        sessionID: props.view.sessionID(),
-        agent: currentAgent(),
-        slug: roster.bound().roster.find((m) => m.selected)?.id,
-      }),
-      (identity) => {
-        if (!identity.sessionID && !identity.agent && !identity.slug) return
+      () =>
+        anDraftKey({
+          sessionID: props.view.sessionID(),
+          agent: currentAgent(),
+          slug: roster.bound().roster.find((m) => m.selected)?.id,
+        }),
+      (key) => {
+        if (!key || key === "workspace") return
+        const identity = {
+          sessionID: props.view.sessionID(),
+          agent: currentAgent(),
+          slug: roster.bound().roster.find((m) => m.selected)?.id,
+        }
         queueMicrotask(() => {
           requestAnimationFrame(() => {
             anDraftApplyIdentity(identity)

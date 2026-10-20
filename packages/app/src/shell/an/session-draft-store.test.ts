@@ -17,11 +17,11 @@ describe("AP-STAGE4-B1 AnShell session draft store", () => {
     document.body.innerHTML = ""
   })
 
-  test("keys alias session + agent + slug", () => {
+  test("keys alias agent + slug + session (agent primary)", () => {
     expect(anDraftKeys({ sessionID: "ses_a", agent: "aporia-grok", slug: "grok" })).toEqual([
-      "ses:ses_a",
       "agent:aporia-grok",
       "slug:grok",
+      "ses:ses_a",
     ])
     expect(anDraftKey({ agent: "aporia-grok", slug: "grok" })).toBe("agent:aporia-grok")
     expect(anDraftKey({})).toBe("workspace")

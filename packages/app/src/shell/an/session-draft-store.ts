@@ -21,14 +21,15 @@ export type AnDraftIdentity = { sessionID?: string; agent?: string; slug?: strin
 
 export function anDraftKeys(input: AnDraftIdentity): string[] {
   const keys: string[] = []
-  if (input.sessionID) keys.push(`ses:${input.sessionID}`)
+  // Agent/slug first — stable across home `/` vs session routes; session id is an alias.
   if (input.agent) keys.push(`agent:${input.agent}`)
   if (input.slug) keys.push(`slug:${input.slug}`)
+  if (input.sessionID) keys.push(`ses:${input.sessionID}`)
   if (keys.length === 0) keys.push("workspace")
   return keys
 }
 
-/** Primary key for diagnostics — agent preferred (stable across home/session). */
+/** Primary key — agent preferred (stable across home/session). */
 export function anDraftKey(input: AnDraftIdentity): string {
   return anDraftKeys(input)[0] ?? "workspace"
 }
