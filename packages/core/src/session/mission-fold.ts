@@ -1,12 +1,13 @@
 /**
- * FLOW-GENIUS-03 / Stage 6 — live mission/task fold into SessionRunner lean pack.
+ * FLOW-GENIUS-03/04 / Stage 6 — live mission/task fold into SessionRunner lean pack.
  *
  * Pure fold maps mission + tasks + attention cards → LeanPackInput / LeanPack.
  * Effect loader reads mission_session / mission / task / mission_event via Database
- * (same tables as Mission.Service; no Mnemosyne wire).
+ * (same tables as Mission.Service).
  *
+ * FLOW-GENIUS-04: optional MnemosynePort recall fills CitedRetrieval (bounded, sourced).
  * Auto-wire only when the session is linked to a mission. Empty / unlinked → undefined
- * (caller omits leanPack). Mnemosyne stays disconnected.
+ * (caller omits leanPack). Default port is unavailable (no host DB); inject fixture in tests.
  */
 export * as SessionMissionFold from "./mission-fold.js"
 
@@ -14,6 +15,13 @@ import { and, asc, eq, inArray } from "drizzle-orm"
 import { Effect } from "effect"
 import { Database } from "../database/database.js"
 import { fold as foldAttentionCards, type Card } from "../mission/cards.js"
+import {
+  buildRecallQuery,
+  getDefaultMnemosynePort,
+  recallCitedRetrieval,
+  type MnemosynePort,
+  type MnemosyneScope,
+} from "../mission/mnemosyne-port.js"
 import { MissionEventTable } from "../mission/event.sql.js"
 import { MissionSchema } from "../mission/schema.js"
 import { MissionSessionTable, MissionTable, TaskTable } from "../mission/sql.js"
@@ -21,6 +29,7 @@ import { SessionMessage } from "./message.js"
 import {
   DEFAULT_RECENT_MESSAGES,
   assembleLeanPack,
+  type CitedRetrieval,
   type DecisionFact,
   type DoneFact,
   type LeanPack,
@@ -71,6 +80,11 @@ export type MissionFoldFacts = {
   readonly messages?: ReadonlyArray<MessageFact>
   readonly recentMessageLimit?: number
   readonly focusTaskId?: string
+  /** Explicit retrieval (tests); when omitted, optional mnemosyne port may recall. */
+  readonly retrieval?: ReadonlyArray<CitedRetrieval>
+  readonly mnemosyne?: MnemosynePort
+  readonly retrievalScope?: MnemosyneScope
+  readonly retrievalLimit?: number
 }
 
 const isTerminal = (state: string) => state === "verified" || state === "cancelled"
@@ -138,7 +152,7 @@ function constraintsFromFacts(
 
 /**
  * Pure: mission/task/attention facts → LeanPackInput (Stage 6 sections).
- * Does not invent retrieval; Mnemosyne remains disconnected.
+ * Retrieval: explicit facts.retrieval, else MnemosynePort recall (no invented hits).
  */
 export function foldMissionLeanInput(facts: MissionFoldFacts): LeanPackInput {
   const cards = facts.cards ?? []
@@ -153,9 +167,23 @@ export function foldMissionLeanInput(facts: MissionFoldFacts): LeanPackInput {
       evidence: t.revision !== undefined ? `verified rev ${t.revision}` : "verified",
     }))
   const focus = selectFocusTask(facts.tasks, facts.focusTaskId)
+  const objective = `${facts.mission.title} [${facts.mission.state}] (${facts.mission.id})`
+
+  let retrieval: CitedRetrieval[] = facts.retrieval ? [...facts.retrieval] : []
+  if (retrieval.length === 0 && facts.mnemosyne) {
+    const query = buildRecallQuery({
+      objective: facts.mission.title,
+      taskTitle: focus?.title,
+    })
+    retrieval = recallCitedRetrieval(facts.mnemosyne, {
+      query,
+      limit: facts.retrievalLimit,
+      scope: facts.retrievalScope,
+    })
+  }
 
   return {
-    objective: `${facts.mission.title} [${facts.mission.state}] (${facts.mission.id})`,
+    objective,
     decisions: decisionsFromCards(cards),
     constraints: constraintsFromFacts(facts.tasks, cards),
     pending,
@@ -163,8 +191,7 @@ export function foldMissionLeanInput(facts: MissionFoldFacts): LeanPackInput {
     taskCard: focus ? taskCardOf(focus) : undefined,
     messages: facts.messages,
     recentMessageLimit: facts.recentMessageLimit ?? DEFAULT_RECENT_MESSAGES,
-    // Cited retrieval stays empty until an owned Mnemosyne wire lands.
-    retrieval: [],
+    retrieval,
   }
 }
 
@@ -230,19 +257,26 @@ export type LoadedMissionLeanPack = {
   readonly missionId: string
   readonly taskCount: number
   readonly cardCount: number
+  readonly retrievalCount: number
+  readonly mnemosyneAvailability: ReturnType<MnemosynePort["availability"]>
 }
 
 /**
  * Load mission fold for a session and assemble the lean pack.
  * Returns undefined when the session has no mission link (honest no-op).
+ * Mnemosyne: uses input.mnemosyne or getDefaultMnemosynePort() (unavailable by default).
  */
 export const loadLeanPackForSession = Effect.fn("SessionMissionFold.loadLeanPackForSession")(function* (input: {
   readonly sessionID: string
   readonly messages?: ReadonlyArray<SessionMessage.Info>
   readonly recentMessageLimit?: number
   readonly focusTaskId?: string
+  readonly mnemosyne?: MnemosynePort
+  readonly retrievalScope?: MnemosyneScope
+  readonly retrievalLimit?: number
 }) {
   const db = (yield* Database.Service).db
+  const mnemosyne = input.mnemosyne ?? getDefaultMnemosynePort()
 
   const link = yield* db
     .select({ mission_id: MissionSessionTable.mission_id })
@@ -315,9 +349,13 @@ export const loadLeanPackForSession = Effect.fn("SessionMissionFold.loadLeanPack
     messages: input.messages ? sessionMessagesToLeanFacts(input.messages) : undefined,
     recentMessageLimit: input.recentMessageLimit,
     focusTaskId: input.focusTaskId,
+    mnemosyne,
+    retrievalScope: input.retrievalScope,
+    retrievalLimit: input.retrievalLimit,
   }
 
-  const pack = assembleMissionLeanPack(facts)
+  const leanInput = foldMissionLeanInput(facts)
+  const pack = assembleLeanPack(leanInput)
   if (pack.text.trim().length === 0) return undefined as LoadedMissionLeanPack | undefined
 
   return {
@@ -325,5 +363,7 @@ export const loadLeanPackForSession = Effect.fn("SessionMissionFold.loadLeanPack
     missionId: missionRow.id,
     taskCount: taskRows.length,
     cardCount: cards.length,
+    retrievalCount: leanInput.retrieval?.length ?? 0,
+    mnemosyneAvailability: mnemosyne.availability(),
   } satisfies LoadedMissionLeanPack
 })

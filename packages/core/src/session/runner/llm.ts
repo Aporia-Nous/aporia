@@ -274,8 +274,8 @@ const layer = Layer.effect(
           continue
         }
         const stepLimitReached = loaded.agent.info.steps !== undefined && step >= loaded.agent.info.steps
-        // FLOW-GENIUS-03: auto-wire mission/task lean pack when session is mission-linked.
-        // Unlinked sessions omit leanPack (no empty header). Mnemosyne stays disconnected.
+        // FLOW-GENIUS-03/04: auto-wire mission/task lean pack when session is mission-linked.
+        // Unlinked sessions omit leanPack (no empty header). MnemosynePort default unavailable.
         const missionLean = yield* loadLeanPackForSession({
           sessionID,
           messages: loaded.messages,

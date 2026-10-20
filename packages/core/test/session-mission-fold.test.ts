@@ -102,18 +102,20 @@ describe("FLOW-GENIUS-03 mission fold (pure)", () => {
     expect(selectFocusTask(fixtureFacts.tasks, "tsk_blocked")?.id).toBe("tsk_blocked")
   })
 
-  test("assembleMissionLeanPack + once-only merge; Mnemosyne still disconnected", () => {
+  test("assembleMissionLeanPack + once-only merge; retrieval empty without port", () => {
     const pack = assembleMissionLeanPack(fixtureFacts)
     expect(pack.text.startsWith(LEAN_PACK_HEADER)).toBe(true)
     expect(pack.sections).toContain("objective")
     expect(pack.sections).toContain("task")
     expect(pack.sections).toContain("recent")
+    expect(pack.sections).not.toContain("retrieval")
     expect(pack.recentKept).toBe(4)
     expect(pack.recentDropped).toBe(8)
     const once = mergeLeanPackIntoInitial("AGENTS.md", pack.text)
     expect(hasLeanPack(once)).toBe(true)
     expect(mergeLeanPackIntoInitial(once, pack.text)).toBe(once)
-    expect(mnemosyneMap().status).toBe("disconnected")
+    // FG-04 map = implemented; this fixture does not inject a port so retrieval stays empty.
+    expect(mnemosyneMap().status).toBe("implemented")
   })
 
   test("sessionMessagesToLeanFacts keeps user/assistant text only", () => {
@@ -193,8 +195,10 @@ describe("FLOW-GENIUS-03 mission fold (live DB auto-wire)", () => {
       expect(loaded!.pack.text).toContain("continue the wire")
       expect(loaded!.pack.sections).toContain("objective")
       expect(loaded!.pack.sections).toContain("task")
-      // CE gate / Stage 5 not touched by this module; Mnemosyne still disconnected.
-      expect(mnemosyneMap().status).toBe("disconnected")
+      expect(loaded!.retrievalCount).toBe(0)
+      expect(loaded!.mnemosyneAvailability).toBe("unavailable")
+      // CE gate / Stage 5 not touched by this module; FG-04 map implemented, default port unavailable.
+      expect(mnemosyneMap().status).toBe("implemented")
     }),
   )
 })
@@ -223,12 +227,12 @@ afterAll(() => {
     mnemosyne: mnemosyneMap(),
     autoWire: "SessionRunner drain + SessionGenerate via loadLeanPackForSession",
     residuals: [
-      "Mnemosyne remains disconnected — cited retrieval slots only",
+      "Mnemosyne product wire = FLOW-GENIUS-04 (this slice preserves fold; default port unavailable)",
       "Stage 6 complete / I tests 1–7 / J acceptance not this slice",
       "FLOW-GENIUS ranking mechanical-first proof may follow as later slice",
       "await independent PASS",
     ],
-    notClaimed: ["independent PASS", "Stage 6 complete", "Mnemosyne wire", "merge", "push", "install"],
+    notClaimed: ["independent PASS", "Stage 6 complete", "I tests 1-7", "merge", "push", "install"],
     stage5_ux_preserved: true,
     ce_gate_preserved: true,
     lean_pack_preserved: true,

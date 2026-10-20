@@ -128,10 +128,11 @@ describe("FLOW-GENIUS-02 lean pack", () => {
     expect(metrics.tokensSaved).toBeGreaterThan(0)
   })
 
-  test("Mnemosyne map is disconnected (not mocked; not wired into lean pack)", () => {
+  test("Mnemosyne map marks product wire implemented (FG-04; host DB still not auto-opened)", () => {
     const map = mnemosyneMap()
-    expect(map.status).toBe("disconnected")
+    expect(map.status).toBe("implemented")
     expect(map.leanPackRetrievalOwner).toBe("aporetic-lean-pack")
+    expect(map.productPort).toContain("mnemosyne-port")
     expect(map.sourcePath).toContain("mnemosyne")
     expect(map.notes.length).toBeGreaterThan(0)
   })
