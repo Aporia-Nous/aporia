@@ -44,14 +44,44 @@ export const isCheckpoint = (
 ): message is SessionMessage.CompactionCompleted & { readonly providerContext: Info } =>
   message.type === "compaction" && message.status === "completed" && message.providerContext !== undefined
 
+/**
+ * JSON-shaped value without a stringify/parse round-trip (AP-ENGINE-E11).
+ * Matches JSON.stringify semantics used by the prior encode path: omit undefined object
+ * keys, map undefined array slots to null, invoke `toJSON` (Media.Asset → base64).
+ */
+export const jsonSanitize = (value: unknown): Schema.Json => {
+  if (value === null || typeof value === "string" || typeof value === "boolean") return value
+  if (typeof value === "number") return Number.isFinite(value) ? value : null
+  if (typeof value === "bigint") throw new TypeError("Do not know how to serialize a BigInt")
+  if (value instanceof Date) return value.toISOString()
+  if (typeof value !== "object") return null
+
+  const withJson = value as { toJSON?: () => unknown }
+  if (typeof withJson.toJSON === "function" && !(Array.isArray(value) && withJson.toJSON === Array.prototype.toJSON)) {
+    return jsonSanitize(withJson.toJSON())
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => (item === undefined ? null : jsonSanitize(item)))
+  }
+
+  const out: { [key: string]: Schema.Json } = {}
+  for (const key of Object.keys(value as object)) {
+    const item = (value as Record<string, unknown>)[key]
+    if (item === undefined || typeof item === "function" || typeof item === "symbol") continue
+    out[key] = jsonSanitize(item)
+  }
+  return out
+}
+
 /** Stores the canonical replacement, not a local summary or transport continuation.
  * Provider and attachment metadata can contain optional undefined entries, which the Schema JSON
  * codec rejects, so use JSON's omission semantics; `Media.Asset.toJSON` keeps binary media as base64.
+ * AP-ENGINE-E11: walk+sanitize instead of JSON.stringify → Schema.fromJsonString decode.
  */
 export const encode = (provenance: Provenance, replacement: ReadonlyArray<Message>): Info => ({
   version: 1,
   provenance,
-  messages: Schema.decodeSync(Schema.fromJsonString(Schema.Json))(JSON.stringify(replacement)),
+  messages: Schema.decodeUnknownSync(Schema.Json)(jsonSanitize(replacement)),
 })
 
 export const decode = (context: Info) => Schema.decodeUnknownSync(messages)(upgradeLegacyMedia(context.messages))

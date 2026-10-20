@@ -441,7 +441,11 @@ export const layer = Layer.effect(
       const send = (request: LLMRequest) => {
         if (LLMClient.canCompact(request, { mechanism: "trigger" })) {
           return Effect.gen(function* () {
-            const history = yield* SessionHistory.load(db, context.session.id, "local").pipe(Effect.orDie)
+            // AP-ENGINE-E25: reuse already-loaded context when no native checkpoint bound the
+            // view; reload local only when a checkpoint would hide earlier real user messages.
+            const history = needsLocalHistoryForNativeRetain(context.messages)
+              ? yield* SessionHistory.load(db, context.session.id, "local").pipe(Effect.orDie)
+              : context.messages
             const retained = recentUserMessages(history, context.model, keep)
             const response = yield* llm.compact(request, { ...prepared.options, mechanism: "trigger" })
             return yield* toResult([...retained, Message.assistant(response.checkpoint)], response.usage)
@@ -999,6 +1003,14 @@ const serializeToolContent = (content: ReadonlyArray<SessionMessage.ToolStateCom
       return `[Attached ${item.mime}${item.name === undefined ? "" : `: ${item.name}`}]`
     })
     .join("\n")
+
+/**
+ * AP-ENGINE-E25: trigger-mechanism native retain needs the unbound local transcript only when a
+ * native checkpoint is already in the loaded view (provenance-bound context hides earlier users).
+ * Otherwise `context.messages` already carries the real user messages — skip SessionHistory.load.
+ */
+export const needsLocalHistoryForNativeRetain = (messages: ReadonlyArray<SessionMessage.Info>) =>
+  messages.some(SessionProviderContext.isCheckpoint)
 
 /** The newest whole, real user messages within `keep` tokens: no synthetic guidance, no half of an attachment. */
 export const recentUserMessages = (
