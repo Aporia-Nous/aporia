@@ -1,4 +1,5 @@
 // Imported first so its evaluation stamps the moment Electron handed control to this module.
+import path from "node:path"
 import { marks } from "./lifecycle/marks"
 import { app } from "electron"
 import { acquireApplicationLock, configureApplication } from "./lifecycle/configure"
@@ -42,6 +43,10 @@ process.env.OPENCODE_DISABLE_CHANNEL_DB ??= "1"
 // hundred milliseconds of module evaluation and layers — loads. Configuration and the scheme must
 // precede ready; the window is created the moment ready fires; everything else is imported after.
 configureApplication()
+
+// AP-STAGE6-HOST-DB: built-in shared memory for isolated DEV (Aporetic userData).
+// Never points at host ~/.config/opencode/mnemosyne/mnemosyne.db. Child server inherits env.
+process.env.APORETIC_MNEMOSYNE_PATH ??= path.join(app.getPath("userData"), "mnemosyne", "store.json")
 
 // Any real quit path (menu, Ctrl+Q, OS shutdown) must be allowed to close the hidden-in-tray
 // window; mark it so the close-to-tray handler steps aside.

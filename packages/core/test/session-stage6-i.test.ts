@@ -1,8 +1,9 @@
 /**
  * AP-STAGE6-IJ — brief I tests 1–7 (source/unit fixtures).
- * Does not claim Stage 6 complete, host DB auto-open, UI inspect view, or merge/push/install.
+ * Product default MnemosynePort is built-in available (AP-STAGE6-HOST-DB DEV-local).
+ * Host ~/.config/opencode/mnemosyne/mnemosyne.db remains refused.
  * I-1 "Restart DEV" = durable fixture re-seed (synthetic reopen), not Electron relaunch.
- * I-6 UI responsiveness = port/fold honesty only (unavailable adapter); chrome live-DEV residual OK.
+ * I-6 unavailable = explicit adapter inject; chrome live-DEV residual OK.
  */
 import { afterAll, afterEach, describe, expect, test } from "bun:test"
 import fs from "node:fs"
@@ -270,8 +271,8 @@ describe("AP-STAGE6-IJ I tests 1–7 (pure)", () => {
     const f2 = port.forget("x")
     expect(f1.ok).toBe(false)
     expect(f2.ok).toBe(false)
-    // Default SessionRunner port stays unavailable (no host DB).
-    expect(getDefaultMnemosynePort().availability()).toBe("unavailable")
+    // Product default remains built-in available; unavailable is this explicit adapter only.
+    expect(getDefaultMnemosynePort().availability()).toBe("available")
   })
 
   test("I-7: ranking + budget — measured tokens; limit bounds; no invented savings %", () => {
@@ -317,7 +318,7 @@ describe("AP-STAGE6-IJ I tests 1–7 (pure)", () => {
 const it = testEffect(AppNodeBuilder.build(LayerNode.group([Database.node, Mission.node])))
 
 describe("AP-STAGE6-IJ I tests (live DB + port)", () => {
-  it.effect("I-1/I-6: linked session with fixture recall; unavailable default omits", () =>
+  it.effect("I-1/I-6: linked session with fixture recall; unavailable inject omits", () =>
     Effect.gen(function* () {
       const mission = yield* Mission.Service
       const created = yield* mission.createMission({ title: "Stage6 I linked preference" })
@@ -329,6 +330,7 @@ describe("AP-STAGE6-IJ I tests (live DB + port)", () => {
         state: "in_progress",
       })
 
+      setDefaultMnemosynePort(createUnavailableMnemosynePort("I-6 inject omit"))
       expect(getDefaultMnemosynePort().availability()).toBe("unavailable")
       const empty = yield* loadLeanPackForSession({ sessionID })
       expect(empty?.retrievalCount ?? 0).toBe(0)
@@ -385,18 +387,18 @@ afterAll(() => {
       "I-3": "PASS source/unit (supersede + instructionsOnly)",
       "I-4": "PASS source/unit (forget active; soft-delete retention limit honest)",
       "I-5": "PASS source/unit (adversarial cannot become instruction)",
-      "I-6": "PASS source/unit (unavailable adapter); UI chrome responsiveness = residual OK",
+      "I-6": "PASS source/unit (unavailable adapter inject); product default built-in available",
       "I-7": "PASS source/unit (ranking limit + measured tokens)",
     },
     residuals: [
-      "host mnemosyne.db auto-open BLOCKED (no board authorization; default unavailable)",
       "UI inspect/search/edit chrome for memory not this slice",
       "Electron DEV restart not exercised (I-1 uses synthetic seed reopen)",
-      "Stage 6 complete awaits independent PASS + Ali ACCEPT (I–J source/unit measured)",
+      "Host ~/.config/opencode/mnemosyne/mnemosyne.db remains refused (DEV-local built-in instead)",
     ],
     mnemosyneMap: map,
-    hostDbAutoOpen: "BLOCKED",
-    notClaimed: ["Stage 6 complete", "host DB auto-open", "merge", "push", "install"],
+    hostDbAutoOpen: "REFUSED — DEV-local built-in available (AP-STAGE6-HOST-DB)",
+    productDefaultAvailability: getDefaultMnemosynePort().availability(),
+    notClaimed: ["merge", "push", "install", "host opencode mnemosyne.db open"],
   }
   const metrics = {
     board: "AP-STAGE6-IJ",
@@ -408,7 +410,8 @@ afterAll(() => {
     tokensSaved: comparison.tokensSaved,
     estimatedTokensCheck: Token.estimate(pack.text),
     naiveFullDumpTokens: Token.estimate("FULL\n" + "y".repeat(3000)),
-    hostDbAutoOpen: "BLOCKED",
+    hostDbAutoOpen: "REFUSED",
+    productDefaultAvailability: getDefaultMnemosynePort().availability(),
     no_merge_no_push_no_install: true,
   }
   fs.mkdirSync(EVIDENCE_DIR, { recursive: true })

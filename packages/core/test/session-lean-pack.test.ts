@@ -128,7 +128,7 @@ describe("FLOW-GENIUS-02 lean pack", () => {
     expect(metrics.tokensSaved).toBeGreaterThan(0)
   })
 
-  test("Mnemosyne map marks product wire implemented (FG-04; host DB still not auto-opened)", () => {
+  test("Mnemosyne map marks product wire implemented (FG-04; DEV-local built-in)", () => {
     const map = mnemosyneMap()
     expect(map.status).toBe("implemented")
     expect(map.leanPackRetrievalOwner).toBe("aporetic-lean-pack")

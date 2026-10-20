@@ -1,10 +1,10 @@
 /**
- * FLOW-GENIUS-02/04 / Stage 6 — Mnemosyne memory audit map.
+ * FLOW-GENIUS-02/04 / AP-STAGE6-HOST-DB / Stage 6 — Mnemosyne memory audit map.
  *
  * FG-02: classify implemented / disconnected / mocked (was disconnected).
  * FG-04: product wire lands — Aporetic MnemosynePort → lean-pack CitedRetrieval.
+ * HOST-DB: product default is built-in DEV-local shared memory (available).
  * Does not start or stop shared services. Does not read host production mnemosyne.db.
- * Not Stage 6 complete / I tests 1–7 / J acceptance.
  */
 export * as MissionMemory from "./memory.js"
 
@@ -27,12 +27,12 @@ export type MnemosyneMap = {
 export const MNEMOSYNE_SOURCE_PATH = "C:\\Perseus\\mnemosyne"
 
 /**
- * Classification for Stage 6 / FLOW-GENIUS-04.
+ * Classification for Stage 6 / FLOW-GENIUS-04 / AP-STAGE6-HOST-DB.
  *
  * - Source tree exists as a sovereign opencode plugin (memory_* tools + idle capture).
  * - Aporetic owns MnemosynePort and wires recall into mission-fold lean packs → implemented.
- * - Default SessionRunner port is unavailable (no host DB auto-open); fixtures inject mocked port.
- * - Not a claim of I tests 1–7 PASS or Stage 6 complete.
+ * - Default SessionRunner port is **available** via DEV-local built-in store (not host opencode DB).
+ * - Host `~/.config/opencode/mnemosyne/mnemosyne.db` remains refused / not auto-opened.
  */
 export const MNEMOSYNE_MAP: MnemosyneMap = {
   status: "implemented",
@@ -40,10 +40,10 @@ export const MNEMOSYNE_MAP: MnemosyneMap = {
   notes: [
     "Source tree present at C:\\Perseus\\mnemosyne (opencode plugin + bun:sqlite + wave substrate).",
     "FLOW-GENIUS-04 wires Aporetic MnemosynePort → CitedRetrieval on mission-linked lean packs.",
-    "Default port is unavailable (host ~/.config/opencode/mnemosyne/mnemosyne.db not auto-opened; no install).",
-    "Fixture/mocked port proves retrieval + scope/eligibility + correction + forget + untrusted reject + unavailable omit.",
-    "AP-STAGE6-IJ runs I tests 1–7 source/unit; host mnemosyne.db auto-open remains BLOCKED (no board auth).",
-    "Stage 6 complete only when I–J gates PASS and board accepts residuals.",
+    "AP-STAGE6-HOST-DB: product default is built-in DEV-local shared memory (available) under Aporetic paths / APORETIC_MNEMOSYNE_PATH.",
+    "Host ~/.config/opencode/mnemosyne/mnemosyne.db is refused — not opened, not installed from.",
+    "Fixture/mocked port + unavailable adapter remain for I gates; I-6 unavailable is explicit inject.",
+    "UI inspect/search/edit chrome for memory remains a residual (not this map).",
   ],
   leanPackRetrievalOwner: "aporetic-lean-pack",
   productPort: "packages/core/src/mission/mnemosyne-port.ts",

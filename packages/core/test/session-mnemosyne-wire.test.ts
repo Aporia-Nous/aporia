@@ -4,6 +4,7 @@
  */
 import { afterAll, afterEach, describe, expect, test } from "bun:test"
 import fs from "node:fs"
+import os from "node:os"
 import path from "node:path"
 import { Effect } from "effect"
 import { LayerNode } from "@opencode/util/effect/layer-node"
@@ -13,10 +14,13 @@ import { Mission } from "../src/mission.js"
 import { mnemosyneMap } from "../src/mission/memory.js"
 import {
   buildRecallQuery,
+  createDevLocalMnemosynePort,
   createFixtureMnemosynePort,
   createUnavailableMnemosynePort,
   getDefaultMnemosynePort,
   hitsToCitedRetrieval,
+  HOST_OPENCODE_MNEMOSYNE_DB,
+  isForbiddenHostMnemosynePath,
   recallCitedRetrieval,
   resetDefaultMnemosynePort,
   setDefaultMnemosynePort,
@@ -156,21 +160,47 @@ describe("FLOW-GENIUS-04 MnemosynePort (pure)", () => {
       "Ship wire Cite sources",
     )
   })
+
+  test("DEV-local built-in port persists across reopen; host opencode path forbidden", () => {
+    expect(isForbiddenHostMnemosynePath(HOST_OPENCODE_MNEMOSYNE_DB)).toBe(true)
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "aporetic-mnemo-"))
+    const store = path.join(dir, "store.json")
+    const first = createDevLocalMnemosynePort(store)
+    expect(first.availability()).toBe("available")
+    const wrote = first.remember({
+      body: "Aporetic DEV-local preference: prefer cited Mnemosyne sources",
+      scope: "project",
+      kind: "preference",
+      id: "dev_pref_1",
+    })
+    expect(wrote.ok).toBe(true)
+    expect(fs.existsSync(store)).toBe(true)
+
+    const reopened = createDevLocalMnemosynePort(store)
+    const cited = recallCitedRetrieval(reopened, {
+      query: "Aporetic DEV-local Mnemosyne preference cited",
+      limit: 4,
+    })
+    expect(cited.some((c) => c.source === "mnemosyne:dev_pref_1")).toBe(true)
+
+    expect(getDefaultMnemosynePort().availability()).toBe("available")
+  })
 })
 
 const it = testEffect(AppNodeBuilder.build(LayerNode.group([Database.node, Mission.node])))
 
 describe("FLOW-GENIUS-04 Mnemosyne wire (live DB + injected port)", () => {
-  it.effect("default unavailable port keeps retrieval empty on linked session", () =>
+  it.effect("explicit unavailable port keeps retrieval empty on linked session", () =>
     Effect.gen(function* () {
+      setDefaultMnemosynePort(createUnavailableMnemosynePort("test unavailable omit"))
       expect(getDefaultMnemosynePort().availability()).toBe("unavailable")
       const mission = yield* Mission.Service
-      const created = yield* mission.createMission({ title: "FG-04 default unavailable" })
+      const created = yield* mission.createMission({ title: "FG-04 explicit unavailable" })
       const sessionID = "ses_fg04_unavail"
       yield* mission.attachMissionSession(created.id, sessionID)
       yield* mission.createTask({
         missionId: created.id,
-        title: "No host DB recall",
+        title: "Unavailable omit recall",
         state: "in_progress",
       })
       const loaded = yield* loadLeanPackForSession({ sessionID })
@@ -178,6 +208,25 @@ describe("FLOW-GENIUS-04 Mnemosyne wire (live DB + injected port)", () => {
       expect(loaded!.retrievalCount).toBe(0)
       expect(loaded!.mnemosyneAvailability).toBe("unavailable")
       expect(loaded!.pack.sections).not.toContain("retrieval")
+    }),
+  )
+
+  it.effect("product default available port is built-in (not host stub)", () =>
+    Effect.gen(function* () {
+      resetDefaultMnemosynePort()
+      expect(getDefaultMnemosynePort().availability()).toBe("available")
+      const mission = yield* Mission.Service
+      const created = yield* mission.createMission({ title: "FG-04 default available" })
+      const sessionID = "ses_fg04_default_avail"
+      yield* mission.attachMissionSession(created.id, sessionID)
+      yield* mission.createTask({
+        missionId: created.id,
+        title: "Built-in shared memory",
+        state: "in_progress",
+      })
+      const loaded = yield* loadLeanPackForSession({ sessionID })
+      expect(loaded).toBeDefined()
+      expect(loaded!.mnemosyneAvailability).toBe("available")
     }),
   )
 
@@ -249,13 +298,12 @@ afterAll(() => {
     tokensSaved: comparison.tokensSaved,
     naiveRecentAllTokens: naive.estimatedTokens,
     mnemosyne: mnemosyneMap(),
-    defaultPortAvailability: createUnavailableMnemosynePort().availability(),
+    defaultPortAvailability: getDefaultMnemosynePort().availability(),
     autoWire: "loadLeanPackForSession → MnemosynePort.recall → Cited retrieval",
     residuals: [
-      "I tests 1–7 / J fixtures acceptance not this slice",
-      "Host mnemosyne.db / substrate auto-open not wired (DEV-safe default unavailable)",
-      "Stage 6 complete not claimed",
-      "await independent PASS",
+      "UI inspect/search/edit chrome for memory residual OK",
+      "Host ~/.config/opencode/mnemosyne/mnemosyne.db remains refused (not opened)",
+      "Electron DEV relaunch residual OK",
     ],
     notClaimed: [
       "independent PASS",

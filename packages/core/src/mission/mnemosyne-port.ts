@@ -1,16 +1,19 @@
 /**
- * FLOW-GENIUS-04 / AP-STAGE6-IJ / Stage 6 — Aporetic MnemosynePort.
+ * FLOW-GENIUS-04 / AP-STAGE6-IJ / AP-STAGE6-HOST-DB / Stage 6 — Aporetic MnemosynePort.
  *
  * Owns the retrieval → CitedRetrieval path for SessionRunner lean packs.
- * Does not open host `~/.config/opencode/mnemosyne/mnemosyne.db`, does not install,
- * does not stop shared services. External tree at C:\Perseus\mnemosyne remains a
- * discovery lead; this port is the Aporetic product boundary.
+ * Product default is built-in DEV-local shared memory (file-backed under Aporetic
+ * isolated DEV paths). Does **not** open host `~/.config/opencode/mnemosyne/mnemosyne.db`,
+ * does not install, does not stop shared services. External tree at C:\Perseus\mnemosyne
+ * remains a discovery lead; this port is the Aporetic product boundary.
  *
- * Host DB auto-open remains BLOCKED (no board authorization). I/J gates live in
- * packages/core/test/session-stage6-i.test.ts + session-runner J fixtures.
+ * I/J gates live in packages/core/test/session-stage6-i.test.ts + session-runner J fixtures.
  */
 export * as MnemosynePortModule from "./mnemosyne-port.js"
 
+import fs from "node:fs"
+import os from "node:os"
+import path from "node:path"
 import type { CitedRetrieval } from "../session/lean-pack.js"
 
 /** Bound how many cited hits enter the lean pack (Stage 6 budget). */
@@ -18,6 +21,15 @@ export const DEFAULT_RETRIEVAL_LIMIT = 4
 
 /** Bound excerpt chars per hit (honest truncate via lean-pack artifactPointer later). */
 export const DEFAULT_EXCERPT_CHARS = 280
+
+/** Host opencode plugin DB — never auto-opened by Aporetic DEV default. */
+export const HOST_OPENCODE_MNEMOSYNE_DB = path.join(
+  os.homedir(),
+  ".config",
+  "opencode",
+  "mnemosyne",
+  "mnemosyne.db",
+)
 
 export type MnemosyneScope = "project" | "team" | "bot" | "user" | "private" | string
 
@@ -72,6 +84,8 @@ export type MnemosynePort = {
   readonly search: (input: MnemosyneSearchInput) => ReadonlyArray<MnemosyneHit>
   readonly remember: (input: MnemosyneRememberInput) => { readonly id: string; readonly ok: true } | { readonly ok: false; readonly reason: string }
   readonly forget: (id: string) => { readonly ok: true; readonly forgotten: boolean } | { readonly ok: false; readonly reason: string }
+  /** Present on DEV-local / fixture stores for diagnostics (optional). */
+  readonly storePath?: () => string | undefined
 }
 
 export type MnemosyneSeed = {
@@ -191,13 +205,75 @@ type MutableRow = {
   deleted: boolean
 }
 
+type PersistFile = {
+  readonly version: 1
+  readonly rows: ReadonlyArray<MutableRow>
+}
+
+function normalizePath(p: string): string {
+  return path.normalize(p).toLowerCase()
+}
+
+/** Refuse host opencode plugin DB and other non-DEV product paths. */
+export function isForbiddenHostMnemosynePath(candidate: string): boolean {
+  const n = normalizePath(candidate)
+  if (n === normalizePath(HOST_OPENCODE_MNEMOSYNE_DB)) return true
+  if (n.includes(`${path.sep}opencode${path.sep}mnemosyne${path.sep}`) && n.endsWith("mnemosyne.db")) return true
+  return false
+}
+
 /**
- * In-memory / fixture MnemosynePort for isolated DEV unit tests.
- * Keyword overlap ranking — no substrate, no host DB, no install.
+ * Resolve isolated-DEV store path for built-in shared memory.
+ * Priority: APORETIC_MNEMOSYNE_PATH → XDG_STATE_HOME/aporetic/mnemosyne → ~/.local/share/aporetic-dev/mnemosyne.
+ * Returns undefined when unit-test ephemeral mode (OPENCODE_DB=:memory: without explicit path).
  */
-export function createFixtureMnemosynePort(seeds: ReadonlyArray<MnemosyneSeed> = []): MnemosynePort {
+export function resolveDevLocalMnemosynePath(): string | undefined {
+  const explicit = process.env.APORETIC_MNEMOSYNE_PATH?.trim()
+  if (explicit) {
+    if (isForbiddenHostMnemosynePath(explicit)) {
+      throw new Error(
+        `APORETIC_MNEMOSYNE_PATH refuses host opencode mnemosyne.db (${explicit}). Use an Aporetic DEV-local path.`,
+      )
+    }
+    return explicit
+  }
+  if (process.env.APORETIC_MNEMOSYNE_EPHEMERAL === "1") return undefined
+  const db = process.env.OPENCODE_DB ?? ""
+  if (db === ":memory:") return undefined
+
+  const xdgState = process.env.XDG_STATE_HOME?.trim()
+  if (xdgState) return path.join(xdgState, "aporetic", "mnemosyne", "store.json")
+
+  return path.join(os.homedir(), ".local", "share", "aporetic-dev", "mnemosyne", "store.json")
+}
+
+function loadRows(persistPath: string | undefined, seeds: ReadonlyArray<MnemosyneSeed>): Map<string, MutableRow> {
   const rows = new Map<string, MutableRow>()
-  let seq = 0
+  if (persistPath && fs.existsSync(persistPath)) {
+    try {
+      const raw = fs.readFileSync(persistPath, "utf8")
+      const parsed = JSON.parse(raw) as PersistFile
+      if (parsed?.version === 1 && Array.isArray(parsed.rows)) {
+        for (const row of parsed.rows) {
+          if (!row?.id) continue
+          rows.set(row.id, {
+            id: row.id,
+            body: row.body ?? "",
+            scope: row.scope ?? "project",
+            kind: row.kind ?? "note",
+            supersededBy: row.supersededBy,
+            trusted: row.trusted !== false,
+            eligibleBots: row.eligibleBots,
+            createdAt: row.createdAt ?? "restored",
+            deleted: Boolean(row.deleted),
+          })
+        }
+        return rows
+      }
+    } catch {
+      // Corrupt/partial file: start empty; do not invent memories.
+    }
+  }
   for (const seed of seeds) {
     rows.set(seed.id, {
       id: seed.id,
@@ -211,9 +287,42 @@ export function createFixtureMnemosynePort(seeds: ReadonlyArray<MnemosyneSeed> =
       deleted: false,
     })
   }
+  return rows
+}
+
+function flushRows(persistPath: string | undefined, rows: Map<string, MutableRow>): void {
+  if (!persistPath) return
+  fs.mkdirSync(path.dirname(persistPath), { recursive: true })
+  const payload: PersistFile = {
+    version: 1,
+    rows: [...rows.values()],
+  }
+  const tmp = `${persistPath}.${process.pid}.tmp`
+  fs.writeFileSync(tmp, JSON.stringify(payload, null, 2) + "\n", { encoding: "utf8", mode: 0o600 })
+  fs.renameSync(tmp, persistPath)
+}
+
+type MemoryPortOpts = {
+  readonly availability: MnemosyneAvailability
+  readonly seeds?: ReadonlyArray<MnemosyneSeed>
+  readonly persistPath?: string
+}
+
+/**
+ * In-memory / optional file-backed MnemosynePort.
+ * Keyword overlap ranking — no host opencode DB, no install, no embeddings substrate.
+ */
+function createMemoryBackedMnemosynePort(opts: MemoryPortOpts): MnemosynePort {
+  const persistPath = opts.persistPath
+  if (persistPath && isForbiddenHostMnemosynePath(persistPath)) {
+    throw new Error(`Refusing forbidden host Mnemosyne path: ${persistPath}`)
+  }
+  const rows = loadRows(persistPath, opts.seeds ?? [])
+  let seq = 0
 
   return {
-    availability: () => "mocked",
+    availability: () => opts.availability,
+    storePath: () => persistPath,
     search(input) {
       const limit = Math.max(0, Math.floor(input.limit ?? DEFAULT_RETRIEVAL_LIMIT))
       const scored: MnemosyneHit[] = []
@@ -256,7 +365,7 @@ export function createFixtureMnemosynePort(seeds: ReadonlyArray<MnemosyneSeed> =
         return { ok: false, reason: "untrusted evidence cannot become instruction" }
       }
       seq += 1
-      const id = input.id?.trim() || `mem_fix_${seq}`
+      const id = input.id?.trim() || `mem_${opts.availability === "mocked" ? "fix" : "dev"}_${seq}`
       if (input.supersedes) {
         const prior = rows.get(input.supersedes)
         if (prior && !prior.deleted) prior.supersededBy = id
@@ -271,15 +380,47 @@ export function createFixtureMnemosynePort(seeds: ReadonlyArray<MnemosyneSeed> =
         createdAt: new Date().toISOString(),
         deleted: false,
       })
+      flushRows(persistPath, rows)
       return { id, ok: true }
     },
     forget(id) {
       const row = rows.get(id)
       if (!row || row.deleted) return { ok: true, forgotten: false }
       row.deleted = true
+      flushRows(persistPath, rows)
       return { ok: true, forgotten: true }
     },
   }
+}
+
+/**
+ * In-memory / fixture MnemosynePort for isolated DEV unit tests.
+ * Keyword overlap ranking — no substrate, no host DB, no install.
+ */
+export function createFixtureMnemosynePort(seeds: ReadonlyArray<MnemosyneSeed> = []): MnemosynePort {
+  return createMemoryBackedMnemosynePort({ availability: "mocked", seeds })
+}
+
+/**
+ * Built-in shared memory for isolated DEV — durable JSON store under Aporetic paths.
+ * Auto-opens (creates parent dirs) on first write; reads empty store when file missing.
+ */
+export function createDevLocalMnemosynePort(
+  persistPath: string,
+  seeds: ReadonlyArray<MnemosyneSeed> = [],
+): MnemosynePort {
+  return createMemoryBackedMnemosynePort({
+    availability: "available",
+    persistPath,
+    seeds,
+  })
+}
+
+/** Ephemeral available port (unit tests / :memory: DB) — built-in shape without durable file. */
+export function createEphemeralAvailableMnemosynePort(
+  seeds: ReadonlyArray<MnemosyneSeed> = [],
+): MnemosynePort {
+  return createMemoryBackedMnemosynePort({ availability: "available", seeds })
 }
 
 /** Unavailable adapter — I-6 foundation; writes fail truthfully; search empty. */
@@ -289,18 +430,28 @@ export function createUnavailableMnemosynePort(reason = "Mnemosyne unavailable i
     search: () => [],
     remember: () => ({ ok: false, reason }),
     forget: () => ({ ok: false, reason }),
+    storePath: () => undefined,
   }
 }
 
 /**
- * Process default for SessionRunner auto-wire.
- * Starts unavailable (no host DB). Tests / DEV can replace via setDefaultMnemosynePort.
+ * Open the product-default MnemosynePort for SessionRunner auto-wire.
+ * Built-in DEV-local shared memory (available). Never opens host opencode mnemosyne.db.
  */
-let defaultPort: MnemosynePort = createUnavailableMnemosynePort(
-  "Default MnemosynePort is unavailable — inject fixture/DEV adapter; host mnemosyne.db not auto-opened",
-)
+export function openProductDefaultMnemosynePort(): MnemosynePort {
+  const resolved = resolveDevLocalMnemosynePath()
+  if (!resolved) return createEphemeralAvailableMnemosynePort()
+  return createDevLocalMnemosynePort(resolved)
+}
+
+/**
+ * Process default for SessionRunner auto-wire.
+ * Lazy product default = built-in DEV-local (available). Tests may replace via setDefaultMnemosynePort.
+ */
+let defaultPort: MnemosynePort | undefined
 
 export function getDefaultMnemosynePort(): MnemosynePort {
+  if (!defaultPort) defaultPort = openProductDefaultMnemosynePort()
   return defaultPort
 }
 
@@ -308,9 +459,7 @@ export function setDefaultMnemosynePort(port: MnemosynePort): void {
   defaultPort = port
 }
 
-/** Restore unavailable default (tests). */
+/** Restore product-default built-in port (tests). */
 export function resetDefaultMnemosynePort(): void {
-  defaultPort = createUnavailableMnemosynePort(
-    "Default MnemosynePort is unavailable — inject fixture/DEV adapter; host mnemosyne.db not auto-opened",
-  )
+  defaultPort = openProductDefaultMnemosynePort()
 }

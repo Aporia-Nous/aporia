@@ -196,8 +196,8 @@ describe("FLOW-GENIUS-03 mission fold (live DB auto-wire)", () => {
       expect(loaded!.pack.sections).toContain("objective")
       expect(loaded!.pack.sections).toContain("task")
       expect(loaded!.retrievalCount).toBe(0)
-      expect(loaded!.mnemosyneAvailability).toBe("unavailable")
-      // CE gate / Stage 5 not touched by this module; FG-04 map implemented, default port unavailable.
+      expect(loaded!.mnemosyneAvailability).toBe("available")
+      // CE gate / Stage 5 not touched by this module; product default is built-in DEV-local available.
       expect(mnemosyneMap().status).toBe("implemented")
     }),
   )
@@ -227,12 +227,10 @@ afterAll(() => {
     mnemosyne: mnemosyneMap(),
     autoWire: "SessionRunner drain + SessionGenerate via loadLeanPackForSession",
     residuals: [
-      "Mnemosyne product wire = FLOW-GENIUS-04 (this slice preserves fold; default port unavailable)",
-      "Stage 6 complete / I tests 1–7 / J acceptance not this slice",
-      "FLOW-GENIUS ranking mechanical-first proof may follow as later slice",
-      "await independent PASS",
+      "UI memory chrome residual OK",
+      "Host opencode mnemosyne.db remains refused (DEV-local built-in)",
     ],
-    notClaimed: ["independent PASS", "Stage 6 complete", "I tests 1-7", "merge", "push", "install"],
+    notClaimed: ["merge", "push", "install", "host opencode mnemosyne.db open"],
     stage5_ux_preserved: true,
     ce_gate_preserved: true,
     lean_pack_preserved: true,

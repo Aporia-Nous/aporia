@@ -264,7 +264,7 @@ export type LoadedMissionLeanPack = {
 /**
  * Load mission fold for a session and assemble the lean pack.
  * Returns undefined when the session has no mission link (honest no-op).
- * Mnemosyne: uses input.mnemosyne or getDefaultMnemosynePort() (unavailable by default).
+ * Mnemosyne: uses input.mnemosyne or getDefaultMnemosynePort() (built-in DEV-local available by default).
  */
 export const loadLeanPackForSession = Effect.fn("SessionMissionFold.loadLeanPackForSession")(function* (input: {
   readonly sessionID: string
