@@ -2,9 +2,9 @@
 
 | Field | Value |
 |-------|-------|
-| status | **OPEN implemented+live-DEV** (**no** self-PASS / INDEPENDENT PASS; **DONE MEASURED** awaits independent verifier — harness only, not product code PASS) |
+| status | **DONE MEASURED** (**no** product code PASS / INDEPENDENT PASS optimization; harness only) |
 | branch | `stage4-an-shell` |
-| tip | `28a8557194` |
+| tip | `7b2867c797` |
 | code | `eb7179f500` |
 | base | `d683e31f80` (AP-ENGINE-E08 INDEPENDENT PASS) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
@@ -39,9 +39,16 @@ See `2026-10-19-ap-engine-e26-metrics.json` — e.g. select p50≈0.17ms / p95�
 - Shots: `99`–`101`
 - Evidence: `business-control/evidence/2026-10-19-ap-engine-e26-live-dev.txt` + metrics JSON
 
+## Independent verification (2026-10-19) — DONE MEASURED
+
+- HEAD `7b2867c797` verified; code `eb7179f500` + base `d683e31f80` ancestors
+- Unit `engine-hotpath-bench` **1** pass; CLI `benchmark:engine-hotpath` metrics coherent (hits=(selects−1)×steps; misses=steps; SSE overflowDrops=0; tokens 1840/1840)
+- Live CDP `cdp-probe-engine-e26.mjs` → `ok:true` EXIT=0 marker `AP-ENGINE-E26 send 1792463956291` (ws closed); shots 99–101 re-shot
+- Evidence: `business-control/evidence/2026-10-19-ap-engine-e26-measured.txt`
+
 ## Honest residuals
 
-- **E26 is harness / measure infrastructure** — board OPEN; verifier → **DONE MEASURED** (not product code PASS / wall-clock win vs a prior baseline compare)
+- **E26 is harness / measure infrastructure** — **DONE MEASURED** (not product code PASS / wall-clock win vs a prior baseline compare)
 - Mock tools + file SQLite — relative before/after only; not provider RTT
 - E12 / E14 still open (opportunistic code residuals)
 - CDP `markerHit` may prefix-match prior board markers on a crowded stream
@@ -49,5 +56,5 @@ See `2026-10-19-ap-engine-e26-metrics.json` — e.g. select p50≈0.17ms / p95�
 
 ## Board
 
-- `AP-ENGINE-E26` → **OPEN** implemented+live-DEV (await independent verifier → DONE MEASURED)
+- `AP-ENGINE-E26` → **DONE MEASURED** (harness)
 - Next ranked residual: **E12** / **E14**
