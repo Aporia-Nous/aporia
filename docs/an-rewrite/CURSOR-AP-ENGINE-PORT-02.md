@@ -4,7 +4,7 @@
 |-------|-------|
 | status | **OPEN implemented+live-DEV** (NOT INDEPENDENT PASS; NOT self-PASS; **not** Stage 4 complete) |
 | branch | `stage4-an-shell` |
-| tip | `a560ea9824` (code commit; docs tip may follow) |
+| tip | `2ebc3094da` (docs; code `a560ea9824`) |
 | code | `a560ea9824` |
 | base | `4c42d1d289` (efficiency top-10 DONE / E13 tip) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
