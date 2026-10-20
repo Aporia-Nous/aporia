@@ -34,6 +34,44 @@ describe("AP-STAGE4-15 conversation stream items", () => {
     expect(live.find((c) => c.type === "computer")?.title).toBe("Computer")
   })
 
+  test("quietEntry attach offer + Team handoff only (AP-STAGE5-02)", () => {
+    const offer = buildContextCards({
+      shellMode: "conversation",
+      computerAttachPhase: "consenting",
+    })
+    expect(offer.map((c) => c.type)).toEqual(["computer"])
+    expect(offer[0]?.status).toBe("Attach offer")
+
+    const handoffMsgs = [
+      {
+        id: "a1",
+        type: "assistant",
+        time: { created: 1, completed: 2 },
+        agent: "orion",
+        model: { providerID: "t", modelID: "t" },
+        content: [{ type: "text", text: "starting" }],
+      },
+      {
+        id: "a2",
+        type: "assistant",
+        time: { created: 3, completed: 4 },
+        agent: "nova",
+        model: { providerID: "t", modelID: "t" },
+        content: [{ type: "text", text: "handoff" }],
+      },
+    ] as SessionMessageInfo[]
+    const handoff = buildContextCards({
+      shellMode: "conversation",
+      roster: [
+        { id: "orion", name: "Orion", role: "Lead", presence: "listening" },
+        { id: "nova", name: "Nova", role: "Dev", presence: "thinking" },
+      ],
+      messages: handoffMsgs,
+    })
+    expect(handoff.some((c) => c.type === "team")).toBe(true)
+    expect(handoff.find((c) => c.type === "team")?.detail).toBe("Orion → Nova")
+  })
+
   test("interleaves turns with tool Task/Proof then context cards", () => {
     const messages = [
       {

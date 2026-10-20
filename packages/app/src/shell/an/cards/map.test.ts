@@ -12,6 +12,12 @@ import {
   rosterToTeamCard,
   sessionToTaskCard,
   shouldIncludeComputerStreamCard,
+  shouldIncludeTeamStreamCard,
+  isQuietComputerEntry,
+  isBotUsingComputer,
+  userAskedComputerFromMessages,
+  detectTeamHandoff,
+  teamHandoffToCard,
   shouldSurfaceToolCard,
   toolPartToCard,
 } from "./map"
@@ -142,6 +148,89 @@ describe("AN card mapping", () => {
     expect(shouldIncludeComputerStreamCard({ shellMode: "view", live: true })).toBe(false)
     expect(shouldIncludeComputerStreamCard({ shellMode: "takeover", live: true })).toBe(false)
     expect(shouldIncludeComputerStreamCard({ shellMode: "conversation", quietEntry: true })).toBe(true)
+  })
+
+  test("quietEntry covers attach offer / bot using / user asked (AP-STAGE5-02)", () => {
+    expect(isQuietComputerEntry()).toBe(false)
+    expect(isQuietComputerEntry({ attachPhase: "disconnected" })).toBe(false)
+    expect(isQuietComputerEntry({ attachPhase: "consenting" })).toBe(true)
+    expect(isQuietComputerEntry({ botUsingComputer: true })).toBe(true)
+    expect(isQuietComputerEntry({ userAskedComputer: true })).toBe(true)
+
+    expect(isBotUsingComputer({ live: true, controller: "bot" })).toBe(true)
+    expect(isBotUsingComputer({ live: true, controller: "user" })).toBe(false)
+    expect(isBotUsingComputer({ live: false, controller: "bot" })).toBe(false)
+
+    const asked = [
+      { id: "u1", type: "user", time: { created: 1 }, text: "Please open Computer View and watch the browser" },
+    ] as SessionMessageInfo[]
+    expect(userAskedComputerFromMessages(asked)).toBe(true)
+    expect(userAskedComputerFromMessages([{ id: "u2", type: "user", time: { created: 1 }, text: "hello" }] as SessionMessageInfo[])).toBe(
+      false,
+    )
+
+    const offer = buildStreamCards({
+      shellMode: "conversation",
+      computerAttachPhase: "consenting",
+    })
+    expect(offer.map((c) => c.type)).toEqual(["computer"])
+    expect(offer[0]?.status).toBe("Attach offer")
+    expect(offer[0]?.title).toBe("Computer")
+
+    const askedCards = buildStreamCards({
+      shellMode: "conversation",
+      messages: asked,
+    })
+    expect(askedCards.some((c) => c.type === "computer")).toBe(true)
+
+    const viewOffer = buildStreamCards({
+      shellMode: "view",
+      computerAttachPhase: "consenting",
+    })
+    expect(viewOffer.some((c) => c.type === "computer")).toBe(false)
+  })
+
+  test("Team card only on real agent handoff (AP-STAGE5-02)", () => {
+    expect(shouldIncludeTeamStreamCard()).toBe(false)
+    expect(shouldIncludeTeamStreamCard({ includeTeam: true })).toBe(true)
+    expect(shouldIncludeTeamStreamCard({ teamHandoff: true })).toBe(true)
+
+    const noSwitch = [
+      { id: "a1", type: "assistant", time: { created: 1, completed: 2 }, agent: "orion", model: { providerID: "t", modelID: "t" }, content: [{ type: "text", text: "hi" }] },
+      { id: "a2", type: "assistant", time: { created: 3, completed: 4 }, agent: "orion", model: { providerID: "t", modelID: "t" }, content: [{ type: "text", text: "still me" }] },
+    ] as SessionMessageInfo[]
+    expect(detectTeamHandoff(noSwitch)).toBeUndefined()
+
+    const switched = [
+      { id: "a1", type: "assistant", time: { created: 1, completed: 2 }, agent: "orion", model: { providerID: "t", modelID: "t" }, content: [{ type: "text", text: "hi" }] },
+      { id: "a2", type: "assistant", time: { created: 3, completed: 4 }, agent: "nova", model: { providerID: "t", modelID: "t" }, content: [{ type: "text", text: "taking over" }] },
+    ] as SessionMessageInfo[]
+    const handoff = detectTeamHandoff(switched)
+    expect(handoff).toEqual({ fromAgent: "orion", toAgent: "nova" })
+
+    const roster = [
+      { id: "orion", name: "Orion", role: "Lead", presence: "listening" as const },
+      { id: "nova", name: "Nova", role: "Dev", presence: "thinking" as const },
+    ]
+    const card = teamHandoffToCard(handoff!, roster)
+    expect(card.title).toBe("Team handoff")
+    expect(card.detail).toBe("Orion → Nova")
+    expect(card.status).toBe("Handoff")
+
+    const idle = buildStreamCards({
+      shellMode: "conversation",
+      roster,
+      messages: noSwitch,
+    })
+    expect(idle.some((c) => c.type === "team")).toBe(false)
+
+    const withHandoff = buildStreamCards({
+      shellMode: "conversation",
+      roster,
+      messages: switched,
+    })
+    expect(withHandoff.some((c) => c.type === "team")).toBe(true)
+    expect(withHandoff.find((c) => c.type === "team")?.title).toBe("Team handoff")
   })
 
   test("mission pills mark Private/Efficient/Verified unavailable", () => {

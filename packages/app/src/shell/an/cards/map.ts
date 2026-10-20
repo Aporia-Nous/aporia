@@ -260,8 +260,8 @@ export function sessionToTaskCard(input: {
 }
 
 /**
- * AP-STAGE5-01 Option C: stream Computer card residency.
- * Conversation only, and only when relevant (Live / feed / Takeover lock) or explicit quiet entry.
+ * AP-STAGE5-01/02 Option C: stream Computer card residency.
+ * Conversation only, and only when relevant (Live / feed / Takeover lock) or quiet entry.
  * View / Takeover keep ONE live panel — never duplicate a Computer card in the stream.
  * Status/Inline densities are event cards, not shell modes.
  */
@@ -270,7 +270,7 @@ export function shouldIncludeComputerStreamCard(input?: {
   live?: boolean
   feedActive?: boolean
   userControl?: boolean
-  /** Rare override: quiet entry chip even when idle (still Conversation-only). */
+  /** Quiet Status entry: bot using / user asked / Live attach offer (Conversation-only). */
   quietEntry?: boolean
 }): boolean {
   const mode = input?.shellMode
@@ -279,20 +279,114 @@ export function shouldIncludeComputerStreamCard(input?: {
   return !!(input?.live || input?.feedActive || input?.userControl)
 }
 
+/** User intent phrases that request Computer (quiet entry — not wallpaper). */
+const COMPUTER_ASK_RE =
+  /\b(computer\s*view|take\s*control|takeover|go\s*live|attach(\s+(a|the|my))?\s*(browser|computer)|open(\s+(the|a))?\s*(computer|browser|side\s*panel)|use(\s+(the|a))?\s*(computer|browser)|watch(\s+(the|a))?\s*(screen|browser|computer))\b/i
+
+/**
+ * AP-STAGE5-02: recent user turns asked for Computer / attach / Takeover.
+ * Lookback caps wallpaper risk from ancient transcript noise.
+ */
+export function userAskedComputerFromMessages(
+  messages: readonly SessionMessageInfo[] | undefined,
+  lookback = 8,
+): boolean {
+  if (!messages?.length) return false
+  let seen = 0
+  for (let i = messages.length - 1; i >= 0 && seen < lookback; i--) {
+    const msg = messages[i]
+    if (!msg || msg.type !== "user") continue
+    seen++
+    const text = typeof msg.text === "string" ? msg.text : ""
+    if (text && COMPUTER_ASK_RE.test(text)) return true
+  }
+  return false
+}
+
+/** Bot holds / may drive Live computer (Status density — not permanent wallpaper). */
+export function isBotUsingComputer(input?: {
+  live?: boolean
+  controller?: "none" | "bot" | "user"
+  userControl?: boolean
+}): boolean {
+  if (!input?.live) return false
+  if (input.userControl || input.controller === "user") return false
+  return input.controller === "bot" || input.controller === "none" || input.controller === undefined
+}
+
+/**
+ * AP-STAGE5-02 quiet Computer entry (Status density).
+ * True for: Live attach offer (consenting), bot using computer, or user asked.
+ * Idle disconnected Conversation stays quiet — no ambient wallpaper.
+ */
+export function isQuietComputerEntry(input?: {
+  attachPhase?: "disconnected" | "consenting" | "attached"
+  botUsingComputer?: boolean
+  userAskedComputer?: boolean
+}): boolean {
+  if (input?.attachPhase === "consenting") return true
+  if (input?.botUsingComputer) return true
+  if (input?.userAskedComputer) return true
+  return false
+}
+
+/** Agent switch in assistant turns — real Team handoff (not roster wallpaper). */
+export type AnTeamHandoff = {
+  fromAgent: string
+  toAgent: string
+}
+
+export function detectTeamHandoff(
+  messages: readonly SessionMessageInfo[] | undefined,
+): AnTeamHandoff | undefined {
+  if (!messages?.length) return undefined
+  let lastAgent: string | undefined
+  for (const msg of messages) {
+    if (!msg || msg.type !== "assistant") continue
+    const agent = typeof msg.agent === "string" ? msg.agent.trim() : ""
+    if (!agent) continue
+    if (lastAgent && lastAgent !== agent) {
+      return { fromAgent: lastAgent, toAgent: agent }
+    }
+    lastAgent = agent
+  }
+  return undefined
+}
+
+/** Team stream card only on real handoffs (or explicit includeTeam). */
+export function shouldIncludeTeamStreamCard(input?: {
+  includeTeam?: boolean
+  teamHandoff?: boolean | AnTeamHandoff
+}): boolean {
+  if (input?.includeTeam === true) return true
+  if (input?.includeTeam === false) return false
+  return !!input?.teamHandoff
+}
+
+function teammateLabel(id: string, members: readonly AnRosterMember[]): string {
+  const hit = members.find((m) => m.id === id || m.name.toLowerCase() === id.toLowerCase())
+  return hit?.name?.trim() || id
+}
+
 /** Stream Computer card (quiet entry / relevant status) — never titled "Computer View". */
 export function computerToCard(input?: {
   live?: boolean
   feedActive?: boolean
   /** AP-BF-03: user holds control lock (Takeover). */
   userControl?: boolean
+  /** AP-STAGE5-02: consenting = Live attach offer quiet entry. */
+  attachPhase?: "disconnected" | "consenting" | "attached"
   title?: string
   detail?: string
 }): AnCardModel {
   const live = !!input?.live
   const feedActive = !!input?.feedActive
   const userControl = !!input?.userControl
+  const consenting = input?.attachPhase === "consenting"
   const detailDefault = !live
-    ? "No live attach — connect a local browser workspace to go Live."
+    ? consenting
+      ? "Live attach offer — confirm a local browser workspace to go Live."
+      : "No live attach — connect a local browser workspace to go Live."
     : userControl
       ? "You hold the control lock (Takeover). Bot is paused until Hand back or Stop."
       : feedActive
@@ -303,8 +397,8 @@ export function computerToCard(input?: {
     type: "computer",
     title: input?.title?.trim() || "Computer",
     detail: input?.detail?.trim() || detailDefault,
-    status: live ? (userControl ? "You control" : "Live") : "Unavailable",
-    statusTone: live ? "ok" : "neutral",
+    status: live ? (userControl ? "You control" : "Live") : consenting ? "Attach offer" : "Unavailable",
+    statusTone: live ? "ok" : consenting ? "warn" : "neutral",
     source: "computer",
     actions: [
       {
@@ -312,13 +406,17 @@ export function computerToCard(input?: {
         label: "Open in Computer View",
         variant: "secondary",
         stub: !live,
-        stubReason: live ? undefined : "No browser workspace attached — open Computer View from the mode switcher.",
+        stubReason: live
+          ? undefined
+          : consenting
+            ? "Confirm attach in Computer View to go Live."
+            : "No browser workspace attached — open Computer View from the mode switcher.",
       },
     ],
   }
 }
 
-/** Roster → Team card summary (Configure stub). */
+/** Roster → Team card summary (Configure stub). Prefer teamHandoffToCard for real handoffs. */
 export function rosterToTeamCard(members: readonly AnRosterMember[]): AnCardModel | undefined {
   if (members.length === 0) return undefined
   return {
@@ -346,9 +444,40 @@ export function rosterToTeamCard(members: readonly AnRosterMember[]): AnCardMode
   }
 }
 
+/** AP-STAGE5-02: Team card only when a real agent handoff is observed. */
+export function teamHandoffToCard(
+  handoff: AnTeamHandoff,
+  members: readonly AnRosterMember[] = [],
+): AnCardModel {
+  const from = teammateLabel(handoff.fromAgent, members)
+  const to = teammateLabel(handoff.toAgent, members)
+  return {
+    id: `team:handoff:${handoff.fromAgent}->${handoff.toAgent}`,
+    type: "team",
+    title: "Team handoff",
+    detail: `${from} → ${to}`,
+    status: "Handoff",
+    statusTone: "ok",
+    source: "roster",
+    members: members.slice(0, 6).map((m) => ({ id: m.id, name: m.name, avatar: m.avatar })),
+    actions: [
+      {
+        id: "configure",
+        label: "Configure",
+        variant: "primary",
+      },
+      {
+        id: "new-teammate",
+        label: "New teammate",
+        variant: "ghost",
+      },
+    ],
+  }
+}
+
 /**
  * Build stream card stack for AnShell — real sources only.
- * AP-STAGE5-01 Option C: Computer/Team are NOT wallpaper — Computer when relevant; Team on handoffs only.
+ * AP-STAGE5-01/02 Option C: Computer/Team are NOT wallpaper — Computer when relevant; Team on handoffs only.
  */
 export function buildStreamCards(input: {
   attention?: readonly AnAttentionItem[]
@@ -359,13 +488,19 @@ export function buildStreamCards(input: {
   computerFeedActive?: boolean
   /** AP-BF-03: user holds Takeover control lock. */
   computerUserControl?: boolean
+  /** AP-BF-03 controller for bot-using quiet entry. */
+  computerController?: "none" | "bot" | "user"
+  /** AP-BF-01 attach phase — consenting = Live attach offer quiet entry. */
+  computerAttachPhase?: "disconnected" | "consenting" | "attached"
   /** Shell mode — View/Takeover suppress stream Computer (one live panel). */
   shellMode?: string
   /** Explicit override; default = residency helper (relevant only). */
   includeComputer?: boolean
   quietComputerEntry?: boolean
-  /** Team card only on handoffs/events (default false — no wallpaper). */
+  /** Team card only on handoffs/events (default: detect agent handoff — no wallpaper). */
   includeTeam?: boolean
+  /** Explicit handoff; default = detectTeamHandoff(messages). */
+  teamHandoff?: AnTeamHandoff | boolean
   /** When true and no edit/proof tools exist, append honest Proof · unavailable (default false — avoid clutter). */
   includeProofUnavailable?: boolean
 }): AnCardModel[] {
@@ -378,6 +513,18 @@ export function buildStreamCards(input: {
   if (input.includeProofUnavailable && !partCards.some((c) => c.type === "proof")) {
     cards.push(messageProofUnavailableCard())
   }
+  const quietEntry =
+    input.quietComputerEntry === true ||
+    (input.quietComputerEntry !== false &&
+      isQuietComputerEntry({
+        attachPhase: input.computerAttachPhase,
+        botUsingComputer: isBotUsingComputer({
+          live: input.computerLive,
+          controller: input.computerController,
+          userControl: input.computerUserControl,
+        }),
+        userAskedComputer: userAskedComputerFromMessages(input.messages),
+      }))
   const includeComputer =
     input.includeComputer === true ||
     (input.includeComputer !== false &&
@@ -386,7 +533,7 @@ export function buildStreamCards(input: {
         live: input.computerLive,
         feedActive: input.computerFeedActive,
         userControl: input.computerUserControl,
-        quietEntry: input.quietComputerEntry,
+        quietEntry,
       }))
   if (includeComputer) {
     cards.push(
@@ -394,11 +541,24 @@ export function buildStreamCards(input: {
         live: input.computerLive,
         feedActive: input.computerFeedActive,
         userControl: input.computerUserControl,
+        attachPhase: input.computerAttachPhase,
       }),
     )
   }
-  if (input.includeTeam === true) {
-    const team = rosterToTeamCard(input.roster ?? [])
+  const detectedHandoff =
+    typeof input.teamHandoff === "object" && input.teamHandoff
+      ? input.teamHandoff
+      : input.teamHandoff === true
+        ? undefined
+        : detectTeamHandoff(input.messages)
+  const includeTeam = shouldIncludeTeamStreamCard({
+    includeTeam: input.includeTeam,
+    teamHandoff: input.teamHandoff === true || detectedHandoff,
+  })
+  if (includeTeam) {
+    const team = detectedHandoff
+      ? teamHandoffToCard(detectedHandoff, input.roster ?? [])
+      : rosterToTeamCard(input.roster ?? [])
     if (team) cards.push(team)
   }
   return cards

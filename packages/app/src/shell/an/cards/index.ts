@@ -17,13 +17,20 @@ export {
   sessionToTaskCard,
   computerToCard,
   rosterToTeamCard,
+  teamHandoffToCard,
   toolPartToCard,
   messagesToPartCards,
   messageProofUnavailableCard,
   shouldIncludeComputerStreamCard,
+  shouldIncludeTeamStreamCard,
   shouldSurfaceToolCard,
+  isQuietComputerEntry,
+  isBotUsingComputer,
+  userAskedComputerFromMessages,
+  detectTeamHandoff,
   buildStreamCards,
   missionChromePills,
+  type AnTeamHandoff,
 } from "./map"
 export { AnCard, AnCardStack, type AnCardProps } from "./an-card"
 export { AnStreamCards } from "./stream-cards"

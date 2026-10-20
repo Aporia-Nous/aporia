@@ -2,13 +2,20 @@ import type { SessionMessageAssistantTool, SessionMessageInfo } from "@opencode/
 import {
   attentionToApprovalCards,
   computerToCard,
+  detectTeamHandoff,
+  isBotUsingComputer,
+  isQuietComputerEntry,
   messageProofUnavailableCard,
   messagesToPartCards,
   rosterToTeamCard,
   sessionToTaskCard,
   shouldIncludeComputerStreamCard,
+  shouldIncludeTeamStreamCard,
   shouldSurfaceToolCard,
+  teamHandoffToCard,
   toolPartToCard,
+  userAskedComputerFromMessages,
+  type AnTeamHandoff,
 } from "./cards/map"
 import type { AnCardModel } from "./cards/types"
 import { messagesToConversationTurns, type AnConversationTurn } from "./conversation-turns"
@@ -22,20 +29,24 @@ export type AnStreamItem =
 /**
  * Context cards not derived from a specific message tool part
  * (session task, attention, optional computer/team, optional proof unavailable).
- * AP-STAGE5-01 Option C: Computer when relevant; Team on handoffs only — no wallpaper.
+ * AP-STAGE5-01/02 Option C: Computer when relevant; Team on handoffs only — no wallpaper.
  */
 export function buildContextCards(input: {
   attention?: readonly AnAttentionItem[]
   roster?: readonly AnRosterMember[]
   session?: { sessionID?: string; title?: string; agent?: string; working?: boolean }
+  messages?: readonly SessionMessageInfo[]
   computerLive?: boolean
   computerFeedActive?: boolean
   computerUserControl?: boolean
+  computerController?: "none" | "bot" | "user"
+  computerAttachPhase?: "disconnected" | "consenting" | "attached"
   shellMode?: string
   includeComputer?: boolean
   quietComputerEntry?: boolean
-  /** Team card only on handoffs/events (default false). */
+  /** Team card only on handoffs/events (default: detect agent handoff). */
   includeTeam?: boolean
+  teamHandoff?: AnTeamHandoff | boolean
   includeProofUnavailable?: boolean
 }): AnCardModel[] {
   const cards: AnCardModel[] = []
@@ -45,6 +56,18 @@ export function buildContextCards(input: {
   if (input.includeProofUnavailable) {
     cards.push(messageProofUnavailableCard())
   }
+  const quietEntry =
+    input.quietComputerEntry === true ||
+    (input.quietComputerEntry !== false &&
+      isQuietComputerEntry({
+        attachPhase: input.computerAttachPhase,
+        botUsingComputer: isBotUsingComputer({
+          live: input.computerLive,
+          controller: input.computerController,
+          userControl: input.computerUserControl,
+        }),
+        userAskedComputer: userAskedComputerFromMessages(input.messages),
+      }))
   const includeComputer =
     input.includeComputer === true ||
     (input.includeComputer !== false &&
@@ -53,7 +76,7 @@ export function buildContextCards(input: {
         live: input.computerLive,
         feedActive: input.computerFeedActive,
         userControl: input.computerUserControl,
-        quietEntry: input.quietComputerEntry,
+        quietEntry,
       }))
   if (includeComputer) {
     cards.push(
@@ -61,11 +84,24 @@ export function buildContextCards(input: {
         live: input.computerLive,
         feedActive: input.computerFeedActive,
         userControl: input.computerUserControl,
+        attachPhase: input.computerAttachPhase,
       }),
     )
   }
-  if (input.includeTeam === true) {
-    const team = rosterToTeamCard(input.roster ?? [])
+  const detectedHandoff =
+    typeof input.teamHandoff === "object" && input.teamHandoff
+      ? input.teamHandoff
+      : input.teamHandoff === true
+        ? undefined
+        : detectTeamHandoff(input.messages)
+  const includeTeam = shouldIncludeTeamStreamCard({
+    includeTeam: input.includeTeam,
+    teamHandoff: input.teamHandoff === true || detectedHandoff,
+  })
+  if (includeTeam) {
+    const team = detectedHandoff
+      ? teamHandoffToCard(detectedHandoff, input.roster ?? [])
+      : rosterToTeamCard(input.roster ?? [])
     if (team) cards.push(team)
   }
   return cards

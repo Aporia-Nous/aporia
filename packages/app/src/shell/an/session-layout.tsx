@@ -841,9 +841,10 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       computerLive: computerLive(),
       computerFeedActive: computerFeedActive(),
       computerUserControl: computerUserInput(),
+      computerController: computerControl().controller,
+      computerAttachPhase: computerAttach().phase,
       shellMode: mode(),
-      // AP-STAGE5-01 Option C: Team only on handoffs (none yet); Computer via residency helper.
-      includeTeam: false,
+      // AP-STAGE5-02 Option C: quietEntry + Team handoff via residency helpers (no wallpaper).
     }),
   )
 
@@ -858,11 +859,13 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         agent: currentAgent(),
         working: props.view.working(),
       },
+      messages: sessionMessages(),
       computerLive: computerLive(),
       computerFeedActive: computerFeedActive(),
       computerUserControl: computerUserInput(),
+      computerController: computerControl().controller,
+      computerAttachPhase: computerAttach().phase,
       shellMode: mode(),
-      includeTeam: false,
     }),
   )
 
