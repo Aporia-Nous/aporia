@@ -1,8 +1,10 @@
 /**
- * AP-ENGINE-PORT-01/02: thin AnShell ↔ OC-server ingress.
+ * AP-ENGINE-PORT-01/02/03: thin AnShell ↔ OC-server ingress.
  * SessionRunner / providers / tools / DB stay behind OcServerEnginePort.
  * Single writer for AnShell prompt + message list — no parallel ad-hoc data.session.prompt from shell cards.
  * PORT-02: providers / models / BYOK read+connect via port (AN Settings does not mount OC Settings React).
+ * PORT-03: subscribe is the AnShell session-event surface; reconnect sync shrink pairs with E21
+ * (pinned-only dir queue + coalesced bootstrap — no dual all-dir poll storm under AnShell).
  */
 
 import type { Data } from "@opencode/client/solid"
@@ -61,7 +63,7 @@ export type EngineConnectByokInput = {
 
 /**
  * AN-owned port surface. Names flexible; shape locked for AnShell send/stream/session + Settings.
- * Optional subscribe lands for PORT-03 event shrink.
+ * PORT-03: subscribe is required for AnShell session-event shrink (single writer).
  */
 export type EnginePort = {
   listSessions(): SessionInfo[]
@@ -78,5 +80,11 @@ export type EnginePort = {
   syncCatalog?(location?: EngineLocationRef): Promise<void>
   /** PORT-02: BYOK API-key connect (delegates to OC integration.connect.key). */
   connectByok?(input: EngineConnectByokInput): Promise<void>
-  subscribe?(handler: (event: EngineEvent) => void): () => void
+  /** PORT-03: single AnShell subscribe surface for session/stream/status/provider ticks. */
+  subscribe(handler: (event: EngineEvent) => void): () => void
+  /**
+   * PORT-03: optional forward of OC server bus events into subscribe (session/message).
+   * Lets AnShell avoid a second raw event.listen for stream refresh.
+   */
+  observeServerEvent?(event: { type: string; data?: { sessionID?: string } }): void
 }

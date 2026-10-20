@@ -37,10 +37,10 @@ export function AnSettingsPanel(props: AnSettingsPanelProps): JSX.Element {
   })
 
   createEffect(() => {
-    const unsub = engine.subscribe?.((event) => {
+    const unsub = engine.subscribe((event) => {
       if (event.type === "providers.changed") setTick((n) => n + 1)
     })
-    onCleanup(() => unsub?.())
+    onCleanup(unsub)
   })
 
   const providers = createMemo(() => {

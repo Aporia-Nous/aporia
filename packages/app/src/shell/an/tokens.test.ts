@@ -13,6 +13,7 @@ import {
   AN_PRESENCE_PERSONALITY,
   AN_REVIEW_CONTENT_SURFACE,
   AN_REVIEW_SURFACE,
+  AN_ENGINE_PORT,
   AN_SETTINGS_SURFACE,
   AN_PRODUCT_BYLINE,
   AN_PRODUCT_NAME,
@@ -188,6 +189,7 @@ describe("AN Stage 4 tokens", () => {
     expect(AN_REVIEW_CONTENT_SURFACE.slice).toBe("AP-STAGE4-19")
     expect(AN_REVIEW_CONTENT_SURFACE.fullerDocuments).toBe(true)
     expect(AN_REVIEW_CONTENT_SURFACE.docxTextExtract).toBe(true)
+    expect(AN_ENGINE_PORT).toBe("03")
     expect(AN_SETTINGS_SURFACE.ownedAttr).toBe('data-an-owned="settings"')
     expect(AN_SETTINGS_SURFACE.partAttr).toBe('data-an-part="settings"')
     expect(AN_SETTINGS_SURFACE.slice).toBe("AP-ENGINE-PORT-02")

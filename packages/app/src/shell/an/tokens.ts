@@ -222,6 +222,12 @@ export const AN_REVIEW_CONTENT_SURFACE = {
 } as const
 
 /**
+ * AP-ENGINE-PORT-03: session shell marker — dual-sync shrink + single session-event writer (with E21).
+ * Settings host keeps AN_SETTINGS_SURFACE.enginePort = "02".
+ */
+export const AN_ENGINE_PORT = "03" as const
+
+/**
  * AP-STAGE4-19 skin → AP-ENGINE-PORT-02 native AN Settings host (EnginePort; no OC Settings React).
  */
 export const AN_SETTINGS_SURFACE = {

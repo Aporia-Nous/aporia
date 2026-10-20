@@ -17,7 +17,12 @@ import type { ServerScope } from "@/runtime/server/scope"
 import { persisted } from "@/runtime/persistence/storage"
 import type { ServerApi } from "@/runtime/server/api"
 import { toggleMcp } from "./global-sync/mcp"
-import { createConnectionSync, reconnectOrder } from "./server-sync/connection"
+import {
+  createCoalescedRunner,
+  createConnectionSync,
+  reconnectBootstrapDebounceMs,
+  reconnectSyncDirectories,
+} from "./server-sync/connection"
 import { usePlatform } from "@/runtime/platform/platform"
 import type { Data } from "@opencode/client/solid"
 import { createWorktreeInventory, withWorktreeInventory, worktreeInventoryViewKey } from "@/workspaces/inventory"
@@ -169,6 +174,12 @@ export function createServerSyncContextInner(serverSDK: ServerSDK, data: Data) {
     },
   })
 
+  // E21 / PORT-03: coalesce bootstrap refetch on reconnect; first-connect path stays immediate.
+  const coalescedBootstrap = createCoalescedRunner(reconnectBootstrapDebounceMs, () => {
+    if (bootstrap.data !== undefined && !bootstrap.isFetching) void bootstrap.refetch()
+  })
+  onCleanup(() => coalescedBootstrap.cancel())
+
   const connection = createConnectionSync({
     status: serverSDK.connection.status,
     invalidate: () => {
@@ -178,12 +189,15 @@ export function createServerSyncContextInner(serverSDK: ServerSDK, data: Data) {
       })
     },
     connected: (info) => {
-      if (bootstrap.data !== undefined && !bootstrap.isFetching) void bootstrap.refetch()
-      // The refresh queue re-syncs two directories at a time, held ones first. Syncing every active
-      // directory here as well sent the whole catalog fan-out for all of them at once.
-      reconnectOrder(Object.keys(children.children).filter(children.active), children.pinned).forEach((directory) =>
-        queue.push(directory),
-      )
+      // Prefer durable/live catch-up + pinned dir sync over an immediate all-dir bootstrap storm.
+      if (info.reconnect) coalescedBootstrap.schedule()
+      else if (bootstrap.data !== undefined && !bootstrap.isFetching) void bootstrap.refetch()
+      // Queue concurrency stays 2. Reconnect: pinned/held only (defer inactive until access).
+      reconnectSyncDirectories(
+        Object.keys(children.children).filter(children.active),
+        children.pinned,
+        { reconnect: info.reconnect },
+      ).forEach((directory) => queue.push(directory))
     },
   })
 

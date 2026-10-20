@@ -1,7 +1,9 @@
 /**
- * AP-ENGINE-PORT-01/02: first adapter — delegates to existing data.session / location sync.
+ * AP-ENGINE-PORT-01/02/03: first adapter — delegates to existing data.session / location sync.
  * No new agent loop. OC server + packages/core SessionRunner remain authoritative.
  * PORT-02 adds providers/models/BYOK via location catalog + optional connectKey hook.
+ * PORT-03: subscribe + observeServerEvent — single AnShell session-event writer surface;
+ * pairs with E21 reconnect pinned-dir sync (no dual all-dir poll from AnShell).
  */
 
 import type { Data } from "@opencode/client/solid"
@@ -214,6 +216,46 @@ export function createOcServerEnginePort(data: OcServerData, options?: OcServerE
       listeners.add(handler)
       return () => {
         listeners.delete(handler)
+      }
+    },
+
+    observeServerEvent(event: { type: string; data?: { sessionID?: string } }) {
+      const sessionID = event.data?.sessionID
+      if (!sessionID) return
+      // Skip high-frequency deltas — solid Data already patches the message store; AnShell
+      // stream memos track that store. PORT-03 subscribe is for coarse session/status ticks only.
+      if (
+        event.type.endsWith(".delta") ||
+        event.type.endsWith(".progress") ||
+        event.type.endsWith(".streamed")
+      ) {
+        return
+      }
+      if (
+        event.type.startsWith("message.") ||
+        event.type === "session.text.ended" ||
+        event.type === "session.tool.called" ||
+        event.type === "session.tool.success" ||
+        event.type === "session.tool.failed" ||
+        event.type === "session.tool.input.ended" ||
+        event.type === "session.step.ended" ||
+        event.type === "session.step.failed" ||
+        event.type === "session.reasoning.ended" ||
+        event.type === "session.compaction.ended" ||
+        event.type === "session.compaction.failed" ||
+        event.type === "session.deleted" ||
+        event.type === "session.renamed" ||
+        event.type === "session.revert.committed"
+      ) {
+        emit({ type: "messages.changed", sessionID })
+      }
+      if (
+        event.type.startsWith("session.execution.") ||
+        event.type === "session.step.started" ||
+        event.type === "session.step.ended" ||
+        event.type === "session.step.failed"
+      ) {
+        emit({ type: "status.changed", sessionID })
       }
     },
   }

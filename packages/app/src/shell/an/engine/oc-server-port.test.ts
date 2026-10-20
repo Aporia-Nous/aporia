@@ -169,11 +169,29 @@ describe("AP-ENGINE-PORT-01 OcServerEnginePort", () => {
     const { data } = mockData()
     const engine = createOcServerEnginePort(data)
     const events: string[] = []
-    const unsub = engine.subscribe?.((e) => events.push(e.type))
+    const unsub = engine.subscribe((e) => events.push(e.type))
     await engine.prompt({ sessionID: "ses_1", text: "x", id: "m1" })
-    unsub?.()
+    unsub()
     expect(events).toContain("messages.changed")
     expect(events).toContain("status.changed")
+  })
+})
+
+describe("AP-ENGINE-PORT-03 OcServerEnginePort event shrink", () => {
+  test("observeServerEvent forwards coarse session events; skips deltas", () => {
+    const { data } = mockData()
+    const engine = createOcServerEnginePort(data)
+    const events: Array<{ type: string; sessionID?: string }> = []
+    const unsub = engine.subscribe((e) =>
+      events.push({ type: e.type, sessionID: "sessionID" in e ? e.sessionID : undefined }),
+    )
+    engine.observeServerEvent?.({ type: "session.text.delta", data: { sessionID: "ses_1" } })
+    engine.observeServerEvent?.({ type: "session.text.ended", data: { sessionID: "ses_1" } })
+    engine.observeServerEvent?.({ type: "session.execution.started", data: { sessionID: "ses_1" } })
+    engine.observeServerEvent?.({ type: "project.updated", data: {} })
+    unsub()
+    expect(events.filter((e) => e.type === "messages.changed").map((e) => e.sessionID)).toEqual(["ses_1"])
+    expect(events.filter((e) => e.type === "status.changed").map((e) => e.sessionID)).toEqual(["ses_1"])
   })
 })
 

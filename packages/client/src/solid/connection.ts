@@ -30,12 +30,26 @@ export type ClientConnectionOptions = {
 }
 
 const connectTimeout = 2_000
-const reconnectDelay = 1_000
+/** First reconnect wait; also the exponential base (E21). */
+export const reconnectBaseDelayMs = 1_000
+/** Cap for exponential reconnect backoff (E21). */
+export const reconnectMaxDelayMs = 15_000
 const connectionHistoryLimit = 50
 export const defaultIdleTimeout = 45_000
 // Longer than one server keepalive interval: a stream that is silent this long when the page
 // returns to the foreground is probably half-open after the device slept.
 export const foregroundIdleThreshold = 20_000
+
+/**
+ * E21: flat 1s on attempt 1; exponential with jitter from attempt ≥ 2, capped at 15s.
+ * Forced resync skips this wait entirely (see runStream).
+ */
+export function reconnectBackoffMs(attempt: number, random: () => number = Math.random): number {
+  if (attempt < 2) return reconnectBaseDelayMs
+  const exp = reconnectBaseDelayMs * 2 ** (attempt - 1)
+  const capped = Math.min(reconnectMaxDelayMs, exp)
+  return Math.floor(capped * (0.5 + random() * 0.5))
+}
 
 export function createClientConnection(initialApi: OpenCodeClient, options: ClientConnectionOptions) {
   const abort = new AbortController()
@@ -155,7 +169,7 @@ export function createClientConnection(initialApi: OpenCodeClient, options: Clie
       const result = await connect(controller.signal, attempt)
       abort.signal.removeEventListener("abort", cancel)
       if (abort.signal.aborted || !started || generation !== active) return
-      if (result.connectedAt !== undefined && Date.now() - result.connectedAt >= reconnectDelay) attempt = 0
+      if (result.connectedAt !== undefined && Date.now() - result.connectedAt >= reconnectBaseDelayMs) attempt = 0
       attempt += 1
       const message = errorMessage(result.error)
       record("disconnected", attempt, message)
@@ -178,7 +192,7 @@ export function createClientConnection(initialApi: OpenCodeClient, options: Clie
         forced = false
         continue
       }
-      await wait(reconnectDelay, controller.signal)
+      await wait(reconnectBackoffMs(attempt), controller.signal)
     }
   }
 

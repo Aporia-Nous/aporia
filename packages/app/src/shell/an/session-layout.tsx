@@ -111,7 +111,13 @@ import {
   EnginePortProvider,
   type EnginePort,
 } from "./engine"
-import { AN_CONTRAPTIONS_SURFACE, AN_REVIEW_SURFACE, isAnShellMode, type AnShellMode } from "./tokens"
+import {
+  AN_CONTRAPTIONS_SURFACE,
+  AN_ENGINE_PORT,
+  AN_REVIEW_SURFACE,
+  isAnShellMode,
+  type AnShellMode,
+} from "./tokens"
 import type { AnNavItem } from "./types"
 
 const ATTENTION_POLL_MS = 5000
@@ -327,7 +333,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   } catch {
     reviewSdk = undefined
   }
-  // AP-ENGINE-PORT-01/02: single AnShell ingress for prompt/stream + Settings providers/models/BYOK.
+  // AP-ENGINE-PORT-01/02/03: single AnShell ingress for prompt/stream/Settings + session-event subscribe.
   const engine = createOcServerEnginePort(data, {
     connectKey: reviewSdk
       ? async (input) => {
@@ -345,6 +351,20 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         }
       : undefined,
   })
+  // PORT-03: forward coarse OC bus events → EnginePort.subscribe (Settings / optional listeners).
+  // Stream UI still tracks solid Data via listMessages — do NOT remount on every delta (OOM).
+  if (reviewSdk) {
+    const unsubBus = reviewSdk.event.listen((event) => {
+      engine.observeServerEvent?.({
+        type: event.type,
+        data:
+          "data" in event && event.data && typeof event.data === "object"
+            ? (event.data as { sessionID?: string })
+            : undefined,
+      })
+    })
+    onCleanup(unsubBus)
+  }
   // PORT-02: Ctrl+, / settings.open open AN Settings panel (not OC /settings React route).
   command.register("settings", () => [
     {
@@ -926,7 +946,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         class="an-shell-root"
         data-component="an-shell-session"
         data-an-engine="oc-server"
-        data-an-engine-port="01"
+        data-an-engine-port={AN_ENGINE_PORT}
       >
         <AnShellHosts directory={props.view.directory()} agent={currentAgent()} sessionID={props.view.sessionID()} />
         <AnShell

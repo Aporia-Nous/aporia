@@ -45,4 +45,26 @@ describe("createRefreshQueue", () => {
     expect(calls).toEqual(["C:\\tmp\\demo"])
     queue.dispose()
   })
+
+  test("E21/PORT-03 duplicate push for same directory coalesces to one bootstrapInstance", async () => {
+    const calls: string[] = []
+
+    const queue = createRefreshQueue({
+      paused: () => false,
+      key: directoryKey,
+      bootstrap: async () => {},
+      bootstrapInstance: (directory) => {
+        calls.push(directory)
+      },
+    })
+
+    queue.push("/tmp/demo")
+    queue.push("/tmp/demo")
+    queue.push("/tmp/demo")
+
+    await tick()
+
+    expect(calls).toEqual(["/tmp/demo"])
+    queue.dispose()
+  })
 })
