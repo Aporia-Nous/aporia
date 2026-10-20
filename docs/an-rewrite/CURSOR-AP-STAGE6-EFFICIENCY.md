@@ -6,7 +6,7 @@
 | branch | `stage4-an-shell` |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | tip / code | `c62dbaf22e` |
-| docs / HEAD | *(docs tip after this commit)* |
+| docs / HEAD | `8a825d3df3` (code tip ancestor) |
 | base | AP-STAGE6-HOST-DB `e603321625` / docs `dc72d21179` |
 | merge/push/install | **No** |
 
