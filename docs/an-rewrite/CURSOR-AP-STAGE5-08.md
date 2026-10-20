@@ -6,7 +6,7 @@
 | decision | Ali UX correction (authoritative): Conversation primary + collapsible Review right sidebar |
 | branch | `stage4-an-shell` |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
-| tip | *(fill after commit)* |
+| tip | `6e73823dc7` |
 | base | HEAD after STAGE5-07 docs tip `2ddf7b738f` / code `cf8c9ac361` |
 | merge/push/install | **No** |
 
