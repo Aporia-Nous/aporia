@@ -1,25 +1,54 @@
 /**
- * AP-ENGINE-PORT-01: first adapter — delegates to existing data.session / sync.
+ * AP-ENGINE-PORT-01/02: first adapter — delegates to existing data.session / location sync.
  * No new agent loop. OC server + packages/core SessionRunner remain authoritative.
+ * PORT-02 adds providers/models/BYOK via location catalog + optional connectKey hook.
  */
 
 import type { Data } from "@opencode/client/solid"
 import type { SessionInfo } from "@opencode/client/promise"
 import type {
+  EngineConnectByokInput,
   EngineEvent,
+  EngineLocationRef,
+  EngineModelInfo,
   EnginePort,
+  EngineProviderInfo,
   EngineSessionCreateInput,
   EngineSessionCreateResult,
   PromptAdmission,
 } from "./types"
 
-export type OcServerData = Pick<Data, "session">
+export type OcServerData = Pick<Data, "session" | "location">
+
+export type OcServerEnginePortOptions = {
+  /** Wire OC integration.connect.key (and post-connect invalidate/sync) for BYOK. */
+  connectKey?: (input: EngineConnectByokInput) => Promise<void>
+}
+
+const FREE_PROVIDER_IDS = new Set(["opencode", "opencode-go"])
+const LOCAL_PROVIDER_IDS = new Set(["ollama", "lmstudio"])
+
+function locationQuery(location?: EngineLocationRef) {
+  return location?.directory ? { directory: location.directory } : undefined
+}
+
+function providerPath(id: string): EngineProviderInfo["path"] {
+  if (FREE_PROVIDER_IDS.has(id)) return "free"
+  if (LOCAL_PROVIDER_IDS.has(id)) return "local"
+  return "byok"
+}
+
+function modelIsFree(cost: Array<{ input?: number; output?: number }> | undefined): boolean {
+  if (!cost || cost.length === 0) return false
+  const tier = cost.find((item) => "tier" in item === false) ?? cost[0]
+  return (tier?.input ?? 0) === 0 && (tier?.output ?? 0) === 0
+}
 
 /**
- * Thin wrapper over client solid Data.session.
- * AnShell send/stream must call this port — not raw data.session.prompt / message.list.
+ * Thin wrapper over client solid Data.session + Data.location.
+ * AnShell send/stream/Settings must call this port — not raw data.session.prompt / Settings React.
  */
-export function createOcServerEnginePort(data: OcServerData): EnginePort {
+export function createOcServerEnginePort(data: OcServerData, options?: OcServerEnginePortOptions): EnginePort {
   const listeners = new Set<(event: EngineEvent) => void>()
 
   const emit = (event: EngineEvent) => {
@@ -29,6 +58,32 @@ export function createOcServerEnginePort(data: OcServerData): EnginePort {
       } catch {
         /* subscriber errors must not break send/stream */
       }
+    }
+  }
+
+  const listRawProviders = (location?: EngineLocationRef) => {
+    try {
+      return data.location.provider.list(locationQuery(location)) ?? []
+    } catch {
+      return []
+    }
+  }
+
+  const listRawModels = (location?: EngineLocationRef) => {
+    try {
+      return data.location.model.list(locationQuery(location)) ?? []
+    } catch {
+      return []
+    }
+  }
+
+  const syncCatalog = async (location?: EngineLocationRef): Promise<void> => {
+    const ref = locationQuery(location)
+    try {
+      await Promise.all([data.location.provider.sync(ref), data.location.model.sync(ref)])
+      emit({ type: "providers.changed" })
+    } catch {
+      /* catalog sync failures surface as empty lists; Settings stays honest */
     }
   }
 
@@ -84,6 +139,75 @@ export function createOcServerEnginePort(data: OcServerData): EnginePort {
       } catch {
         return []
       }
+    },
+
+    listProviders(location?: EngineLocationRef): EngineProviderInfo[] {
+      const providers = listRawProviders(location)
+      const models = listRawModels(location)
+      const counts = new Map<string, number>()
+      for (const model of models) {
+        if ((model as { status?: string }).status === "deprecated") continue
+        const id = String((model as { providerID?: string }).providerID ?? "")
+        if (!id) continue
+        counts.set(id, (counts.get(id) ?? 0) + 1)
+      }
+      return providers.map((provider) => {
+        const id = String((provider as { id: string }).id)
+        const name = String((provider as { name?: string }).name ?? id)
+        const integrationID = (provider as { integrationID?: string }).integrationID
+        return {
+          id,
+          name,
+          integrationID,
+          modelCount: counts.get(id) ?? 0,
+          path: providerPath(id),
+        }
+      })
+    },
+
+    listModels(location?: EngineLocationRef & { providerID?: string }): EngineModelInfo[] {
+      const providerID = location?.providerID
+      const models = listRawModels(location)
+      return models
+        .filter((model) => {
+          const row = model as { status?: string; providerID?: string }
+          if (row.status === "deprecated") return false
+          if (providerID && row.providerID !== providerID) return false
+          return true
+        })
+        .map((model) => {
+          const row = model as {
+            id: string
+            name?: string
+            providerID: string
+            status?: string
+            cost?: Array<{ input?: number; output?: number }>
+          }
+          return {
+            id: row.id,
+            name: row.name ?? row.id,
+            providerID: row.providerID,
+            status: row.status,
+            free: modelIsFree(row.cost) || FREE_PROVIDER_IDS.has(row.providerID),
+          }
+        })
+    },
+
+    syncCatalog,
+
+    async connectByok(input: EngineConnectByokInput): Promise<void> {
+      if (!options?.connectKey) {
+        throw new Error("BYOK connect is unavailable (EnginePort connectKey not wired)")
+      }
+      const key = input.key.trim()
+      if (!key) throw new Error("API key is required")
+      if (!input.providerID.trim()) throw new Error("Provider is required")
+      await options.connectKey({
+        providerID: input.providerID.trim(),
+        key,
+        directory: input.directory,
+      })
+      await syncCatalog(input.directory ? { directory: input.directory } : undefined)
     },
 
     subscribe(handler: (event: EngineEvent) => void) {

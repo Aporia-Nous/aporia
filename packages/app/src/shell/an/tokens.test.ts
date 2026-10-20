@@ -189,7 +189,12 @@ describe("AN Stage 4 tokens", () => {
     expect(AN_REVIEW_CONTENT_SURFACE.fullerDocuments).toBe(true)
     expect(AN_REVIEW_CONTENT_SURFACE.docxTextExtract).toBe(true)
     expect(AN_SETTINGS_SURFACE.ownedAttr).toBe('data-an-owned="settings"')
+    expect(AN_SETTINGS_SURFACE.partAttr).toBe('data-an-part="settings"')
+    expect(AN_SETTINGS_SURFACE.slice).toBe("AP-ENGINE-PORT-02")
+    expect(AN_SETTINGS_SURFACE.enginePort).toBe("02")
     expect(AN_SETTINGS_SURFACE.hideOcProductChrome).toBe(true)
+    expect(AN_SETTINGS_SURFACE.dropOcSettingsReactImport).toBe(true)
+    expect(AN_SETTINGS_SURFACE.opencodeFinePrintOnly).toBe(true)
     expect(AN_SETTINGS_SURFACE.aporeticAbout).toBe(true)
     // Preserve STAGE4-12/13 composer ownership bar
     expect(AN_COMPOSER_SURFACE.ownedAttr).toBe('data-an-owned="composer"')

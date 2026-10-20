@@ -10,12 +10,27 @@ function mockData(opts?: {
   messages?: Record<string, SessionMessageInfo[]>
   status?: Record<string, string>
   permissions?: Record<string, unknown[]>
-}): { data: OcServerData; promptCalls: PromptAdmission[] } {
+  providers?: Array<{ id: string; name: string; integrationID?: string }>
+  models?: Array<{
+    id: string
+    name: string
+    providerID: string
+    status?: string
+    cost?: Array<{ input?: number; output?: number }>
+  }>
+}): {
+  data: OcServerData
+  promptCalls: PromptAdmission[]
+  syncCalls: string[]
+} {
   const promptCalls: PromptAdmission[] = []
+  const syncCalls: string[] = []
   const sessions = opts?.sessions ?? []
   const messages = opts?.messages ?? {}
   const status = opts?.status ?? {}
   const permissions = opts?.permissions ?? {}
+  const providers = opts?.providers ?? []
+  const models = opts?.models ?? []
 
   const data = {
     session: {
@@ -50,9 +65,25 @@ function mockData(opts?: {
         list: (sessionID: string) => permissions[sessionID] ?? [],
       },
     },
+    location: {
+      provider: {
+        list: () => providers,
+        sync: async () => {
+          syncCalls.push("provider")
+        },
+        invalidate: () => undefined,
+      },
+      model: {
+        list: () => models,
+        sync: async () => {
+          syncCalls.push("model")
+        },
+        invalidate: () => undefined,
+      },
+    },
   } as unknown as OcServerData
 
-  return { data, promptCalls }
+  return { data, promptCalls, syncCalls }
 }
 
 describe("AP-ENGINE-PORT-01 OcServerEnginePort", () => {
@@ -143,5 +174,58 @@ describe("AP-ENGINE-PORT-01 OcServerEnginePort", () => {
     unsub?.()
     expect(events).toContain("messages.changed")
     expect(events).toContain("status.changed")
+  })
+})
+
+describe("AP-ENGINE-PORT-02 OcServerEnginePort settings", () => {
+  test("listProviders / listModels classify free vs BYOK and count models", () => {
+    const { data } = mockData({
+      providers: [
+        { id: "opencode", name: "OpenCode" },
+        { id: "openai", name: "OpenAI" },
+        { id: "ollama", name: "Ollama" },
+      ],
+      models: [
+        { id: "free-1", name: "Free One", providerID: "opencode", cost: [{ input: 0, output: 0 }] },
+        { id: "gpt", name: "GPT", providerID: "openai", cost: [{ input: 1, output: 2 }] },
+        { id: "local", name: "Local", providerID: "ollama", cost: [{ input: 0, output: 0 }] },
+        { id: "old", name: "Old", providerID: "openai", status: "deprecated" },
+      ],
+    })
+    const engine = createOcServerEnginePort(data)
+    const providers = engine.listProviders()
+    expect(providers.find((p) => p.id === "opencode")?.path).toBe("free")
+    expect(providers.find((p) => p.id === "openai")?.path).toBe("byok")
+    expect(providers.find((p) => p.id === "ollama")?.path).toBe("local")
+    expect(providers.find((p) => p.id === "openai")?.modelCount).toBe(1)
+
+    const openaiModels = engine.listModels({ providerID: "openai" })
+    expect(openaiModels).toHaveLength(1)
+    expect(openaiModels[0]?.free).toBe(false)
+
+    const freeModels = engine.listModels({ providerID: "opencode" })
+    expect(freeModels[0]?.free).toBe(true)
+  })
+
+  test("connectByok requires key + wired connectKey; syncCatalog refreshes", async () => {
+    const { data, syncCalls } = mockData({
+      providers: [{ id: "openai", name: "OpenAI" }],
+      models: [],
+    })
+    const connects: Array<{ providerID: string; key: string }> = []
+    const engine = createOcServerEnginePort(data, {
+      connectKey: async (input) => {
+        connects.push({ providerID: input.providerID, key: input.key })
+      },
+    })
+
+    await expect(engine.connectByok!({ providerID: "openai", key: "  " })).rejects.toThrow(/API key/)
+    await engine.connectByok!({ providerID: "openai", key: " sk-test " })
+    expect(connects).toEqual([{ providerID: "openai", key: "sk-test" }])
+    expect(syncCalls).toContain("provider")
+    expect(syncCalls).toContain("model")
+
+    const bare = createOcServerEnginePort(data)
+    await expect(bare.connectByok!({ providerID: "openai", key: "x" })).rejects.toThrow(/unavailable/)
   })
 })

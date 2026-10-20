@@ -130,16 +130,21 @@ export {
 export {
   anSettingsAboutIntro,
   anSettingsOwnedAttrs,
+  isAnNativeSettingsHost,
   isAnOwnedSettingsHost,
   shouldOwnAnSettings,
 } from "./settings-chrome"
+export { AnSettingsPanel, type AnSettingsPanelProps, type AnSettingsTab } from "./settings-panel"
 export {
   createOcServerEnginePort,
   EnginePortProvider,
   tryUseEnginePort,
   useEnginePort,
+  type EngineConnectByokInput,
   type EngineEvent,
+  type EngineModelInfo,
   type EnginePort,
+  type EngineProviderInfo,
   type EngineSessionCreateInput,
   type EngineSessionCreateResult,
   type PromptAdmission,

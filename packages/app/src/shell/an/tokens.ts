@@ -222,16 +222,21 @@ export const AN_REVIEW_CONTENT_SURFACE = {
 } as const
 
 /**
- * AP-STAGE4-19: Settings surface reads AN ice-glass (same ownership bar as STAGE4-13 composer), not OpenCode chrome.
+ * AP-STAGE4-19 skin → AP-ENGINE-PORT-02 native AN Settings host (EnginePort; no OC Settings React).
  */
 export const AN_SETTINGS_SURFACE = {
-  slice: "AP-STAGE4-19",
+  slice: "AP-ENGINE-PORT-02",
+  part: "settings" as const,
+  partAttr: 'data-an-part="settings"' as const,
   ownedValue: "settings" as const,
   ownedAttr: 'data-an-owned="settings"' as const,
   themeAttr: 'data-an-theme="an"' as const,
+  enginePort: "02" as const,
   feel: AN_TOKENS.feel,
   hideOcProductChrome: true,
+  dropOcSettingsReactImport: true,
   aporeticAbout: true,
+  opencodeFinePrintOnly: true,
   keepComposerOwnershipBar: true,
 } as const
 

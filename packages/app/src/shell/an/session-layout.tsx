@@ -12,8 +12,8 @@ import { useData, useServer } from "@/runtime/server/current"
 import { useServerSDK } from "@/runtime/server/client"
 import { formatServerError } from "@/runtime/server/errors"
 import { useCommand } from "@/shell/commands/command"
+import { useLanguage } from "@/runtime/i18n/language"
 import { sessionHref } from "@/shell/routes/session"
-import { useSettingsDialog } from "@/settings/command"
 import type { SessionModel } from "@/session/model"
 import { fileContentFromBytes } from "@/workspaces/files/artifact"
 import type { SessionInfo, SessionMessageInfo } from "@opencode/client/promise"
@@ -85,6 +85,7 @@ import {
   type ComputerControlState,
 } from "./computer-control"
 import { AnContraptionsPanel } from "./contraptions-panel"
+import { AnSettingsPanel } from "./settings-panel"
 import { extractDocxPlainText, officePreviewResidual } from "./docx-text"
 import {
   binaryReviewContent,
@@ -310,13 +311,12 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   useStickyAnTheme()
   const navigate = useNavigate()
   const data = useData()
-  // AP-ENGINE-PORT-01: single AnShell ingress for prompt + message list (OC server still backend).
-  const engine = createOcServerEnginePort(data)
   const server = useServer()
   const command = useCommand()
-  const openSettings = useSettingsDialog()
+  const language = useLanguage()
   const [mode, setMode] = createSignal<AnShellMode>("conversation")
   const [contraptionsOpen, setContraptionsOpen] = createSignal(false)
+  const [settingsOpen, setSettingsOpen] = createSignal(false)
   const [reviewOpen, setReviewOpen] = createSignal(false)
   const [reviewInitialTab, setReviewInitialTab] = createSignal<"browser" | "code" | "files" | "documents">("browser")
   const [reviewCodeContent, setReviewCodeContent] = createSignal<AnReviewLoadedContent | undefined>()
@@ -327,6 +327,38 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   } catch {
     reviewSdk = undefined
   }
+  // AP-ENGINE-PORT-01/02: single AnShell ingress for prompt/stream + Settings providers/models/BYOK.
+  const engine = createOcServerEnginePort(data, {
+    connectKey: reviewSdk
+      ? async (input) => {
+          const location = input.directory ? { directory: input.directory } : undefined
+          await reviewSdk!.api.integration.connect.key({
+            integrationID: input.providerID,
+            location,
+            key: input.key,
+          })
+          data.location.provider.invalidate(location)
+          data.location.model.invalidate(location)
+          await Promise.all([data.location.provider.sync(location), data.location.model.sync(location)]).catch(
+            () => undefined,
+          )
+        }
+      : undefined,
+  })
+  // PORT-02: Ctrl+, / settings.open open AN Settings panel (not OC /settings React route).
+  command.register("settings", () => [
+    {
+      id: "settings.open",
+      title: language.t("command.settings.open"),
+      category: language.t("command.category.settings"),
+      keybind: "mod+comma",
+      onSelect: () => {
+        setContraptionsOpen(false)
+        setReviewOpen(false)
+        setSettingsOpen(true)
+      },
+    },
+  ])
   const [computerAttach, setComputerAttach] = createSignal<ComputerAttachState>(
     initialComputerAttachState(props.view.sessionID()),
   )
@@ -546,7 +578,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       active: reviewOpen(),
     },
     { id: "knowledge", label: "Knowledge", icon: "knowledge" },
-    { id: "settings", label: "Settings", icon: "settings" },
+    { id: "settings", label: "Settings", icon: "settings", active: settingsOpen() },
   ]
 
   const mission = createMemo(() =>
@@ -605,19 +637,27 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   const onSelectNav = (id: string) => {
     if (id === AN_CONTRAPTIONS_SURFACE.navId) {
       setReviewOpen(false)
+      setSettingsOpen(false)
       setContraptionsOpen((open) => !open)
       return
     }
     if (id === AN_REVIEW_SURFACE.navId) {
       setContraptionsOpen(false)
+      setSettingsOpen(false)
       setReviewInitialTab("browser")
       setReviewOpen((open) => !open)
       return
     }
+    if (id === "settings") {
+      setContraptionsOpen(false)
+      setReviewOpen(false)
+      setSettingsOpen((open) => !open)
+      return
+    }
     setContraptionsOpen(false)
     setReviewOpen(false)
+    setSettingsOpen(false)
     if (id === "home") navigate("/")
-    else if (id === "settings") openSettings()
     else if (id === "missions") command.trigger("tab.new")
   }
 
@@ -957,6 +997,9 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         </AnShell>
         <Show when={contraptionsOpen()}>
           <AnContraptionsPanel onClose={() => setContraptionsOpen(false)} />
+        </Show>
+        <Show when={settingsOpen()}>
+          <AnSettingsPanel directory={props.view.directory()} onClose={() => setSettingsOpen(false)} />
         </Show>
         <Show when={reviewOpen()}>
           <AnReviewPanel
