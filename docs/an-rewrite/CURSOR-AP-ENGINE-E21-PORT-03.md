@@ -4,8 +4,8 @@
 |-------|-------|
 | status | **OPEN implemented+live-DEV** (NOT INDEPENDENT PASS; NOT self-PASS; **not** Stage 4 complete) |
 | branch | `stage4-an-shell` |
-| tip | *(set after docs sync)* |
-| code | *(set after code commit)* |
+| tip | `68a9021161` (code; docs tip may follow) |
+| code | `68a9021161` |
 | base | `741abaa063` (AP-ENGINE-PORT-02 INDEPENDENT PASS) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | scope | E21 SSE reconnect backoff + pinned-only reconnect sync + coalesced bootstrap; PORT-03 EnginePort single session-event writer / dual-sync shrink |
