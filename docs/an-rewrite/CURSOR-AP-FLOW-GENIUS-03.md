@@ -6,7 +6,7 @@
 | branch | `stage4-an-shell` |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | tip / code | `51c192330c` |
-| docs tip | *(set after this report commit)* |
+| docs tip | `233e9174e0` |
 | base | FLOW-GENIUS-02 `0e74f69738` / docs `a432622eef` |
 | merge/push/install | **No** |
 
