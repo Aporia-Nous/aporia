@@ -37,6 +37,7 @@ import { SessionProviderContext } from "./provider-context.js"
 import { SessionRunnerModel } from "./runner/model.js"
 import { SessionSchema } from "./schema.js"
 import { SessionSystemPrompt } from "./system-prompt.js"
+import { mergeLeanPackIntoInitial } from "./lean-pack.js"
 import { toLLMMessages } from "./runner/to-llm-message.js"
 import type { SessionMessage } from "./message.js"
 
@@ -103,16 +104,22 @@ export const baseTranscript = (input: {
   readonly model: SessionRunnerModel.Resolved
   readonly tools: Tool.Snapshot
   readonly initial: string
+  /**
+   * FLOW-GENIUS-02: optional shared lean pack text. Merged into `initial` once
+   * (no duplicate paste). Callers that already folded the pack into `initial` may omit this.
+   */
+  readonly leanPack?: string
   readonly messages: ReadonlyArray<SessionMessage.Info>
 }) => {
   const providerMetadataKey = input.model.model.route.providerMetadataKey ?? input.model.model.provider
+  const initial = mergeLeanPackIntoInitial(input.initial, input.leanPack)
   return {
     providerMetadataKey,
     system: [
       input.agent.system
         ? input.agent.system
         : SessionSystemPrompt.make(input.tools.definitions.map((tool) => tool.name)),
-      input.initial,
+      initial,
     ]
       .filter((part) => part.length > 0)
       .map(SystemPart.make),

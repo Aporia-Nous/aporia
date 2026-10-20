@@ -20,3 +20,5 @@ export * as CoordinatorTrigger from "./trigger.js"
 export * as AttentionCards from "./cards.js"
 /** AP-BF-03: single computer control lock (View watch-only / Takeover pauses bot). */
 export * as ComputerControl from "./control.js"
+/** FLOW-GENIUS-02 / Stage 6: Mnemosyne audit map (read-only; disconnected from lean pack). */
+export * as MissionMemory from "./memory.js"
