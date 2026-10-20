@@ -4,8 +4,8 @@
 |-------|-------|
 | status | **OPEN implemented+live-DEV** (**no** self-PASS / INDEPENDENT PASS; **DONE MEASURED** awaits independent verifier — harness only, not product code PASS) |
 | branch | `stage4-an-shell` |
-| tip | _(post-commit)_ |
-| code | _(post-commit)_ |
+| tip | `eb7179f500` |
+| code | `eb7179f500` |
 | base | `d683e31f80` (AP-ENGINE-E08 INDEPENDENT PASS) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | scope | E26 process gap: `perf/engine-hotpath.md` + bun script/test measuring select / due-estimate / publish / optional SSE — **not** test-suite speed |
