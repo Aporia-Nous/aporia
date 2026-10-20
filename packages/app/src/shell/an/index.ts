@@ -233,12 +233,18 @@ export { AnPodmanChromeCard } from "./podman-card"
 export { AnNavIcon } from "./nav-icons"
 export { isAnNavIconName, type AnNavIconName } from "./nav-illustrated"
 export {
+  AN_ENGINE_ISOLATION_ATTACH,
+  chromeStatusFromIsolationAttach,
+  createFixtureEngineIsolationAttach,
+  createHostEngineIsolationAttach,
   createOcServerEnginePort,
   EnginePortProvider,
+  measuredResourcesFromAttach,
   tryUseEnginePort,
   useEnginePort,
   type EngineConnectByokInput,
   type EngineEvent,
+  type EngineIsolationAttach,
   type EngineModelInfo,
   type EnginePort,
   type EngineProviderInfo,

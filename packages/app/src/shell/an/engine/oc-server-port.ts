@@ -4,6 +4,7 @@
  * PORT-02 adds providers/models/BYOK via location catalog + optional connectKey hook.
  * PORT-03: subscribe + observeServerEvent — single AnShell session-event writer surface;
  * pairs with E21 reconnect pinned-dir sync (no dual all-dir poll from AnShell).
+ * AP-STAGE7-02: optional isolation attach (honest Podman / measured chrome; never auto-install).
  */
 
 import type { Data } from "@opencode/client/solid"
@@ -12,6 +13,7 @@ import {
   routeComposerAdmission,
   type MechanicalStart,
 } from "@/aporia/intent-gate"
+import type { EngineIsolationAttach } from "./isolation-attach"
 import type {
   EngineConnectByokInput,
   EngineEvent,
@@ -39,6 +41,11 @@ export type OcServerEnginePortOptions = {
   connectKey?: (input: EngineConnectByokInput) => Promise<void>
   /** AP-CE-02 intent gate — when set, registered `/flow-id` never calls data.session.prompt. */
   contraptions?: EngineContraptionsGate
+  /**
+   * AP-STAGE7-02: isolation runtime attach for chrome measure + task-scoped create.
+   * Host missing/spawn stays honest BLOCKED; never auto-install.
+   */
+  isolation?: EngineIsolationAttach
 }
 
 const FREE_PROVIDER_IDS = new Set(["opencode", "opencode-go"])
@@ -303,5 +310,8 @@ export function createOcServerEnginePort(data: OcServerData, options?: OcServerE
         emit({ type: "status.changed", sessionID })
       }
     },
+
+    // AP-STAGE7-02: expose attach when wired — chrome/runtime UX reads measure() honestly.
+    ...(options?.isolation ? { isolation: options.isolation } : {}),
   }
 }

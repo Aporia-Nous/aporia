@@ -58,7 +58,12 @@ import {
   probePodmanWhich,
   resolvePodmanStatus,
   type AnPodmanStatus,
+  type AnPodmanWhichResult,
 } from "./podman-chrome"
+import {
+  createHostEngineIsolationAttach,
+  measuredResourcesFromAttach,
+} from "./engine/isolation-attach"
 import {
   buildContextCards,
   buildConversationStreamItems,
@@ -408,6 +413,9 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   }
   // AP-ENGINE-PORT-01/02/03: single AnShell ingress for prompt/stream/Settings + session-event subscribe.
   // AP-CE-02: contraptions gate — registered `/flow-id` → FlowRunner (0 model tokens), skips SessionRunner.
+  // AP-STAGE7-02: host isolation attach — which() cache + honest measure=null; never auto-install / spawn.
+  const podmanWhichRef: { current: AnPodmanWhichResult | null } = { current: null }
+  const isolationAttach = createHostEngineIsolationAttach(() => podmanWhichRef.current)
   const engine = createOcServerEnginePort(data, {
     connectKey: reviewSdk
       ? async (input) => {
@@ -444,6 +452,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
           },
         }
       : undefined,
+    isolation: isolationAttach,
   })
   // PORT-03: forward coarse OC bus events → EnginePort.subscribe (Settings / optional listeners).
   // Stream UI still tracks solid Data via listMessages — do NOT remount on every delta (OOM).
@@ -845,7 +854,10 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   const refreshPodmanStatus = async () => {
     setPodmanStatus(initialPodmanStatus())
     const result = await probePodmanWhich()
-    const next = resolvePodmanStatus(result)
+    // Keep EnginePort isolation attach which-cache in sync with chrome probe (honest missing).
+    podmanWhichRef.current = result
+    const measured = measuredResourcesFromAttach(engine.isolation)
+    const next = resolvePodmanStatus(result, measured)
     setPodmanStatus(next)
     return next
   }

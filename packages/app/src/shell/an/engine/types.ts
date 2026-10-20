@@ -5,10 +5,12 @@
  * PORT-02: providers / models / BYOK read+connect via port (AN Settings does not mount OC Settings React).
  * PORT-03: subscribe is the AnShell session-event surface; reconnect sync shrink pairs with E21
  * (pinned-only dir queue + coalesced bootstrap — no dual all-dir poll storm under AnShell).
+ * AP-STAGE7-02: optional isolation attach for honest Podman chrome + task-scoped create (never auto-install).
  */
 
 import type { Data } from "@opencode/client/solid"
 import type { SessionInfo, SessionMessageInfo } from "@opencode/client/promise"
+import type { EngineIsolationAttach } from "./isolation-attach"
 
 /** Admission payload accepted by data.session.prompt (OC client solid Data). */
 export type PromptAdmission = Parameters<Data["session"]["prompt"]>[0]
@@ -87,4 +89,9 @@ export type EnginePort = {
    * Lets AnShell avoid a second raw event.listen for stream refresh.
    */
   observeServerEvent?(event: { type: string; data?: { sessionID?: string } }): void
+  /**
+   * AP-STAGE7-02: optional isolation runtime attach (honest missing + measured when real).
+   * Absent ⇒ chrome uses which() only; never invent idle/active zeros.
+   */
+  isolation?: EngineIsolationAttach
 }

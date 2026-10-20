@@ -1,8 +1,8 @@
 /**
  * AP-STAGE4-4F — honest Podman chrome (understated local-runtime status).
- * AP-STAGE7-01 may attach a measured idle/active resource line when the isolation
- * seam provides a real snapshot — never invent online/running counts. Never auto-install.
- * Browser-first Computer View remains the default path (see AP-COMPUTER-ARCH).
+ * AP-STAGE7-01 seam + AP-STAGE7-02 EnginePort isolation attach may supply a measured
+ * idle/active resource line when measure() returns a real snapshot — never invent
+ * online/running counts. Never auto-install. Browser-first Computer View remains default.
  */
 
 export const AN_PODMAN_SURFACE = {
