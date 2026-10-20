@@ -2221,6 +2221,24 @@
   letter-spacing: 0.02em;
 }
 
+/* AP-STAGE5-04: scope banner — text + electric gold; gold ≠ success. */
+.an-computer-scope-banner {
+  margin: 0 0 6px;
+  padding: 5px 8px;
+  border-radius: var(--an-radius-sm);
+  border: 1px solid rgba(240, 198, 109, 0.38);
+  background: rgba(240, 198, 109, 0.07);
+  color: var(--an-gold-soft, #e5c57f);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+}
+
+.an-computer-scope-banner[data-controller="user"] {
+  border-color: rgba(240, 198, 109, 0.55);
+  color: var(--an-gold, #f0c66d);
+}
+
 /* AP-BF-01/02: consent/attach + watch-only page feed; labeled cursor is overlay chrome only. */
 .an-computer-workspace {
   position: relative;
@@ -2234,6 +2252,18 @@
     linear-gradient(180deg, rgba(186, 220, 255, 0.05), transparent 42%),
     rgba(2, 5, 9, 0.55);
   gap: 8px;
+}
+
+/* AP-STAGE5-04: electric-gold outline on controlled surface (steady; no purple/glow).
+   Overlay cursor stays pointer-events:none and outside agent captures. */
+.an-computer-workspace[data-boundary="electric-gold"] {
+  outline: 1.5px solid var(--an-gold, #f0c66d);
+  outline-offset: 1px;
+  box-shadow: inset 0 0 0 1px rgba(240, 198, 109, 0.14);
+}
+
+.an-computer[data-boundary="electric-gold"] .an-computer-feed {
+  border-color: rgba(240, 198, 109, 0.42);
 }
 
 .an-computer-workspace-label {

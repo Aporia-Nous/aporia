@@ -18,6 +18,7 @@ import {
   AN_COMPUTER_CONTROL_SURFACE,
   computerControlBannerCopy,
 } from "./computer-control"
+import { AN_COMPUTER_SCOPE_SURFACE } from "./computer-scope"
 import { AN_COMPUTER_FEED_SURFACE } from "./computer-feed"
 import {
   AN_COMPUTER_SCREENCAST_SURFACE,
@@ -124,6 +125,11 @@ function LiveComputerPanel(props: {
   externalEndpoint?: string
   externalRegionId?: string
   cursorVisible?: boolean
+  /** AP-STAGE5-04 scope axis (separate from mode). */
+  scopeKind?: "none" | "local-workspace" | "tab-group" | "window"
+  scopeTarget?: string
+  boundaryVisible?: boolean
+  scopeBannerLine?: string
   feedActive?: boolean
   feedUrl?: string
   feedSrcdoc?: string
@@ -161,6 +167,8 @@ function LiveComputerPanel(props: {
   const watchOnly = () => props.feedWatchOnly !== false && !props.userInput
   const controller = () => props.controller ?? (props.live ? "bot" : "none")
   const pixelSource = () => props.pixelSource ?? "none"
+  const scopeKind = () => props.scopeKind ?? "none"
+  const boundaryVisible = () => !!props.boundaryVisible
   const showScreencastPixels = () =>
     pixelSource() === "cdp-screencast" && !!props.screencastFrameUrl
   return (
@@ -179,6 +187,10 @@ function LiveComputerPanel(props: {
       data-screencast-frames={props.screencastFrameCount != null ? String(props.screencastFrameCount) : undefined}
       data-an-control={AN_COMPUTER_CONTROL_SURFACE.part}
       data-an-screencast={AN_COMPUTER_SCREENCAST_SURFACE.part}
+      data-an-scope={AN_COMPUTER_SCOPE_SURFACE.part}
+      data-scope-kind={scopeKind()}
+      data-scope-target={props.scopeTarget || undefined}
+      data-boundary={boundaryVisible() ? AN_COMPUTER_SCOPE_SURFACE.boundaryTone : "off"}
       data-controller={controller()}
       data-bot-paused={props.botPaused ? "true" : "false"}
       data-user-input={props.userInput ? "true" : "false"}
@@ -191,12 +203,29 @@ function LiveComputerPanel(props: {
           {badge()}
         </span>
       </header>
+      <Show when={props.scopeBannerLine}>
+        <div
+          class="an-computer-scope-banner"
+          data-an-part={AN_COMPUTER_SCOPE_SURFACE.part}
+          data-boundary={boundaryVisible() ? AN_COMPUTER_SCOPE_SURFACE.boundaryTone : "off"}
+          data-controller={controller()}
+          aria-live="polite"
+        >
+          {props.scopeBannerLine}
+        </div>
+      </Show>
       <div class="an-computer-surface" data-empty={props.live ? "false" : "true"}>
         <Show
           when={props.live}
           fallback={<p class="an-computer-empty">{props.empty}</p>}
         >
-          <div class="an-computer-workspace" data-an-part="computer-workspace">
+          <div
+            class="an-computer-workspace"
+            data-an-part="computer-workspace"
+            data-an-boundary={AN_COMPUTER_SCOPE_SURFACE.boundaryPart}
+            data-boundary={boundaryVisible() ? AN_COMPUTER_SCOPE_SURFACE.boundaryTone : "off"}
+            data-scope-kind={scopeKind()}
+          >
             <span class="an-computer-workspace-label">{pathLabel()}</span>
             <Show when={feedActive()}>
               <form
@@ -470,12 +499,20 @@ export function AnShell(props: AnShellProps): JSX.Element {
   const computerUserInput = () => !!props.computerUserInput
   const computerFeedWatchOnly = () =>
     props.computerFeedWatchOnly !== undefined ? props.computerFeedWatchOnly : !computerUserInput()
-  const takeoverBanner = () => computerControlBannerCopy(computerLive(), {
-    controller: props.computerController ?? (computerLive() ? "bot" : "none"),
-    botPaused: !!props.computerBotPaused,
-    userInputGranted: computerUserInput(),
-    needsFreshObservation: !!props.computerNeedsFreshObservation,
-  })
+  const takeoverBanner = () =>
+    computerControlBannerCopy(
+      computerLive(),
+      {
+        controller: props.computerController ?? (computerLive() ? "bot" : "none"),
+        botPaused: !!props.computerBotPaused,
+        userInputGranted: computerUserInput(),
+        needsFreshObservation: !!props.computerNeedsFreshObservation,
+      },
+      {
+        botName: props.computerControllerBotName,
+        targetName: props.computerScopeTarget,
+      },
+    )
   const progress = () => {
     const value = props.mission?.progressPercent
     if (value === undefined || Number.isNaN(value)) return undefined
@@ -637,6 +674,10 @@ export function AnShell(props: AnShellProps): JSX.Element {
               externalEndpoint={props.computerExternalEndpoint}
               externalRegionId={props.computerExternalRegionId}
               cursorVisible={props.computerCursorVisible}
+              scopeKind={props.computerScopeKind}
+              scopeTarget={props.computerScopeTarget}
+              boundaryVisible={props.computerBoundaryVisible}
+              scopeBannerLine={props.computerScopeBannerLine}
               feedActive={props.computerFeedActive}
               feedUrl={props.computerFeedUrl}
               feedSrcdoc={props.computerFeedSrcdoc}
@@ -745,6 +786,10 @@ export function AnShell(props: AnShellProps): JSX.Element {
             externalEndpoint={props.computerExternalEndpoint}
             externalRegionId={props.computerExternalRegionId}
             cursorVisible={props.computerCursorVisible}
+            scopeKind={props.computerScopeKind}
+            scopeTarget={props.computerScopeTarget}
+            boundaryVisible={props.computerBoundaryVisible}
+            scopeBannerLine={props.computerScopeBannerLine}
             feedActive={props.computerFeedActive}
             feedUrl={props.computerFeedUrl}
             feedSrcdoc={props.computerFeedSrcdoc}

@@ -142,10 +142,21 @@ export function rescopeComputerControl(
   return initialComputerControlState(sessionID)
 }
 
-export function computerControlBannerCopy(live: boolean, state: ComputerControlState): {
+/**
+ * Takeover / control banner. Optional botName + targetName enable handoff H lines
+ * (`{bot} is controlling · [target]` / `You are controlling · Bot paused`).
+ * Gold is boundary tone only — never means verified/success.
+ */
+export function computerControlBannerCopy(
+  live: boolean,
+  state: ComputerControlState,
+  opts?: { botName?: string; targetName?: string },
+): {
   pill: string
   copy: string
 } {
+  const bot = opts?.botName?.trim() || "Bot"
+  const target = opts?.targetName?.trim()
   if (!live) {
     return {
       pill: "Takeover chrome",
@@ -154,13 +165,17 @@ export function computerControlBannerCopy(live: boolean, state: ComputerControlS
   }
   if (userMayInput(state)) {
     return {
-      pill: "You control",
-      copy: "You hold the control lock. Bot is paused and will not drive until Hand back or Stop.",
+      pill: "You are controlling",
+      copy: target
+        ? `You are controlling · Bot paused · ${target}`
+        : "You are controlling · Bot paused. Hand back or Stop releases the lock.",
     }
   }
   return {
-    pill: "Watch-only",
-    copy: "Bot holds the control lock. Page feed stays watch-only until Takeover.",
+    pill: `${bot} is controlling`,
+    copy: target
+      ? `${bot} is controlling · ${target}`
+      : "Bot holds the control lock. Page feed stays watch-only until Takeover.",
   }
 }
 

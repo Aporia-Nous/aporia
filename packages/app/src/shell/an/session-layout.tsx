@@ -116,6 +116,17 @@ import {
   userMayInput,
   type ComputerControlState,
 } from "./computer-control"
+import {
+  clearComputerScope,
+  computerScopeBannerCopy,
+  computerScopeTargetLabel,
+  initialComputerScopeState,
+  isComputerBoundaryVisible,
+  openPreviewPreservingScope,
+  rescopeComputerScope,
+  syncComputerScopeFromAttach,
+  type ComputerScopeState,
+} from "./computer-scope"
 import { AnContraptionsPanel } from "./contraptions-panel"
 import { AnSettingsPanel } from "./settings-panel"
 import { extractDocxPlainText, officePreviewResidual } from "./docx-text"
@@ -431,6 +442,9 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   const [computerControl, setComputerControl] = createSignal<ComputerControlState>(
     initialComputerControlState(props.view.sessionID()),
   )
+  const [computerScope, setComputerScope] = createSignal<ComputerScopeState>(
+    initialComputerScopeState(props.view.sessionID()),
+  )
   let screencastSession: ComputerScreencastSession | null = null
   const info = () => props.view.info()
   const currentAgent = () => info()?.agent
@@ -451,11 +465,27 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   const computerPixelSrc = createMemo(() =>
     computerPixelSource(computerAttach(), computerScreencast(), computerFeedActive()),
   )
+  const computerControllerBotName = createMemo(
+    () => roster.bound().roster.find((m) => m.selected)?.name?.trim() || "Bot",
+  )
+  const computerBoundaryVisible = createMemo(() =>
+    isComputerBoundaryVisible(computerLive(), computerScope()),
+  )
+  const computerScopeBannerLine = createMemo(() => {
+    if (!computerLive()) return undefined
+    return computerScopeBannerCopy({
+      live: true,
+      userControl: computerUserInput(),
+      botName: computerControllerBotName(),
+      scope: computerScope(),
+    }).line
+  })
 
   createEffect(() => {
     const sessionID = props.view.sessionID()
     setComputerAttach((prev) => rescopeComputerAttach(prev, sessionID))
     setComputerControl((prev) => rescopeComputerControl(prev, sessionID))
+    setComputerScope((prev) => rescopeComputerScope(prev, sessionID))
   })
 
   // AP-STAGE4-B1 / MISSION-RESTART: restore draft when the teammate key changes.
@@ -943,6 +973,10 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         })
         return next
       }
+      // AP-STAGE5-04: assign scope from attach — never grants input; orthogonal to mode.
+      setComputerScope((scopePrev) =>
+        syncComputerScopeFromAttach(scopePrev, next, props.view.sessionID()),
+      )
       // Prefer in-app Review panel for browse/review (AP-STAGE4-17) — not a separate OS window.
       if (next.backend === "local-browser") {
         setReviewInitialTab("browser")
@@ -978,10 +1012,11 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     setComputerFeedDraft("")
     setComputerScreencast(clearComputerScreencast())
     setComputerControl(clearComputerControl(props.view.sessionID()))
+    setComputerScope(clearComputerScope(props.view.sessionID()))
     if (mode() === "takeover") setMode("view")
     aporiaAlerts.push({
       title: "Browser workspace disconnected",
-      detail: "Live, page feed, CDP screencast, and control lock cleared. Re-connect requires fresh consent.",
+      detail: "Live, page feed, CDP screencast, control lock, and scope cleared. Re-connect requires fresh consent.",
       level: "info",
     })
   }
@@ -1153,6 +1188,11 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
           computerExternalEndpoint={computerAttach().externalEndpoint}
           computerExternalRegionId={computerAttach().externalRegionId}
           computerCursorVisible={computerCursorVisible()}
+          computerScopeKind={computerScope().kind}
+          computerScopeTarget={computerScopeTargetLabel(computerScope())}
+          computerBoundaryVisible={computerBoundaryVisible()}
+          computerScopeBannerLine={computerScopeBannerLine()}
+          computerControllerBotName={computerControllerBotName()}
           computerFeedActive={computerFeedActive()}
           computerFeedUrl={computerFeed().url || undefined}
           computerFeedSrcdoc={computerFeed().srcdoc}
@@ -1191,10 +1231,13 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
           }}
           onStreamCardAction={(actionId, card) => {
             if (card.type === "computer" && actionId === "view") {
+              // AP-STAGE5-04: Open in Computer View never widens scope or grants input.
+              setComputerScope((prev) => openPreviewPreservingScope(prev))
               onModeChange("view")
               return
             }
             if (card.type === "computer" && actionId === "take-control") {
+              setComputerScope((prev) => openPreviewPreservingScope(prev))
               onModeChange("takeover")
               return
             }

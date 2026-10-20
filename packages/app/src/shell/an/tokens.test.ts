@@ -5,6 +5,7 @@ import {
   AN_COMPUTER_CONTROL_SURFACE,
   AN_COMPUTER_EXTERNAL_SURFACE,
   AN_COMPUTER_FEED_SURFACE,
+  AN_COMPUTER_SCOPE_SURFACE,
   AN_COMPUTER_SCREENCAST_SURFACE,
   AN_CONTRAPTIONS_SURFACE,
   AN_DESIGN_SOURCE,
@@ -225,6 +226,16 @@ describe("AN Stage 4 tokens", () => {
     expect(AN_COMPUTER_FEED_SURFACE.watchOnly).toBe(true)
     expect(AN_COMPUTER_FEED_SURFACE.includeCursorInCapture).toBe(false)
     expect(AN_COMPOSER_SURFACE.ownedAttr).toBe('data-an-owned="composer"')
+  })
+
+  test("Computer scope surface markers (AP-STAGE5-04)", () => {
+    expect(AN_COMPUTER_SCOPE_SURFACE.part).toBe("computer-scope")
+    expect(AN_COMPUTER_SCOPE_SURFACE.boundaryTone).toBe("electric-gold")
+    expect(AN_COMPUTER_SCOPE_SURFACE.previewNeverWidensScope).toBe(true)
+    expect(AN_COMPUTER_SCOPE_SURFACE.kinds).toContain("tab-group")
+    expect(AN_COMPUTER_SCOPE_SURFACE.kinds).toContain("window")
+    expect(AN_TOKENS.gold).toBe("#f0c66d")
+    expect(AN_SHELL_MODES).toEqual(["conversation", "view", "takeover"])
   })
 
   test("Computer control surface markers (AP-BF-03)", () => {

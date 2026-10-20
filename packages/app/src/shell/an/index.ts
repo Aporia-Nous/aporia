@@ -102,6 +102,26 @@ export {
   type ComputerControlState,
   type ComputerController,
 } from "./computer-control"
+export {
+  AN_COMPUTER_SCOPE_SURFACE,
+  assignLocalWorkspaceScope,
+  assignTabGroupScope,
+  assignWindowScope,
+  authorizeTabAction,
+  authorizeWindowAction,
+  clearComputerScope,
+  computerScopeBannerCopy,
+  computerScopeTargetLabel,
+  hasComputerScope,
+  initialComputerScopeState,
+  isComputerBoundaryVisible,
+  openPreviewPreservingScope,
+  rescopeComputerScope,
+  switchModePreservingScope,
+  syncComputerScopeFromAttach,
+  type ComputerScopeKind,
+  type ComputerScopeState,
+} from "./computer-scope"
 export { buildAnShellModel, assertApprovedModesOnly, type AnShellModel } from "./shell-model"
 export {
   botsToRoster,

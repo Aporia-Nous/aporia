@@ -105,6 +105,16 @@ export type AnShellProps = ParentProps<{
   computerExternalRegionId?: string
   /** Labeled bot cursor overlay — Live and bot holds lock (hidden during user Takeover). */
   computerCursorVisible?: boolean
+  /** AP-STAGE5-04: scope axis kind (orthogonal to mode). */
+  computerScopeKind?: "none" | "local-workspace" | "tab-group" | "window"
+  /** AP-STAGE5-04: scoped target label for gold boundary / banner. */
+  computerScopeTarget?: string
+  /** AP-STAGE5-04: electric-gold outline when Live + assigned scope. */
+  computerBoundaryVisible?: boolean
+  /** AP-STAGE5-04: handoff H control line (`Bot is controlling · target`). */
+  computerScopeBannerLine?: string
+  /** Selected bot display name for controlling banner. */
+  computerControllerBotName?: string
   /** AP-BF-02: page feed — only when Live; never invent pixels. */
   computerFeedActive?: boolean
   computerFeedUrl?: string

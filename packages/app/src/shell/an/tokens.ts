@@ -255,6 +255,7 @@ export { AN_COMPUTER_FEED_SURFACE } from "./computer-feed"
 export { AN_COMPUTER_CONTROL_SURFACE } from "./computer-control"
 export { AN_COMPUTER_SCREENCAST_SURFACE } from "./computer-screencast"
 export { AN_COMPUTER_EXTERNAL_SURFACE } from "./computer-external"
+export { AN_COMPUTER_SCOPE_SURFACE } from "./computer-scope"
 export { AN_PODMAN_SURFACE } from "./podman-chrome"
 export { AN_NAV_ILLUSTRATED } from "./nav-illustrated"
 
@@ -262,6 +263,7 @@ export { AN_NAV_ILLUSTRATED } from "./nav-illustrated"
  * Three-state shell modes only (AP-STAGE5-MODES decision C).
  * Status / Inline = event card densities (AP-STAGE5-02/03), not modes.
  * Side Panel = Computer View synonym in docs.
+ * Scope (tab group | window | local workspace) = separate axis (AP-STAGE5-04).
  */
 export const AN_SHELL_MODES = ["conversation", "view", "takeover"] as const
 export type AnShellMode = (typeof AN_SHELL_MODES)[number]

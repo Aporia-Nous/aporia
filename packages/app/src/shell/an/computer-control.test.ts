@@ -83,7 +83,20 @@ describe("AP-BF-03 computer control lock", () => {
     expect(botMayDrive(takeover)).toBe(false)
     expect(feedIsWatchOnly(takeover)).toBe(false)
     expect(isBotCursorShown(true, takeover)).toBe(false)
-    expect(computerControlBannerCopy(true, takeover).pill).toBe("You control")
+    expect(computerControlBannerCopy(true, takeover).pill).toBe("You are controlling")
+    expect(
+      computerControlBannerCopy(true, takeover, { botName: "Grok", targetName: "Local browser workspace" })
+        .copy,
+    ).toBe("You are controlling · Bot paused · Local browser workspace")
+    const watch = syncComputerControl(initialComputerControlState("ses_1"), {
+      live: true,
+      mode: "view",
+      sessionID: "ses_1",
+    })
+    expect(
+      computerControlBannerCopy(true, watch, { botName: "Grok", targetName: "Local browser workspace" })
+        .copy,
+    ).toBe("Grok is controlling · Local browser workspace")
   })
 
   test("external Chromium Live still honors Takeover lock (AP-BF-04)", () => {
