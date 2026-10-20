@@ -14,6 +14,7 @@ import { formatServerError } from "@/runtime/server/errors"
 import { flushComposerEditorDom } from "@/composer/session-draft"
 import {
   anDraftApplyIdentity,
+  anDraftInstallWindowProbe,
   anDraftKey,
   anDraftSaveIdentity,
   anDraftSwitch,
@@ -425,6 +426,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
   })
 
   // AP-STAGE4-B1: restore draft when the teammate key changes (string key — ignore roster poll churn).
+  anDraftInstallWindowProbe()
   createEffect(
     on(
       () =>

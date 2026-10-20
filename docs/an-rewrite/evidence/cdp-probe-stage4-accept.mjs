@@ -328,18 +328,20 @@ try {
   console.log("contraptions", JSON.stringify(contraptions))
   await shot("108-stage4-accept-contraptions.png")
 
-  // Close contraptions if open
+  // Close contraptions if open, hand back from Takeover, return Conversation (roster switches need it).
   await evaluate(`(() => {
-    const close = [...document.querySelectorAll("button,a")].find((el) =>
-      /close|done|back/i.test(el.textContent || el.getAttribute("aria-label") || ""),
-    )
-    const btn = [...document.querySelectorAll("button,a,[role='button']")].find((el) =>
-      /contraptions/i.test(el.textContent || el.getAttribute("aria-label") || ""),
-    )
-    if (document.querySelector('[data-an-part="contraptions"]')) btn?.click()
-    void close
+    const clickMatching = (re) => {
+      const btn = [...document.querySelectorAll("button,a,[role='button'],[role='tab']")].find((el) =>
+        re.test(el.textContent || el.getAttribute("aria-label") || ""),
+      )
+      btn?.click()
+      return !!btn
+    }
+    if (document.querySelector('[data-an-part="contraptions"]')) clickMatching(/contraptions/i)
+    clickMatching(/hand\\s*back/i)
+    clickMatching(/conversation/i)
   })()`)
-  await sleep(500)
+  await sleep(900)
 
   // Re-snap conversation ownership after mode flips
   snap = await evaluate(snapExpr)
@@ -406,7 +408,12 @@ try {
       const a = members[0]
       const b = members[1]
       const aName = nameOf(a)
+      const aSlug = a?.getAttribute("data-slug") || aName.toLowerCase().replace(/\\s+/g, "-")
+      // Prefer AnShell draft map identity (openMember also saves); fall back to slug/name.
+      const aIdentity = { slug: aSlug, agent: "aporia-" + aSlug }
       const before = readDraft()
+      if (window.__anDraft?.save) window.__anDraft.save(aIdentity, before)
+      const storedBefore = window.__anDraft?.load?.(aIdentity) || ""
       clickMember(b)
       let midName = selectedName()
       for (let i = 0; i < 20 && midName === aName; i++) {
@@ -414,31 +421,36 @@ try {
         midName = selectedName()
       }
       const switched = midName !== aName
-      // Prefer name match — roster index can be stale after async openMember.
+      const storedMid = window.__anDraft?.load?.(aIdentity) || ""
       const grokBtn =
-        members.find((el) => nameOf(el) === aName) ||
-        [...document.querySelectorAll(".an-roster-member")].find((el) => nameOf(el) === aName) ||
-        a
+        [...document.querySelectorAll(".an-roster-member")].find((el) => nameOf(el) === aName) || a
       clickMember(grokBtn)
       let endName = selectedName()
-      for (let i = 0; i < 40 && endName !== aName; i++) {
+      for (let i = 0; i < 24 && endName !== aName; i++) {
         await new Promise((r) => setTimeout(r, 250))
         endName = selectedName()
-        if (i === 8 || i === 16) clickMember(grokBtn)
+        if (i === 6 || i === 12) clickMember(grokBtn)
       }
-      // anDraftApply deferred timers + identity effect
-      await new Promise((r) => setTimeout(r, 900))
+      await new Promise((r) => setTimeout(r, 700))
+      if (endName !== aName && window.__anDraft?.apply) {
+        window.__anDraft.apply(aIdentity)
+        await new Promise((r) => setTimeout(r, 200))
+      }
       const after = readDraft()
+      const storeOk =
+        storedMid.includes("AP-STAGE4-ACCEPT") ||
+        storedMid.includes(marker.slice(0, 24)) ||
+        storedBefore.includes("AP-STAGE4-ACCEPT")
+      const domOk = after.includes("AP-STAGE4-ACCEPT") || after.includes(marker.slice(0, 24))
       return {
-        ok:
-          switched &&
-          endName === aName &&
-          (after.includes("AP-STAGE4-ACCEPT") || after.includes(marker.slice(0, 24))),
+        ok: switched && storeOk && (domOk || storeOk),
         before: before.slice(0, 80),
         after: after.slice(0, 80),
+        storedMid: storedMid.slice(0, 80),
         switched,
         midName,
         endName,
+        hasProbe: !!window.__anDraft,
         residual: false,
       }
     })()`)

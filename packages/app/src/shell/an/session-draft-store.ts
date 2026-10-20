@@ -124,3 +124,18 @@ export function anDraftClearForTests() {
 export function anDraftSizeForTests() {
   return drafts.size
 }
+
+/** DEV/CDP probe surface — no secrets; draft text only. */
+export function anDraftInstallWindowProbe(target: Record<string, unknown> = globalThis as never) {
+  const probe = {
+    key: anDraftKey,
+    keys: anDraftKeys,
+    save: anDraftSaveIdentity,
+    load: anDraftLoadIdentity,
+    apply: anDraftApplyIdentity,
+    has: anDraftHasIdentity,
+    size: () => drafts.size,
+  }
+  ;(target as { __anDraft?: typeof probe }).__anDraft = probe
+  return probe
+}

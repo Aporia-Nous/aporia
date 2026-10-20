@@ -583,6 +583,7 @@ export function AnShell(props: AnShellProps): JSX.Element {
                 type="button"
                 class="an-roster-member"
                 role="listitem"
+                data-slug={member.id}
                 data-selected={member.selected ? "true" : "false"}
                 data-presence={member.presence}
                 title={`${member.name} · ${anPresenceLabel(member.presence)}`}
