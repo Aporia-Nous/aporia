@@ -4,7 +4,7 @@
 |-------|-------|
 | status | **OPEN implemented+live-DEV** (**no** self-PASS / INDEPENDENT PASS; **DONE MEASURED** awaits independent verifier — harness only, not product code PASS) |
 | branch | `stage4-an-shell` |
-| tip | `eb7179f500` |
+| tip | `28a8557194` |
 | code | `eb7179f500` |
 | base | `d683e31f80` (AP-ENGINE-E08 INDEPENDENT PASS) |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
