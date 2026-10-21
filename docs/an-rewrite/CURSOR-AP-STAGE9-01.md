@@ -6,7 +6,7 @@
 | branch | `stage4-an-shell` |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | base | AP-STAGE8-ACCEPT code tip `5bac458f62` / docs `e0dcea9450` |
-| code tip (stream crash fix) | *(see HEAD after commit)* |
+| code tip (stream crash fix) | `2ccefc716c` |
 | marker | `AP-STAGE9-EXAMPLE-G 1792564586730` |
 | authority | Ali continue-finish 2026-10-21 (EXCEPT design) |
 | merge/push/install | **No** |
