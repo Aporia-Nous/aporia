@@ -228,6 +228,15 @@ export {
   type AnA11yContractReport,
 } from "./a11y-contract"
 export {
+  AN_PERF_SURFACE,
+  buildSyntheticStreamMessages,
+  evaluateAnPerfContract,
+  measureStreamHotpath,
+  type AnPerfContractCheck,
+  type AnPerfContractReport,
+  type AnPerfHotpathSample,
+} from "./perf-contract"
+export {
   initialPodmanStatus,
   podmanDotLabel,
   podmanMissionPill,
