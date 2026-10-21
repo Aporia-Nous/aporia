@@ -13,7 +13,6 @@ import { usePlatform } from "@/runtime/platform/platform"
 import { useCommand } from "@/shell/commands/command"
 import { useLanguage } from "@/runtime/i18n/language"
 import { useSettings } from "@/settings/model"
-import { WindowsAppMenu } from "./windows-menu"
 import { applyPath, backPath, forwardPath, type HistoryLocation } from "./history"
 import { TitlebarTabStrip } from "@/shell/titlebar/tab-strip"
 import { makeEventListener } from "@solid-primitives/event-listener"
@@ -69,7 +68,6 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
 
   const mac = createMemo(() => platform.platform === "desktop" && platform.os === "macos")
   const windows = createMemo(() => platform.platform === "desktop" && platform.os === "windows")
-  const linux = createMemo(() => platform.platform === "desktop" && platform.os === "linux")
   const macTrafficLights = createMemo(() => mac() && !platform.windowFullscreen?.())
   const macVerticalTabs = createMemo(() => mac() && !!props.verticalTabs)
   const zoom = () => platform.webviewZoom?.() ?? 1
@@ -535,13 +533,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                   "ps-3.5": windows(),
                 }}
               >
-                <Show when={!mobile() && (!props.verticalTabs || windows())}>
-                  <ChannelIndicator horizontal />
-                </Show>
-                <Show when={windows() || linux()}>
-                  <WindowsAppMenu command={command} platform={platform} />
-                </Show>
-                <Show when={!mobile() && !props.verticalTabs}>{homeButton()}</Show>
+                {/* APORIA: opencode's left chrome (channel logo / app menu / home) is intentionally removed — Aporetic never shows it. */}
 
                 <Show
                   when={!mobile()}
@@ -682,7 +674,7 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
                   <Show
                     when={props.verticalTabs}
                     fallback={
-                      <Show when={!aporiaPrefs.layoutEnabled()}>{/* APORIA: tab strip replaced by the Aporia rail */}
+                      <Show when={!aporiaPrefs.layoutEnabled()}>{/* APORIA: tab strip replaced by the Aporetic rail */}
                         <TitlebarTabStrip
                           tabs={tabsStore}
                           currentTab={currentTab()}

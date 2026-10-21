@@ -1,0 +1,23 @@
+recorded_date=2026-10-19
+work_date=2026-10-19
+event=AP-STAGE4-09-integrated-running-dev
+actor=Cursor agent
+authorization=Ali: Merge dock glass into main Stage 4 worktree and restart isolated DEV
+main_worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+main_branch=stage4-an-shell
+dock_worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4-dock
+dock_branch=stage4-dock-glass
+merge=fast-forward e742188554..22e43a666d (no conflicts)
+new_tip=22e43a666d60b16232431f4a805436ade6e5e31a
+code_commit=9da1be6a51
+launcher=run-dev-isolated.cmd
+OPENCODE_DB=opencode-aporia-dev.db
+renderer=http://localhost:5173/
+cdp=http://127.0.0.1:9222/
+electron_pid=66004
+window_title=Aporetic
+screenshot=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4/docs/an-rewrite/evidence/screenshots-2026-10-18/14-dock-merged-dev.png
+probe=live CDP (no CSS inject); injectedStylePresent=false; panelBlur=blur(42px) saturate(1.18); panelRadius=18px; panelAnim=an-dock-settle; void=#020509; gold=#f0c66d; easeDock present
+stage0_worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic left alone at 2469aed5d7
+remote_push=false
+not_claimed=independent PASS of merge itself; Stage 4 complete; promote; push

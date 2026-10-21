@@ -1,0 +1,16 @@
+﻿recorded=2026-10-18T19:15:07.1545487-05:00
+authorization=Ali: get dev running (running-DEV only)
+worktree=C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+branch=stage4-an-shell
+tip=7d0712bb07
+launcher=C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4\run-dev-isolated.cmd
+log=C:\Tools\aporia\dev-isolated-stage4.log
+OPENCODE_DB=opencode-aporia-dev.db (isolated; prod opencode-aporia.db mtime unchanged since 2026-10-17)
+window_title=Aporetic
+electron_main_pid=59784
+userData=com.aporianous.desktop.dev
+renderer=http://localhost:5173/
+app_running.ps1=exit 3 (processes present)
+switch-dev-to-isolated.cmd=NOT run (would VACUUM rebuild from prod and wipe Stage1-3 migrated domain on existing opencode-aporia-dev.db; existing isolated DB already present; no app was running)
+canonical_opt_launcher=C:\Tools\aporia\.worktrees\opt\run-dev-isolated.cmd NOT used (tip an/efficiency-bench-1 @ 0229ce1f2d; no AnShell)
+status=running-DEV attempted/running — NOT independent PASS; no acceptance checklist claimed

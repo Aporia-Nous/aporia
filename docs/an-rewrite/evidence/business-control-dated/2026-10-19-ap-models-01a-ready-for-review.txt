@@ -1,0 +1,25 @@
+AP-MODELS-01a ready-for-review — recording date 2026-10-19 (America/Chicago)
+Work date: 2026-10-19
+Ali: "okay do it" → implement AP-MODELS-01a on Stage 4 worktree.
+
+Worktree: C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+Branch: stage4-an-shell
+Base tip verified: 4f1fe0fea9 (AP-STAGE4-10)
+Code commit: 37e0851fc4
+Docs commit: fb0058dd99
+Tip HEAD: 5691df3ffc
+
+Implemented (not PASS):
+1. Non-EN i18n dialog.model.unpaid.freeModels.title: Aporetic/Aporian → OpenCode (aligned with en.ts)
+2. unpaidFeaturedProviders + popularProviders: ollama, lmstudio surfaced
+3. EN local provider notes/taglines; Settings PROVIDER_NOTES for ollama/lmstudio
+4. Author tests: bun test order.test.ts + free-models-honesty.test.ts → 4 pass / 0 fail
+
+Out of scope kept:
+- No OmniRoute / billing / secrets / merge / push
+- No shell/an presence edits
+- No independent PASS claim
+- No running-DEV proof this pass
+
+Report: Stage4 docs/an-rewrite/CURSOR-AP-MODELS-01a.md
+Board: AP-MODELS-01a ACTIVE→OPEN (ready for review); parent AP-MODELS-01 remains OPEN

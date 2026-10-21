@@ -60,6 +60,46 @@ function previewBuildNumber() {
   return runNumber
 }
 
+// Build provenance: read from the tree that is being built, at the moment it is built. This is the only place the
+// commit is knowable, and it is recorded so the binary can be asked what it is rather than trusted to be what
+// something beside it claims. A binary built while the tree held uncommitted source changes is NOT equivalent to that
+// commit, which is why the dirty state is recorded as data instead of being inferred later.
+const COMMIT = await (async () => {
+  try {
+    const out = (await $`git rev-parse HEAD`.text()).trim()
+    return /^[0-9a-f]{40}$/.test(out) ? out : null
+  } catch {
+    return null
+  }
+})()
+const DIRTY = await (async () => {
+  if (!COMMIT) return null
+  try {
+    // Compare CONTENT with the commit, not git's stat cache. `git status --porcelain` reports a file as modified when
+    // only its line endings differ from the index (a checked-out-and-touched lockfile, for example), and a build that
+    // refused to run because of a line ending would be untrustworthy in the other direction: people would turn the
+    // check off. `git diff HEAD` normalises, so it answers the question that actually matters - is this source tree
+    // the commit? The `:/` pathspec matters: this file is imported from inside a package directory, and without it
+    // `ls-files` only lists files under that directory, which would report a tree containing an uncommitted file
+    // elsewhere as clean - a false clean, the one answer this must never give.
+    const changed = (await $`git diff HEAD --name-only -- :/`.text()).trim()
+    const untracked = (await $`git ls-files --others --exclude-standard --full-name -- :/`.text()).trim()
+    return [changed, untracked].filter((x) => x.length > 0).join("\n")
+  } catch {
+    return null
+  }
+})()
+const DIRTY_FILES = DIRTY ? DIRTY.split("\n").filter((x) => x.trim()).length : 0
+const DIRTY_SAMPLE = DIRTY
+  ? DIRTY.split("\n")
+      .filter((x) => x.trim())
+      .slice(0, 5)
+      .join(" | ")
+      .slice(0, 300)
+  : ""
+const BUILT_AT = new Date().toISOString()
+const BUILD_ID = `${BUILT_AT.replace(/[-:]/g, "").slice(0, 15)}Z-${COMMIT ? COMMIT.slice(0, 8) : "nogit"}`
+
 const bot = ["actions-user", "opencode", "opencode-agent[bot]"]
 const teamPath = path.resolve(import.meta.dir, "../../../.github/TEAM_MEMBERS")
 const team = [
@@ -82,6 +122,24 @@ export const Script = {
   },
   get release(): boolean {
     return !!env.OPENCODE_RELEASE
+  },
+  get commit(): string | null {
+    return COMMIT
+  },
+  get dirty(): boolean | null {
+    return DIRTY === null ? null : DIRTY.length > 0
+  },
+  get dirtyFiles(): number {
+    return DIRTY_FILES
+  },
+  get dirtySample(): string {
+    return DIRTY_SAMPLE
+  },
+  get builtAt(): string {
+    return BUILT_AT
+  },
+  get buildId(): string {
+    return BUILD_ID
   },
   get team() {
     return team

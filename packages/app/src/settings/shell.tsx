@@ -39,6 +39,9 @@ import { useWorkspacesPrefetch } from "./workspaces/queries"
 import { SettingsProjects } from "./workspaces/projects"
 import { SettingsExtensions } from "./providers/extensions"
 import { SettingsAbout } from "./about/about"
+import { SettingsVault } from "@/aporia/vault"
+import { SettingsContext } from "@/aporia/context"
+import { SettingsUpdate } from "@/aporia/update"
 import { SettingsServerDataScope } from "./server-scope"
 import { SettingsNavigation, type SettingsNavGroup } from "./navigation"
 import { SettingsProjectGeneral } from "./workspaces/project"
@@ -48,7 +51,15 @@ import { settingsViewRedirect } from "./route"
 import { pageIcons } from "./pages"
 import { revealSettingsSearch } from "./search-reveal"
 import { ExtensionSettingsPages } from "@/runtime/extension/settings-page-view"
+import { aporiaPrefs } from "@/aporia/prefs"
+import { anSettingsOwnedAttrs } from "@/shell/an/settings-chrome"
+import { useTheme } from "@opencode/ui/theme/context"
 import "@/settings/settings.css"
+import "@/shell/an/settings-an.css"
+
+// AP-ENGINE-PORT-02: AnShell Settings path no longer mounts this OC Settings React shell.
+// Owned path = packages/app/src/shell/an/settings-panel.tsx via EnginePort (About/Providers/Models/BYOK).
+// This route remains for classic (non-AnShell) layout only — do not expand AN skin wrap here.
 
 const GuiExtensionsSettings = import.meta.env.DEV
   ? lazy(() =>
@@ -79,6 +90,8 @@ const guiExtensionsTab = [
   { value: "gui-extensions", icon: pageIcons["gui-extensions"], label: "settings.guiExtensions.title" },
 ] as const
 
+const vaultTab = [{ value: "vault", icon: pageIcons.vault, label: "settings.tab.vault" }, { value: "updates", icon: pageIcons.updates, label: "settings.tab.updates" }] as const
+
 const aboutTab = [{ value: "about", icon: pageIcons.about, label: "settings.tab.about" }] as const
 
 const nestedServerTabs = [
@@ -98,9 +111,17 @@ export function SettingsScreen() {
   const servers = useSettingsServers()
   const loaded = useSettingsServersLoaded()
   const global = useGlobal()
+  const theme = useTheme()
   let root: HTMLDivElement | undefined
   let viewType = surface.view().type
   let activation = 0
+
+  // AP-STAGE4-19: keep sticky `an` theme while Settings is open (AnShell unmounts on /settings).
+  createEffect(() => {
+    if (!aporiaPrefs.anShellEnabled()) return
+    if (theme.themeId() !== "an") theme.setTheme("an")
+    if (theme.colorScheme() !== "dark") theme.setColorScheme("dark")
+  })
 
   onMount(() => root?.focus({ preventScroll: true }))
   createEffect(() => {
@@ -188,6 +209,7 @@ export function SettingsScreen() {
       ref={root}
       data-testid="settings-screen"
       class="settings-screen"
+      {...anSettingsOwnedAttrs(aporiaPrefs.anShellEnabled())}
       tabIndex={-1}
       onKeyDown={(event) => {
         if (event.key !== "Escape" || event.defaultPrevented || dialog.active) return
@@ -323,6 +345,7 @@ function RootSettings() {
       ? [{ items: experimentalTab.map((item) => ({ ...item, label: language.t(item.label) })) }]
       : []),
     ...(guiExtensions ? [{ items: guiExtensionsTab.map((item) => ({ ...item, label: language.t(item.label) })) }] : []),
+    { items: vaultTab.map((item) => ({ ...item, label: language.t(item.label) })) },
     { items: aboutTab.map((item) => ({ ...item, label: language.t(item.label) })) },
   ])
 
@@ -378,6 +401,13 @@ function RootSettings() {
           </Suspense>
         </Tabs.Content>
       )}
+      <Tabs.Content value="vault" class="settings-panel">
+        <SettingsVault />
+        <SettingsContext />
+      </Tabs.Content>
+      <Tabs.Content value="updates" class="settings-panel">
+        <SettingsUpdate />
+      </Tabs.Content>
       <Tabs.Content value="about" class="settings-panel settings-about">
         <SettingsAbout active={surface.view().tab === "about"} />
       </Tabs.Content>

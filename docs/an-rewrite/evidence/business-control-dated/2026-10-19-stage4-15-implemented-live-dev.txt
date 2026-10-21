@@ -1,0 +1,24 @@
+task=AP-STAGE4-15
+status=OPEN implemented+live-DEV
+verdict=NOT INDEPENDENT PASS; NOT Stage 4 complete
+work_date=2026-10-19
+recorded_date=2026-10-19
+worktree=C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+branch=stage4-an-shell
+base=93d29c01b4 (AP-STAGE4-14 INDEPENDENT PASS tip)
+code=e87ff135c0
+tip=5167449bd7
+scope=Design-audit high: Task/Approval/Proof/Computer cards in Conversation stream (mockup); Mission stack above collapsed empty; Mission header compact
+report=docs/an-rewrite/CURSOR-AP-STAGE4-15.md
+tests=bun test src/shell/an src/aporia/flows-util.test.ts → 85 pass / 0 fail
+live_cdp=bun docs/an-rewrite/evidence/cdp-probe-stage4-15-cards-in-stream.mjs → RESULT ok:true marker AP-STAGE4-15 cards-in-stream 1792419314519; missionCompact; streamCardsInStream; inConversationCardCount=2 cardTypes=[computer,team]; stackPresent=false; convH=578; composerOwned; timeline none; unknownCount=0
+shots=47-before-cards-in-stream.png; 48-cards-in-conversation.png; 49-cards-in-stream-computer-view.png; 50-cards-in-stream-conversation.png
+non_regress_stage4_12=ok:true marker AP-STAGE4-12 composer 1792419360349
+non_regress_stage4_13=ok:true marker AP-STAGE4-13 chrome 1792419361464
+non_regress_4e=ok:true mountOk ownershipOk
+non_regress_bf01=ok:true marker AP-BF-01 attach 1792419330716
+preserved=STAGE4-11 stream ownership; STAGE4-12/13 composer; STAGE4-14 presence; 4E Contraptions; BF-01..04
+left_alone=ice-punch; BF-05; CE-01
+not_claimed=INDEPENDENT PASS; Stage 4 complete; merge; push; promote
+residuals_ok=tool Task/Proof only when active/edit tools; right-rail Computer View panel remains BF path; full mockup card fidelity deferred
+next_slice=independent verifier for AP-STAGE4-15 OR CE-01 / BF-05 / 4F per Ali

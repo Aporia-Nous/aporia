@@ -1,0 +1,8 @@
+$ cd C:\Tools\aporia\.worktrees\opt\packages\core
+$ C:\Users\Dilla\.bun\bin\bun.exe run typecheck
+exit code: 0
+
+
+
+--- stderr ---
+$ tsgo -b tsconfig.json tsconfig.tests.json

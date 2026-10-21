@@ -1,0 +1,33 @@
+AP-ENGINE-E13 writer live-DEV evidence
+recorded_date: 2026-10-19 (America/Chicago)
+work_date: 2026-10-19
+status: OPEN implemented+live-DEV (NOT INDEPENDENT PASS; NOT self-PASS)
+worktree: C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+branch: stage4-an-shell
+base: 72dce8c771 (AP-ENGINE-E05 INDEPENDENT PASS)
+code: 1f7e4c25c8
+tip: 4c42d1d289
+
+Shipped:
+  E13 — MAX_AUTO_COMPACTS_PER_DRAIN=2 drain budget
+       auto/overflow completions counted; manual uncapped
+       further attempts → Failed — stall/churn (compaction.stall)
+       recoverOverflow may StepFailedError on stall (not prompt-too-long fallthrough)
+       overflow recovery once + J2 mid-turn semantics preserved
+
+Unit (packages/core):
+  bun test test/drain-compact-budget.test.ts → 3 pass
+  bun test test/session-runner.test.ts -t "AP-ENGINE-E13|persists a second context overflow|compacts before requesting an undersized|recovers an overflowing|does not recover provider context overflow" → 5 pass
+  typecheck exit 0
+
+Live CDP (APORETIC_CDP_PORT=9223):
+  probe: docs/an-rewrite/evidence/cdp-probe-engine-e13.mjs
+  RESULT ok:true EXIT=0
+  marker: AP-ENGINE-E13 send 1792433267590
+  engine=oc-server enginePort=01 owned=composer timelineDisplay=none
+  note: EnginePort send non-regress; E13 behavior proven by unit
+  ws.close + process.exit
+
+Not claimed: INDEPENDENT PASS, PORT-02, second-pass audit, merge/push/install
+Follow-up: independent verifier; E13 finishes original top-10 act-first list
+Left alone: PORT-02; second-pass audit

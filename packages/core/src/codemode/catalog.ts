@@ -47,7 +47,7 @@ export type Options = {
 
 const DESCRIPTION_LIMIT = 120
 const CHARACTERS_PER_TOKEN = 4
-const INLINE_BUDGET = 2_000
+const INLINE_BUDGET = 1_500
 
 // Keep every namespace visible, then select full listings one per namespace per round,
 // considering shorter listings first until the inline budget is exhausted.
@@ -68,7 +68,7 @@ export function summarize(inventory: Inventory, options: Options = {}): Summary 
           const description =
             firstLine.length > DESCRIPTION_LIMIT ? firstLine.slice(0, DESCRIPTION_LIMIT - 3) + "..." : firstLine
           const suffix = description.length === 0 ? "" : ` // ${description}`
-          return { path: entry.path, line: `  - ${entry.signature}${suffix}` }
+          return { path: entry.path, line: `  - ${compact(entry.signature)}${suffix}` }
         })
         .toSorted((left, right) => {
           if (left.path < right.path) return -1
@@ -186,4 +186,14 @@ function rankListings(listings: ReadonlyArray<typeof Listing.Type>) {
 
 function cost(text: string) {
   return Math.round(text.length / CHARACTERS_PER_TOKEN)
+}
+
+// Signatures carry copied doc comments that duplicate the tool description and schema. The listing
+// only needs the callable shape, so keep the code and drop the prose.
+function compact(signature: string) {
+  return signature
+    .replace(/\/\*\*[\s\S]*?\*\//g, "")
+    .replace(/[ \t]+$/gm, "")
+    .replace(/\n\s*\n/g, "\n")
+    .trim()
 }

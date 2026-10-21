@@ -1,4 +1,4 @@
-// APORIA: brand marks replaced with the Aporia logo (OpenCode marks removed from the UI).
+// APORIA: brand marks replaced with the Aporetic logo (OpenCode marks removed from the UI).
 import { type ComponentProps } from "solid-js"
 import logo from "../assets/aporia/logo.png"
 
@@ -14,7 +14,7 @@ const Img = (p: { class?: string; ref?: any; box: string; component: string; siz
     <image href={logo} x="0" y="0" width={p.size} height={p.size} />
     {p.text ? (
       <text x={p.size + 8} y={p.size * 0.74} style={{ "font-size": `${p.size * 0.72}px`, "font-weight": 700, "font-family": "Inter, Segoe UI, sans-serif" }} fill="var(--icon-strong-base)">
-        Aporia
+        Aporetic
       </text>
     ) : null}
   </svg>

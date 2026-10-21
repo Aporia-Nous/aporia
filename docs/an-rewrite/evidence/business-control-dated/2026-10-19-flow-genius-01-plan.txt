@@ -1,0 +1,21 @@
+FLOW-GENIUS-01 plan evidence — 2026-10-19 America/Chicago
+============================================================
+Work: coordination only (no product code, no merge/push, no secrets)
+
+Ali clarified: "genius flows" = capability patterns of OpenCode, Grok, Cursor,
+ChatGPT, Claude — rewrite more efficiently / combine where separate process is
+bloat; keep tokens low; Aporetic-owned AN three-state + companion (not clone UI).
+
+Searched:
+- No literal "genius" module/flow name in Aporetic docs or cursor-aporetic tree
+- Flow surface = native F1 engine + design F2–F4; Stage 6 lean context; SessionRunner
+- Stage 4 AnShell = presentation (not the token spine)
+
+Deliverable:
+- business-control/FLOW-GENIUS-PLAN.md (unified spine, merge/kill, token rules, ranked slices)
+- tasks.json id FLOW-GENIUS-01 status OPEN
+- events.jsonl FLOW-GENIUS-01-plan-opened
+
+Implemented product code this pass: none (plan-only).
+
+Recommended next after Ali confirm: FLOW-GENIUS-02 Stage 6 lean shared context pack.

@@ -505,4 +505,95 @@ describe("InstructionState", () => {
       ])
     }),
   )
+
+  it.effect("AP-ENGINE-E10: prepare gate skips re-observe while epoch is clean", () =>
+    Effect.gen(function* () {
+      const sessionID = SessionSchema.ID.make("ses_instruction_e10_skip")
+      const { db, events } = yield* setup(sessionID)
+      let value = "stable"
+      let reads = 0
+      const instructions = source(
+        "test/context",
+        Effect.sync(() => {
+          reads++
+          return value
+        }),
+      )
+      let epoch = 0
+      const gate: InstructionState.PrepareGate = {
+        epoch: () => epoch,
+        prepared: new Map(),
+      }
+
+      yield* InstructionState.prepare(db, events, instructions, sessionID, gate)
+      expect(reads).toBe(1)
+      const afterInitial = yield* instructionEvents(db, sessionID)
+
+      value = "changed-but-clean-epoch"
+      yield* InstructionState.prepare(db, events, instructions, sessionID, gate)
+      yield* InstructionState.prepare(db, events, instructions, sessionID, gate)
+      expect(reads).toBe(1)
+      expect(yield* instructionEvents(db, sessionID)).toEqual(afterInitial)
+    }),
+  )
+
+  it.effect("AP-ENGINE-E10: prepare gate re-observes after dirty epoch (AGENTS.md-style invalidate)", () =>
+    Effect.gen(function* () {
+      const sessionID = SessionSchema.ID.make("ses_instruction_e10_dirty")
+      const { db, events } = yield* setup(sessionID)
+      let value = "initial"
+      let reads = 0
+      const instructions = source(
+        "test/context",
+        Effect.sync(() => {
+          reads++
+          return value
+        }),
+      )
+      let epoch = 0
+      const gate: InstructionState.PrepareGate = {
+        epoch: () => epoch,
+        prepared: new Map(),
+      }
+
+      yield* InstructionState.prepare(db, events, instructions, sessionID, gate)
+      expect(reads).toBe(1)
+      expect((yield* instructionEvents(db, sessionID)).map((event) => event.data.delta)).toEqual([
+        { "test/context": Instructions.hash("initial") },
+      ])
+
+      value = "agents-edited"
+      epoch++
+      yield* InstructionState.prepare(db, events, instructions, sessionID, gate)
+      expect(reads).toBe(2)
+      expect((yield* instructionEvents(db, sessionID)).map((event) => event.data.delta)).toEqual([
+        { "test/context": Instructions.hash("initial") },
+        { "test/context": Instructions.hash("agents-edited") },
+      ])
+
+      // Clean epoch: no extra InstructionsUpdated.
+      yield* InstructionState.prepare(db, events, instructions, sessionID, gate)
+      expect(reads).toBe(2)
+      expect(yield* instructionEvents(db, sessionID)).toHaveLength(2)
+    }),
+  )
+
+  it.effect("AP-ENGINE-E10: prepare without gate still observes every call", () =>
+    Effect.gen(function* () {
+      const sessionID = SessionSchema.ID.make("ses_instruction_e10_ungated")
+      const { db, events } = yield* setup(sessionID)
+      let reads = 0
+      const instructions = source(
+        "test/context",
+        Effect.sync(() => {
+          reads++
+          return "unchanged"
+        }),
+      )
+      yield* InstructionState.prepare(db, events, instructions, sessionID)
+      yield* InstructionState.prepare(db, events, instructions, sessionID)
+      yield* InstructionState.prepare(db, events, instructions, sessionID)
+      expect(reads).toBe(3)
+    }),
+  )
 })

@@ -7,6 +7,7 @@ import { useDialog } from "@opencode/ui/context/dialog"
 import { useTheme } from "@opencode/ui/theme"
 import { createMemo, onCleanup, onMount, type Component, For, Show } from "solid-js"
 import { useLocal, type ModelSelection } from "@/providers/models/selection"
+import { unpaidFeaturedProviders } from "@/providers/catalog/order"
 import { useIntegrations } from "@/providers/catalog/integrations"
 import { decode64 } from "@/runtime/persistence/base64"
 import { useLanguage } from "@/runtime/i18n/language"
@@ -14,7 +15,22 @@ import { ModelTooltip } from "./tooltip"
 
 type ModelState = ModelSelection
 
-const featuredProviders = ["opencode-go", "opencode", "openai", "anthropic", "google", "github-copilot"]
+const featuredProviders = unpaidFeaturedProviders
+
+const featuredProviderTagline = (id: string) => {
+  switch (id) {
+    case "opencode":
+      return "dialog.provider.opencode.tagline" as const
+    case "opencode-go":
+      return "dialog.provider.opencodeGo.tagline" as const
+    case "ollama":
+      return "dialog.provider.ollama.tagline" as const
+    case "lmstudio":
+      return "dialog.provider.lmstudio.tagline" as const
+    default:
+      return undefined
+  }
+}
 
 const displayModelName = (name: string) => name.replace(/\s+(?:\(free\)|free)$/i, "")
 
@@ -164,14 +180,10 @@ export const DialogSelectModelUnpaid: Component<{ model?: ModelState }> = (props
                       />
                       <span class="flex min-w-0 flex-col">
                         <span class="truncate">{providerName(provider)}</span>
-                        <Show when={provider.id === "opencode" || provider.id === "opencode-go"}>
-                          <span class="truncate font-[440] text-v2-text-text-muted">
-                            {language.t(
-                              provider.id === "opencode"
-                                ? "dialog.provider.opencode.tagline"
-                                : "dialog.provider.opencodeGo.tagline",
-                            )}
-                          </span>
+                        <Show when={featuredProviderTagline(provider.id)} keyed>
+                          {(key) => (
+                            <span class="truncate font-[440] text-v2-text-text-muted">{language.t(key)}</span>
+                          )}
                         </Show>
                       </span>
                     </button>

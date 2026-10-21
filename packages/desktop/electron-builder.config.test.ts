@@ -11,9 +11,9 @@ import type { Configuration } from "electron-builder"
 const { FileMatcher } = createRequire(import.meta.resolve("electron-builder"))("app-builder-lib/out/fileMatcher")
 
 const channels = [
-  { channel: "dev", appId: "ai.opencode.desktop.dev" },
-  { channel: "beta", appId: "ai.opencode.desktop.beta" },
-  { channel: "prod", appId: "ai.opencode.desktop" },
+  { channel: "dev", appId: "com.aporianous.desktop.dev" },
+  { channel: "beta", appId: "com.aporianous.desktop.beta" },
+  { channel: "prod", appId: "com.aporianous.desktop" },
 ] as const
 
 async function load(channel: string) {

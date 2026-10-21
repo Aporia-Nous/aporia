@@ -1,0 +1,34 @@
+===== proving that only documentation changed after the Stage 2 evidence commit ===== 
+repository: C:\Tools\aporia\.worktrees\opt 
+base commit: a77ac8747c (docs(an-rewrite): regenerate the Stage 2 evidence at the corrected tip) 
+tip at run time: 
+4609dc189e2302d00ffef911abe949e8cbbd2559
+ 
+The test: the git tree hash of packages/ at the base equals the tree hash at any later tip if 
+and only if no file under packages/ changed. Run the two rev-parse lines below at any tip, 
+including one newer than this file, and equal hashes settle it. 
+--- command: git rev-parse a77ac8747c:packages --- 
+bc13327fc8bc4e9cd5ff31c4733d4224ba0a9b0d
+exit=0 
+--- command: git rev-parse HEAD:packages --- 
+bc13327fc8bc4e9cd5ff31c4733d4224ba0a9b0d
+exit=0 
+--- command: git diff --name-only a77ac8747c HEAD --- 
+docs/an-rewrite/REQUIREMENTS-EVIDENCE.md
+docs/an-rewrite/STATUS.md
+docs/an-rewrite/evidence/2026-10-17-stage2-code-diff.txt
+docs/an-rewrite/evidence/2026-10-17-stage2-verifier-passes.md
+exit=0 
+--- command: git diff --name-only a77ac8747c HEAD -- packages/ (empty means no code or test changed) --- 
+exit=0 
+--- command: git log --oneline a77ac8747c..HEAD --- 
+4609dc189e docs(an-rewrite): stop retyping the Stage 2 commit list
+3c7d13e7ed docs(an-rewrite): store the docs-only diff proof for Stage 2
+592834ffb2 docs(an-rewrite): complete the Stage 2 commit list and record pass 4
+3901d73d03 docs(an-rewrite): cite the tip the evidence was generated at
+exit=0 
+ 
+The range printed above ends at the tip named above. This file is committed one commit after 
+that tip, and that commit adds this file and nothing under packages/; the two tree hashes 
+printed here stay equal at every later tip for as long as that remains true, which is what the 
+rev-parse comparison above is for. 

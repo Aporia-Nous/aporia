@@ -1,0 +1,19 @@
+recorded=2026-10-18
+task=AP-STAGE4-03
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=composer-token (void fill + gold focus/send under AnShell/an)
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=380620883c
+tip=369a549991
+base=7d0712bb07
+report=docs/an-rewrite/CURSOR-AP-STAGE4-03.md
+tests_re_ran=packages/app shell/an tokens+bind 13 pass; packages/ui an-theme 3 pass
+pixel_before=01-conversation-default.png composer center ~#121B37/#131C39
+pixel_after=05-composer-an-tokens-after.png composer center #020509
+hosts=[data-component=an-shell],[data-an-theme=an]
+lagoon=none
+scope_creep=none (no View/Takeover/attention/mission wiring in code diff)
+note=thin #2E345D fringe at dock top edge y~650 only; composer fill void-dominant
+not_claimed=Stage 4 complete; merge; push; running-DEV acceptance PASS

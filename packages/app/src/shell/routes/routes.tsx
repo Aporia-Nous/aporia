@@ -43,7 +43,7 @@ export function preloadRoute(url: string) {
 export function AppRoutes() {
   return (
     <Route component={AppLayout}>
-      <Route path="/" component={AporiaHomeRoute} /> {/* APORIA: stock Home inside the Aporia frame */}
+      <Route path="/" component={AporiaHomeRoute} /> {/* APORIA: stock Home inside the Aporetic frame */}
       <Route path="/settings" component={SettingsScreen} />
       <Route
         path="/server/:serverKey/session/:id"

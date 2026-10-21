@@ -16,8 +16,8 @@ import { SessionProviderContext } from "../provider-context.js"
 import { SessionModelRequest } from "../model-request.js"
 import { SessionModelTransport } from "../model-transport.js"
 import { SessionMessage } from "../message.js"
+import { loadLeanPackForSession } from "../mission-fold.js"
 import { SessionSchema } from "../schema.js"
-import { SessionStore } from "../store.js"
 import { SessionMessageTable } from "../sql.js"
 import { SessionTitle } from "../title.js"
 import { toSessionError } from "../to-session-error.js"
@@ -31,6 +31,12 @@ import { SessionStep } from "./step.js"
 import { ToolOutput } from "../../tool-output.js"
 import { Plugin } from "../../plugin.js"
 import { MAX_STEPS_PROMPT } from "./max-steps.js"
+import {
+  createDrainCompactBudget,
+  recordAutoCompactCompleted,
+  reserveAutoCompact,
+  type DrainCompactBudget,
+} from "./drain-compact-budget.js"
 
 const CONTINUE_AFTER_INCOMPLETE_STREAM =
   "The previous response was interrupted. Continue from where you left off without repeating completed content."
@@ -40,7 +46,6 @@ const layer = Layer.effect(
   Effect.gen(function* () {
     const bus = yield* Bus.Service
     const lifecycle = yield* LocationLifecycle.Service
-    const store = yield* SessionStore.Service
     const context = yield* SessionContext.Service
     const modelTransport = yield* SessionModelTransport.Service
     const db = (yield* Database.Service).db
@@ -50,6 +55,24 @@ const layer = Layer.effect(
     const steps = yield* SessionStep.make
     // Title generation starts once input is visible and must not delay model execution.
     const titles = yield* FiberMap.make<SessionSchema.ID, void, never>()
+
+    // AP-ENGINE-E10: observe instructions once per drain unless SessionContext dirty epoch bumps.
+    // Fresh Map per drain forces observe after location move (new drain entry).
+    let instructionPrepared: Map<string, number> | undefined
+    // AP-ENGINE-E13: auto/overflow compact completions per drain (manual uncapped).
+    let drainCompactBudget: DrainCompactBudget | undefined
+
+    const autoOrOverflowCompact = Effect.fn("SessionRunner.autoOrOverflowCompact")(function* (
+      reason: "auto" | "overflow",
+      loaded: SessionContext.Loaded,
+    ) {
+      const budget = drainCompactBudget ?? createDrainCompactBudget()
+      const slot = reserveAutoCompact(budget)
+      if (!slot.ok) return { status: "failed" as const, error: slot.error }
+      const result = yield* compaction.compact({ reason, context: loaded })
+      if (result.status === "completed") recordAutoCompactCompleted(budget)
+      return result
+    })
 
     const drain = Effect.fn("SessionRunner.drain")(function* (input: Parameters<Interface["drain"]>[0]) {
       const sessionID = input.sessionID
@@ -65,6 +88,28 @@ const layer = Layer.effect(
         if (promotable === "steer" && pending.delivery === "queue" && !control) return DrainResult.Complete()
       }
       yield* plugins.awaitActivation
+      yield* context.beginDrain
+      instructionPrepared = new Map()
+      drainCompactBudget = createDrainCompactBudget()
+      return yield* Effect.ensuring(
+        drainBody({ sessionID, force, continuing, step, entering, promotable }),
+        Effect.sync(() => {
+          instructionPrepared = undefined
+          drainCompactBudget = undefined
+        }).pipe(Effect.andThen(context.endDrain)),
+      )
+    })
+
+    const drainBody = Effect.fn("SessionRunner.drainBody")(function* (input: {
+      readonly sessionID: SessionSchema.ID
+      force: boolean
+      continuing: boolean
+      step: number
+      entering: boolean
+      readonly promotable: "input" | "steer"
+    }) {
+      let { force, continuing, step, entering } = input
+      const { sessionID, promotable } = input
       yield* settleStaleCompactions(sessionID)
       yield* settleStaleToolCalls(sessionID)
 
@@ -198,7 +243,15 @@ const layer = Layer.effect(
     const prepareContext = Effect.fn("SessionRunner.prepareContext")(function* (sessionID: SessionSchema.ID) {
       const selected = yield* context.select(sessionID)
       // A blocked initial instruction baseline must leave admitted input pending.
-      yield* InstructionState.prepare(db, bus, selected.instructions, sessionID)
+      // E10: skip re-observe on later steps while instructionDirtyEpoch is unchanged.
+      const prepared = instructionPrepared
+      const gate = prepared
+        ? {
+            epoch: () => context.instructionDirtyEpoch(sessionID),
+            prepared,
+          }
+        : undefined
+      yield* InstructionState.prepare(db, bus, selected.instructions, sessionID, gate)
       return selected
     })
 
@@ -210,22 +263,38 @@ const layer = Layer.effect(
       let initial: SessionContext.Loaded | undefined = first
       let recoverOverflow = true
       let recoverContinuation = true
+      // AP-STAGE6-EFFICIENCY: assemble lean pack once per logical step (drain), not every
+      // model attempt. Recent is omitted — messages already go through toLLMMessages.
+      let drainLeanPackText: string | undefined
+      let drainLeanPackResolved = false
       while (true) {
         // Reuse boundary preparation once; retries refresh context without delivering more input.
         const loaded = initial ?? (yield* prepareContext(sessionID).pipe(Effect.flatMap(context.load)))
         initial = undefined
-        const compacted = yield* compaction.compact({ reason: "auto", context: loaded })
+        const compacted = yield* autoOrOverflowCompact("auto", loaded)
         if (compacted.status === "failed") return yield* new StepFailedError({ error: compacted.error })
         if (compacted.status === "completed") {
           assistantMessageID = SessionMessage.ID.create()
           continue
         }
         const stepLimitReached = loaded.agent.info.steps !== undefined && step >= loaded.agent.info.steps
+        // FLOW-GENIUS-03/04 + AP-STAGE6-EFFICIENCY: mission-linked lean pack (no recent overlap).
+        // Unlinked sessions omit leanPack (no empty header). Header guard blocks double-merge.
+        if (!drainLeanPackResolved) {
+          const missionLean = yield* loadLeanPackForSession({
+            sessionID,
+            messages: loaded.messages,
+            omitRecent: true,
+          })
+          drainLeanPackText = missionLean?.pack.text
+          drainLeanPackResolved = true
+        }
         const transcript = SessionModelRequest.baseTranscript({
           agent: loaded.agent.info,
           model: loaded.model,
           tools: loaded.tools,
           initial: loaded.initial,
+          leanPack: drainLeanPackText,
           messages: loaded.messages,
         })
         const prepared = yield* context.request.primary({
@@ -261,9 +330,14 @@ const layer = Layer.effect(
           recoverContinuation,
           recoverOverflow: Effect.suspend(() =>
             recoverOverflow
-              ? compaction
-                  .compact({ reason: "overflow", context: loaded })
-                  .pipe(Effect.map((result) => result.status === "completed"))
+              ? Effect.gen(function* () {
+                  const result = yield* autoOrOverflowCompact("overflow", loaded)
+                  // Stall/churn must surface Failed — not fall through as the provider overflow error.
+                  if (result.status === "failed" && result.error.type === "compaction.stall") {
+                    return yield* new StepFailedError({ error: result.error })
+                  }
+                  return result.status === "completed"
+                })
               : Effect.succeed(false),
           ),
         })
@@ -326,11 +400,11 @@ const layer = Layer.effect(
       }
     })
 
+    // AP-ENGINE-E05: SQL-narrow assistants with open tools; do not decode full history.
     const settleStaleToolCalls = Effect.fn("SessionRunner.settleStaleToolCalls")(function* (
       sessionID: SessionSchema.ID,
     ) {
-      for (const message of yield* store.context(sessionID)) {
-        if (message.type !== "assistant") continue
+      for (const message of yield* SessionHistory.assistantsWithOpenTools(db, sessionID)) {
         for (const tool of message.content) {
           if (tool.type !== "tool" || (tool.state.status !== "streaming" && tool.state.status !== "running")) continue
           const metadata = tool.state.status === "running" ? tool.state.metadata : undefined
@@ -351,7 +425,7 @@ const layer = Layer.effect(
       }
     })
 
-    return Service.of({ drain })
+    return Service.of({ drain: drain as Interface["drain"] })
   }),
 )
 
@@ -364,7 +438,6 @@ export const node = makeLocationNode({
     llmClient,
     SessionContext.node,
     SessionModelTransport.node,
-    SessionStore.node,
     SessionCompaction.node,
     Plugin.node,
     SessionTitle.node,

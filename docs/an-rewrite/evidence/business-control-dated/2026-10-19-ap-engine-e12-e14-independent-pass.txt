@@ -1,0 +1,36 @@
+recorded=2026-10-19
+tasks=AP-ENGINE-E12,AP-ENGINE-E14
+actor=independent-verifier
+verdict=INDEPENDENT PASS (both)
+scope=E12 prompt clone-skip via hooks.has(session,prompt) + sliceUtf8Lines line-range attach; E14 tool-output byte-first + countLogicalLines / keepPreviewLines; EnginePort send/Settings/Contraptions non-regress
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=d18a68bb93
+tip=a19d6dbc63
+base=7b2867c797
+head_verified=a19d6dbc6362958280475b39f9d4df8184ad0659 matches claimed tip; code d18a68bb93 + base 7b2867c797 ancestors
+report=docs/an-rewrite/CURSOR-AP-ENGINE-E12-E14.md
+audit=business-control/ENGINE-EFFICIENCY-AUDIT.md §E12 §E14
+
+e26_board_confirm=AP-ENGINE-E26 remains DONE MEASURED tip 7b2867c797 code eb7179f500 (board-only confirm; no re-measure this review)
+
+source_bar=
+  packages/core/src/session/prompt.ts — hooks.has("session","prompt") gates structuredClone of prompt+metadata; sliceUtf8Lines for text/plain line-range attach
+  packages/core/src/tool-output.ts — Buffer.byteLength + countLogicalLines before truncate decision; keepPreviewLines on truncate path (no full split on fit path)
+
+tests_re_ran=
+  packages/core bun test test/session-prompt.test.ts test/tool-output.test.ts → 51 pass 0 fail
+  packages/core bun test test/session-owned.test.ts → 20 pass 0 fail (owned-prompt hooks)
+  packages/app bun test src/shell/an → 118 pass 0 fail
+
+live_cdp=bun docs/an-rewrite/evidence/cdp-probe-engine-e12-e14.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-ENGINE-E12-E14 send 1792464544921; ws.close+process.exit
+live_cdp_detail=enginePort=03; typed marker + sendClick ok; Settings owned=settings enginePort=02 hasOcScreen=false mark Aporetic/Aporia Nous; STAGE4-12/13 owned=composer timeline none Message Grok…; 4E Contraptions ok
+writer_prior_marker=AP-ENGINE-E12-E14 send 1792464278283 (prior live-DEV)
+
+screenshots=worktree docs/an-rewrite/evidence/screenshots-2026-10-18/102-engine-E12-E14-before-send.png; 103-engine-E12-E14-after-send-you.png; 104-engine-E12-E14-contraptions-light.png; board copies business-control/evidence/2026-10-19-102..104-engine-E12-E14-*.png (re-shot during independent CDP)
+
+residuals_ok=full-file read for attach size/MIME remains (no FS range API); CDP markerHit may prefix-match prior E12-E14 YOU turn on crowded stream (typed+sendClick+RESULT ok still met bar; last-5 userTexts showed writer marker 1792464278283); DEV hard-restart may still be needed for in-process prompt/tool-output path; no wall-clock win claimed
+isolation=no merge/push; product C:\Tools\aporia not this branch; no product features added by verifier
+not_claimed=Stage 4 complete; OpenCode replaced; agent loop rewrite; merge; push; install; Stage 8 / running-DEV acceptance PASS; wall-clock win vs baseline
+deferred=AP-ENGINE-EFFICIENCY-02 catalog residuals after E12/E14 DONE (pass-1 E12/E14 closed)
+worktree_note=unrelated dirty docs/screenshot mods present at review time; verifier did not implement product code

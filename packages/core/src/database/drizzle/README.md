@@ -18,7 +18,7 @@ copy provenance.
 ## Local Boundary
 
 The supported local entrypoint is `@opencode/core/database/drizzle`, exposed
-as the `EffectDrizzleSqlite` namespace. OpenCode's database service consumes that
+as the `EffectDrizzleSqlite` namespace. Aporetic's database service consumes that
 facade from `database/database.ts`.
 
 Material local adaptations include:

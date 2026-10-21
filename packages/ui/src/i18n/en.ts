@@ -80,7 +80,7 @@ const source = {
 
   "dialog.usageExceeded.freeTier.title": "Free limit reached",
   "dialog.usageExceeded.freeTier.description":
-    "Subscribe to OpenCode Go for reliable access to the best open-source models for $10/month.",
+    "Subscribe to Aporetic Go for reliable access to the best open-source models for $10/month.",
   "dialog.usageExceeded.freeTier.actionLabel": "Subscribe",
   "dialog.usageExceeded.accountRateLimit.title": "Go limit reached",
   "dialog.usageExceeded.accountRateLimit.description":
@@ -114,7 +114,8 @@ const source = {
   "ui.messagePart.compaction.cancelled": "Session compaction cancelled",
   "ui.messagePart.compaction.interrupted": "Session compaction interrupted",
   "ui.messagePart.providerCompaction": "Session compacted by provider",
-  "ui.messagePart.compaction.usage": "{{input}} in · {{output}} out",
+  "ui.messagePart.compaction.usage": "prompt sent {{prompt}} · summary written {{summary}} · resulting context {{context}}",
+  "ui.messagePart.compaction.usage.partial": "prompt sent {{prompt}} · summary written {{summary}}",
   "ui.messagePart.context.updates": "Updates",
   "ui.messagePart.context.read.one": "{{count}} read",
   "ui.messagePart.context.read.other": "{{count}} reads",

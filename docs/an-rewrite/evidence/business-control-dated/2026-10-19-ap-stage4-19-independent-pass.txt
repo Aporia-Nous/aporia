@@ -1,0 +1,24 @@
+recorded=2026-10-19
+tasks=AP-STAGE4-19
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=Presence micro-spring personality + fuller Documents (MD/CSV/docx) + Settings AN ice-glass ownership
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=5c42714fb6
+tip=d71979708d
+base=a9b68f07e4
+head_verified=d71979708dde7608403e47b0cccf5f3709af5f47 matches claimed tip; code 5c42714fb6 ancestor; base a9b68f07e4 ancestor (STAGE4-18 PASS)
+report=docs/an-rewrite/CURSOR-AP-STAGE4-19.md
+tests_re_ran=packages/app bun test src/shell/an src/aporia/flows-util.test.ts → 115 pass 0 fail; bun test ../core/src/mission/control.test.ts → 6 pass 0 fail
+live_cdp=bun docs/an-rewrite/evidence/cdp-probe-stage4-19-presence-docs-settings.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-STAGE4-19 presence-docs-settings 1792425563403
+live_cdp_detail=presenceOk personality=stage4-19 micro-spring easePresence cubic-bezier spring; listening=13 unknown=0; docsOk fuller=stage4-19 MD table+pre+bq; settingsOk owned=settings theme=an backdrop blur(40px) saturate(1.28) OC wordmark hidden
+aura_csv_docx=independent light: auraOk companion aura on selected; csvOk previewKind=csv table; docxOk previewKind=docx-text "STAGE4-19 docx fixture Hello AN" EXIT=0
+exit_path=ws.close()+process.exit retained; EXIT=0 (no -1 hang). First probe attempt EXIT=2 when Soft router restored Settings (no AnShell) — leave Settings / navigate home remounts shell; harness evidence probe patched to Page.navigate home + Back-to-app (not product feature)
+non_regress=STAGE4-12 composer owned=composer; STAGE4-13 light clean remount Message Grok… controls/model/mic/call hidden gold submit marker AP-STAGE4-13 light 1792425899484; STAGE4-18 Review tabs Browser/Code/Files/Documents + code/doc path inputs holo/docs=stage4-19; 4E Contraptions mount + Automations & integrations subtitle
+screenshots=worktree docs/an-rewrite/evidence/screenshots-2026-10-18/68-stage4-19-presence-personality.png; 69-stage4-19-documents-fuller.png; 70-stage4-19-settings-an.png; 71-stage4-19-shell-nonregress.png; board copies business-control/evidence/2026-10-19-68..71-stage4-19-*.png
+known_residual_ok=xlsx/pptx grids/slides not rendered (no paid Office); Settings skinned OC surface not ground-up rewrite; About upstream credits faded; post-Settings shell remount flake (Ask anything until remount; shot 71 may still show Settings) — STAGE4-13 recovers after home navigate
+isolation=no merge/push; product C:\Tools\aporia not this branch; verifier evidence harness leave-settings only; no new product features
+not_claimed=Stage 4 complete; merge; push; Stage 8 / running-DEV acceptance PASS; Grok-class presence; full Office viewer; Settings rewrite
+deferred=AP-CE-01; AP-STAGE4-4F; xlsx/pptx; Settings rewrite if Ali wants
+worktree_note=unrelated dirty docs/screenshot mods may be present; evidence diag helpers + CSV/docx fixtures + probe home-navigate harness uncommitted at review time

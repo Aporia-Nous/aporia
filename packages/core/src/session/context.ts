@@ -2,7 +2,7 @@ export * as SessionContext from "./context.js"
 
 import { Model } from "../model.js"
 import { Permission } from "../permission.js"
-import { Context, Effect, Layer } from "effect"
+import { Context, Effect, Layer, Stream } from "effect"
 import { Agent } from "../agent.js"
 import { CodeModeInstructions } from "../codemode/instructions.js"
 import { Database } from "../database/database.js"
@@ -15,8 +15,10 @@ import { McpInstructions } from "../mcp/instructions.js"
 import { McpTool } from "../tool/mcp.js"
 import { ReferenceInstructions } from "../reference/instructions.js"
 import { SkillInstructions } from "../skill/instructions.js"
+import { McpEvent } from "@opencode/schema/mcp-event"
 import { Tool } from "../tool.js"
 import { AgentNotFoundError } from "./error.js"
+import { SessionEvent } from "./event.js"
 import { SessionHistory } from "./history.js"
 import { SessionProviderContext } from "./provider-context.js"
 import { InstructionEntry } from "./instruction-entry.js"
@@ -25,6 +27,9 @@ import { SessionModelRequest } from "./model-request.js"
 import { SessionRunnerModel } from "./runner/model.js"
 import { SessionSchema } from "./schema.js"
 import { SessionStore } from "./store.js"
+import { Bus } from "../bus.js"
+import { Skill } from "../skill.js"
+import { Reference } from "../reference.js"
 
 export interface Selection {
   readonly session: SessionSchema.Info
@@ -65,11 +70,44 @@ export interface Interface {
       }
     | undefined
   >
+  /** Opens a drain-scoped selection cache; first select wins until fingerprint changes. */
+  readonly beginDrain: Effect.Effect<void>
+  /** Drops the drain-scoped selection cache. */
+  readonly endDrain: Effect.Effect<void>
+  /** Test/observability: hits and misses since the current or last drain. */
+  readonly selectionCacheStats: () => { readonly hits: number; readonly misses: number }
+  /**
+   * Dirty epoch for instruction observe-once-per-drain (E10). Bumps with the same
+   * catalog/entries invalidation that clears the select cache (discovery/skills/
+   * references/MCP/agent + InstructionsUpdated / session instruction entries).
+   */
+  readonly instructionDirtyEpoch: (sessionID: SessionSchema.ID) => number
   readonly request: SessionModelRequest.Interface
 }
 
 /** Location-scoped model-context loader for durable Session Steps. */
 export class Service extends Context.Service<Service, Interface>()("@opencode/SessionContext") {}
+
+type DrainCache = {
+  mcpFlushed: boolean
+  hits: number
+  misses: number
+  entries: Map<string, { fingerprint: string; selection: Selection }>
+}
+
+const fingerprintOf = (input: {
+  readonly session: SessionSchema.Info
+  readonly toolRevision: number
+  readonly catalogGeneration: number
+  readonly entriesEpoch: number
+}) =>
+  [
+    input.session.agent ?? "",
+    JSON.stringify(input.session.permissions ?? []),
+    String(input.toolRevision),
+    String(input.catalogGeneration),
+    String(input.entriesEpoch),
+  ].join("\0")
 
 const layer = Layer.effect(
   Service,
@@ -89,6 +127,38 @@ const layer = Layer.effect(
     const skillInstructions = yield* SkillInstructions.Service
     const store = yield* SessionStore.Service
     const registry = yield* Tool.Service
+    const bus = yield* Bus.Service
+
+    let drain: DrainCache | undefined
+    let lastStats = { hits: 0, misses: 0 }
+    let catalogGeneration = 0
+    const entriesEpoch = new Map<string, number>()
+
+    const bumpCatalog = Effect.sync(() => {
+      catalogGeneration++
+      if (drain) drain.entries.clear()
+    })
+    const bumpEntries = (sessionID: string) => {
+      entriesEpoch.set(sessionID, (entriesEpoch.get(sessionID) ?? 0) + 1)
+      if (drain) drain.entries.delete(sessionID)
+    }
+
+    yield* bus.subscribe(SessionEvent.InstructionsUpdated).pipe(
+      Stream.runForEach((event) => Effect.sync(() => bumpEntries(event.data.sessionID))),
+      Effect.forkScoped({ startImmediately: true }),
+    )
+    for (const definition of [
+      Agent.Event.Updated,
+      InstructionDiscovery.Event.Updated,
+      Skill.Event.Updated,
+      Reference.Event.Updated,
+      McpEvent.ToolsChanged,
+    ] as const) {
+      yield* bus.subscribe(definition).pipe(
+        Stream.runForEach(() => bumpCatalog),
+        Effect.forkScoped({ startImmediately: true }),
+      )
+    }
 
     const resolveModel = (session: SessionSchema.Info) => models.resolve(session, model.available)
 
@@ -118,13 +188,7 @@ const layer = Layer.effect(
       return { agent, primary, selected }
     })
 
-    const select = Effect.fn("SessionContext.select")(function* (sessionID: SessionSchema.ID) {
-      const session = yield* store.get(sessionID)
-      if (!session) return yield* Effect.die(new Error(`Session not found: ${sessionID}`))
-      if (session.location.directory !== location.directory || session.location.workspaceID !== location.workspaceID)
-        return yield* Effect.interrupt
-
-      yield* mcpTools.flush
+    const selectFresh = Effect.fn("SessionContext.selectFresh")(function* (session: SessionSchema.Info) {
       const agent = yield* agents.select(session.agent)
       if (!agent.info) return yield* new AgentNotFoundError({ sessionID: session.id, agent: session.agent ?? agent.id })
       // Session permissions narrow discovery the same way they narrow the tool snapshot.
@@ -137,7 +201,7 @@ const layer = Layer.effect(
           skills: skillInstructions.load(permissions),
           references: referenceInstructions.load(),
           mcp: mcpInstructions.load(permissions),
-          entries: entries.load(sessionID),
+          entries: entries.load(session.id),
         },
         { concurrency: "unbounded" },
       )
@@ -157,7 +221,46 @@ const layer = Layer.effect(
           loaded.entries,
         ]),
         tools: loaded.tools,
+      } satisfies Selection
+    })
+
+    const select = Effect.fn("SessionContext.select")(function* (sessionID: SessionSchema.ID) {
+      const session = yield* store.get(sessionID)
+      if (!session) return yield* Effect.die(new Error(`Session not found: ${sessionID}`))
+      if (session.location.directory !== location.directory || session.location.workspaceID !== location.workspaceID)
+        return yield* Effect.interrupt
+
+      const cache = drain
+      if (cache && !cache.mcpFlushed) {
+        yield* mcpTools.flush
+        cache.mcpFlushed = true
+      } else if (!cache) {
+        yield* mcpTools.flush
       }
+
+      const fingerprint = fingerprintOf({
+        session,
+        toolRevision: registry.revision(),
+        catalogGeneration,
+        entriesEpoch: entriesEpoch.get(sessionID) ?? 0,
+      })
+
+      if (cache) {
+        const hit = cache.entries.get(sessionID)
+        if (hit && hit.fingerprint === fingerprint) {
+          cache.hits++
+          // Refresh the session row on a hit so title/directory metadata stay current; agent/tools
+          // stay pinned to the fingerprint that proved them stable.
+          return { ...hit.selection, session }
+        }
+      }
+
+      const selected = yield* selectFresh(session)
+      if (cache) {
+        cache.misses++
+        cache.entries.set(sessionID, { fingerprint, selection: selected })
+      }
+      return selected
     })
 
     const load = Effect.fn("SessionContext.load")(function* (selection: Selection) {
@@ -178,7 +281,29 @@ const layer = Layer.effect(
       }
     })
 
-    return Service.of({ select, load, resolveModel, selectTitle, request })
+    const beginDrain = Effect.sync(() => {
+      drain = { mcpFlushed: false, hits: 0, misses: 0, entries: new Map() }
+    })
+
+    const endDrain = Effect.sync(() => {
+      if (drain) lastStats = { hits: drain.hits, misses: drain.misses }
+      drain = undefined
+    })
+
+    const instructionDirtyEpoch = (sessionID: SessionSchema.ID) =>
+      catalogGeneration * 1_000_000 + (entriesEpoch.get(sessionID) ?? 0)
+
+    return Service.of({
+      select,
+      load,
+      resolveModel,
+      selectTitle,
+      beginDrain,
+      endDrain,
+      selectionCacheStats: () => (drain ? { hits: drain.hits, misses: drain.misses } : lastStats),
+      instructionDirtyEpoch,
+      request,
+    })
   }),
 )
 
@@ -204,5 +329,6 @@ export const node = makeLocationNode({
     SessionStore.node,
     SkillInstructions.node,
     Tool.node,
+    Bus.node,
   ],
 })

@@ -57,15 +57,9 @@ describe("SkillInstructions", () => {
 
       expect(initialized.text).toBe(
         [
-          "Skills provide specialized instructions and workflows for specific tasks.",
-          "Use the skill tool to load a skill when a task matches its description.",
-          "The user may also invoke a skill directly. When that happens, its instructions appear in the conversation as a <skill_content> block, the same shape the skill tool returns. A skill that is already present this way does not need to be invoked again.",
+          "Skills provide specialized instructions for specific tasks. Use the skill tool to load one when a task matches its description; a skill already present as <skill_content> in the conversation needs no reload.",
           "<available_skills>",
-          "  <skill>",
-          "    <id>effect</id>",
-          "    <name>Effect</name>",
-          "    <description>Build applications with Effect</description>",
-          "  </skill>",
+          "- effect (Effect): Build applications with Effect",
           "</available_skills>",
         ].join("\n"),
       )
@@ -73,9 +67,7 @@ describe("SkillInstructions", () => {
 
       skills = []
       expect(
-        yield* instructions
-          .load(agent.permissions)
-          .pipe(Effect.flatMap((context) => readUpdate(context, initialized))),
+        yield* instructions.load(agent.permissions).pipe(Effect.flatMap((context) => readUpdate(context, initialized))),
       ).toMatchObject({ text: "Skill guidance is no longer available. Do not use any previously listed skill." })
     }).pipe(Effect.provide(layer(() => skills)))
   })
@@ -101,11 +93,7 @@ describe("SkillInstructions", () => {
       expect(added.text).toBe(
         [
           "New skills are available in addition to those previously listed:",
-          "  <skill>",
-          "    <id>debugging</id>",
-          "    <name>Debugging</name>",
-          "    <description>Diagnose hard bugs</description>",
-          "  </skill>",
+          "- debugging (Debugging): Diagnose hard bugs",
         ].join("\n"),
       )
 
@@ -126,9 +114,7 @@ describe("SkillInstructions", () => {
 
       skills = [Skill.Info.make({ ...effect, description: "Build applications with Effect v4" })]
       expect(
-        yield* instructions
-          .load(agent.permissions)
-          .pipe(Effect.flatMap((context) => readUpdate(context, initialized))),
+        yield* instructions.load(agent.permissions).pipe(Effect.flatMap((context) => readUpdate(context, initialized))),
       ).toMatchObject({
         text: expect.stringContaining(
           "The available skills have changed. This list supersedes the previous available skills list.",
@@ -172,9 +158,9 @@ describe("SkillInstructions", () => {
     })
     return Effect.gen(function* () {
       const instructions = yield* SkillInstructions.Service
-      expect(
-        (yield* instructions.load(agent.permissions).pipe(Effect.flatMap(readInitial))).text,
-      ).toContain("<name>Effect</name>")
+      expect((yield* instructions.load(agent.permissions).pipe(Effect.flatMap(readInitial))).text).toContain(
+        "- effect (Effect):",
+      )
     }).pipe(Effect.provide(layer(() => [effect])))
   })
 
@@ -191,5 +177,41 @@ describe("SkillInstructions", () => {
       const instructions = yield* SkillInstructions.Service
       expect((yield* instructions.load(agent.permissions).pipe(Effect.flatMap(readInitial))).text).toBe("")
     }).pipe(Effect.provide(layer(() => [effect])))
+  })
+
+  it.effect("keeps listings compact while preserving the trigger sentence", () => {
+    const agent = Agent.Info.make(Agent.Info.default(build))
+    const verbose = Skill.Info.make({
+      id: Skill.ID.make("verbose"),
+      name: Skill.Name.make("verbose"),
+      description:
+        "Does a thing with many words that fill the opening sentence beyond the rest of the available listing. Use when the task touches the thing. Extra trailing detail that must not be rendered because the listing stops at the compiled budget.",
+      path: AbsolutePath.make(path.resolve("/skills/verbose/SKILL.md")),
+      content: "Verbose guidance",
+    })
+    return Effect.gen(function* () {
+      const instructions = yield* SkillInstructions.Service
+      const text = (yield* instructions.load(agent.permissions).pipe(Effect.flatMap(readInitial))).text
+      expect(text).toContain("- verbose: Does a thing with many words")
+      expect(text).toContain("Use when the task touches the thing.")
+      expect(text).not.toContain("Extra trailing detail")
+    }).pipe(Effect.provide(layer(() => [verbose])))
+  })
+
+  it.effect("clips a listing on a word boundary when no whole sentence fits", () => {
+    const agent = Agent.Info.make(Agent.Info.default(build))
+    const clipped = Skill.Info.make({
+      id: Skill.ID.make("clipped"),
+      name: Skill.Name.make("clipped"),
+      description: "compress ".repeat(40).trim(),
+      path: AbsolutePath.make(path.resolve("/skills/clipped/SKILL.md")),
+      content: "Clipped guidance",
+    })
+    return Effect.gen(function* () {
+      const instructions = yield* SkillInstructions.Service
+      const text = (yield* instructions.load(agent.permissions).pipe(Effect.flatMap(readInitial))).text
+      expect(text).toMatch(/^- clipped: (?:compress )*compress\.\.\.$/m)
+      expect(text).not.toContain("compres...")
+    }).pipe(Effect.provide(layer(() => [clipped])))
   })
 })

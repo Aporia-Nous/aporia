@@ -1,0 +1,28 @@
+recorded=2026-10-19
+tasks=AP-STAGE4-17;AP-BF-06
+actor=independent-verifier
+verdict=INDEPENDENT PASS (both)
+scope_stage4_17=Collapsible in-app Review panel (Browser/Code/Files/Documents) + holographic ice motion; local Live opens Review Browser in-app; feed sandbox without allow-popups
+scope_bf06=Edge/Chrome windowing: Prefer Target.createTarget newWindow:false when CDP reachable; refuse second window when browser running without CDP; spawn only when no browser process
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=aef077a496
+tip=927b414095
+base=c4be6688a8
+head_verified=927b41409518c58fff69090e9bef5d17df6598e8 matches claimed tip; code aef077a496 ancestor; base c4be6688a8 ancestor (BF-05 PASS; untouched)
+report=docs/an-rewrite/CURSOR-AP-STAGE4-17.md; docs/an-rewrite/CURSOR-AP-BF-06.md
+tests_re_ran=packages/app bun test src/shell/an src/aporia/flows-util.test.ts → 101 pass 0 fail; bun test ../core/src/mission/control.test.ts → 6 pass 0 fail
+live_cdp_stage4_17=bun docs/an-rewrite/evidence/cdp-probe-stage4-17-review-windowing.mjs → RESULT ok:true marker AP-STAGE4-17 review 1792422792481; reviewOk+tabSwitch+liveOk+windowingOk; tabs Browser/Code/Files/Documents; local Live reviewOpen+reviewTab=browser; noPopupsSandbox true; motion --an-ease-panel/tab/live + holoSheen present; uiOpenTab.hasOpenTabBtn true
+live_bf06_refuse=openTabAction refuse-second-window (Edge open without loopback debug) during STAGE4-17 probe — correct policy
+live_bf06_open_tab_existing=POST http://127.0.0.1:5199/__an/computer-cdp/open-tab → HTTP 200 ok:true decision.action=open-tab-existing spawned=false regionId 506AC2C5401765E9733BE0F0D06A4599 (isolated Edge --remote-debugging-port=9333); source Target.createTarget newWindow:false verified
+live_cdp_bf05_non_regression=bun docs/an-rewrite/evidence/cdp-probe-stage4-bf05-screencast.mjs → RESULT ok:true screencastOk+takeoverOk+disconnectOk+localOk marker AP-BF-05 screencast 1792423115810
+live_cdp_stage4_16_non_regression=RESULT ok:true marker AP-STAGE4-16 ice-punch 1792423024698 iceOk+ownershipOk blur 40/64
+live_cdp_4e_non_regression=first run toggle-closed (known flake); re-run RESULT ok:true mountOk:true ownershipOk:true panel 420x736 subtitle Automations & integrations; nav includes Review
+live_cdp_stage4_12_non_regression=RESULT ok:true marker AP-STAGE4-12 composer 1792423018528 timelineDisplay=none owned=composer composerOnly=true
+screenshots=worktree docs/an-rewrite/evidence/screenshots-2026-10-18/60-stage4-17-review-open.png; 61-stage4-17-review-files.png; 62-stage4-17-live-review.png; 63-stage4-17-external-open-tab.png; board copies business-control/evidence/2026-10-19-60..63-stage4-17-*.png (refreshed by independent CDP)
+unit_bf06=computer-external-window.test.ts: CDP→open-tab-existing; no-browser→spawn-window; running-without-CDP→refuse-second-window; openExternalBrowserTab maps region
+known_residual_ok=Grok-bot polish depth (presence character / continuous light sweeps / micro-springs) below bar — intentional motion present; Code/Documents Review tabs structured surfaces — editor/doc viewer bind OPEN; packaged desktop spawn/open-tab ownership OPEN (DEV relay path); toast stack can accumulate across CDP runs
+isolation=no merge/push; product C:\Tools\aporia not this branch; verifier did not implement new features (re-ran tests + live CDP + board/evidence/report status only)
+not_claimed=Stage 4 complete; merge; push; Stage 8 / running-DEV acceptance PASS; Grok-class motion depth; editor/doc bind; packaged relay ownership
+deferred=AP-CE-01; AP-STAGE4-4F; Grok-class motion deepen; Review code/doc editor bind; packaged relay
+worktree_note=unrelated dirty docs/screenshot mods present at review time; not part of STAGE4-17/BF-06 verdict; not committed

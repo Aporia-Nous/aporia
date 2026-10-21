@@ -1,17 +1,18 @@
 // APORIA: persist Connect-apps MCP servers into the user's GLOBAL OpenCode config.
-// - backs up the file before every write
-// - edits only the `mcp.<name>` key with jsonc-parser, so comments/other keys are preserved
+// - edits only the `mcp.<name>` key through the serialized config writer (aporia-config), so
+//   comments/other keys are preserved and writes are validated + backed up once
 // - accepts {env:NAME} references only; literal secrets are rejected
-import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs"
-import { homedir } from "node:os"
-import path from "node:path"
 import { ipcMain } from "electron"
-import { applyEdits, modify, parse, type ParseError } from "jsonc-parser"
+import { editConfig, globalConfigFile, updateGlobalConfig, updateGlobalConfigSync } from "./aporia-config"
+
+export { globalConfigFile } from "./aporia-config"
 
 export const AporiaMcpPersistChannel = "aporia:mcp-persist"
 
-const ENV_REF = /^\{env:[A-Za-z_][A-Za-z0-9_]*\}$/
-const BEARER_REF = /^Bearer \{env:[A-Za-z_][A-Za-z0-9_]*\}$/
+const DEFAULT_CONFIG = '{\n  "$schema": "https://opencode.ai/config.json"\n}\n'
+
+const ENV_REF = /^\{(env:[A-Za-z_][A-Za-z0-9_]*|vault:[A-Za-z0-9_.-]{1,100})\}$/
+const BEARER_REF = /^Bearer \{(env:[A-Za-z_][A-Za-z0-9_]*|vault:[A-Za-z0-9_.-]{1,100})\}$/
 const NAME = /^[a-z0-9][a-z0-9_-]{0,63}$/i
 
 type McpConfig =
@@ -20,18 +21,8 @@ type McpConfig =
       type: "remote"
       url: string
       headers?: Record<string, string>
-      oauth?: { clientId: string; clientSecret?: string; redirectUri?: string }
+      oauth?: { client_id: string; client_secret?: string; redirect_uri?: string }
     }
-
-export function globalConfigFile() {
-  const base = process.env.XDG_CONFIG_HOME || path.join(homedir(), ".config")
-  const dir = path.join(base, "opencode")
-  for (const name of ["opencode.jsonc", "opencode.json", "config.json"]) {
-    const file = path.join(dir, name)
-    if (existsSync(file)) return file
-  }
-  return path.join(dir, "opencode.json")
-}
 
 export function validate(name: unknown, config: unknown): { name: string; config: McpConfig } {
   if (typeof name !== "string" || !NAME.test(name)) throw new Error("Invalid server name")
@@ -57,18 +48,23 @@ export function validate(name: unknown, config: unknown): { name: string; config
     for (const value of Object.values(headers))
       if (typeof value !== "string" || !(ENV_REF.test(value) || BEARER_REF.test(value)))
         throw new Error("Header values must reference {env:NAME}")
-    let oauth: { clientId: string; clientSecret?: string; redirectUri?: string } | undefined
+    let oauth: { client_id: string; client_secret?: string; redirect_uri?: string } | undefined
     if (c.oauth !== undefined) {
       const o = c.oauth as Record<string, unknown>
-      if (typeof o.clientId !== "string" || !ENV_REF.test(o.clientId)) throw new Error("oauth.clientId must be {env:NAME}")
-      if (o.clientSecret !== undefined && (typeof o.clientSecret !== "string" || !ENV_REF.test(o.clientSecret)))
-        throw new Error("oauth.clientSecret must be {env:NAME}")
-      if (o.redirectUri !== undefined && (typeof o.redirectUri !== "string" || !/^http:\/\/127\.0\.0\.1:\d+\/[a-z/]*$/.test(o.redirectUri)))
-        throw new Error("oauth.redirectUri must be a 127.0.0.1 loopback URL")
+      // The engine's schema is snake_case, but the live config writes camelCase; accept either on read
+      // and emit snake_case (so a second-account clone of a camelCase entry no longer throws).
+      const clientId = o.client_id ?? o.clientId
+      const clientSecret = o.client_secret ?? o.clientSecret
+      const redirectUri = o.redirect_uri ?? o.redirectUri
+      if (typeof clientId !== "string" || !ENV_REF.test(clientId)) throw new Error("oauth.client_id must be {env:NAME}")
+      if (clientSecret !== undefined && (typeof clientSecret !== "string" || !ENV_REF.test(clientSecret)))
+        throw new Error("oauth.client_secret must be {env:NAME}")
+      if (redirectUri !== undefined && (typeof redirectUri !== "string" || !/^http:\/\/127\.0\.0\.1:\d+\/[a-z/]*$/.test(redirectUri)))
+        throw new Error("oauth.redirect_uri must be a 127.0.0.1 loopback URL")
       oauth = {
-        clientId: o.clientId,
-        ...(typeof o.clientSecret === "string" ? { clientSecret: o.clientSecret } : {}),
-        ...(typeof o.redirectUri === "string" ? { redirectUri: o.redirectUri } : {}),
+        client_id: clientId,
+        ...(typeof clientSecret === "string" ? { client_secret: clientSecret } : {}),
+        ...(typeof redirectUri === "string" ? { redirect_uri: redirectUri } : {}),
       }
     }
     return {
@@ -84,27 +80,18 @@ export function validate(name: unknown, config: unknown): { name: string; config
   throw new Error("Unsupported MCP type")
 }
 
-export function persistMcp(file: string, name: string, config: McpConfig, now = new Date()) {
-  mkdirSync(path.dirname(file), { recursive: true })
-  const original = existsSync(file) ? readFileSync(file, "utf8") : ""
-  const errors: ParseError[] = []
-  if (original.trim()) {
-    parse(original, errors, { allowTrailingComma: true })
-    if (errors.length) throw new Error(`Could not parse ${path.basename(file)}; left it unchanged`)
-  }
-  let backup: string | undefined
-  if (original) {
-    backup = `${file}.aporia-bak-${now.toISOString().replace(/[:.]/g, "-")}`
-    copyFileSync(file, backup)
-  }
-  const base = original.trim() ? original : '{\n  "$schema": "https://opencode.ai/config.json"\n}\n'
-  const edits = modify(base, ["mcp", name], config, { formattingOptions: { insertSpaces: true, tabSize: 2 } })
-  writeFileSync(file, applyEdits(base, edits), "utf8")
-  return { file, backup }
+/** Serialized write (used by the IPC handler and the accounts flow). */
+export function persistMcp(file: string, name: string, config: McpConfig) {
+  return updateGlobalConfig(file, editConfig(["mcp", name], config), { defaultText: DEFAULT_CONFIG })
+}
+
+/** Synchronous variant for the startup path (atomic on the event loop; see aporia-config). */
+export function persistMcpSync(file: string, name: string, config: McpConfig) {
+  return updateGlobalConfigSync(file, editConfig(["mcp", name], config), { defaultText: DEFAULT_CONFIG })
 }
 
 export function registerAporiaMcpHandler() {
-  ipcMain.handle(AporiaMcpPersistChannel, (_event, input: { name?: unknown; config?: unknown }) => {
+  ipcMain.handle(AporiaMcpPersistChannel, async (_event, input: { name?: unknown; config?: unknown }) => {
     const { name, config } = validate(input?.name, input?.config)
     return persistMcp(globalConfigFile(), name, config)
   })

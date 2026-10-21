@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, or, sql } from "drizzle-orm"
+import { and, asc, desc, eq, gte, inArray, or, sql } from "drizzle-orm"
 import { Effect, Schema } from "effect"
 import { Database } from "../database/database.js"
 import { MessageDecodeError } from "./error.js"
@@ -75,6 +75,46 @@ export const decodeMessageRow = (row: typeof SessionMessageTable.$inferSelect) =
     ),
   )
 
+/**
+ * AP-ENGINE-E08: load retained recent messages by ID (they sit before the compaction seq bound)
+ * and insert them immediately after the summary checkpoint so toLLMMessages sees real turns.
+ */
+const expandStructuredRecent = Effect.fnUntraced(function* (
+  db: DatabaseService,
+  sessionID: SessionSchema.ID,
+  entries: ReadonlyArray<{ readonly seq: number; readonly message: SessionMessage.Info }>,
+) {
+  const first = entries[0]?.message
+  if (
+    !first ||
+    first.type !== "compaction" ||
+    first.status !== "completed" ||
+    first.recentMessageIDs === undefined ||
+    first.recentMessageIDs.length === 0
+  ) {
+    return entries
+  }
+  const ids = first.recentMessageIDs
+  const rows = yield* db
+    .select()
+    .from(SessionMessageTable)
+    .where(and(eq(SessionMessageTable.session_id, sessionID), inArray(SessionMessageTable.id, [...ids])))
+    .all()
+    .pipe(Effect.orDie)
+  const decoded = yield* Effect.forEach(rows, (row) =>
+    decodeMessageRow(row).pipe(Effect.map((message) => ({ id: row.id, seq: row.seq, message }))),
+  )
+  const byID = new Map(decoded.map((entry) => [entry.id, { seq: entry.seq, message: entry.message }] as const))
+  const recent = ids.flatMap((id) => {
+    const entry = byID.get(id)
+    return entry ? [entry] : []
+  })
+  // Partial/missing ID resolution → keep dual-written `recent` string for the LLM fallback.
+  if (recent.length !== ids.length) return entries
+  // Clear string dump on the in-memory checkpoint so toLLMMessages does not double-count.
+  return [{ seq: entries[0]!.seq, message: { ...first, recent: "" } }, ...recent, ...entries.slice(1)]
+})
+
 const messageEntries = Effect.fnUntraced(function* (
   db: DatabaseService,
   sessionID: SessionSchema.ID,
@@ -101,10 +141,11 @@ const messageEntries = Effect.fnUntraced(function* (
   // at sequence 0 but retain parent sequences, so the copied checkpoint still retires them.
   const native = entries.findLast((entry) => SessionProviderContext.isCheckpoint(entry.message))
   // Skipped native checkpoints are not textual summaries. Their original transcript remains available.
-  return entries.filter(
+  const filtered = entries.filter(
     (entry) =>
       !(entry.message.type === "system" && native && entry.seq < native.seq) && replayable(entry.message, boundary),
   )
+  return yield* expandStructuredRecent(db, sessionID, filtered)
 })
 
 export const load = Effect.fn("SessionHistory.load")(function* (
@@ -113,6 +154,37 @@ export const load = Effect.fn("SessionHistory.load")(function* (
   boundary: Boundary,
 ) {
   return (yield* messageEntries(db, sessionID, boundary)).map((entry) => entry.message)
+})
+
+/**
+ * AP-ENGINE-E05: assistants with streaming/running tools only (process-recovery settle).
+ * Same post-compaction bound as `load(..., "latest")`, without decoding the full history.
+ */
+export const assistantsWithOpenTools = Effect.fn("SessionHistory.assistantsWithOpenTools")(function* (
+  db: DatabaseService,
+  sessionID: SessionSchema.ID,
+) {
+  const compaction = yield* latestCompaction(db, sessionID, "latest")
+  const rows = yield* db
+    .select()
+    .from(SessionMessageTable)
+    .where(
+      and(
+        eq(SessionMessageTable.session_id, sessionID),
+        eq(SessionMessageTable.type, "assistant"),
+        compaction ? gte(SessionMessageTable.seq, compaction.seq) : undefined,
+        sql`exists (
+          select 1 from json_each(${SessionMessageTable.data}, '$.content') as content
+          where json_extract(content.value, '$.type') = 'tool'
+            and json_extract(content.value, '$.state.status') in ('streaming', 'running')
+        )`,
+      ),
+    )
+    .orderBy(asc(SessionMessageTable.seq))
+    .all()
+    .pipe(Effect.orDie)
+  const messages = yield* Effect.forEach(rows, decodeMessageRow)
+  return messages.filter((message): message is Extract<SessionMessage.Info, { type: "assistant" }> => message.type === "assistant")
 })
 
 export const entriesForRunner = Effect.fn("SessionHistory.entriesForRunner")(function* (

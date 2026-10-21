@@ -1,0 +1,81 @@
+=== 1. replay copy before anything (identical bytes to opencode-aporia-dev.db.bak-stage1) === 
+file: C:\Users\Dilla\AppData\Local\Temp\stage1-replay.db
+bytes: 1214136320
+integrity: "ok"
+tables: 25 (account, account_state, control_account, credential, event, event_sequence, instruction_blob, instruction_entry, instruction_state, kv, message, migration, part, permission, project, project_directory, session, session_inbox, session_message, session_pending, session_share, session_v2, todo, workspace, worktree)
+domain tables present: 0/8
+{"session_v2":691,"session_message":69990,"project":40,"migration":50,"bot":-1,"team":-1,"mission":-1,"task":-1}
+exit=0 
+ 
+=== 2. first backfill run: the migration applies and the rows insert === 
+files: 13 bots, 1 rooms under C:\Users\Dilla\Aporia
+[02:39:51.318] INFO (#2): database migration started {
+  migration: "20261017073336_stage1_bot_team_mission",
+}
+[02:39:51.327] INFO (#2): database migration completed {
+  migration: "20261017073336_stage1_bot_team_mission",
+  durationMs: 9,
+}
+plan: 13 bots, 1 teams, 1 missions, skipped 0/0/0 (bot/team/mission)
+plan links 2 distinct sessions at most once each
+inserted: 13 bots, 1 teams, 1 missions, 2 links
+before: {"session":691,"message":69990,"bot":-1,"team":-1,"mission":-1}
+after:  {"session":691,"message":69990,"bot":13,"team":1,"mission":1}
+session/message counts unchanged
+exit=0 
+ 
+=== 3. second backfill run: same plan, nothing inserted (idempotent) === 
+files: 13 bots, 1 rooms under C:\Users\Dilla\Aporia
+plan: 0 bots, 0 teams, 0 missions, skipped 13/1/1 (bot/team/mission)
+plan links 0 distinct sessions at most once each
+inserted: 0 bots, 0 teams, 0 missions, 0 links
+before: {"session":691,"message":69990,"bot":13,"team":1,"mission":1}
+after:  {"session":691,"message":69990,"bot":13,"team":1,"mission":1}
+session/message counts unchanged
+exit=0 
+ 
+=== 4. after: tables, rows, session/message counts === 
+file: C:\Users\Dilla\AppData\Local\Temp\stage1-replay.db
+bytes: 1214304256
+integrity: "ok"
+tables: 33 (account, account_state, bot, control_account, credential, event, event_sequence, instruction_blob, instruction_entry, instruction_state, kv, message, migration, mission, mission_session, mission_ui_state, part, permission, project, project_directory, session, session_inbox, session_message, session_pending, session_share, session_v2, task, task_dependency, team, team_member, todo, workspace, worktree)
+domain tables present: 8/8
+{"session_v2":691,"session_message":69990,"project":40,"migration":51,"bot":13,"team":1,"mission":1,"task":0}
+exit=0 
+ 
+=== 5. what the domain holds, and whether the room mission links resolve === 
+domain tables present: bot, team, team_member, mission, mission_session, task, task_dependency, mission_ui_state
+tables: 33
+bots: 13
+  bot_aporetic-dev  aporetic-dev       Aporetic Dev  (deepseek/deepseek-flash)
+  bot_ash  ash                Ash  (deepseek/deepseek-flash)
+  bot_copy-humanizer  copy-humanizer     Copy Humanizer  (deepseek/deepseek-flash)
+  bot_grok  grok               Grok  (deepseek/deepseek-flash)
+  bot_outbound-prospecting  outbound-prospecting Outbound Prospecting  (deepseek/deepseek-flash)
+  bot_projects-manager  projects-manager   Projects Manager  (deepseek/deepseek-flash)
+  bot_rep-boss  rep-boss           REP BOSS  (deepseek/deepseek-flash)
+  bot_rep-recruiter  rep-recruiter      Rep Recruiter  (deepseek/deepseek-flash)
+  bot_sal  sal                Sal  (deepseek/deepseek-flash)
+  bot_seo-and-aeo-desk  seo-and-aeo-desk   SEO & AEO Desk  (deepseek/deepseek-flash)
+  bot_upwork-expert  upwork-expert      Upwork Expert  (deepseek/deepseek-flash)
+  bot_votel-builder  votel-builder      Votel Builder  (deepseek/deepseek-flash)
+  bot_webby  webby              Webby  (deepseek/deepseek-flash)
+team: team_setup-test setup-test "Setup test" members=bot_copy-humanizer,bot_grok,bot_outbound-prospecting,bot_projects-manager,bot_rep-recruiter,bot_seo-and-aeo-desk,bot_upwork-expert,bot_votel-builder
+mission: mis_room_setup-test "Room: Setup test" state=active origin=room team=team_setup-test
+  -> ses_ed4519175ffeIJqO1BOT0v9BY7 (copy-humanizer) resolves title="Room: Setup test"
+  -> ses_ed4517237ffeUzNXSk9w5o8geS (projects-manager) resolves title=null
+tasks: 0
+ui_state rows: 0
+counts: {"session":691,"message":69990,"migration":51}
+three most recent sessions still readable:
+  ses_eb9a719b9ffeZIB07ohG0I4zJ1 2026-10-16T20:13:13.675Z "Compaction architecture inventory"
+  ses_ebb9e9bc1ffedaNdYayq0duSox 2026-10-16T11:03:15.777Z "Map CLI build and dispatch"
+  ses_ebbb15fe0ffetX4gV7EDIyoHsn 2026-10-16T10:42:45.925Z "Extract Votel state facts"
+exit=0 
+ 
+=== 6. three old sessions open in a fresh process, plus the mission links === 
+ses_eb9a719b9ffeZIB07ohG0I4zJ1 2026-10-16T20:13:13.675Z "Compaction architecture inventory" messages=42 last=idle/null 56B at 2026-10-16T20:15:26.933Z
+ses_ebb9e9bc1ffedaNdYayq0duSox 2026-10-16T11:03:15.777Z "Map CLI build and dispatch" messages=32 last=idle/null 56B at 2026-10-16T11:05:28.976Z
+ses_ebbb15fe0ffetX4gV7EDIyoHsn 2026-10-16T10:42:45.925Z "Extract Votel state facts" messages=11 last=idle/null 56B at 2026-10-16T10:44:11.421Z
+mission links: mis_room_setup-test->ses_ed4519175ffeIJqO1BOT0v9BY7 (Room: Setup test); mis_room_setup-test->ses_ed4517237ffeUzNXSk9w5o8geS (no session row)
+exit=0 

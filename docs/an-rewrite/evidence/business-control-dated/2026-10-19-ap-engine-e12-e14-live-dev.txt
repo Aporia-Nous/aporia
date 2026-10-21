@@ -1,0 +1,28 @@
+AP-ENGINE-E12 + AP-ENGINE-E14 OPEN implemented+live-DEV (writer) — 2026-10-19
+worktree: C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+branch: stage4-an-shell
+base: 7b2867c797 (E26 DONE MEASURED)
+code: d18a68bb93
+tip: a19d6dbc63
+
+Shipped (not self-PASS):
+- E12: session/prompt.ts — clone only when hooks.has("session","prompt"); sliceUtf8Lines for text line-range attach
+- E14: tool-output.ts — byte-first + countLogicalLines before truncate; keepPreviewLines without full split on fit path
+- CDP probe cdp-probe-engine-e12-e14.mjs shots 102–104
+
+Tests (writer):
+- packages/core session-prompt + tool-output + session-owned prompt hooks: pass
+- packages/app src/shell/an: 118 pass / 0 fail
+
+Live CDP:
+- probe: docs/an-rewrite/evidence/cdp-probe-engine-e12-e14.mjs
+- APORETIC_CDP_PORT=9223
+- RESULT ok:true EXIT=0
+- marker: AP-ENGINE-E12-E14 send 1792464278283
+- ws closed
+- enginePort=03; Settings 02 AN-owned hasOcScreen=false; Message Grok…; Contraptions 4E
+- shots: 102-engine-E12-E14-before-send.png, 103-engine-E12-E14-after-send-you.png, 104-engine-E12-E14-contraptions-light.png
+
+NOT claimed: INDEPENDENT PASS; product wall-clock win; self-PASS; merge; push; Stage 4/8 PASS
+Residuals: core reload for live in-process path; full-file read for attach size/MIME remains; CDP markerHit may prefix-match
+Await: independent verifier → INDEPENDENT PASS

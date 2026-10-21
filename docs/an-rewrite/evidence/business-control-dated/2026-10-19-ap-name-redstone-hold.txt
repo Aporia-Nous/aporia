@@ -1,0 +1,16 @@
+AP-NAME-AUTOMATION — Redstone hold — 2026-10-19 America/Chicago
+
+Provisional pick: Redstone (Ali earlier same day; Minecraft wiring/automation joke).
+
+Hold: Ali reviewing Minecraft / Microsoft trademark + lawsuit risk for product use of "Redstone".
+UI rename: PAUSED. Keep Flows in UI/code until Ali confirms after review.
+
+What landed before pause:
+- Board docs only (README / FLOW-GENIUS-PLAN / OWNERSHIP / SOURCES / DESIGN-DIRECTION-ALI) had provisional Redstone choice notes — updated to HOLD.
+- tasks.json: OPEN (hold), chosen=Redstone provisional.
+- Stage4 worktree: NO user-facing Redstone UI changes; tip still 22e43a666d; no rename commit.
+- AP-STAGE4-10: not started.
+
+Follow-up same day: public-record IP research → evidence/2026-10-19-ap-name-redstone-ip-research.txt (NOT legal advice). UI rename still HOLD.
+
+Not claimed: trademark clearance, legal advice, UI rename PASS, merge, push.

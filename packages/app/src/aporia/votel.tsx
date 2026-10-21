@@ -6,7 +6,7 @@ import { EmptyState, Icon, Skeleton } from "./icons"
 type Bridge = { votel?: (input: unknown) => Promise<unknown> }
 const votel = (input: unknown) => {
   const fn = (globalThis as { electron?: { aporia?: Bridge } }).electron?.aporia?.votel
-  return fn ? fn(input) : Promise.reject(new Error("The Votel panel needs the Aporia desktop app"))
+  return fn ? fn(input) : Promise.reject(new Error("The Votel panel needs the Aporetic desktop app"))
 }
 
 const pick = (tools: string[], re: RegExp) => tools.find((name) => re.test(name))

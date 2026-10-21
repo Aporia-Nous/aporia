@@ -77,13 +77,31 @@ const renderUpdateText = Effect.fnUntraced(function* (
   return Instructions.renderUpdate(instructions, previous, dereferenceDelta(observation.delta, admitted))
 })
 
+/**
+ * Drain-scoped gate for AP-ENGINE-E10: observe+commit once per epoch, skip while
+ * sources are clean. Callers bump `epoch` when InstructionDiscovery / skills /
+ * references / MCP / session instruction entries may have changed (same signals
+ * as SessionContext select invalidation). Mid-turn AGENTS.md edits without a
+ * notify are not observed until the next dirty bump or drain — no mtime poll in
+ * this slice (fallback: next drain entry always observes).
+ */
+export interface PrepareGate {
+  readonly epoch: () => number
+  readonly prepared: Map<string, number>
+}
+
 export const prepare = Effect.fn("InstructionState.prepare")(function* (
   db: DatabaseService,
   bus: Bus.Interface,
   instructions: Instructions.List,
   sessionID: SessionSchema.ID,
+  gate?: PrepareGate,
 ) {
+  if (gate && gate.prepared.get(sessionID) === gate.epoch()) return
   yield* commit(db, bus, instructions, yield* observe(db, instructions, sessionID))
+  // Capture post-commit epoch so InstructionsUpdated → entries bump does not
+  // force an immediate re-observe on the next step unless sources dirty again.
+  if (gate) gate.prepared.set(sessionID, gate.epoch())
 })
 
 export const apply = Effect.fn("InstructionState.apply")(function* (

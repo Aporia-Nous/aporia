@@ -6,6 +6,11 @@
 - Default new branches and worktrees to `dev`, or `origin/dev` when the local `dev` ref is unavailable, and default pull requests to target `dev`. Use another base or target branch when the requester explicitly instructs it.
 - Local `main` ref may not exist; use `dev` or `origin/dev` for diffs.
 
+## Secrets
+
+- Never read, copy, print, or export API keys or credentials (key store, `auth.json`, `.env` or similar) into files, env vars, logs, commits, or messages.
+- Tests that need a model use the app's own running server, which already holds the key. If a key is unavailable, stop and report; do not go looking for it.
+
 ## Live V2 TUI Testing
 
 - Run `bun run dev:live` from a development worktree to test its TUI against the currently elected `opencode` background server and live sessions.

@@ -1,0 +1,23 @@
+recorded=2026-10-19
+task=AP-BF-02
+actor=implementer+self-verify
+verdict=INDEPENDENT PASS
+scope=Browser-first Computer View watch-only page feed into Live attach + labeled Bot cursor overlay outside captures
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=adb4ddb23c
+tip=ec74cc7c4d
+base=a6dd3ebbaa
+report=docs/an-rewrite/CURSOR-AP-BF-02.md
+architecture=business-control/BROWSER-FIRST-COMPUTER-VIEW.md
+architecture_verified=computer-feed opens only when isComputerLive; clears on disconnect/rescope; workspace srcdoc at about:blank then http(s) iframe; pointer-events none watch-only; data-cursor-in-capture=false; Bot cursor overlay retained; URL policy rejects credentials/file
+tests_re_ran=packages/app bun test src/shell/an src/aporia/flows-util.test.ts → 58 pass 0 fail
+live_cdp_bf02=bun docs/an-rewrite/evidence/cdp-probe-stage4-bf02-feed.mjs → RESULT ok:true feedOk+navOk+disconnectOk+ownershipOk marker AP-BF-02 feed 1792415373997; live srcdoc about:blank; afterNav https://example.com/ feedMode=src; disconnect clears feed+cursor
+live_cdp_4e_non_regression=bun docs/an-rewrite/evidence/cdp-probe-stage4-4e-contraptions.mjs → RESULT ok:true mountOk:true ownershipOk:true panel 420x736 subtitle Automations & integrations
+live_cdp_stage4_12_non_regression=bun docs/an-rewrite/evidence/cdp-probe-stage4-12-composer-after.mjs → RESULT ok:true marker AP-STAGE4-12 composer 1792415382497 owned=composer composerOnly=true timelineDisplay=none YOU turns visible
+screenshots=business-control/evidence/2026-10-19-28-bf02-computer-feed-live.png; 2026-10-19-29-bf02-computer-feed-example.png; 2026-10-19-30-bf02-computer-feed-disconnected.png
+diff_scope=a6dd3ebbaa..adb4ddb23c — computer-feed.ts(+test) + session-layout sync + an-shell feed iframe/CSS + tokens/types/cards; BF-01 attach honesty retained
+known_residual_ok=control lock = AP-BF-03; external Edge/Chrome = AP-BF-04; feed is AnShell watch-only iframe — plugin-browser pane RPC/CDP capture pipeline not yet driven
+isolation=no merge/push; product C:\Tools\aporia not this branch
+not_claimed=Stage 4 complete; control lock; merge; push; Stage 8 / running-DEV acceptance PASS; plugin-browser RPC attach
+deferred=AP-BF-03; AP-CE-01; AP-STAGE4-13 left alone

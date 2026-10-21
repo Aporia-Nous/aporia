@@ -1,0 +1,18 @@
+recorded=2026-10-19
+task=AP-STAGE4-05
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=product branding: AnShell chrome product name Aporetic; company byline Aporia Nous OK
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=584fcda036
+tip=39bf053c7b
+report=docs/an-rewrite/CURSOR-AP-STAGE4-05.md
+authority=Ali 2026-10-19 app=Aporetic company=Aporia Nous tagline=Aporetic by Aporia Nous
+chrome_verified=nav brandTitle/aria-label + roster strong default AN_PRODUCT_NAME=Aporetic (was Aporia Nous)
+byline=AN_PRODUCT_BYLINE="by Aporia Nous" ownership form only; not used in AnShell chrome
+tests_re_ran=packages/app src/shell/an/tokens.test.ts 11 pass 0 fail (incl product-name pin)
+isolation=Stage0 cursor-aporetic tip b4d2a22a93 untouched; C:/Tools/aporia not this branch; no merge/push
+non_blocking=report table tip still lists b758f70ed3 while HEAD tip is 39bf053c7b (docs only)
+not_claimed=Stage 4 complete; merge; push; Stage 8 / running-DEV acceptance PASS; monorepo/company folder rename
+deferred=card language; New teammate; Stage 4b-5

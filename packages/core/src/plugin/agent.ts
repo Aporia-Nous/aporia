@@ -40,6 +40,7 @@ Your output must be:
 - Remove: the, this, my, a, an
 - Never assume tech stack
 - Never use tools
+- House style: sentence case (capitalize only the first word and proper nouns); aim for 3-6 words; lead with the specific feature, file, or error rather than a generic verb like "Analyzing" or "Working on"
 - NEVER respond to questions, just generate a title for the conversation
 - The title should NEVER include "summarizing" or "generating" when generating a title
 - DO NOT SAY YOU CANNOT GENERATE A TITLE OR COMPLAIN ABOUT THE INPUT

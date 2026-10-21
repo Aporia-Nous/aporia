@@ -21,7 +21,7 @@
   --ap-ease: 160ms cubic-bezier(0.2, 0, 0, 1);
   --ap-focus: 0 0 0 2px var(--ap-bg), 0 0 0 4px rgb(96 165 250 / 0.75);
   display: grid;
-  grid-template-columns: minmax(232px, 22%) minmax(0, 1fr) minmax(256px, 20%);
+  grid-template-columns: minmax(264px, 24%) minmax(0, 1fr) minmax(256px, 20%);
   flex: 1; min-height: 0; width: 100%;
   background:
     radial-gradient(1200px 600px at 50% -20%, rgb(99 102 241 / 0.10), transparent 60%),
@@ -53,24 +53,47 @@
   display: flex; flex-direction: column; min-height: 0;
   background: var(--ap-panel); backdrop-filter: blur(12px);
 }
-.ap-sidebar { border-right: 1px solid var(--ap-line); }
-.ap-right { border-left: 1px solid var(--ap-line); }
-.ap-brand { display: flex; align-items: center; gap: var(--ap-s3); padding: var(--ap-s4) var(--ap-s4) var(--ap-s3); }
+.ap-sidebar { border-right: 1px solid var(--ap-line); grid-column: 1; }
+.ap-right { border-left: 1px solid var(--ap-line); position: relative; grid-column: 3; }
+.ap-root.ap-right-collapsed .ap-right { display: none; }
+.ap-root.ap-rail-collapsed .ap-sidebar { display: none; }
+/* Reclaim a collapsed column so the center actually expands (no dead space). */
+.ap-root.ap-rail-collapsed[data-component="aporia-layout"] { grid-template-columns: 0 minmax(0, 1fr) minmax(256px, 20%); }
+.ap-root.ap-right-collapsed[data-component="aporia-layout"] { grid-template-columns: minmax(264px, 24%) minmax(0, 1fr) 0; }
+.ap-root.ap-rail-collapsed.ap-right-collapsed[data-component="aporia-layout"] { grid-template-columns: 0 minmax(0, 1fr) 0; }
+.ap-panel-toggle { font-size: 18px; line-height: 1; }
+.ap-rail-toggle { font-size: 18px; line-height: 1; }
+/* Teammates as a compact chip strip so the sidebar has ONE vertical conversation list. */
+.ap-bot-list.ap-bot-chips { display: flex; flex-direction: row; flex-wrap: wrap; align-items: flex-start; gap: 8px; padding: 0 var(--ap-s3) var(--ap-s3); }
+.ap-bot-chip {
+  flex: 0 0 auto;
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
+  padding: 4px 9px 4px 4px; border-radius: 999px;
+  border: 1px solid var(--ap-line); background: transparent; color: var(--ap-text);
+  font: inherit; cursor: pointer; transition: background 120ms ease, border-color 120ms ease;
+}
+.ap-bot-chip:hover { background: var(--ap-hover); }
+.ap-bot-chip.ap-selected { border-color: #6366f1; }
+.ap-bot-chip .ap-bot-avatar { width: 20px; height: 20px; font-size: 9px; }
+.ap-bot-chip-name { font-size: 12px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ap-panel-collapse { position: absolute; top: 8px; right: 8px; font-size: 18px; line-height: 1; }
+.ap-brand { display: flex; align-items: center; gap: var(--ap-s3); padding: var(--ap-s5) var(--ap-s4) var(--ap-s3); }
 .ap-brand img { border-radius: var(--ap-r-sm); box-shadow: 0 0 0 1px var(--ap-line-strong); }
 .ap-brand span { font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
 .ap-section-label {
-  padding: var(--ap-s4) var(--ap-s4) var(--ap-s2);
+  padding: var(--ap-s5) var(--ap-s4) var(--ap-s2);
   font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ap-muted);
 }
-.ap-agent-row { display: flex; flex-wrap: wrap; gap: var(--ap-s2); padding: 0 var(--ap-s4); }
+.ap-agent-row { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: var(--ap-s2); padding: 0 var(--ap-s4) var(--ap-s2); scrollbar-width: none; }
+.ap-agent-row::-webkit-scrollbar { height: 0; }
 .ap-chip {
   display: inline-flex; align-items: center; gap: var(--ap-s2); padding: 2px var(--ap-s3) 2px 2px;
   border-radius: 999px; background: var(--ap-raised); border: 1px solid var(--ap-line); font-weight: 550;
 }
-.ap-session-list { flex: 1; overflow-y: auto; padding: 0 var(--ap-s2) var(--ap-s2); display: flex; flex-direction: column; gap: 2px; }
+.ap-session-list { flex: 1; overflow-y: auto; padding: 0 var(--ap-s2) var(--ap-s2); display: flex; flex-direction: column; gap: 4px; }
 .ap-session {
   position: relative; display: flex; align-items: center; gap: var(--ap-s3); width: 100%;
-  padding: var(--ap-s2) var(--ap-s3); border-radius: var(--ap-r); border: 1px solid transparent;
+  padding: 10px var(--ap-s3); border-radius: var(--ap-r); border: 1px solid transparent;
   background: none; color: inherit; text-align: left; cursor: pointer; transition: background var(--ap-ease), border-color var(--ap-ease);
 }
 .ap-session:hover { background: var(--ap-hover); }
@@ -91,7 +114,7 @@
 .ap-connect-button:active { transform: translateY(1px); }
 
 /* Center */
-.ap-center { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.ap-center { display: flex; flex-direction: column; min-width: 0; min-height: 0; grid-column: 2; }
 .ap-chat-header {
   position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: var(--ap-s3);
   height: 56px; padding: 0 var(--ap-s5); border-bottom: 1px solid var(--ap-line);
@@ -170,6 +193,8 @@
 .ap-files li .ap-ellipsis { flex: 1; }
 .ap-file-icon { color: var(--ap-teal); }
 .ap-computer { display: flex; flex-direction: column; gap: var(--ap-s3); }
+/* The browser keeps its page while the panel shows another tab, so it is never reloaded out from under the user. */
+.ap-browser-pane { display: block; }
 .ap-computer-frame { width: 100%; aspect-ratio: 4 / 3; border: 1px solid var(--ap-line-strong); border-radius: var(--ap-r-lg); background: #000; box-shadow: var(--ap-shadow); }
 .ap-computer-form { display: flex; gap: var(--ap-s2); }
 .ap-computer-form .ap-input { flex: 1; }
@@ -310,7 +335,7 @@
 /* Home inside the frame: drop its own outer card chrome so it sits in the center column. */
 .ap-chat-body [data-slot="home-panel"][data-aporia] { margin: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; background: transparent !important; }
 .ap-chat-body .ap-home-header { display: none; }
-.ap-rail-actions { display: flex; gap: var(--ap-s2); padding: 0 var(--ap-s3) var(--ap-s1); }
+.ap-rail-actions { display: flex; gap: var(--ap-s2); padding: 0 var(--ap-s3) var(--ap-s2); }
 .ap-rail-new { flex: 1; justify-content: center; height: 36px; border-radius: var(--ap-r-lg); box-shadow: 0 6px 18px rgb(96 165 250 / 0.25); }
 .ap-welcome { flex: 1; display: flex; min-height: 0; overflow: auto; }
 .ap-welcome-hero { margin: auto; display: flex; flex-direction: column; align-items: center; gap: var(--ap-s3); text-align: center; padding: var(--ap-s8); }
@@ -341,3 +366,201 @@
 .ap-activity-err { border-left-color: #f87171; }
 .ap-copy-row { display: flex; gap: var(--ap-s2); align-items: center; }
 .ap-code { flex: 1; font: 12px ui-monospace, Consolas, monospace; padding: 6px 8px; border-radius: var(--ap-r-sm); background: rgb(0 0 0 / 0.3); border: 1px solid var(--ap-line); user-select: all; overflow-x: auto; white-space: nowrap; }
+
+/* APORIA teammates */
+.ap-bot-list { display: flex; flex-direction: column; gap: 4px; padding: 0 var(--ap-s2) var(--ap-s3); max-height: 34vh; overflow-y: auto; }
+.ap-bot-folder { background: none; border: 0; color: var(--ap-muted); text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; padding: 6px 6px 2px; cursor: pointer; }
+.ap-bot { display: flex; align-items: center; gap: 2px; padding: 0 !important; }
+.ap-bot-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; background: none; border: 0; color: inherit; text-align: left; padding: 6px 8px; cursor: pointer; }
+.ap-bot-avatar { width: 28px; height: 28px; font-size: 14px; }
+.ap-bot-mini { opacity: 0; background: none; border: 0; color: var(--ap-muted); cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+.ap-bot:hover .ap-bot-mini { opacity: 1; }
+.ap-bot-mini:hover { background: var(--ap-hover); color: var(--ap-text); }
+
+.ap-react-bar { display: flex; gap: 6px; align-items: center; margin: 2px 0 6px; min-height: 20px; }
+.ap-react-pill { font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--ap-raised); border: 1px solid var(--ap-line-strong); }
+.ap-react-add { opacity: 0; transition: opacity 120ms; display: inline-flex; gap: 2px; }
+[data-message-id]:hover .ap-react-add { opacity: 1; }
+.ap-react-add button { background: none; border: 0; cursor: pointer; font-size: 14px; padding: 0 3px; border-radius: 6px; }
+.ap-react-add button:hover { background: var(--ap-hover); }
+
+/* APORIA: shell commands auto-background; hide the manual "Move to background" affordance. */
+[data-component="session-background-hint"],
+[data-action="session.background"],
+button[title*="Move to background"] { display: none !important; }
+/* APORIA: dictated mic injected into the composer toolbar. */
+.ap-mic-inline { width: 28px; height: 28px; }
+
+/* APORIA: redesigned prompt/composer — distinct style (roomier, indigo glass, teal focus). */
+[data-component="session-composer-dock"] [data-component="composer"] {
+  border-radius: 20px !important;
+  border: 1px solid rgb(129 140 248 / 0.35) !important;
+  background: linear-gradient(180deg, #182246 0%, #0f1730 100%) !important;
+  box-shadow: 0 1px 0 rgb(255 255 255 / 0.06) inset, 0 18px 48px rgb(0 0 0 / 0.42) !important;
+  padding: 12px 14px !important;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+[data-component="session-composer-dock"] [data-component="composer"]:focus-within {
+  border-color: rgb(45 212 191 / 0.6) !important;
+  box-shadow: 0 0 0 3px rgb(45 212 191 / 0.15), 0 18px 48px rgb(0 0 0 / 0.42) !important;
+}
+[data-component="session-composer-dock"] [data-component="composer"] textarea { background: transparent !important; }
+
+/* APORIA: restyle the stock Settings surface to match the Aporetic look (so it doesn't read as opencode). */
+.settings-screen {
+  /* Remap the v2 semantic tokens to the Aporetic navy palette (scoped: only Settings is affected). */
+  --v2-background-bg-base: #0a1020;
+  --v2-background-bg-deep: #070c18;
+  --v2-background-bg-layer-01: #0f1730;
+  --v2-background-bg-layer-02: #141d3a;
+  --v2-background-bg-layer-03: #1a2548;
+  --v2-background-bg-contrast: #1a2548;
+  --v2-background-bg-button-neutral: #1a2548;
+  --v2-background-bg-accent: #60a5fa;
+
+  --v2-text-text-base: #e6edf7;
+  --v2-text-text-muted: #9aa8c2;
+  --v2-text-text-faint: #7b8aa3;
+  --v2-text-text-accent: #60a5fa;
+  --v2-text-text-accent-hover: #93c5fd;
+
+  --v2-icon-icon-base: #9aa8c2;
+  --v2-icon-icon-muted: #7b8aa3;
+  --v2-icon-icon-faint: #7b8aa3;
+  --v2-icon-icon-accent: #60a5fa;
+
+  --v2-border-border-muted: rgb(148 163 209 / 0.14);
+  --v2-border-border-base: rgb(148 163 209 / 0.18);
+  --v2-border-border-strong: rgb(148 163 209 / 0.24);
+  --v2-border-border-focus: #60a5fa;
+
+  --v2-overlay-simple-overlay-hover: rgb(148 163 209 / 0.10);
+  --v2-overlay-simple-overlay-pressed: rgb(148 163 209 / 0.16);
+
+  --v2-elevation-raised: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.22);
+
+  background:
+    radial-gradient(1200px 600px at 50% -20%, rgb(99 102 241 / 0.10), transparent 60%),
+    #0a1020;
+  border: 1px solid rgb(148 163 209 / 0.14);
+  border-radius: 14px;
+  color: #e6edf7;
+  font-family: Inter, "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+.settings-screen > .settings > .settings-sidebar { padding-block: 32px 40px; }
+.settings-screen .settings-brand { display: flex; flex-direction: column; gap: 2px; margin-bottom: 22px; }
+.settings-screen .settings-brand-name {
+  font-size: 16px; font-weight: 700; letter-spacing: -0.01em;
+  background: linear-gradient(120deg, #e6edf7 10%, #60a5fa 55%, #2dd4bf 95%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.settings-screen .settings-brand-sub { font-size: 11px; color: #7b8aa3; letter-spacing: 0.04em; }
+.settings-screen .settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"] { border-radius: 10px; }
+.settings-screen .settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"]:has([data-selected]) {
+  background: linear-gradient(180deg, #1a2548, #141d3a);
+  box-shadow: inset 0 0 0 1px rgb(96 165 250 / 0.35);
+}
+.settings-screen .settings-nav-groups [data-slot="tabs-v2-trigger-wrapper"]:has([data-selected]) [data-slot="tabs-v2-trigger"] { color: #e6edf7; }
+/* our group labels: uppercase, letter-spaced, muted */
+.settings-screen .settings-nav-group-header {
+  border-radius: 10px; text-transform: uppercase; letter-spacing: 0.07em;
+  font-size: 11px; font-weight: 600; color: #7b8aa3;
+}
+.settings-screen .settings-panel { border-radius: 14px; }
+/* Settings content: convert stock rows into the Aporetic card language. */
+.settings-screen [data-component="settings-row"] {
+  border-radius: 14px;
+  border: 1px solid rgb(148 163 209 / 0.14);
+  border-left: 3px solid rgb(96 165 250 / 0.55);
+  background: linear-gradient(180deg, #141d3a, #121a36);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.22);
+}
+.settings-screen [data-slot="settings-row-title"] { font-weight: 600; color: #e6edf7; }
+.settings-screen [data-slot="settings-row-description"] { color: #9aa8c2; }
+
+/* APORIA: right-click context menu for chats. */
+.ap-ctx-overlay { position: fixed; inset: 0; z-index: 60; animation: ap-fade 120ms ease-out; }
+.ap-ctxmenu {
+  position: fixed; min-width: 184px; padding: var(--ap-s1);
+  border-radius: var(--ap-r-lg); border: 1px solid var(--ap-line-strong);
+  background: #0f1730; box-shadow: var(--ap-shadow);
+  display: flex; flex-direction: column; gap: 2px;
+  transform-origin: top left; animation: ap-menu-in 130ms cubic-bezier(0.2, 0, 0, 1);
+}
+@keyframes ap-menu-in { from { opacity: 0; transform: translateY(-4px) scale(0.97); } to { opacity: 1; transform: none; } }
+@keyframes ap-menu-out { to { opacity: 0; transform: translateY(-4px) scale(0.97); } }
+.ap-ctxmenu.ap-ctx-closing { animation: ap-menu-out 110ms ease-in forwards; }
+.ap-ctxmenu button { text-align: left; padding: 8px 10px; border-radius: var(--ap-r-sm); border: 0; background: none; color: var(--ap-text); font: inherit; cursor: pointer; transition: background 120ms ease, color 120ms ease; }
+.ap-ctxmenu button:hover { background: var(--ap-hover); }
+.ap-ctxmenu .ap-ctx-danger {
+  margin-top: 4px; padding-top: 10px; border-top: 1px solid var(--ap-line);
+  border-radius: 0 0 var(--ap-r-sm) var(--ap-r-sm);
+  color: #f87171; font-weight: 600;
+}
+.ap-ctxmenu .ap-ctx-danger:hover { background: rgb(248 113 113 / 0.16); color: #fecaca; }
+
+/* Native dropdowns (e.g. the Voice picker) render their option list with the OS theme
+   unless asked for dark — this is why the popup looked nothing like the app. */
+.ap-root select,
+.ap-details select {
+  color-scheme: dark;
+  background: var(--ap-card, #141a2b);
+  color: var(--ap-text);
+  border: 1px solid var(--ap-line);
+  border-radius: 8px;
+  padding: 5px 8px;
+}
+.ap-root select option,
+.ap-details select option {
+  background: var(--ap-card, #141a2b);
+  color: var(--ap-text, #e6e9f2);
+}
+
+/* ---- Voice call (hands-free) ---- */
+.ap-call { display: flex; flex-direction: column; gap: 12px; padding: 4px 2px; }
+.ap-call-stage { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 18px 14px; border-radius: var(--ap-r-sm); background: linear-gradient(160deg, rgb(99 102 241 / 0.16), rgb(45 212 191 / 0.08)); border: 1px solid var(--ap-line); text-align: center; }
+.ap-call-halo { display: grid; place-items: center; border-radius: 999px; padding: 6px; transition: box-shadow 300ms ease; }
+.ap-call-halo-live { animation: ap-call-pulse 2s ease-out infinite; }
+.ap-call-halo-speaking { box-shadow: 0 0 0 6px rgb(129 140 248 / 0.35); }
+@keyframes ap-call-pulse { 0% { box-shadow: 0 0 0 0 rgb(45 212 191 / 0.45); } 70% { box-shadow: 0 0 0 16px rgb(45 212 191 / 0); } 100% { box-shadow: 0 0 0 0 rgb(45 212 191 / 0); } }
+.ap-call-name { font-size: 15px; }
+.ap-call-status { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ap-muted); }
+.ap-call-meter { display: flex; align-items: flex-end; gap: 3px; height: 44px; margin: 4px 0; }
+.ap-call-bar { width: 3px; min-height: 2px; border-radius: 2px; background: linear-gradient(180deg, #2dd4bf, #6366f1); transition: height 90ms linear; }
+.ap-call-actions { display: flex; gap: 8px; margin-top: 4px; }
+.ap-call-btn { padding: 8px 16px; border-radius: 999px; border: 1px solid var(--ap-line); background: transparent; color: var(--ap-text); font: inherit; font-weight: 600; cursor: pointer; transition: background 120ms ease; }
+.ap-call-btn:hover { background: var(--ap-hover); }
+.ap-call-start { background: linear-gradient(180deg, #6366f1, #4f46e5); border-color: transparent; color: #fff; }
+.ap-call-hang { background: #f87171; border-color: transparent; color: #1a0f0f; }
+.ap-call-text-toggle { margin-top: 2px; background: none; border: 0; color: var(--ap-muted); font: inherit; font-size: 12px; text-decoration: underline; cursor: pointer; }
+.ap-call-transcript { display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow-y: auto; padding: 8px; border-radius: var(--ap-r-sm); background: rgb(0 0 0 / 0.18); border: 1px solid var(--ap-line); }
+.ap-call-line { display: flex; flex-direction: column; gap: 1px; font-size: 13px; line-height: 1.35; }
+.ap-call-who { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ap-muted); }
+.ap-call-you .ap-call-who { color: #2dd4bf; }
+.ap-call-tool { opacity: 0.8; }
+.ap-call-tool .ap-call-who { color: #f59e0b; }
+.ap-call-tool span:last-child { font-style: italic; }
+.ap-call-saved { display: flex; flex-direction: column; gap: 6px; }
+.ap-call-saved-label { padding-left: 0; }
+.ap-call-saved-item { border: 1px solid var(--ap-line); border-radius: var(--ap-r-sm); overflow: hidden; }
+.ap-call-saved-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; background: none; border: 0; color: var(--ap-text); font: inherit; font-size: 12px; cursor: pointer; }
+.ap-call-saved-head:hover { background: var(--ap-hover); }
+.ap-call-saved-item .ap-call-transcript { border: 0; border-top: 1px solid var(--ap-line); border-radius: 0; }
+.ap-call-voice { display: flex; align-items: center; gap: 8px; }
+.ap-call-voice select { max-width: 170px; }
+
+/* Native flows (flow engine stage 1) */
+.ap-flows { display: flex; flex-direction: column; gap: var(--ap-s2); }
+.ap-flows-head { display: flex; align-items: center; gap: var(--ap-s2); }
+.ap-flows-head .ap-muted { flex: 1; }
+.ap-flows-n8n { margin-top: var(--ap-s2); }
+.ap-flow-name { background: none; border: 0; padding: 0; color: inherit; text-align: left; cursor: pointer; flex: 1; min-width: 0; }
+.ap-flow-selected { border-color: var(--ap-teal) !important; }
+.ap-flow-json { width: 100%; box-sizing: border-box; font-family: var(--ap-mono, ui-monospace, monospace); font-size: 12px; background: var(--ap-bg, transparent); color: var(--ap-text); border: 1px solid var(--ap-line-strong); border-radius: var(--ap-r); padding: var(--ap-s2); resize: vertical; }
+.ap-flow-err { color: #fca5a5; }
+.ap-flow-history { display: flex; flex-direction: column; gap: var(--ap-s1); }
+.ap-flow-steps { margin: 0; padding-left: var(--ap-s4); display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
+.ap-step-succeeded { color: var(--ap-ok); }
+.ap-step-failed { color: #fca5a5; }
+.ap-step-needs-attention { color: var(--ap-amber, #fbbf24); }
+.ap-step-skipped, .ap-step-pending { opacity: 0.6; }

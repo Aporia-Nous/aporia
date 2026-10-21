@@ -101,6 +101,10 @@ export function SettingsNavigation(props: {
       </div>
       <aside class="settings-sidebar" data-searchable={searchable()}>
         <div class="settings-nav">
+          <div class="settings-brand">
+            <span class="settings-brand-name">Aporetic</span>
+            <span class="settings-brand-sub">by Aporia Nous</span>
+          </div>
           <button type="button" class="settings-back" onClick={back}>
             <Icon name="arrow-left" size="small" class="settings-back-icon" />
             <span>{backLabel()}</span>

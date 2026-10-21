@@ -1,0 +1,33 @@
+AP-ENGINE-E06 writer live-DEV evidence
+recorded_date: 2026-10-19 (America/Chicago)
+work_date: 2026-10-19
+status: OPEN implemented+live-DEV (NOT INDEPENDENT PASS; NOT self-PASS)
+worktree: C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+branch: stage4-an-shell
+base: b3c1e3de53 (AP-ENGINE-E04 INDEPENDENT PASS)
+code: c78aa04d69
+tip: cec15203f8
+
+Shipped:
+  E06 — skip tool-schema clone when no request hooks
+       hasToolHooks gates identity Map + { ...inputSchema } clone
+       primary→context / compaction→compaction / generate→generate
+       by-reference inputSchema when hooks.has is false (provider-aware)
+       clone + rename path unchanged when hooks present
+
+Unit (packages/core):
+  bun test test/session-model-request-hooks.test.ts test/session-model-request.test.ts test/session-generate.test.ts → 17 pass
+  bun test test/session-runner.test.ts -t "renamed by a session context hook" → 1 pass
+  typecheck exit 0
+
+Live CDP (APORETIC_CDP_PORT=9223):
+  probe: docs/an-rewrite/evidence/cdp-probe-engine-e06.mjs
+  RESULT ok:true EXIT=0
+  marker: AP-ENGINE-E06 send 1792430280671
+  engine=oc-server enginePort=01 owned=composer timelineDisplay=none
+  note: EnginePort send non-regress; E06 behavior proven by unit
+  ws.close + process.exit
+
+Not claimed: INDEPENDENT PASS, E09, E10, PORT-02, merge/push/install
+Follow-up: independent verifier; next ranked E09 after PASS
+Left alone: E09, E10, PORT-02

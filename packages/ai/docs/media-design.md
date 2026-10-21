@@ -4,7 +4,7 @@ Status: phases 1–4 implemented (through Image queued routes and partial images
 
 ## Goal
 
-`@opencode/ai` becomes the one package you reach for to generate anything: text, images, video, speech, transcripts, and later music and realtime. The LLM surface already exists and is shaped by three constraints: Effect-first, used by OpenCode Core, usable externally. Media has a different priority order: **external DX first**, Effect and Promise as peers, Core as one consumer among many.
+`@opencode/ai` becomes the one package you reach for to generate anything: text, images, video, speech, transcripts, and later music and realtime. The LLM surface already exists and is shaped by three constraints: Effect-first, used by Aporetic Core, usable externally. Media has a different priority order: **external DX first**, Effect and Promise as peers, Core as one consumer among many.
 
 The design below is derived from a survey of the raw provider APIs (OpenAI, Gemini/Veo/Imagen, xAI, Stability, BFL, fal, Replicate, Runway, Luma, Kling, MiniMax, ElevenLabs, Deepgram, Cartesia, AssemblyAI, Lyria) and of existing multi-provider SDKs.
 

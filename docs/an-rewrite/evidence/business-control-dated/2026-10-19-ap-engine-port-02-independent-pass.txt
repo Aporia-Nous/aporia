@@ -1,0 +1,35 @@
+recorded=2026-10-19
+tasks=AP-ENGINE-PORT-02
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=AN Settings host via EnginePort listProviders/listModels/syncCatalog/connectByok; AnShell nav+Ctrl+, open in-shell panel; no OC Settings React on owned path; Aporetic by Aporia Nous; OpenCode fine print only; EnginePort send + STAGE4-12 composer non-regress
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=a560ea9824
+tip=741abaa063
+base=4c42d1d289
+head_verified=741abaa0635323442b65542cb2d7f82330d3d6a0 matches claimed tip; code a560ea9824 + base 4c42d1d289 ancestors
+report=docs/an-rewrite/CURSOR-AP-ENGINE-PORT-02.md
+plan=business-control/ENGINE-PORT-TODAY.md §2 PORT-02
+
+source_bar=
+  packages/app/src/shell/an/settings-panel.tsx — AnSettingsPanel; useEnginePort; no @/settings/shell / OC Settings React import
+  data-an-part=settings data-an-owned=settings data-an-engine-port=02
+  About mark Aporetic by Aporia Nous; OpenCode fine print only
+  Providers/Models/BYOK surfaces via port
+
+tests_re_ran=
+  packages/app bun test src/shell/an → 117 pass 0 fail (incl. settings-chrome + OcServerEnginePort settings 2)
+
+live_cdp=bun docs/an-rewrite/evidence/cdp-probe-engine-port-02.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-ENGINE-PORT-02 settings 1792458835463
+live_cdp_detail=settingsOk owned=settings theme=an enginePort=02 hasOcScreen=false mark=Aporetic by Aporia Nous fineprint OpenCode providersRows=6 modelsRows=80 hasByok=true href=/ (not /settings); composerOk owned=composer timelineDisplay=none placeholder Message Grok… engine=oc-server; contraptionsOk part=contraptions; ws.close+process.exit
+non_regress_send=bun docs/an-rewrite/evidence/cdp-probe-engine-port-01.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-ENGINE-PORT-01 send 1792458853076; sendOk; STAGE4-12/13 owned=composer composerOnly timeline none Message Grok…; 4E Contraptions ok
+writer_prior_marker=AP-ENGINE-PORT-02 settings 1792458661458 (prior live-DEV)
+
+screenshots=worktree docs/an-rewrite/evidence/screenshots-2026-10-18/75-engine-port-02-before-settings.png; 76-engine-port-02-settings-an.png; 77-engine-port-02-contraptions-light.png; board copies business-control/evidence/2026-10-19-75..77-engine-port-02-*.png (re-shot during independent CDP)
+
+residuals_ok=classic /settings OC React for non-AnShell; BYOK OAuth/Console not in AN panel; models UI cap 80; PORT-03 dual sync
+isolation=no merge/push; product C:\Tools\aporia not this branch; no product features added by verifier
+not_claimed=Stage 4 complete; OpenCode replaced; agent loop rewrite; merge; push; install; Stage 8 / running-DEV acceptance PASS; PORT-03
+deferred=AP-ENGINE-PORT-03 dual sync/poll; second-pass efficiency audit
+worktree_note=unrelated dirty docs/screenshot mods may be present at review time; verifier did not implement product code

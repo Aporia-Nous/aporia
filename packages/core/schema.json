@@ -1,9 +1,21 @@
 {
   "version": "7",
   "dialect": "sqlite",
-  "id": "5067fae0-90ff-4601-82d7-dd050ea9dc8f",
-  "prevIds": ["e98619ef-c334-45e3-8c48-9932ed1ef290"],
+  "id": "4794fc0f-9de1-44b4-a8d4-59b1b7041ca8",
+  "prevIds": ["1a41028c-fde5-4071-b6f1-fc472d2302ac"],
   "ddl": [
+    {
+      "name": "flow_runner_lease",
+      "entityType": "tables"
+    },
+    {
+      "name": "mission_coordinator_cursor",
+      "entityType": "tables"
+    },
+    {
+      "name": "mission_event",
+      "entityType": "tables"
+    },
     {
       "name": "account_state",
       "entityType": "tables"
@@ -30,6 +42,38 @@
     },
     {
       "name": "kv",
+      "entityType": "tables"
+    },
+    {
+      "name": "bot",
+      "entityType": "tables"
+    },
+    {
+      "name": "mission_session",
+      "entityType": "tables"
+    },
+    {
+      "name": "mission",
+      "entityType": "tables"
+    },
+    {
+      "name": "mission_ui_state",
+      "entityType": "tables"
+    },
+    {
+      "name": "task_dependency",
+      "entityType": "tables"
+    },
+    {
+      "name": "task",
+      "entityType": "tables"
+    },
+    {
+      "name": "team_member",
+      "entityType": "tables"
+    },
+    {
+      "name": "team",
       "entityType": "tables"
     },
     {
@@ -79,6 +123,176 @@
     {
       "name": "worktree",
       "entityType": "tables"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "flow_runner_lease"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "owner",
+      "entityType": "columns",
+      "table": "flow_runner_lease"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "boot",
+      "entityType": "columns",
+      "table": "flow_runner_lease"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "expires_at",
+      "entityType": "columns",
+      "table": "flow_runner_lease"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "time_updated",
+      "entityType": "columns",
+      "table": "flow_runner_lease"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "mission_coordinator_cursor"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "0",
+      "generated": null,
+      "name": "seq",
+      "entityType": "columns",
+      "table": "mission_coordinator_cursor"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": true,
+      "default": null,
+      "generated": null,
+      "name": "seq",
+      "entityType": "columns",
+      "table": "mission_event"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "mission_event"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "mission_id",
+      "entityType": "columns",
+      "table": "mission_event"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "task_id",
+      "entityType": "columns",
+      "table": "mission_event"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "correlation_id",
+      "entityType": "columns",
+      "table": "mission_event"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "type",
+      "entityType": "columns",
+      "table": "mission_event"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "actor",
+      "entityType": "columns",
+      "table": "mission_event"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "payload",
+      "entityType": "columns",
+      "table": "mission_event"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "idempotency_key",
+      "entityType": "columns",
+      "table": "mission_event"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "time_created",
+      "entityType": "columns",
+      "table": "mission_event"
     },
     {
       "type": "integer",
@@ -489,6 +703,576 @@
       "name": "time_updated",
       "entityType": "columns",
       "table": "kv"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "bot"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "slug",
+      "entityType": "columns",
+      "table": "bot"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "name",
+      "entityType": "columns",
+      "table": "bot"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "''",
+      "generated": null,
+      "name": "role",
+      "entityType": "columns",
+      "table": "bot"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "avatar",
+      "entityType": "columns",
+      "table": "bot"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "''",
+      "generated": null,
+      "name": "instructions",
+      "entityType": "columns",
+      "table": "bot"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "model",
+      "entityType": "columns",
+      "table": "bot"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'[]'",
+      "generated": null,
+      "name": "tools",
+      "entityType": "columns",
+      "table": "bot"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'[]'",
+      "generated": null,
+      "name": "mcps",
+      "entityType": "columns",
+      "table": "bot"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'[]'",
+      "generated": null,
+      "name": "skills",
+      "entityType": "columns",
+      "table": "bot"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "voice",
+      "entityType": "columns",
+      "table": "bot"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'[\"bot\"]'",
+      "generated": null,
+      "name": "memory_scope",
+      "entityType": "columns",
+      "table": "bot"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'{}'",
+      "generated": null,
+      "name": "permissions",
+      "entityType": "columns",
+      "table": "bot"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "kind",
+      "entityType": "columns",
+      "table": "bot"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "time_created",
+      "entityType": "columns",
+      "table": "bot"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "time_updated",
+      "entityType": "columns",
+      "table": "bot"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "time_archived",
+      "entityType": "columns",
+      "table": "bot"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "mission_id",
+      "entityType": "columns",
+      "table": "mission_session"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "session_id",
+      "entityType": "columns",
+      "table": "mission_session"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "participant",
+      "entityType": "columns",
+      "table": "mission_session"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "time_created",
+      "entityType": "columns",
+      "table": "mission_session"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "mission"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "title",
+      "entityType": "columns",
+      "table": "mission"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'active'",
+      "generated": null,
+      "name": "state",
+      "entityType": "columns",
+      "table": "mission"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'manual'",
+      "generated": null,
+      "name": "origin",
+      "entityType": "columns",
+      "table": "mission"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "team_id",
+      "entityType": "columns",
+      "table": "mission"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "time_created",
+      "entityType": "columns",
+      "table": "mission"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "time_updated",
+      "entityType": "columns",
+      "table": "mission"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "time_archived",
+      "entityType": "columns",
+      "table": "mission"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "mission_id",
+      "entityType": "columns",
+      "table": "mission_ui_state"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "draft",
+      "entityType": "columns",
+      "table": "mission_ui_state"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "scroll",
+      "entityType": "columns",
+      "table": "mission_ui_state"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "selected_artifact",
+      "entityType": "columns",
+      "table": "mission_ui_state"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "selected_bot_id",
+      "entityType": "columns",
+      "table": "mission_ui_state"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "time_created",
+      "entityType": "columns",
+      "table": "mission_ui_state"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "time_updated",
+      "entityType": "columns",
+      "table": "mission_ui_state"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "task_id",
+      "entityType": "columns",
+      "table": "task_dependency"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "depends_on_id",
+      "entityType": "columns",
+      "table": "task_dependency"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "time_created",
+      "entityType": "columns",
+      "table": "task_dependency"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "task"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "mission_id",
+      "entityType": "columns",
+      "table": "task"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "title",
+      "entityType": "columns",
+      "table": "task"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "'pending'",
+      "generated": null,
+      "name": "state",
+      "entityType": "columns",
+      "table": "task"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "owner_id",
+      "entityType": "columns",
+      "table": "task"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": "1",
+      "generated": null,
+      "name": "revision",
+      "entityType": "columns",
+      "table": "task"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "time_created",
+      "entityType": "columns",
+      "table": "task"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "time_updated",
+      "entityType": "columns",
+      "table": "task"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "team_id",
+      "entityType": "columns",
+      "table": "team_member"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "bot_id",
+      "entityType": "columns",
+      "table": "team_member"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "time_created",
+      "entityType": "columns",
+      "table": "team_member"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "id",
+      "entityType": "columns",
+      "table": "team"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "slug",
+      "entityType": "columns",
+      "table": "team"
+    },
+    {
+      "type": "text",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "name",
+      "entityType": "columns",
+      "table": "team"
+    },
+    {
+      "type": "text",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "coordinator_id",
+      "entityType": "columns",
+      "table": "team"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "time_created",
+      "entityType": "columns",
+      "table": "team"
+    },
+    {
+      "type": "integer",
+      "notNull": true,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "time_updated",
+      "entityType": "columns",
+      "table": "team"
+    },
+    {
+      "type": "integer",
+      "notNull": false,
+      "autoincrement": false,
+      "default": null,
+      "generated": null,
+      "name": "time_archived",
+      "entityType": "columns",
+      "table": "team"
     },
     {
       "type": "text",
@@ -1553,6 +2337,61 @@
       "table": "event"
     },
     {
+      "columns": ["mission_id"],
+      "tableTo": "mission",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_mission_session_mission_id_mission_id_fk",
+      "entityType": "fks",
+      "table": "mission_session"
+    },
+    {
+      "columns": ["mission_id"],
+      "tableTo": "mission",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_mission_ui_state_mission_id_mission_id_fk",
+      "entityType": "fks",
+      "table": "mission_ui_state"
+    },
+    {
+      "columns": ["task_id"],
+      "tableTo": "task",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_task_dependency_task_id_task_id_fk",
+      "entityType": "fks",
+      "table": "task_dependency"
+    },
+    {
+      "columns": ["mission_id"],
+      "tableTo": "mission",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_task_mission_id_mission_id_fk",
+      "entityType": "fks",
+      "table": "task"
+    },
+    {
+      "columns": ["team_id"],
+      "tableTo": "team",
+      "columnsTo": ["id"],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "nameExplicit": false,
+      "name": "fk_team_member_team_id_team_id_fk",
+      "entityType": "fks",
+      "table": "team_member"
+    },
+    {
       "columns": ["project_id"],
       "tableTo": "project",
       "columnsTo": ["id"],
@@ -1659,6 +2498,27 @@
       "table": "control_account"
     },
     {
+      "columns": ["mission_id", "session_id"],
+      "nameExplicit": false,
+      "name": "mission_session_pk",
+      "entityType": "pks",
+      "table": "mission_session"
+    },
+    {
+      "columns": ["task_id", "depends_on_id"],
+      "nameExplicit": false,
+      "name": "task_dependency_pk",
+      "entityType": "pks",
+      "table": "task_dependency"
+    },
+    {
+      "columns": ["team_id", "bot_id"],
+      "nameExplicit": false,
+      "name": "team_member_pk",
+      "entityType": "pks",
+      "table": "team_member"
+    },
+    {
       "columns": ["project_id", "directory"],
       "nameExplicit": false,
       "name": "project_directory_pk",
@@ -1678,6 +2538,27 @@
       "name": "worktree_pk",
       "entityType": "pks",
       "table": "worktree"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "flow_runner_lease_pk",
+      "table": "flow_runner_lease",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "mission_coordinator_cursor_pk",
+      "table": "mission_coordinator_cursor",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["seq"],
+      "nameExplicit": false,
+      "name": "mission_event_pk",
+      "table": "mission_event",
+      "entityType": "pks"
     },
     {
       "columns": ["id"],
@@ -1719,6 +2600,41 @@
       "nameExplicit": false,
       "name": "kv_pk",
       "table": "kv",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "bot_pk",
+      "table": "bot",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "mission_pk",
+      "table": "mission",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["mission_id"],
+      "nameExplicit": false,
+      "name": "mission_ui_state_pk",
+      "table": "mission_ui_state",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "task_pk",
+      "table": "task",
+      "entityType": "pks"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "team_pk",
+      "table": "team",
       "entityType": "pks"
     },
     {
@@ -1787,6 +2703,74 @@
     {
       "columns": [
         {
+          "value": "idempotency_key",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "origin": "manual",
+      "name": "mission_event_idempotency_idx",
+      "entityType": "indexes",
+      "table": "mission_event"
+    },
+    {
+      "columns": [
+        {
+          "value": "correlation_id",
+          "isExpression": false
+        },
+        {
+          "value": "seq",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "mission_event_correlation_idx",
+      "entityType": "indexes",
+      "table": "mission_event"
+    },
+    {
+      "columns": [
+        {
+          "value": "task_id",
+          "isExpression": false
+        },
+        {
+          "value": "seq",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "mission_event_task_idx",
+      "entityType": "indexes",
+      "table": "mission_event"
+    },
+    {
+      "columns": [
+        {
+          "value": "mission_id",
+          "isExpression": false
+        },
+        {
+          "value": "seq",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "mission_event_mission_idx",
+      "entityType": "indexes",
+      "table": "mission_event"
+    },
+    {
+      "columns": [
+        {
           "value": "aggregate_id",
           "isExpression": false
         },
@@ -1823,6 +2807,122 @@
       "name": "event_aggregate_type_seq_idx",
       "entityType": "indexes",
       "table": "event"
+    },
+    {
+      "columns": [
+        {
+          "value": "time_archived",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "bot_archived_idx",
+      "entityType": "indexes",
+      "table": "bot"
+    },
+    {
+      "columns": [
+        {
+          "value": "session_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "mission_session_session_idx",
+      "entityType": "indexes",
+      "table": "mission_session"
+    },
+    {
+      "columns": [
+        {
+          "value": "state",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "mission_state_idx",
+      "entityType": "indexes",
+      "table": "mission"
+    },
+    {
+      "columns": [
+        {
+          "value": "team_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "mission_team_idx",
+      "entityType": "indexes",
+      "table": "mission"
+    },
+    {
+      "columns": [
+        {
+          "value": "mission_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "task_mission_idx",
+      "entityType": "indexes",
+      "table": "task"
+    },
+    {
+      "columns": [
+        {
+          "value": "owner_id",
+          "isExpression": false
+        },
+        {
+          "value": "state",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "task_owner_state_idx",
+      "entityType": "indexes",
+      "table": "task"
+    },
+    {
+      "columns": [
+        {
+          "value": "bot_id",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "team_member_bot_idx",
+      "entityType": "indexes",
+      "table": "team_member"
+    },
+    {
+      "columns": [
+        {
+          "value": "time_archived",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "origin": "manual",
+      "name": "team_archived_idx",
+      "entityType": "indexes",
+      "table": "team"
     },
     {
       "columns": [
@@ -2071,6 +3171,27 @@
       "name": "session_v2_time_suspended_idx",
       "entityType": "indexes",
       "table": "session_v2"
+    },
+    {
+      "columns": ["id"],
+      "nameExplicit": false,
+      "name": "mission_event_id_unique",
+      "entityType": "uniques",
+      "table": "mission_event"
+    },
+    {
+      "columns": ["slug"],
+      "nameExplicit": false,
+      "name": "bot_slug_unique",
+      "entityType": "uniques",
+      "table": "bot"
+    },
+    {
+      "columns": ["slug"],
+      "nameExplicit": false,
+      "name": "team_slug_unique",
+      "entityType": "uniques",
+      "table": "team"
     }
   ],
   "renames": []

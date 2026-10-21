@@ -1,0 +1,38 @@
+AP-ENGINE-E21 + AP-ENGINE-PORT-03 — OPEN implemented+live-DEV (NOT INDEPENDENT PASS; NOT self-PASS)
+tasks=AP-ENGINE-E21,AP-ENGINE-PORT-03
+work_date=2026-10-19
+recorded_date=2026-10-19
+actor=cursor-stage4-writer
+verdict=OPEN implemented+live-DEV
+not_claimed=INDEPENDENT PASS; self-PASS; Stage 4 complete; merge; push; E20; E22; Stage 8 PASS
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+base=741abaa063
+code=68a9021161
+tip=0550905a33
+head=0550905a3340dd0ed79bcdf9143d922f8ffbbf05
+report=docs/an-rewrite/CURSOR-AP-ENGINE-E21-PORT-03.md
+audit=business-control/ENGINE-EFFICIENCY-AUDIT.md §E21
+port_plan=business-control/ENGINE-PORT-TODAY.md PORT-03
+
+shipped=
+- E21 reconnectBackoffMs exponential+jitter attempt>=2 cap 15s; forced resync immediate
+- E21 reconnectSyncDirectories: reconnect queues pinned/held only; defer inactive
+- E21 coalesced bootstrap refetch 300ms on reconnect
+- PORT-03 EnginePort.subscribe required; observeServerEvent coarse-only (skip delta/progress/streamed)
+- PORT-03 AnShell bus forward → EnginePort; session shell data-an-engine-port=03; Settings stays 02
+
+tests=bun test client solid-connection + app server-sync/queue + shell/an → 118 pass 0 fail
+cdp=bun docs/an-rewrite/evidence/cdp-probe-engine-e21-port-03.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-ENGINE-E21-PORT-03 send 1792459569747; ws.closed
+non_regress=enginePort=03; Settings 02 AN-owned no OC settings-screen; STAGE4-12/13 owned=composer Message Grok…; 4E Contraptions; EnginePort send YOU
+shots=78,79,80
+
+residuals_ok=
+- E20 SSE fanout / E22 MCP reload alone
+- first-connect still all active dirs
+- reconnect with zero pins syncs none until access
+- volatile SSE still no Last-Event-ID replay
+- attention 5s poll unchanged
+
+next=independent verifier PASS bar; then E22/E20/E25/E11 ranked
+no_merge_push=1

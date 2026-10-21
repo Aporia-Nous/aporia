@@ -1,0 +1,29 @@
+AP-ENGINE-E01 + AP-ENGINE-E02 writer live-DEV evidence
+recorded_date: 2026-10-19 (America/Chicago)
+work_date: 2026-10-19
+status: OPEN implemented+live-DEV (NOT INDEPENDENT PASS; NOT self-PASS)
+worktree: C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+branch: stage4-an-shell
+base: ac95b11f0f (AP-ENGINE-E07/E03 INDEPENDENT PASS)
+code: 07a9b89719
+tip: 07a9b89719
+
+Shipped:
+  E01 — drain-scoped SessionContext.select cache (beginDrain/endDrain; fingerprint; mcp flush once)
+  E02 — cheap due()/estimateContextCheap + Tool.Snapshot.definitionTokens
+
+Unit (packages/core):
+  bun test test/session-compaction.test.ts test/session-context-cache.test.ts → 28 pass
+  focused compact/native/transport/projector + context-cache → 55 pass / 0 fail
+  typecheck exit 0
+
+Live CDP (APORETIC_CDP_PORT=9223):
+  probe: docs/an-rewrite/evidence/cdp-probe-engine-e01-e02.mjs
+  RESULT ok:true EXIT=0
+  marker: AP-ENGINE-E01-E02 send 1792428725037
+  engine=oc-server enginePort=01 owned=composer timelineDisplay=none
+  note: EnginePort send non-regress; E01/E02 behavior proven by unit
+  ws.close + process.exit
+
+Not claimed: INDEPENDENT PASS, E04, E06, PORT-02, merge/push/install
+Follow-up: independent verifier; next ranked E04 after PASS

@@ -1,0 +1,25 @@
+recorded=2026-10-19
+tasks=AP-STAGE4-18
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=Deeper holographic ice motion + Review Code/Documents bound to real file.read previews; Files tab surface
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=daacb54dda
+tip=a9b68f07e4
+base=927b414095
+head_verified=a9b68f07e4aefc03e726ebf12f75da13958f66a6 matches claimed tip; code daacb54dda ancestor; base 927b414095 ancestor (STAGE4-17/BF-06 PASS)
+report=docs/an-rewrite/CURSOR-AP-STAGE4-18.md
+tests_re_ran=packages/app bun test src/shell/an src/aporia/flows-util.test.ts → 107 pass 0 fail; bun test ../core/src/mission/control.test.ts → 6 pass 0 fail
+live_cdp=bun docs/an-rewrite/evidence/cdp-probe-stage4-18-holo-review-bind.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-STAGE4-18 holo-bind 1792424309329
+live_cdp_detail=motionOk data-holo=stage4-18 + holo sweep + --an-ease-holo + an-review-in/an-ice-depth-pulse; codeBind ready 270 lines tokens.ts; docBind ready STAGE4-17.md heading; filesOk+composerOwned (STAGE4-12 non-regress); reviewStillOpen
+exit_minus1_root_cause=NOT port conflict / Electron crash / relay / PrintWindow. Probe printed RESULT ok:true then hung on open CDP WebSocket because cdp-probe-stage4-18-holo-review-bind.mjs lacked ws.close()+process.exit(0) (unlike STAGE4-16). Forced Stop-Process → exit_code 4294967295 (-1). Harness exit path stabilized (evidence-only; not product feature). Clean re-run EXIT=0.
+dev_notes=CDP :9223 Aporetic page live; CLI serve stage4 packages/cli; relay :5199 up; localhost:3020 ERR_CONNECTION_REFUSED is Review Browser default URL without a server — unrelated to holo/bind bar
+screenshots=worktree docs/an-rewrite/evidence/screenshots-2026-10-18/64-stage4-18-holo-review-open.png; 65-stage4-18-code-bound.png; 66-stage4-18-documents-bound.png; 67-stage4-18-files-holo.png; board copies business-control/evidence/2026-10-19-64..67-stage4-18-*.png
+non_regress=STAGE4-17 Review tabs+panel present; BF-06 windowing covered by computer-external-window unit tests in 107 suite; STAGE4-12 composerOwned true in live CDP; STAGE4-16 ice tokens retained in tokens tests
+corroboration_live_cdp_2026-10-19=independent re-run also saw RESULT ok:true marker AP-STAGE4-18 holo-bind 1792424068143 (pre-harness-exit kill flake); STAGE4-12 composer ok marker 1792424228855; STAGE4-16 ice-punch ok marker 1792424230114; STAGE4-17 review ok marker 1792424526152 reviewOk+liveOk+windowingOk openTabAction=refuse-second-window (BF-06 light) motionCss present; open-tab POST :5199→409 refuse-second-window consistent
+known_residual_ok=Grok presence character / micro-spring personality still below bar; doc preview lightweight markdown-ish not full Office viewer
+isolation=no merge/push; product C:\Tools\aporia not this branch; verifier fixed evidence probe exit only; no new product features
+not_claimed=Stage 4 complete; merge; push; Stage 8 / running-DEV acceptance PASS; Grok-class presence personality; full Office viewer
+deferred=AP-CE-01; AP-STAGE4-4F; Grok presence personality; full Office/MD viewer
+worktree_note=unrelated dirty docs/screenshot mods may be present; probe exit-path fix uncommitted in evidence mjs at review time

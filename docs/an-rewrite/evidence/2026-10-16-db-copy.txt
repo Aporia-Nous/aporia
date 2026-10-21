@@ -1,0 +1,9 @@
+$ cd C:\Users\Dilla\Aporia\bots\aporetic-dev\work
+$ C:\Users\Dilla\.bun\bin\bun.exe C:\Users\Dilla\Aporia\bots\aporetic-dev\work\db-now.ts C:\Users\Dilla\.local\share\opencode\opencode-aporia-dev.db COPY opencode-aporia-dev.db
+exit code: 0
+
+COPY opencode-aporia-dev.db
+  file bytes  = 1,213,820,928
+  newest message = 2026-10-16T22:57:35.710Z in ses_ec15498a0ffefgkKGi3yhJ6Yaa
+  that session: messages=1009 latest=2026-10-16T22:57:35.710Z
+

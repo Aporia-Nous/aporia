@@ -2490,6 +2490,239 @@ describe("SessionRunnerLLM", () => {
     })
   })
 
+  /**
+   * J fixture 3 (runner). After a completed checkpoint: provider error leaves it recoverable with truthful failed
+   * status and releases queued input; a later successful retry leaves one completed checkpoint (no duplicate
+   * summaries). Cancellation with queued input is covered by "preserves both earlier steers when prioritized
+   * compaction is cancelled" and "records cancelled manual compaction…"; reconnect by session-compaction-transport.
+   */
+  scenario("J fixture 3: error recovery keeps prior checkpoint, queued input, and no duplicate summary", function* (s) {
+    s.currentModel = recoveryModel
+    yield* s.llm.push(
+      TestLLM.text("Earlier answer", "text-j3-history"),
+      TestLLM.text("## Objective\n- prior checkpoint", "text-j3-summary"),
+    )
+    yield* s.runPrompt("Earlier question")
+    const first = yield* s.session.compact({ sessionID })
+    yield* s.resume
+    expect((yield* s.messages).find((message) => message.id === first.id)).toMatchObject({
+      type: "compaction",
+      status: "completed",
+      summary: "## Objective\n- prior checkpoint",
+    })
+
+    yield* s.llm.push([], TestLLM.text("Queued after failure", "text-j3-after-fail"))
+    const failed = yield* s.session.compact({ sessionID })
+    yield* s.session.prompt({
+      sessionID,
+      text: "Continue after failure",
+      delivery: "queue",
+      resume: false,
+    })
+    yield* s.resume
+
+    expect((yield* s.messages).find((message) => message.id === failed.id)).toMatchObject({
+      type: "compaction",
+      status: "failed",
+    })
+    expect((yield* s.messages).find((message) => message.id === first.id)).toMatchObject({
+      status: "completed",
+      summary: "## Objective\n- prior checkpoint",
+    })
+    const afterFail = s.requests.at(-1)
+    expect(afterFail).toBeDefined()
+    expect(userTexts(afterFail!)).toContain("Continue after failure")
+    expect(yield* SessionInbox.find(s.db, failed.id)).toBeUndefined()
+
+    s.requests.length = 0
+    yield* s.llm.push(
+      TestLLM.text("## Objective\n- recovered checkpoint", "text-j3-retry-summary"),
+      TestLLM.text("After retry", "text-j3-after-retry"),
+    )
+    const retry = yield* s.session.compact({ sessionID })
+    yield* s.session.prompt({ sessionID, text: "Continue after retry", delivery: "queue", resume: false })
+    yield* s.resume
+
+    expect((yield* s.messages).find((message) => message.id === retry.id)).toMatchObject({
+      type: "compaction",
+      status: "completed",
+      summary: "## Objective\n- recovered checkpoint",
+    })
+    const completed = (yield* s.context).filter(
+      (message) => message.type === "compaction" && message.status === "completed",
+    )
+    expect(completed).toHaveLength(1)
+    expect(completed[0]).toMatchObject({ summary: "## Objective\n- recovered checkpoint" })
+    const afterRetry = s.requests.at(-1)
+    expect(afterRetry).toBeDefined()
+    expect(userTexts(afterRetry!)).toContain("Continue after retry")
+  })
+
+  /**
+   * J fixture 2 (runner) — Stage 6 / AP-STAGE6-IJ acceptance (ported from Stage 0 AP-CURSOR-06).
+   * Manual compaction at a tool boundary plus a new steering message: the tool result and the
+   * latest steer are each preserved exactly once after the boundary; a prior permission denial keeps its rejected
+   * meaning. Timing coverage for waiting on active tools is shared with "waits for active tools before prioritizing
+   * compaction over pending steers".
+   */
+  scenario("J fixture 2: mid-turn compaction preserves tool result and steer exactly once", function* (s) {
+    s.currentModel = recoveryModel
+    const registry = yield* Tool.Service
+    yield* transformTools(registry, { permissionfail: permissionFail }, { codemode: false })
+
+    yield* s.llm.push(
+      TestLLM.tool("call-j2-deny", "permissionfail", {}),
+      TestLLM.text("Denial noted before mid-turn", "text-j2-deny"),
+    )
+    yield* s.runPrompt("Try a blocked edit")
+    expect(JSON.stringify(yield* s.messages)).toContain("permission.rejected")
+
+    const toolResult = "TOOL_RESULT_J2_UNIQUE"
+    const steerText = "STEER_J2_LATEST"
+    yield* s.llm.push(
+      TestLLM.tool("call-j2-tool", "echo", { text: toolResult }),
+      TestLLM.text("## Objective\n- mid-turn checkpoint", "text-j2-summary"),
+      TestLLM.text("After compact with steer", "text-j2-after"),
+    )
+    yield* s.admit("Active tool turn")
+    const tools = yield* s.blockTools()
+    const run = yield* s.resume.pipe(Effect.forkChild)
+    yield* tools.started
+    yield* s.admit(steerText)
+    const compact = yield* s.session.compact({ sessionID })
+    expect((yield* s.messages).some((message) => message.id === compact.id)).toBe(false)
+    yield* tools.release
+    yield* Fiber.join(run)
+
+    expect((yield* s.messages).find((message) => message.id === compact.id)).toMatchObject({
+      type: "compaction",
+      status: "completed",
+      summary: "## Objective\n- mid-turn checkpoint",
+    })
+    // Summary request sees the finished tool; the next request absorbs the steer once.
+    expect(s.requests.length).toBeGreaterThanOrEqual(3)
+    const summaryRequest = s.requests.find((request) =>
+      userTexts(request).some((text) => text.includes("Summarize only what the user and the assistant said and did")),
+    )
+    expect(summaryRequest).toBeDefined()
+    expect(summaryRequest!.messages.some((message) => message.role === "tool")).toBe(true)
+    // Echo execute ran exactly once; the steer is admitted exactly once after the compact boundary.
+    expect(s.executions.filter((text) => text === toolResult)).toEqual([toolResult])
+    const completedEcho = (yield* s.messages).flatMap((message) =>
+      message.type === "assistant"
+        ? message.content.filter(
+            (part) =>
+              part.type === "tool" &&
+              part.id === "call-j2-tool" &&
+              part.state.status === "completed" &&
+              JSON.stringify(part.state).includes(toolResult),
+          )
+        : [],
+    )
+    expect(completedEcho).toHaveLength(1)
+
+    const afterCompact = s.requests.filter(
+      (request) =>
+        !userTexts(request).some((text) => text.includes("Summarize only what the user and the assistant said and did")),
+    )
+    const steerHits = afterCompact.flatMap((request) => userTexts(request).filter((text) => text === steerText))
+    expect(steerHits).toEqual([steerText])
+    expect((yield* s.context).filter((message) => message.type === "user" && message.text === steerText)).toHaveLength(
+      1,
+    )
+
+    // Denied action meaning is unchanged after the mid-turn compact boundary.
+    expect(JSON.stringify(yield* s.messages)).toContain("permission.rejected")
+    expect(JSON.stringify(yield* s.messages)).toContain("Permission denied: edit")
+    expect(yield* s.inbox).toEqual([])
+  })
+
+  /**
+   * J fixture 6 (runner) — Stage 6 / AP-STAGE6-IJ acceptance (ported from Stage 0 AP-CURSOR-07).
+   * After a completed compaction, replaying the durable event log (synthetic reopen) restores
+   * the checkpoint, attachment, permission denial and tool evidence; a continuation request remains consistent.
+   * Uses an in-memory synthetic session only — never the installed live store.
+   */
+  scenario("J fixture 6: reopen after compaction keeps history, artifact, approval, and continuation", function* (s) {
+    s.currentModel = recoveryModel
+    const registry = yield* Tool.Service
+    yield* transformTools(registry, { permissionfail: permissionFail }, { codemode: false })
+    const image = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+    const toolEvidence = "ARTIFACT_POINTER_J6"
+
+    yield* s.session.prompt({
+      sessionID,
+      text: "Inspect design artifact",
+      files: [{ uri: `data:image/png;base64,${image}`, name: "design-ref.png" }],
+      resume: false,
+    })
+    yield* s.llm.push(TestLLM.text("Saw the artifact", "text-j6-artifact"))
+    yield* s.resume
+
+    yield* s.llm.push(
+      TestLLM.tool("call-j6-deny", "permissionfail", {}),
+      TestLLM.text("Denial recorded", "text-j6-deny"),
+    )
+    yield* s.runPrompt("Try blocked write")
+
+    yield* s.llm.push(
+      TestLLM.tool("call-j6-tool", "echo", { text: toolEvidence }),
+      TestLLM.text("Tool evidence stored", "text-j6-tool"),
+    )
+    yield* s.runPrompt("Record tool evidence")
+
+    yield* s.llm.push(
+      TestLLM.text("## Objective\n- j6 reopen checkpoint\n## Relevant Files\n- design-ref.png", "text-j6-summary"),
+    )
+    const compact = yield* s.session.compact({ sessionID })
+    yield* s.resume
+    expect((yield* s.messages).find((message) => message.id === compact.id)).toMatchObject({
+      type: "compaction",
+      status: "completed",
+      summary: "## Objective\n- j6 reopen checkpoint\n## Relevant Files\n- design-ref.png",
+    })
+
+    const beforeMessages = JSON.stringify(yield* s.messages)
+    expect(beforeMessages).toContain("permission.rejected")
+    expect(beforeMessages).toContain(toolEvidence)
+    expect(beforeMessages).toMatch(/image\/png|design-ref\.png/)
+
+    const beforeCheckpoint = (yield* s.context).find(
+      (message) => message.type === "compaction" && message.status === "completed",
+    )
+    expect(beforeCheckpoint).toBeDefined()
+
+    // Reopen: wipe projected tables and rebuild from the durable event log only.
+    yield* replaySessionProjection(sessionID)
+
+    const afterMessages = yield* s.messages
+    const afterEncoded = JSON.stringify(afterMessages)
+    const afterCheckpoint = afterMessages.find((message) => message.id === compact.id)
+    expect(afterCheckpoint).toMatchObject({
+      type: "compaction",
+      status: "completed",
+      summary: "## Objective\n- j6 reopen checkpoint\n## Relevant Files\n- design-ref.png",
+    })
+    expect(afterEncoded).toContain("permission.rejected")
+    expect(afterEncoded).toContain("Permission denied: edit")
+    expect(afterEncoded).toContain(toolEvidence)
+    expect(afterEncoded).toMatch(/image\/png|design-ref\.png/)
+    expect(
+      afterMessages.filter((message) => message.type === "compaction" && message.status === "completed"),
+    ).toHaveLength(1)
+    expect(
+      afterMessages.filter((message) => message.type === "compaction" && message.status === "running"),
+    ).toHaveLength(0)
+
+    s.requests.length = 0
+    yield* s.llm.push(TestLLM.text("Continued after reopen", "text-j6-continue"))
+    yield* s.runPrompt("Continue pending work after reopen")
+    const continuation = s.requests.at(-1)
+    expect(continuation).toBeDefined()
+    expect(userTexts(continuation!)).toContain("Continue pending work after reopen")
+    expect(JSON.stringify(continuation)).toContain("j6 reopen checkpoint")
+  })
+
   for (const route of [OpenAIChat.route, OpenAIResponses.route, AnthropicMessages.route]) {
     for (const reason of ["manual", "auto"] as const) {
       scenario(`preserves the session request prefix during ${reason} compaction (${route.id})`, function* (s) {
@@ -3423,6 +3656,34 @@ describe("SessionRunnerLLM", () => {
     ])
   })
 
+  scenario("AP-ENGINE-E13: caps auto-compacts per drain with Failed — stall/churn", function* (s) {
+    // Undersized window keeps auto due after each tool continuation; third auto must Fail stall/churn.
+    yield* setupOverflowRecovery(s)
+    s.currentModel = undersizedContextModel
+    yield* s.llm.push(
+      TestLLM.text("## Objective\n- Cap one", "text-e13-sum1"),
+      TestLLM.tool("call-e13-1", "echo", { text: "first" }),
+      TestLLM.text("## Objective\n- Cap two", "text-e13-sum2"),
+      TestLLM.tool("call-e13-2", "echo", { text: "second" }),
+      // Third auto must not consume another summary stream.
+      TestLLM.text("## Objective\n- Must not compact thrice", "text-e13-sum3"),
+      TestLLM.text("Must not run", "text-e13-final"),
+    )
+    yield* s.admit("Continue")
+    const failed = yield* s.resume.pipe(Effect.flip)
+    // StepFailedError surfaces .message; structured type lives on .error.
+    expect(failed.message).toBe("Failed — stall/churn")
+    expect((failed as { error?: { type?: string } }).error?.type).toBe("compaction.stall")
+    // Two auto completions (cap), then stall before a third summary / second tool.
+    // Post-compaction context may only show the latest checkpoint; count Started events.
+    const started = (yield* recordedEventTypes(sessionID)).filter(
+      (type) => type === Bus.versionedType(SessionEvent.Compaction.Started.type, 1),
+    )
+    expect(started).toHaveLength(2)
+    expect(s.executions).toEqual(["first"])
+    expect(s.requests.length).toBe(3)
+  })
+
   scenario("recovers once from a raw context overflow failure", function* (s) {
     yield* setupOverflowRecovery(s)
     yield* s.llm.push(
@@ -3482,8 +3743,8 @@ describe("SessionRunnerLLM", () => {
 
     expect(s.requests).toHaveLength(2)
     expect(userTexts(s.requests[0]).at(-1)).toContain("## Objective")
-    // The summary may use the whole 20k reserve of a 200k window.
-    expect(s.requests[0]?.generation?.maxTokens).toBe(20_000)
+    // Summary output is capped at SUMMARY_BUDGET (16k), even when the 200k window's reserve would allow 20k.
+    expect(s.requests[0]?.generation?.maxTokens).toBe(16_000)
     expect(s.requests[1]?.generation?.maxTokens).toBe(32_000)
   })
 

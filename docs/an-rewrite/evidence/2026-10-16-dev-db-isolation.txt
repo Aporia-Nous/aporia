@@ -1,0 +1,55 @@
+
+=== PROD (installed + hosting DEV)  C:\Users\Dilla\.local\share\opencode\opencode-aporia.db
+file size 10206101504 bytes, mtime 2026-10-17T00:04:14.319Z, messages 70142, max(rowid) 70281, project rows 38
+rows written after 2026-10-16T23:55:43.982Z: 36
+  ses_ec15498a0ffefgkKGi3yhJ6Yaa assistant x33  2026-10-16T23:55:44.262Z .. 2026-10-17T00:09:11.694Z
+  ses_ec15498a0ffefgkKGi3yhJ6Yaa compaction x2  2026-10-16T23:58:23.404Z .. 2026-10-17T00:01:49.402Z
+  ses_ec15498a0ffefgkKGi3yhJ6Yaa system x1  2026-10-16T23:58:23.350Z .. 2026-10-16T23:58:23.350Z
+sessions whose newest row is an unfinished assistant turn: 10 shown (list capped at 10)
+  (note: abandoned old sessions look the same as a live interruption; only a recent timestamp means real work)
+  ses_ec15498a0ffefgkKGi3yhJ6Yaa rowid 70281 2026-10-17T00:09:11.694Z
+  ses_f0706e77bffe6ucr6PCd9viESl rowid 36286 2026-10-01T19:37:49.626Z
+  ses_f49724b61ffecFf6ydd3FkahxM rowid 26752 2026-09-18T22:05:35.441Z
+  ses_f49893454ffeYWy50mGD5a8grF rowid 26723 2026-09-18T21:40:34.085Z
+  ses_fad16e3b2fferLJ8VEg0v1Tj0g rowid 9195 2026-08-30T13:43:26.918Z
+  ses_fad16f93bffeoJE0pknbeztFD9 rowid 9192 2026-08-30T13:43:21.986Z
+  ses_fad1712ddffeYbfPCjXHXXx3kn rowid 9189 2026-08-30T13:43:15.059Z
+  ses_fad172d04ffe6SH3sEXrsMlhHk rowid 9186 2026-08-30T13:43:08.625Z
+  ses_fad17420dffeEyQWWjXkEQAXvy rowid 9183 2026-08-30T13:43:02.824Z
+  ses_fad175ce8ffeALUK3gPaW5t2r5 rowid 9180 2026-08-30T13:42:56.943Z
+
+=== DEV COPY (the isolated second instance used this file)  C:\Users\Dilla\.local\share\opencode\opencode-aporia-dev.db
+file size 1220341760 bytes, mtime 2026-10-16T23:56:17.605Z, messages 69990, max(rowid) 70129, project rows 40
+rows written after 2026-10-16T23:55:43.982Z: 14
+  ses_ec15498a0ffefgkKGi3yhJ6Yaa assistant x9  2026-10-16T23:56:20.691Z .. 2026-10-16T23:58:17.675Z
+  ses_ec15498a0ffefgkKGi3yhJ6Yaa compaction x1  2026-10-16T23:57:30.870Z .. 2026-10-16T23:57:30.870Z
+  ses_ec15498a0ffefgkKGi3yhJ6Yaa synthetic x2  2026-10-16T23:56:16.572Z .. 2026-10-16T23:56:18.268Z
+  ses_ec15498a0ffefgkKGi3yhJ6Yaa system x2  2026-10-16T23:56:18.262Z .. 2026-10-16T23:56:24.828Z
+sessions whose newest row is an unfinished assistant turn: 10 shown (list capped at 10)
+  (note: abandoned old sessions look the same as a live interruption; only a recent timestamp means real work)
+  ses_ec15498a0ffefgkKGi3yhJ6Yaa rowid 70129 2026-10-16T23:58:17.675Z
+  ses_f0706e77bffe6ucr6PCd9viESl rowid 36286 2026-10-01T19:37:49.626Z
+  ses_f49724b61ffecFf6ydd3FkahxM rowid 26752 2026-09-18T22:05:35.441Z
+  ses_f49893454ffeYWy50mGD5a8grF rowid 26723 2026-09-18T21:40:34.085Z
+  ses_fad16e3b2fferLJ8VEg0v1Tj0g rowid 9195 2026-08-30T13:43:26.918Z
+  ses_fad16f93bffeoJE0pknbeztFD9 rowid 9192 2026-08-30T13:43:21.986Z
+  ses_fad1712ddffeYbfPCjXHXXx3kn rowid 9189 2026-08-30T13:43:15.059Z
+  ses_fad172d04ffe6SH3sEXrsMlhHk rowid 9186 2026-08-30T13:43:08.625Z
+  ses_fad17420dffeEyQWWjXkEQAXvy rowid 9183 2026-08-30T13:43:02.824Z
+  ses_fad175ce8ffeALUK3gPaW5t2r5 rowid 9180 2026-08-30T13:42:56.943Z
+
+=== rows the resumed turn wrote into the DEV copy (14)
+  #70116 2026-10-16T23:56:16.572Z synthetic notice=restart :: The server restarted while you were working. Continue from where you left off without repeating completed work.
+  #70117 2026-10-16T23:56:18.262Z system notice=instructions :: The Code Mode tool catalog has changed. This catalog supersedes the previous Code Mode tool catalog. # Code Mode Use the `execute` tool to call the to
+  #70118 2026-10-16T23:56:18.268Z synthetic :: <shell id="sh_146efbb5f001s1n8sr59270WNV" state="cancelled" command="& "C:\Users\Dilla\.bun\bin\bun.exe" "C:\Users\Dilla\Aporia\bots\aporetic-dev\work
+  #70119 2026-10-16T23:56:20.691Z assistant :: 
+  #70120 2026-10-16T23:56:24.828Z system notice=instructions :: The Code Mode tool catalog has changed. This catalog supersedes the previous Code Mode tool catalog. # Code Mode Use the `execute` tool to call the to
+  #70121 2026-10-16T23:56:24.846Z assistant :: 
+  #70122 2026-10-16T23:56:33.338Z assistant :: 
+  #70123 2026-10-16T23:56:37.298Z assistant :: 
+  #70124 2026-10-16T23:56:43.288Z assistant :: 
+  #70125 2026-10-16T23:57:07.520Z assistant :: 
+  #70126 2026-10-16T23:57:18.018Z assistant :: 
+  #70127 2026-10-16T23:57:30.870Z compaction :: 
+  #70128 2026-10-16T23:58:00.246Z assistant :: 
+  #70129 2026-10-16T23:58:17.675Z assistant :: 

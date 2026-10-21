@@ -1,0 +1,23 @@
+recorded=2026-10-19
+task=AP-STAGE4-07
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=stream part glass + tool→card map under AnShell
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=b8e2794e7f
+tip=50d20e0007
+report_tip_line=7c58f1483a
+base=94d59a79b1
+report=docs/an-rewrite/CURSOR-AP-STAGE4-07.md
+screenshot=docs/an-rewrite/evidence/screenshots-2026-10-18/10-conversation-stream-glass.png
+map_verified=tool running/streaming/error→Task; completed edit/write/patch→Proof; quiet completed reads skipped in Mission stack; messages bound via buildStreamCards; question dock→Decision AnCard; data-an-part=tool glass CSS
+modes=Conversation/View/Takeover intact (shot Conversation selected; tokens three-state pins)
+product_name=Aporetic (chrome + tokens AN_PRODUCT_NAME); byline by Aporia Nous
+shot_observed=Aporetic chrome; Conversation selected; Computer Idle + Team Roster glass cards; Session dock empty; Live computer Idle; Attention empty; Local + 3 unavailable pills; SVG nav
+tests_re_ran=packages/app bun test src/shell/an/ → 29 pass 0 fail (bind+tokens+cards map incl. +3 part-map)
+known_gap_ok=Session dock / composer still OpenCode-shaped floating chat; empty-session Mission stack Computer+Team only (honest — no invented tools)
+non_blocking=report table tip line lists 7c58f1483a while HEAD tip is 50d20e0007 (docs sync commit); unrelated dirty bun.lock in worktree
+isolation=Stage0 cursor-aporetic on compaction-j2-j6-recovery untouched by this review; C:/Tools/aporia not this branch; no merge/push; product code not modified by verifier
+not_claimed=Stage 4 complete; merge; push; Stage 8 / running-DEV acceptance PASS
+deferred=Session dock AN surface; Podman chrome; illustrated nav set; Stage 4b-5; Stage 5 3-vs-4 modes

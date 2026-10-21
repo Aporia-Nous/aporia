@@ -164,6 +164,22 @@ import type {
   CredentialActivateOutput,
   CredentialRemoveInput,
   CredentialRemoveOutput,
+  MissionAttentionListInput,
+  MissionAttentionListOutput,
+  MissionAttentionResolveInput,
+  MissionAttentionResolveOutput,
+  MissionCoordinatorDrainOutput,
+  FlowListOutput,
+  FlowGetInput,
+  FlowGetOutput,
+  FlowSaveInput,
+  FlowSaveOutput,
+  FlowStartInput,
+  FlowStartOutput,
+  FlowRunListInput,
+  FlowRunListOutput,
+  FlowRunGetInput,
+  FlowRunGetOutput,
   ProjectListInput,
   ProjectListOutput,
   ProjectUpdateInput,
@@ -1103,6 +1119,88 @@ const adaptGroupCredential = (raw: RawClient["server.credential"]) => ({
   remove: EndpointCredentialRemove(raw),
 })
 
+const EndpointMissionAttentionList = (raw: RawClient["server.mission"]) => (input?: MissionAttentionListInput) =>
+  preserveEffect<MissionAttentionListOutput>()(
+    raw["mission.attention.list"]({ query: { state: input?.["state"], missionID: input?.["missionID"] } }).pipe(
+      Effect.mapError(mapClientError),
+    ),
+  )
+
+const EndpointMissionAttentionResolve = (raw: RawClient["server.mission"]) => (input: MissionAttentionResolveInput) =>
+  preserveEffect<MissionAttentionResolveOutput>()(
+    raw["mission.attention.resolve"]({
+      params: { cardID: input["cardID"] },
+      payload: { resolution: input["resolution"] },
+    }).pipe(
+      Effect.mapError(mapClientError),
+      Effect.map((value) => value.data),
+    ),
+  )
+
+const EndpointMissionCoordinatorDrain = (raw: RawClient["server.mission"]) => () =>
+  preserveEffect<MissionCoordinatorDrainOutput>()(
+    raw["mission.coordinator.drain"]({}).pipe(Effect.mapError(mapClientError)),
+  )
+
+const adaptGroupMission = (raw: RawClient["server.mission"]) => ({
+  attention: { list: EndpointMissionAttentionList(raw), resolve: EndpointMissionAttentionResolve(raw) },
+  coordinator: { drain: EndpointMissionCoordinatorDrain(raw) },
+})
+
+const EndpointFlowList = (raw: RawClient["server.flow"]) => () =>
+  preserveEffect<FlowListOutput>()(raw["flow.list"]({}).pipe(Effect.mapError(mapClientError)))
+
+const EndpointFlowGet = (raw: RawClient["server.flow"]) => (input: FlowGetInput) =>
+  preserveEffect<FlowGetOutput>()(
+    raw["flow.get"]({ params: { flowID: input["flowID"] } }).pipe(
+      Effect.mapError(mapClientError),
+      Effect.map((value) => value.data),
+    ),
+  )
+
+const EndpointFlowSave = (raw: RawClient["server.flow"]) => (input: FlowSaveInput) =>
+  preserveEffect<FlowSaveOutput>()(
+    raw["flow.save"]({ payload: { definition: input["definition"] } }).pipe(
+      Effect.mapError(mapClientError),
+      Effect.map((value) => value.data),
+    ),
+  )
+
+const EndpointFlowStart = (raw: RawClient["server.flow"]) => (input: FlowStartInput) =>
+  preserveEffect<FlowStartOutput>()(
+    raw["flow.start"]({
+      params: { flowID: input["flowID"] },
+      payload: { requestId: input["requestId"], input: input["input"], trigger: input["trigger"] },
+    }).pipe(
+      Effect.mapError(mapClientError),
+      Effect.map((value) => value.data),
+    ),
+  )
+
+const EndpointFlowRunList = (raw: RawClient["server.flow"]) => (input?: FlowRunListInput) =>
+  preserveEffect<FlowRunListOutput>()(
+    raw["flow.run.list"]({ query: { flowID: input?.["flowID"], limit: input?.["limit"] } }).pipe(
+      Effect.mapError(mapClientError),
+      Effect.map((value) => value.data),
+    ),
+  )
+
+const EndpointFlowRunGet = (raw: RawClient["server.flow"]) => (input: FlowRunGetInput) =>
+  preserveEffect<FlowRunGetOutput>()(
+    raw["flow.run.get"]({ params: { runID: input["runID"] } }).pipe(
+      Effect.mapError(mapClientError),
+      Effect.map((value) => value.data),
+    ),
+  )
+
+const adaptGroupFlow = (raw: RawClient["server.flow"]) => ({
+  list: EndpointFlowList(raw),
+  get: EndpointFlowGet(raw),
+  save: EndpointFlowSave(raw),
+  start: EndpointFlowStart(raw),
+  run: { list: EndpointFlowRunList(raw), get: EndpointFlowRunGet(raw) },
+})
+
 const EndpointProjectList = (raw: RawClient["server.project"]) => (input?: ProjectListInput) =>
   preserveEffect<ProjectListOutput>()(
     raw["project.list"]({ query: { archived: input?.["archived"] } }).pipe(Effect.mapError(mapClientError)),
@@ -1242,7 +1340,7 @@ const adaptGroupRpc = (raw: RawClient["server.rpc"]) => ({ call: EndpointRpcCall
 const EndpointEventSubscribe = (raw: RawClient["server.event"]) => () =>
   preserveStream<EventSubscribeOutput>()(
     Stream.unwrap(
-      raw["event.subscribe"]({}).pipe(
+      raw["event.subscribe"]({ query: {} }).pipe(
         Effect.mapError(mapClientError),
         Effect.map((stream) => stream.pipe(Stream.mapError(mapClientError))),
       ),
@@ -1620,6 +1718,8 @@ const adaptClient = (raw: RawClient) => ({
   integration: adaptGroupIntegration(raw["server.integration"]),
   mcp: adaptGroupMcp(raw["server.mcp"]),
   credential: adaptGroupCredential(raw["server.credential"]),
+  mission: adaptGroupMission(raw["server.mission"]),
+  flow: adaptGroupFlow(raw["server.flow"]),
   project: adaptGroupProject(raw["server.project"]),
   form: adaptGroupForm(raw["server.form"]),
   permission: adaptGroupPermission(raw["server.permission"]),

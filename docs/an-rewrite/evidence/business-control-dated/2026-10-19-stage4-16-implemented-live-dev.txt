@@ -1,0 +1,18 @@
+AP-STAGE4-16 implemented+live-DEV (not INDEPENDENT PASS)
+work_date=2026-10-19
+recorded_date=2026-10-19
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+base=5167449bd7
+scope=ice material punch — stronger blur/translucency/specular; AN ice-glass not OpenCode void charcoal
+tests=shell/an+flows 86 pass
+cdp=ok:true marker AP-STAGE4-16 ice-punch 1792420030131
+tokens=blur 40px / blurStrong 64px / saturate 1.32 / panel 0.28 / raised 0.36 / glass 0.2 / sheen 0.14 / edge 0.28
+drawer=iceDrawer true blur 64 bg 0.38→0.52 (was 0.72/0.88)
+shots=52-ice-punch-conversation.png; 53-ice-punch-contraptions.png; 54-ice-punch-computer-view.png; 55-ice-punch-conversation-final.png
+non_regress=STAGE4-12 ok 1792420048328; STAGE4-13 ok 1792420049489; STAGE4-15 ok 1792420059078; STAGE4-14 presence ok 1792420090516 (13 Listening/0 Unknown); 4E ok re-run; BF-01 ok 1792420059040
+ownership=composer owned; timeline none; missionCompact; stream cards computer+team; gold #f0c66d; void #020509
+residual_ok=frost still subtle on near-void underlay; no photographic nebula; no purple/nebula slop
+not_claimed=INDEPENDENT PASS; Stage 4 complete; merge; push; Stage 8
+report=docs/an-rewrite/CURSOR-AP-STAGE4-16.md
+board=AP-STAGE4-16 OPEN implemented+live-DEV

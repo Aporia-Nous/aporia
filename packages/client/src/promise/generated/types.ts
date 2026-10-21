@@ -228,6 +228,39 @@ export type McpResourceTemplate = {
   mimeType?: string
 }
 
+export type FlowRunSummary = {
+  runId: string
+  flowId: string
+  version: number
+  status: "running" | "waiting" | "needs-attention" | "completed" | "failed"
+  trigger: string
+  requestedAt: number
+  endedAt?: number | undefined
+  tokens: number
+  error?: string | undefined
+}
+
+export type FlowRunnerStatus = {
+  running: boolean
+  ticks: number
+  actions: number
+  lastActionAt?: number | undefined
+  lastError?: string | undefined
+}
+
+export type FlowStepView = {
+  id: string
+  type: string
+  name?: string | undefined
+  status: "pending" | "running" | "waiting" | "succeeded" | "failed" | "skipped" | "needs-attention"
+  attempts: number
+  startedAt?: number | undefined
+  endedAt?: number | undefined
+  tokens: number
+  error?: string | undefined
+  output?: string | undefined
+}
+
 export type ProjectVcs = string
 
 export type ProjectIcon = { url?: string; override?: string; color?: string }
@@ -686,6 +719,31 @@ export type McpServer = {
 }
 
 export type McpResourceCatalog = { resources: Array<McpResource>; templates: Array<McpResourceTemplate> }
+
+export type FlowSummary = {
+  id: string
+  name: string
+  description?: string | undefined
+  version: number
+  steps: number
+  updatedAt: number
+  lastRun?: FlowRunSummary | undefined
+}
+
+export type FlowRunDetail = {
+  runId: string
+  flowId: string
+  version: number
+  status: "running" | "waiting" | "needs-attention" | "completed" | "failed"
+  trigger: string
+  requestedAt: number
+  endedAt?: number | undefined
+  tokens: number
+  error?: string | undefined
+  flowName: string
+  output?: string | undefined
+  steps: Array<FlowStepView>
+}
 
 export type Project = {
   id: ProjectID
@@ -2212,7 +2270,7 @@ export type ConfigEntry =
                 }
           }
         }
-        compaction?: { auto?: boolean; keep?: { tokens?: number }; buffer?: number }
+        compaction?: { auto?: boolean; keep?: { tokens?: number }; buffer?: number; max_context?: number }
         skills?: Array<string>
         commands?: {
           [x: string]: {
@@ -2794,6 +2852,34 @@ export type McpServerNotFoundError = {
 }
 export const isMcpServerNotFoundError = (value: unknown): value is McpServerNotFoundError =>
   typeof value === "object" && value !== null && "_tag" in value && value["_tag"] === "McpServerNotFoundError"
+
+export type AttentionCardNotFoundError = {
+  readonly _tag: "AttentionCardNotFoundError"
+  readonly id: string
+  readonly message: string
+}
+export const isAttentionCardNotFoundError = (value: unknown): value is AttentionCardNotFoundError =>
+  typeof value === "object" && value !== null && "_tag" in value && value["_tag"] === "AttentionCardNotFoundError"
+
+export type FlowNotFoundError = { readonly _tag: "FlowNotFoundError"; readonly id: string; readonly message: string }
+export const isFlowNotFoundError = (value: unknown): value is FlowNotFoundError =>
+  typeof value === "object" && value !== null && "_tag" in value && value["_tag"] === "FlowNotFoundError"
+
+export type FlowInvalidError = {
+  readonly _tag: "FlowInvalidError"
+  readonly message: string
+  readonly problems: ReadonlyArray<string>
+}
+export const isFlowInvalidError = (value: unknown): value is FlowInvalidError =>
+  typeof value === "object" && value !== null && "_tag" in value && value["_tag"] === "FlowInvalidError"
+
+export type FlowRunNotFoundError = {
+  readonly _tag: "FlowRunNotFoundError"
+  readonly id: string
+  readonly message: string
+}
+export const isFlowRunNotFoundError = (value: unknown): value is FlowRunNotFoundError =>
+  typeof value === "object" && value !== null && "_tag" in value && value["_tag"] === "FlowRunNotFoundError"
 
 export type ProjectNotFoundError = {
   readonly _tag: "ProjectNotFoundError"
@@ -6126,6 +6212,122 @@ export type CredentialActivateOutput = void
 export type CredentialRemoveInput = { readonly credentialID: { readonly credentialID: string }["credentialID"] }
 
 export type CredentialRemoveOutput = void
+
+export type MissionAttentionListInput = {
+  readonly state?: {
+    readonly state?: "open" | "resolved" | "all" | undefined
+    readonly missionID?: string | undefined
+  }["state"]
+  readonly missionID?: {
+    readonly state?: "open" | "resolved" | "all" | undefined
+    readonly missionID?: string | undefined
+  }["missionID"]
+}
+
+export type MissionAttentionListOutput = {
+  data: Array<{
+    id: string
+    key: string
+    title: string
+    body: string
+    state: "open" | "resolved"
+    correlationId: string
+    missionId?: string | undefined
+    taskId?: string | undefined
+    createdAt: number
+    resolvedAt?: number | undefined
+    resolvedBy?: string | undefined
+    resolution?: string | undefined
+  }>
+  coordinator: {
+    running: boolean
+    cursor: number
+    latest: number
+    drains: number
+    handled: number
+    lastDrainAt?: number | undefined
+    lastError?: string | undefined
+  }
+}
+
+export type MissionAttentionResolveInput = {
+  readonly cardID: { readonly cardID: string }["cardID"]
+  readonly resolution?: { readonly resolution?: string | undefined }["resolution"]
+}
+
+export type MissionAttentionResolveOutput = {
+  data: {
+    id: string
+    key: string
+    title: string
+    body: string
+    state: "open" | "resolved"
+    correlationId: string
+    missionId?: string | undefined
+    taskId?: string | undefined
+    createdAt: number
+    resolvedAt?: number | undefined
+    resolvedBy?: string | undefined
+    resolution?: string | undefined
+  }
+}["data"]
+
+export type MissionCoordinatorDrainOutput = {
+  handled: number
+  coordinator: {
+    running: boolean
+    cursor: number
+    latest: number
+    drains: number
+    handled: number
+    lastDrainAt?: number | undefined
+    lastError?: string | undefined
+  }
+}
+
+export type FlowListOutput = { data: Array<FlowSummary>; runner: FlowRunnerStatus }
+
+export type FlowGetInput = { readonly flowID: { readonly flowID: string }["flowID"] }
+
+export type FlowGetOutput = { data: { definition: { [x: string]: JsonValue }; version: number } }["data"]
+
+export type FlowSaveInput = {
+  readonly definition: { readonly definition: { readonly [x: string]: JsonValue } }["definition"]
+}
+
+export type FlowSaveOutput = { data: { id: string; version: number; created: boolean } }["data"]
+
+export type FlowStartInput = {
+  readonly flowID: { readonly flowID: string }["flowID"]
+  readonly requestId: {
+    readonly requestId: string
+    readonly input?: { readonly [x: string]: JsonValue } | undefined
+    readonly trigger?: "manual" | "slash" | undefined
+  }["requestId"]
+  readonly input?: {
+    readonly requestId: string
+    readonly input?: { readonly [x: string]: JsonValue } | undefined
+    readonly trigger?: "manual" | "slash" | undefined
+  }["input"]
+  readonly trigger?: {
+    readonly requestId: string
+    readonly input?: { readonly [x: string]: JsonValue } | undefined
+    readonly trigger?: "manual" | "slash" | undefined
+  }["trigger"]
+}
+
+export type FlowStartOutput = { data: { runId: string; created: boolean } }["data"]
+
+export type FlowRunListInput = {
+  readonly flowID?: { readonly flowID?: string | undefined; readonly limit?: string | undefined }["flowID"]
+  readonly limit?: { readonly flowID?: string | undefined; readonly limit?: string | undefined }["limit"]
+}
+
+export type FlowRunListOutput = { data: Array<FlowRunSummary> }["data"]
+
+export type FlowRunGetInput = { readonly runID: { readonly runID: string }["runID"] }
+
+export type FlowRunGetOutput = { data: FlowRunDetail }["data"]
 
 export type ProjectListInput = { readonly archived?: { readonly archived?: boolean | undefined }["archived"] }
 

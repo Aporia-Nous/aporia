@@ -1663,6 +1663,179 @@ export interface CredentialApi<E = never> {
   readonly remove: CredentialRemoveOperation<E>
 }
 
+export type MissionAttentionListInput = {
+  readonly state?: "open" | "resolved" | "all" | undefined
+  readonly missionID?: string | undefined
+}
+export type MissionAttentionListOutput = {
+  readonly data: ReadonlyArray<{
+    readonly id: string
+    readonly key: string
+    readonly title: string
+    readonly body: string
+    readonly state: "open" | "resolved"
+    readonly correlationId: string
+    readonly missionId?: string | undefined
+    readonly taskId?: string | undefined
+    readonly createdAt: number
+    readonly resolvedAt?: number | undefined
+    readonly resolvedBy?: string | undefined
+    readonly resolution?: string | undefined
+  }>
+  readonly coordinator: {
+    readonly running: boolean
+    readonly cursor: number
+    readonly latest: number
+    readonly drains: number
+    readonly handled: number
+    readonly lastDrainAt?: number | undefined
+    readonly lastError?: string | undefined
+  }
+}
+export type MissionAttentionListOperation<E = never> = (
+  input?: MissionAttentionListInput,
+) => Effect.Effect<MissionAttentionListOutput, E>
+
+export type MissionAttentionResolveInput = { readonly cardID: string; readonly resolution?: string | undefined }
+export type MissionAttentionResolveOutput = {
+  readonly id: string
+  readonly key: string
+  readonly title: string
+  readonly body: string
+  readonly state: "open" | "resolved"
+  readonly correlationId: string
+  readonly missionId?: string | undefined
+  readonly taskId?: string | undefined
+  readonly createdAt: number
+  readonly resolvedAt?: number | undefined
+  readonly resolvedBy?: string | undefined
+  readonly resolution?: string | undefined
+}
+export type MissionAttentionResolveOperation<E = never> = (
+  input: MissionAttentionResolveInput,
+) => Effect.Effect<MissionAttentionResolveOutput, E>
+
+export type MissionCoordinatorDrainOutput = {
+  readonly handled: number
+  readonly coordinator: {
+    readonly running: boolean
+    readonly cursor: number
+    readonly latest: number
+    readonly drains: number
+    readonly handled: number
+    readonly lastDrainAt?: number | undefined
+    readonly lastError?: string | undefined
+  }
+}
+export type MissionCoordinatorDrainOperation<E = never> = () => Effect.Effect<MissionCoordinatorDrainOutput, E>
+
+export interface MissionApi<E = never> {
+  readonly attention: {
+    readonly list: MissionAttentionListOperation<E>
+    readonly resolve: MissionAttentionResolveOperation<E>
+  }
+  readonly coordinator: { readonly drain: MissionCoordinatorDrainOperation<E> }
+}
+
+export type FlowListOutput = {
+  readonly data: ReadonlyArray<{
+    readonly id: string
+    readonly name: string
+    readonly description?: string | undefined
+    readonly version: number
+    readonly steps: number
+    readonly updatedAt: number
+    readonly lastRun?:
+      | {
+          readonly runId: string
+          readonly flowId: string
+          readonly version: number
+          readonly status: "running" | "waiting" | "needs-attention" | "completed" | "failed"
+          readonly trigger: string
+          readonly requestedAt: number
+          readonly endedAt?: number | undefined
+          readonly tokens: number
+          readonly error?: string | undefined
+        }
+      | undefined
+  }>
+  readonly runner: {
+    readonly running: boolean
+    readonly ticks: number
+    readonly actions: number
+    readonly lastActionAt?: number | undefined
+    readonly lastError?: string | undefined
+  }
+}
+export type FlowListOperation<E = never> = () => Effect.Effect<FlowListOutput, E>
+
+export type FlowGetInput = { readonly flowID: string }
+export type FlowGetOutput = { readonly definition: { readonly [x: string]: Schema.Json }; readonly version: number }
+export type FlowGetOperation<E = never> = (input: FlowGetInput) => Effect.Effect<FlowGetOutput, E>
+
+export type FlowSaveInput = { readonly definition: { readonly [x: string]: Schema.Json } }
+export type FlowSaveOutput = { readonly id: string; readonly version: number; readonly created: boolean }
+export type FlowSaveOperation<E = never> = (input: FlowSaveInput) => Effect.Effect<FlowSaveOutput, E>
+
+export type FlowStartInput = {
+  readonly flowID: string
+  readonly requestId: string
+  readonly input?: { readonly [x: string]: Schema.Json } | undefined
+  readonly trigger?: "manual" | "slash" | undefined
+}
+export type FlowStartOutput = { readonly runId: string; readonly created: boolean }
+export type FlowStartOperation<E = never> = (input: FlowStartInput) => Effect.Effect<FlowStartOutput, E>
+
+export type FlowRunListInput = { readonly flowID?: string | undefined; readonly limit?: string | undefined }
+export type FlowRunListOutput = ReadonlyArray<{
+  readonly runId: string
+  readonly flowId: string
+  readonly version: number
+  readonly status: "running" | "waiting" | "needs-attention" | "completed" | "failed"
+  readonly trigger: string
+  readonly requestedAt: number
+  readonly endedAt?: number | undefined
+  readonly tokens: number
+  readonly error?: string | undefined
+}>
+export type FlowRunListOperation<E = never> = (input?: FlowRunListInput) => Effect.Effect<FlowRunListOutput, E>
+
+export type FlowRunGetInput = { readonly runID: string }
+export type FlowRunGetOutput = {
+  readonly runId: string
+  readonly flowId: string
+  readonly version: number
+  readonly status: "running" | "waiting" | "needs-attention" | "completed" | "failed"
+  readonly trigger: string
+  readonly requestedAt: number
+  readonly endedAt?: number | undefined
+  readonly tokens: number
+  readonly error?: string | undefined
+  readonly flowName: string
+  readonly output?: string | undefined
+  readonly steps: ReadonlyArray<{
+    readonly id: string
+    readonly type: string
+    readonly name?: string | undefined
+    readonly status: "pending" | "running" | "waiting" | "succeeded" | "failed" | "skipped" | "needs-attention"
+    readonly attempts: number
+    readonly startedAt?: number | undefined
+    readonly endedAt?: number | undefined
+    readonly tokens: number
+    readonly error?: string | undefined
+    readonly output?: string | undefined
+  }>
+}
+export type FlowRunGetOperation<E = never> = (input: FlowRunGetInput) => Effect.Effect<FlowRunGetOutput, E>
+
+export interface FlowApi<E = never> {
+  readonly list: FlowListOperation<E>
+  readonly get: FlowGetOperation<E>
+  readonly save: FlowSaveOperation<E>
+  readonly start: FlowStartOperation<E>
+  readonly run: { readonly list: FlowRunListOperation<E>; readonly get: FlowRunGetOperation<E> }
+}
+
 export type ProjectListInput = { readonly archived?: boolean | undefined }
 export type ProjectListOutput = ReadonlyArray<Project.Info>
 export type ProjectListOperation<E = never> = (input?: ProjectListInput) => Effect.Effect<ProjectListOutput, E>
@@ -2276,6 +2449,8 @@ export interface AppApi<E = never> {
   readonly integration: IntegrationApi<E>
   readonly mcp: McpApi<E>
   readonly credential: CredentialApi<E>
+  readonly mission: MissionApi<E>
+  readonly flow: FlowApi<E>
   readonly project: ProjectApi<E>
   readonly form: FormApi<E>
   readonly permission: PermissionApi<E>

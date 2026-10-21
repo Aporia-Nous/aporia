@@ -18,6 +18,7 @@ const [events, setEvents] = createSignal(load())
 export const connectionEvents = {
   list: (sessionID: string | undefined) => (sessionID ? (events()[sessionID] ?? []) : []),
   add(sessionID: string | undefined, event: ConnectionEvent) {
+    ;(globalThis as any).aporiaAlerts?.push({ title: `${event.app} connected`, detail: event.error ? `Active now, but not saved: ${event.error}` : event.persisted ? `Saved to ${event.persisted}` : "Active for this run", level: event.error ? "warning" : "success" })
     if (!sessionID) return
     const next = { ...events(), [sessionID]: [...(events()[sessionID] ?? []), event].slice(-20) }
     setEvents(next)

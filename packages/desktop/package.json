@@ -4,10 +4,11 @@
   "version": "2.0.26",
   "type": "module",
   "license": "MIT",
+  "description": "Aporetic — a local, hands-free agentic workspace with bots, shared memory and voice.",
   "homepage": "https://github.com/aporianous/aporia",
   "author": {
-    "name": "Aporia",
-    "email": "hello@opencode.ai"
+    "name": "Aporia Nous",
+    "email": "dev@aporianous.com"
   },
   "scripts": {
     "typecheck": "tsgo -b",
@@ -30,6 +31,8 @@
     "electron-log": "^5",
     "electron-updater": "6.8.9",
     "jsonc-parser": "3.3.1",
+    "kokoro-js": "1.2.1",
+    "@huggingface/transformers": "^3.8.1",
     "lighthouse": "13.4.1"
   },
   "devDependencies": {

@@ -73,7 +73,7 @@ function ResolvedDraftContent(props: { draft: DraftTab }) {
         <LocationProvider directory={props.draft.directory}>
           <SessionUIProvider directory={props.draft.directory} server={props.draft.server}>
             <DraftProviders>
-              {/* APORIA: frame the new-session screen in the Aporia layout when enabled. */}
+              {/* APORIA: frame the new-session screen in the Aporetic layout when enabled. */}
               <Show when={aporiaPrefs.layoutEnabled()} fallback={<NewSession draftId={props.draft.draftID} />}>
                 <AporiaDraftLayout directory={props.draft.directory}>
                   <NewSession draftId={props.draft.draftID} />

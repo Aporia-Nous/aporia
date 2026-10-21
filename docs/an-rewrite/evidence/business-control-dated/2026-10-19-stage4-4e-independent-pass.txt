@@ -1,0 +1,22 @@
+recorded=2026-10-19
+task=AP-STAGE4-4E
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=Contraptions mount under AnShell (nav + ice-glass drawer; Automations & integrations; Redstone Easter-egg title only)
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=af9ab9943a
+tip=13a31f0fbd
+tip_note=actual HEAD tip 13a31f0fbd (docs sync); intermediate docs 3c42a81c0e; code af9ab9943a; implementer also cited 3c42a81c0e — verified as ancestor of tip, not tip itself
+base=5f810a9d51
+report=docs/an-rewrite/CURSOR-AP-STAGE4-4E.md
+architecture_verified=AnShell nav Contraptions; drawer data-an-part=contraptions / data-component=an-contraptions; subtitle Automations & integrations always-on; Redstone only on subtitle title attr; AutomationsTab/FlowsSection reused; flow_* unchanged; AN_COMPOSER_SURFACE.ownedAttr pin retained
+tests_re_ran=packages/app bun test src/shell/an src/aporia/flows-util.test.ts → 41 pass 0 fail
+live_cdp_4e=bun docs/an-rewrite/evidence/cdp-probe-stage4-4e-contraptions.mjs → RESULT ok:true mountOk:true ownershipOk:true panel 420x736 subtitle Automations & integrations redstone title attr present hasFlows:true
+live_cdp_stage4_12_non_regression=bun docs/an-rewrite/evidence/cdp-probe-stage4-12-composer-after.mjs → RESULT ok:true marker AP-STAGE4-12 composer 1792414609976 owned=composer composerOnly=true timelineDisplay=none convH=328 YOU turn visible (STAGE4-11 stream + STAGE4-12 composer ownership not regressed)
+screenshots=business-control/evidence/2026-10-19-25-contraptions-mounted-dev.png; worktree screenshots-2026-10-18/25-contraptions-mounted-dev.png; STAGE4-12 re-shots 22-24 under worktree evidence
+diff_scope=5f810a9d51..af9ab9943a — contraptions-panel + session-layout nav/mount + an-shell icon/nav + CSS + tokens; conversation-stream and composer ownership markers not redefined
+known_residual_ok=classic AporiaRightPanel (Details/Library/Browser/Call) still not under AnShell; residual OC chips/mic; 4F nav-Podman deferred
+isolation=no merge/push; product C:\Tools\aporia not this branch; verifier did not implement new features (coordination + evidence + report status only)
+not_claimed=Stage 4 complete; full right-panel mount; merge; push; Stage 8 / running-DEV acceptance PASS
+deferred=AP-STAGE4-4F; AP-CE-01; AP-BF-01

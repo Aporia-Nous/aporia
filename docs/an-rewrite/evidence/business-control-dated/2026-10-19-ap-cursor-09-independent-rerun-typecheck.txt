@@ -1,0 +1,6 @@
+$ tsgo -b tsconfig.json tsconfig.tests.json
+TYPECHECK_EXIT=0
+cwd=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic/packages/core
+actor=independent-verifier
+task=AP-CURSOR-09
+recorded=2026-10-19

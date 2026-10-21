@@ -1,0 +1,64 @@
+AP-STAGE4-ACCEPT — Stage 4 acceptance gate (live-DEV CDP)
+recorded_date=2026-10-20 (America/Chicago)
+work_date=2026-10-20
+actor=cursor-stage4-acceptance (self-check; not independent PASS of product ship)
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+tip=a19d6dbc6362958280475b39f9d4df8184ad0659
+code_tip_note=AP-ENGINE-E12-E14 tip (docs sync a19d6dbc63)
+cdp_port=9223
+marker=AP-STAGE4-ACCEPT gate 1792484501622
+probe=docs/an-rewrite/evidence/cdp-probe-stage4-accept.mjs
+EXIT=0
+ws=closed
+
+CRITERIA (source: APORETIC-STAGE-PLAN owned acceptance = roster/mission/attention fidelity vs design + owned surfaces;
+ DESIGN-DIRECTION-ALI three-state; APORETIC-DEV-BUILD-LIST Stage 4 goal chrome;
+ parent residual allowance: 4F + mockup leftovers OK)
+
+| id | bar | result | evidence |
+|---|---|---|---|
+| A1 | AnShell mounted | PASS | hasShell=true |
+| A2 | Aporetic branding | PASS | product=Aporetic; byline not required on every chrome |
+| A3 | Roster + real presence | PASS | members=13; listening=13; unknown=0 |
+| A4 | Mission header bound | PASS | title AP-ENGINE-PORT-01 transmission… |
+| A5 | Attention rail always-on | PASS | alwaysOn=true; "No blockers right now." / honest Computer View unavailable |
+| A6 | Owned composer | PASS | data-an-owned=composer; placeholder Message Grok… |
+| A7 | Owned stream / OC timeline hidden | PASS | ownConv=true; timelineDisplay=none |
+| A8 | Three-state modes interactive | PASS | Conversation→Computer View (mode=view w=420)→Takeover (handBack) |
+| A9 | Contraptions mount + subtitle | PASS | panel 420x736; Automations & integrations |
+| A10 | Cards structure (mockup OK) | PASS | cardCount=3; mockup leftovers residual OK |
+| A11 | EnginePort path non-regress | PASS | engine=oc-server; enginePort=03 |
+| B1 | Teammate-switch draft survival (build-list B light) | FAIL | before had marker; after="" — draft cleared |
+
+OVERALL_GATE=GATE PASS (owned-surfaces / roster-mission-attention scope)
+STAGE4_COMPLETE=NO
+reason_not_complete=B1 FAIL + AP-STAGE4-4F OPEN + Mission A→B→A restart unproven + Stage 4b deferred + Stage 5 3-vs-4 OPEN + Stage 8 visual hash not claimed
+
+shots=
+  business-control/evidence/2026-10-20-105-stage4-accept-conversation.png
+  business-control/evidence/2026-10-20-106-stage4-accept-computer-view.png
+  business-control/evidence/2026-10-20-107-stage4-accept-takeover.png
+  business-control/evidence/2026-10-20-108-stage4-accept-contraptions.png
+
+residuals_ok_allowed=
+  AP-STAGE4-4F illustrated nav + Podman chrome OPEN
+  mockup leftovers / Stage 8 visual vs original-normal.png
+  Stage 4b social deferred
+  Stage 5 3-vs-4 OPEN
+  xlsx/pptx Documents residual
+
+residuals_blocking_stage4_complete=
+  B1 draft cleared on teammate switch (FAIL)
+  full Mission A→B→A + quit/reopen restart proof
+  New teammate create/import/edit/cancel/archive lifecycle
+
+not_claimed=
+  Stage 4 complete
+  Stage 8 PASS
+  merge
+  push
+  install promote
+  independent product acceptance (this is gate self-check)
+
+no_merge_no_push_no_install=true

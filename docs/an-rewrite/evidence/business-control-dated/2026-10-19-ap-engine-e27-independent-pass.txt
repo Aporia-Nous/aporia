@@ -1,0 +1,34 @@
+recorded=2026-10-19
+tasks=AP-ENGINE-E27
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=E27 notifyLocks separate from durableLocks; publish/publishAll/replay commit+durable wake under durableLocks then notifyDurable outside write lock; EnginePort send/Settings/Contraptions non-regress
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=3aad10e48c
+tip=98fe8869b9
+base=8d2317def5
+head_verified=98fe8869b977a54a50b978c4a06a0e9e48b3e9bd matches claimed tip; code 3aad10e48c + base 8d2317def5 ancestors (0 behind / 7 ahead of base)
+report=docs/an-rewrite/CURSOR-AP-ENGINE-E27.md
+audit=business-control/ENGINE-EFFICIENCY-AUDIT.md §E27
+
+source_bar=
+  packages/core/src/bus.ts — notifyLocks KeyedMutex parallel to durableLocks; notifyDurable(aggregateID) serializes notify on notifyLocks
+  publish / publishAll / replay({publish}): commitDurableEvent (incl durable wake pubsub) under durableLocks.withLock; then notifyDurable after lock release
+  packages/core/test/bus.test.ts — "commits a concurrent durable publish while a prior listener is still notifying" (seq>=1 while first listener blocked); batch non-interleave retained
+
+tests_re_ran=
+  packages/core bun test test/bus.test.ts → 54 pass 0 fail
+  packages/app bun test src/shell/an → 118 pass 0 fail
+
+live_cdp=bun docs/an-rewrite/evidence/cdp-probe-engine-e27.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-ENGINE-E27 send 1792462099881; ws.close+process.exit
+live_cdp_detail=enginePort=03; typed marker in composer + sendClick ok; Settings owned=settings enginePort=02 hasOcScreen=false mark Aporetic/Aporia Nous; STAGE4-12/13 owned=composer timeline none Message Grok…; 4E Contraptions ok
+writer_prior_marker=AP-ENGINE-E27 send 1792461898423 (prior live-DEV)
+
+screenshots=worktree docs/an-rewrite/evidence/screenshots-2026-10-18/90-engine-E27-before-send.png; 91-engine-E27-after-send-you.png; 92-engine-E27-contraptions-light.png; board copies business-control/evidence/2026-10-19-90..92-engine-E27-*.png (re-shot during independent CDP)
+
+residuals_ok=notify still serial per aggregate via notifyLocks (write lock released only; publish callers still await notify); E23 multi-session SQLite measure left alone; E24 overflow left alone; CDP markerHit may prefix-match prior E27 YOU turn on crowded stream (typed+sendClick+RESULT ok still met bar; last-5 userTexts showed writer marker 1792461898423); running-DEV may need hard restart for core tip
+isolation=no merge/push; product C:\Tools\aporia not this branch; no product features added by verifier
+not_claimed=Stage 4 complete; OpenCode replaced; agent loop rewrite; merge; push; install; Stage 8 / running-DEV acceptance PASS
+deferred=AP-ENGINE-EFFICIENCY-02 next ranked E23/E24
+worktree_note=unrelated dirty docs/screenshot mods present at review time; verifier did not implement product code

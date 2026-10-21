@@ -1,0 +1,62 @@
+/* AN black/gold glass tokens — extracted from approved design packet
+   (aporetic-an-exact-flow-v11-selfcontained.html + original-AN-visual-style.png).
+   Lagoon Night / Marrs Tide / replacement-concept are NOT used here.
+   Feel (Ali 2026-10-19): frictionless ice/glass — smooth; gold accents on ice-dark glass. */
+:root,
+[data-an-theme="an"] {
+  --an-gold: #f0c66d;
+  --an-gold-deep: #d79a2e;
+  --an-gold-soft: #e5c57f;
+  --an-gold-muted: #cfac62;
+  --an-green: #3be78c;
+  --an-ink: #03070b;
+  --an-void: #020509;
+  /* Ice/glass punch (AP-STAGE4-16) — frosted glass vs opaque charcoal; AN black/gold only */
+  --an-panel: rgba(6, 14, 22, 0.28);
+  --an-panel-solid: #050a0e;
+  --an-panel-raised: rgba(8, 16, 24, 0.36);
+  --an-panel-glass: rgba(10, 20, 30, 0.2);
+  --an-ice-sheen: rgba(186, 220, 255, 0.14);
+  --an-ice-edge: rgba(210, 232, 255, 0.28);
+  --an-border: rgba(240, 198, 109, 0.28);
+  --an-border-soft: rgba(240, 198, 109, 0.16);
+  --an-border-strong: rgba(240, 198, 109, 0.45);
+  --an-border-edge: rgba(210, 232, 255, 0.22);
+  --an-glow: rgba(231, 154, 29, 0.24);
+  --an-glow-soft: rgba(231, 154, 29, 0.12);
+  --an-text: #f0e6d2;
+  --an-text-muted: #cfac62;
+  --an-text-faint: #7b8aa3;
+  --an-danger: #f87171;
+  --an-radius-sm: 10px;
+  --an-radius: 14px;
+  --an-radius-lg: 18px;
+  --an-radius-pill: 999px;
+  --an-blur: 40px;
+  --an-blur-strong: 64px;
+  --an-saturate: 1.32;
+  --an-nav-width: 56px;
+  --an-roster-width: 280px;
+  --an-attention-width: 320px;
+  --an-attention-width-view: 420px;
+  /* Soft depth — avoid chunky OpenCode drop shadows */
+  --an-shadow: 0 8px 28px rgba(0, 0, 0, 0.28), 0 0 20px var(--an-glow-soft);
+  --an-shadow-soft: 0 4px 18px rgba(0, 0, 0, 0.18);
+  --an-specular: inset 0 1px 0 rgba(230, 242, 255, 0.34), inset 0 -1px 0 rgba(0, 0, 0, 0.18), inset 1px 0 0 rgba(210, 232, 255, 0.14);
+  --an-focus: 0 0 0 2px var(--an-void), 0 0 0 4px rgba(240, 198, 109, 0.48);
+  --an-ease: 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  --an-ease-rail: 360ms cubic-bezier(0.22, 1, 0.36, 1);
+  --an-ease-card: 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  /* Session/composer floating dock settle (AP-STAGE4-09) */
+  --an-ease-dock: 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  /* AP-STAGE4-17/18: holographic companion motion (Grok-class bar, AN ice — not purple slop) */
+  --an-ease-panel: 520ms cubic-bezier(0.16, 1, 0.3, 1);
+  --an-ease-tab: 280ms cubic-bezier(0.22, 1, 0.36, 1);
+  --an-ease-live: 560ms cubic-bezier(0.16, 1, 0.3, 1);
+  --an-ease-holo: 420ms cubic-bezier(0.16, 1, 0.3, 1);
+  --an-holo-sheen: rgba(186, 220, 255, 0.22);
+  --an-holo-rim: rgba(240, 198, 109, 0.28);
+  --an-holo-sweep: rgba(210, 232, 255, 0.14);
+  --an-holo-depth: rgba(4, 14, 28, 0.45);
+  --an-holo-specular: rgba(230, 242, 255, 0.42);
+}

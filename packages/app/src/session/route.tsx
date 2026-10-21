@@ -185,7 +185,7 @@ function TargetSessionPage() {
 function SessionPage() {
   const session = useSessionModel()
 
-  // APORIA: wrap the stock view in the Aporia layout when enabled.
+  // APORIA: wrap the stock view in the Aporetic layout when enabled.
   return (
     <Show when={aporiaPrefs.layoutEnabled()} fallback={<SessionScreenView session={session} />}>
       <AporiaSessionLayout session={session}>

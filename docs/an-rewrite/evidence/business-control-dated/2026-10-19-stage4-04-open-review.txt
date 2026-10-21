@@ -1,0 +1,9 @@
+﻿recorded=2026-10-19
+event=AP-STAGE4-04 ready for review (not PASS)
+worktree=C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+branch=stage4-an-shell
+base=369a549991
+report=docs/an-rewrite/CURSOR-AP-STAGE4-04.md
+shots=06-conversation-glass-rail.png; 07-view-mode.png; 08-takeover-mode.png
+tests=16 app + 3 ui pass
+pass_claim=false

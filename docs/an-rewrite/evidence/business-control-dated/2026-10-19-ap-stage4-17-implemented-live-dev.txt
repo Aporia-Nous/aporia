@@ -1,0 +1,23 @@
+AP-STAGE4-17 + AP-BF-06 — OPEN implemented+live-DEV (NOT INDEPENDENT PASS)
+Recording date: 2026-10-19 (America/Chicago)
+Worktree: C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+Branch: stage4-an-shell
+Base: c4be6688a8 (AP-BF-05)
+
+Writer tests:
+- bun test src/shell/an src/aporia/flows-util.test.ts → 101 pass / 0 fail
+- bun test ../core/src/mission/control.test.ts → 6 pass / 0 fail
+
+Live CDP:
+- docs/an-rewrite/evidence/cdp-probe-stage4-17-review-windowing.mjs
+- RESULT ok:true marker AP-STAGE4-17 review 1792422423948
+- reviewOk + tabSwitch + liveOk + windowingOk (refuse-second-window when Edge open without CDP)
+- uiOpenTab.hasOpenTabBtn true; motion CSS --an-ease-panel/tab/live present
+- Shots 60–63 (worktree + board copies 2026-10-19-60..63-*.png)
+
+Shipped:
+1. BF-06: existing-window tab / refuse second window / spawn only if none
+2. STAGE4-17: collapsible Review panel browser/code/files/documents in AnShell
+3. Holographic ice motion (panel open, tab fade, live glow, card enter)
+
+Do NOT self-PASS. No merge/push.

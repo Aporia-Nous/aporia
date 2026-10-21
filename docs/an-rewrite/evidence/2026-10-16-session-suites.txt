@@ -1,0 +1,12 @@
+$ cd C:\Tools\aporia\.worktrees\opt\packages\core
+$ C:\Users\Dilla\.bun\bin\bun.exe test test/session-compaction.test.ts test/session-runner.test.ts test/session-compact.test.ts test/session-provider-context.test.ts test/session-compaction-transport.test.ts
+exit code: 0
+
+bun test v1.4.3 (c6da4a4d3)
+
+--- stderr ---
+
+ 252 pass
+ 0 fail
+ 1297 expect() calls
+Ran 252 tests across 5 files. [10.10s]

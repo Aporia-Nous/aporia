@@ -1,0 +1,27 @@
+AP-MODELS-01 audit — recording date 2026-10-19 (America/Chicago)
+Work date: 2026-10-19
+Scope: coordination audit only — no product code change, no secrets, no billing, no merge/push/install
+
+Worktrees compared (provider plugin set identical):
+- Stage 4: C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+- Stage 0: C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic
+- opt:     C:\Tools\aporia\.worktrees\opt
+
+Already present (cite Stage 4 paths; same in Stage 0 + opt):
+- packages/core/src/plugin/provider/ — opencode.ts, ollama.ts, lmstudio.ts, local.ts, vllm.ts, zenmux.ts, + cloud BYOK providers
+- packages/core/src/models-dev.ts + packages/core/src/plugin/models-dev.ts
+- packages/console/app/src/routes/zen/
+- packages/app/src/settings/providers/providers.tsx + models/models.tsx
+- packages/app/src/providers/models/unpaid.tsx (OpenCode Free / keyless free list)
+- packages/app/src/shell/an/session-layout.tsx → useSettingsDialog()
+- .opencode/opencode.jsonc provider: {}
+- packages/web/src/content/docs/providers.mdx (Zen, Ollama, connect/BYOK)
+
+Gaps (not PASS):
+- Non-EN i18n: many locales claim free models "provided by Aporetic"; en.ts correctly says OpenCode
+- unpaid featuredProviders omit ollama/local
+- No Aporetic product brief of free+BYOK (boarded in APORETIC-STAGE-PLAN.md)
+- session-layout fallback model deepseek/deepseek-flash (not free-path default)
+
+OmniRoute: NOT required for OpenCode free+BYOK parity. Leave AP-STAGE-M deferred.
+Recommended first slice: AP-MODELS-01a honest copy + local discoverability in Stage 4 worktree when Ali assigns.

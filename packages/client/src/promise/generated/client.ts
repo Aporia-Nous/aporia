@@ -158,6 +158,22 @@ import type {
   CredentialActivateOutput,
   CredentialRemoveInput,
   CredentialRemoveOutput,
+  MissionAttentionListInput,
+  MissionAttentionListOutput,
+  MissionAttentionResolveInput,
+  MissionAttentionResolveOutput,
+  MissionCoordinatorDrainOutput,
+  FlowListOutput,
+  FlowGetInput,
+  FlowGetOutput,
+  FlowSaveInput,
+  FlowSaveOutput,
+  FlowStartInput,
+  FlowStartOutput,
+  FlowRunListInput,
+  FlowRunListOutput,
+  FlowRunGetInput,
+  FlowRunGetOutput,
   ProjectListInput,
   ProjectListOutput,
   ProjectUpdateInput,
@@ -1472,6 +1488,114 @@ export function make(options: ClientOptions) {
           },
           requestOptions,
         ),
+    },
+    mission: {
+      attention: {
+        list: (input?: MissionAttentionListInput, requestOptions?: RequestOptions) =>
+          request<MissionAttentionListOutput>(
+            {
+              method: "GET",
+              path: `/api/mission/attention`,
+              query: { state: input?.["state"], missionID: input?.["missionID"] },
+              successStatus: 200,
+              declaredStatuses: [400, 401],
+              empty: false,
+            },
+            requestOptions,
+          ),
+        resolve: (input: MissionAttentionResolveInput, requestOptions?: RequestOptions) =>
+          request<{ readonly data: MissionAttentionResolveOutput }>(
+            {
+              method: "POST",
+              path: `/api/mission/attention/${encodeURIComponent(input.cardID)}/resolve`,
+              body: { resolution: input["resolution"] },
+              successStatus: 200,
+              declaredStatuses: [400, 401, 404],
+              empty: false,
+            },
+            requestOptions,
+          ).then((value) => value.data),
+      },
+      coordinator: {
+        drain: (requestOptions?: RequestOptions) =>
+          request<MissionCoordinatorDrainOutput>(
+            {
+              method: "POST",
+              path: `/api/mission/coordinator/drain`,
+              successStatus: 200,
+              declaredStatuses: [400, 401],
+              empty: false,
+            },
+            requestOptions,
+          ),
+      },
+    },
+    flow: {
+      list: (requestOptions?: RequestOptions) =>
+        request<FlowListOutput>(
+          { method: "GET", path: `/api/flow`, successStatus: 200, declaredStatuses: [400, 401], empty: false },
+          requestOptions,
+        ),
+      get: (input: FlowGetInput, requestOptions?: RequestOptions) =>
+        request<{ readonly data: FlowGetOutput }>(
+          {
+            method: "GET",
+            path: `/api/flow/${encodeURIComponent(input.flowID)}`,
+            successStatus: 200,
+            declaredStatuses: [400, 401, 404],
+            empty: false,
+          },
+          requestOptions,
+        ).then((value) => value.data),
+      save: (input: FlowSaveInput, requestOptions?: RequestOptions) =>
+        request<{ readonly data: FlowSaveOutput }>(
+          {
+            method: "POST",
+            path: `/api/flow`,
+            body: { definition: input["definition"] },
+            successStatus: 200,
+            declaredStatuses: [400, 401],
+            empty: false,
+          },
+          requestOptions,
+        ).then((value) => value.data),
+      start: (input: FlowStartInput, requestOptions?: RequestOptions) =>
+        request<{ readonly data: FlowStartOutput }>(
+          {
+            method: "POST",
+            path: `/api/flow/${encodeURIComponent(input.flowID)}/run`,
+            body: { requestId: input["requestId"], input: input["input"], trigger: input["trigger"] },
+            successStatus: 200,
+            declaredStatuses: [400, 401, 404],
+            empty: false,
+          },
+          requestOptions,
+        ).then((value) => value.data),
+      run: {
+        list: (input?: FlowRunListInput, requestOptions?: RequestOptions) =>
+          request<{ readonly data: FlowRunListOutput }>(
+            {
+              method: "GET",
+              path: `/api/flow-runs`,
+              query: { flowID: input?.["flowID"], limit: input?.["limit"] },
+              successStatus: 200,
+              declaredStatuses: [400, 401],
+              empty: false,
+            },
+            requestOptions,
+          ).then((value) => value.data),
+        get: (input: FlowRunGetInput, requestOptions?: RequestOptions) =>
+          request<{ readonly data: FlowRunGetOutput }>(
+            {
+              method: "GET",
+              path: `/api/flow-runs/${encodeURIComponent(input.runID)}`,
+              successStatus: 200,
+              declaredStatuses: [400, 401, 404],
+              empty: false,
+            },
+            requestOptions,
+          ).then((value) => value.data),
+      },
     },
     project: {
       list: (input?: ProjectListInput, requestOptions?: RequestOptions) =>

@@ -176,7 +176,7 @@ export function ConnectAppsModal(props: { directory: string; sessionID?: string;
         await persistMcp(app.id, persisted)
         return mark(app.id, {
           state: "failed",
-          detail: "Saved with your existing env vars. Quit and reopen Aporia so its server loads them, then Connect again.",
+          detail: "Saved with your existing env vars. Quit and reopen Aporetic so its server loads them, then Connect again.",
         })
       }
       await sdk.api.mcp.add({

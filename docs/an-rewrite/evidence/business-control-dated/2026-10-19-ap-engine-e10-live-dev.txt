@@ -1,0 +1,31 @@
+AP-ENGINE-E10 writer live-DEV evidence
+recorded_date: 2026-10-19 (America/Chicago)
+work_date: 2026-10-19
+status: OPEN implemented+live-DEV (NOT INDEPENDENT PASS; NOT self-PASS)
+worktree: C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+branch: stage4-an-shell
+base: 988fd1cb66 (AP-ENGINE-E09 INDEPENDENT PASS)
+code: 0296c74fb7
+tip: f3617b6685
+
+Shipped:
+  E10 — InstructionState.PrepareGate observe once per drain
+       SessionContext.instructionDirtyEpoch (catalog + entries)
+       llm prepareContext skips re-observe while epoch clean
+       fresh instructionPrepared Map per drain (force after move)
+
+Unit (packages/core):
+  bun test test/instruction-state.test.ts test/session-context-cache.test.ts → 17 pass
+  typecheck exit 0
+
+Live CDP (APORETIC_CDP_PORT=9223):
+  probe: docs/an-rewrite/evidence/cdp-probe-engine-e10.mjs
+  RESULT ok:true EXIT=0
+  marker: AP-ENGINE-E10 send 1792431821273
+  engine=oc-server enginePort=01 owned=composer timelineDisplay=none
+  note: EnginePort send non-regress; E10 behavior proven by unit
+  ws.close + process.exit
+
+Not claimed: INDEPENDENT PASS, E05, E13, PORT-02, merge/push/install
+Follow-up: independent verifier; next ranked E05/E13 after PASS
+Left alone: E05, E13, PORT-02

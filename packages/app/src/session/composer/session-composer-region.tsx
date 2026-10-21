@@ -26,6 +26,8 @@ export function SessionComposerRegion(props: {
     <div
       ref={controller.setDockRef}
       data-component="session-composer-dock"
+      data-an-part="session-composer-dock"
+      data-an-owned="composer"
       class="w-full shrink-0 flex flex-col justify-center items-center pb-3 pointer-events-none bg-v2-background-bg-base"
     >
       <div

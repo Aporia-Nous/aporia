@@ -1,0 +1,38 @@
+recorded=2026-10-19
+tasks=AP-ENGINE-E21,AP-ENGINE-PORT-03
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=E21 SSE reconnectBackoffMs exponential+jitter (≥2, cap 15s) + reconnectSyncDirectories pinned-only + coalesced bootstrap 300ms; PORT-03 EnginePort.subscribe + observeServerEvent coarse (skip delta/progress/streamed); session shell data-an-engine-port=03; Settings stays 02
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=68a9021161
+tip=0550905a33
+base=741abaa063
+head_verified=0550905a3340dd0ed79bcdf9143d922f8ffbbf05 matches claimed tip; code 68a9021161 + base 741abaa063 ancestors
+report=docs/an-rewrite/CURSOR-AP-ENGINE-E21-PORT-03.md
+audit=business-control/ENGINE-EFFICIENCY-AUDIT.md §E21
+port_plan=business-control/ENGINE-PORT-TODAY.md PORT-03
+
+source_bar=
+  packages/client/src/solid/connection.ts — reconnectBackoffMs
+  packages/app/src/runtime/server/server-sync/connection.ts — reconnectSyncDirectories + createCoalescedRunner 300ms
+  packages/app/src/runtime/server/sync.tsx — reconnect coalesced bootstrap + pinned queue
+  packages/app/src/shell/an/engine/oc-server-port.ts — subscribe + observeServerEvent coarse
+  packages/app/src/shell/an/session-layout.tsx — bus→observeServerEvent; data-an-engine-port=AN_ENGINE_PORT
+  packages/app/src/shell/an/tokens.ts — AN_ENGINE_PORT=03; AN_SETTINGS_SURFACE.enginePort=02
+
+tests_re_ran=
+  packages/app bun test src/shell/an → 118 pass 0 fail (incl. PORT-03 observeServerEvent + Settings/port suites)
+  + client solid-connection + server-sync/connection + global-sync/queue → 131 pass 0 fail combined
+
+live_cdp=bun docs/an-rewrite/evidence/cdp-probe-engine-e21-port-03.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-ENGINE-E21-PORT-03 send 1792459779733; ws.close+process.exit
+live_cdp_detail=enginePort=03; sendOk YOU turn; Settings owned=settings enginePort=02 hasOcScreen=false mark Aporetic/Aporia Nous; STAGE4-12/13 owned=composer timeline none Message Grok…; 4E Contraptions ok
+writer_prior_marker=AP-ENGINE-E21-PORT-03 send 1792459569747 (prior live-DEV)
+
+screenshots=worktree docs/an-rewrite/evidence/screenshots-2026-10-18/78-engine-e21-port-03-before-send.png; 79-engine-e21-port-03-after-send-you.png; 80-engine-e21-port-03-contraptions-light.png; board copies business-control/evidence/2026-10-19-78..80-engine-e21-port-03-*.png (re-shot during independent CDP)
+
+residuals_ok=E20 SSE fanout / E22 MCP reload alone; first-connect still all active dirs; reconnect with zero pins syncs none until access; volatile SSE no Last-Event-ID; attention 5s poll unchanged
+isolation=no merge/push; product C:\Tools\aporia not this branch; no product features added by verifier
+not_claimed=Stage 4 complete; OpenCode replaced; agent loop rewrite; merge; push; install; Stage 8 / running-DEV acceptance PASS; E20; E22; E25; E11
+deferred=AP-ENGINE-EFFICIENCY-02 next act-first E22/E20/E25/E11
+worktree_note=unrelated dirty docs/screenshot mods may be present at review time; verifier did not implement product code

@@ -13976,6 +13976,10 @@
               "buffer": {
                 "type": "integer",
                 "minimum": 0
+              },
+              "max_context": {
+                "type": "integer",
+                "minimum": 0
               }
             },
             "additionalProperties": false

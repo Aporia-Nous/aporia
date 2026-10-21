@@ -3,6 +3,11 @@ type QueueInput = {
   bootstrap: () => Promise<void>
   bootstrapInstance: (directory: string) => Promise<void> | void
   key?: (directory: string) => string
+  /**
+   * E21 / PORT-03: max directories drained per tick (default 2).
+   * Reconnect callers should push only pinned dirs so this concurrency is not a fan-out.
+   */
+  concurrency?: number
 }
 
 export function createRefreshQueue(input: QueueInput) {
@@ -10,6 +15,7 @@ export function createRefreshQueue(input: QueueInput) {
   let root = false
   let running = false
   let timer: ReturnType<typeof setTimeout> | undefined
+  const concurrency = Math.max(1, input.concurrency ?? 2)
 
   const key = input.key ?? ((directory: string) => directory)
 
@@ -39,6 +45,7 @@ export function createRefreshQueue(input: QueueInput) {
 
   const push = (directory: string) => {
     if (!directory) return
+    // Map key coalesces duplicate pushes for the same directory (E21 storm shrink).
     queued.set(key(directory), directory)
 
     if (input.paused()) return
@@ -67,7 +74,7 @@ export function createRefreshQueue(input: QueueInput) {
           continue
         }
 
-        const dirs = take(2)
+        const dirs = take(concurrency)
 
         if (dirs.length === 0) return
         await Promise.all(dirs.map((dir) => input.bootstrapInstance(dir)))

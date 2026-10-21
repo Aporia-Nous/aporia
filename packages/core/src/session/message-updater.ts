@@ -420,6 +420,7 @@ export function update(adapter: Adapter, event: SessionEvent.DurableEvent) {
             reason: event.data.reason,
             summary: "",
             recent: event.data.recent ?? "",
+            recentMessageIDs: event.data.recentMessageIDs,
             time: { created },
           }),
         ),
@@ -437,6 +438,7 @@ export function update(adapter: Adapter, event: SessionEvent.DurableEvent) {
               summary: event.data.text,
               providerContext: event.data.providerContext,
               recent: event.data.recent,
+              recentMessageIDs: event.data.recentMessageIDs,
               cost: event.data.cost,
               tokens: event.data.tokens,
             })
@@ -454,6 +456,7 @@ export function update(adapter: Adapter, event: SessionEvent.DurableEvent) {
               summary: event.data.text,
               providerContext: event.data.providerContext,
               recent: event.data.recent,
+              recentMessageIDs: event.data.recentMessageIDs,
               cost: event.data.cost,
               tokens: event.data.tokens,
               time: { created },

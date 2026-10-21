@@ -12,6 +12,7 @@ import type { AgentNotFoundError } from "./error.js"
 import { SessionHistory } from "./history.js"
 import { SessionProviderContext } from "./provider-context.js"
 import { SessionModelRequest } from "./model-request.js"
+import { loadLeanPackForSession } from "./mission-fold.js"
 import type { SessionRunnerModel } from "./runner/model.js"
 import type { SessionSchema } from "./schema.js"
 
@@ -42,11 +43,18 @@ export const generate = Effect.fn("SessionGenerate.generate")(function* (input: 
       selection.instructions,
       SessionProviderContext.provenance(model) ?? "local",
     )
+    // AP-STAGE6-EFFICIENCY: omit recent — history.messages already enter toLLMMessages.
+    const missionLean = yield* loadLeanPackForSession({
+      sessionID: selection.session.id,
+      messages: history.messages,
+      omitRecent: true,
+    })
     const transcript = SessionModelRequest.baseTranscript({
       agent: selection.agent.info,
       model,
       tools: selection.tools,
       initial: history.initial,
+      leanPack: missionLean?.pack.text,
       messages: history.messages,
     })
     const prepared = yield* context.request.generate({

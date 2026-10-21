@@ -9,6 +9,7 @@ import { getStore } from "../storage/store"
 import { storedBackgroundColor, titlebarOverlay } from "./defaults"
 import { registerRendererProtocol } from "./protocol"
 import { loadWindow } from "./scheme"
+import { isQuitting } from "./quitting"
 import { allowRendererPermissions, wireNavigationPolicy, wireRendererHeaders } from "./security"
 import { manageWindowState, readWindowState, resolveWindowState, windowStateFile, type WindowState } from "./window-state"
 
@@ -48,7 +49,7 @@ export function createEarlyWindow() {
     height: state.height,
     show: true,
     autoHideMenuBar: true,
-    title: "Aporia",
+    title: "Aporetic",
     icon: path.join(icons, `icon.${process.platform === "win32" ? "ico" : "png"}`),
     backgroundColor: storedBackgroundColor(),
     ...(process.platform === "darwin" ? { titleBarStyle: "hidden" as const, trafficLightPosition: { x: 14, y: 14 } } : {}),
@@ -58,9 +59,21 @@ export function createEarlyWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      // Keep ticking while hidden in the tray so background delivery keeps running.
+      backgroundThrottling: false,
       additionalArguments: windowArguments(id),
     },
   })
+
+  // Closing hides the window instead of quitting, so the app keeps running in the tray (and bot
+  // message delivery never stops just because the window was closed). Quit from the tray.
+  if (process.platform !== "darwin") {
+    win.on("close", (event) => {
+      if (isQuitting()) return
+      event.preventDefault()
+      win.hide()
+    })
+  }
 
   manageWindowState(win, file, state, displays)
   // Closing the only window before the rest of the app has adopted it is a quit.

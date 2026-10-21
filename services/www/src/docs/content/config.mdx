@@ -337,9 +337,14 @@ Control automatic context compaction and how much recent context it preserves.
       "tokens": 15000,
     },
     "buffer": 20000,
+    "max_context": 100000,
   },
 }
 ```
+
+`max_context` caps the working context whatever window the model advertises. Every
+request re-sends the whole context, so a session that rests near the top of a
+million-token window pays for a million tokens on every step.
 
 Local summaries remain the default. Opt into native provider compaction for both
 automatic and manual requests with a provider or model policy:

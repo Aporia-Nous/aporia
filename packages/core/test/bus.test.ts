@@ -589,6 +589,53 @@ describe("Bus", () => {
     }),
   )
 
+  // E27: slow listener must not hold the durable aggregate write lock across notify.
+  it.effect("commits a concurrent durable publish while a prior listener is still notifying", () =>
+    Effect.gen(function* () {
+      const bus = yield* Bus.Service
+      const { db } = yield* Database.Service
+      const aggregateID = Event.ID.create()
+      const firstObserved = yield* Deferred.make<void>()
+      const continueNotifications = yield* Deferred.make<void>()
+      const observed = new Array<string>()
+      yield* bus.listen((event) => {
+        if (event.type !== SyncMessage.type) return Effect.void
+        const text = (event.data as { readonly text: string }).text
+        return Effect.sync(() => observed.push(text)).pipe(
+          Effect.andThen(text === "first" ? Deferred.succeed(firstObserved, undefined) : Effect.void),
+          Effect.andThen(text === "first" ? Deferred.await(continueNotifications) : Effect.void),
+        )
+      })
+
+      const first = yield* bus.publish(SyncMessage, { id: aggregateID, text: "first" }).pipe(Effect.forkScoped)
+      yield* Deferred.await(firstObserved)
+      expect(observed).toEqual(["first"])
+
+      const second = yield* bus.publish(SyncMessage, { id: aggregateID, text: "second" }).pipe(Effect.forkScoped)
+      // Poll until the second commit lands — must succeed while the first listener is still blocked.
+      const committedWhileNotifying = yield* Effect.gen(function* () {
+        for (let attempt = 0; attempt < 50; attempt++) {
+          const row = yield* db
+            .select({ seq: EventSequenceTable.seq })
+            .from(EventSequenceTable)
+            .where(eq(EventSequenceTable.aggregate_id, aggregateID))
+            .get()
+            .pipe(Effect.orDie)
+          if ((row?.seq ?? -1) >= 1) return true
+          yield* Effect.yieldNow
+        }
+        return false
+      })
+      expect(committedWhileNotifying).toBe(true)
+      expect(observed).toEqual(["first"])
+
+      yield* Deferred.succeed(continueNotifications, undefined)
+      yield* Fiber.join(first)
+      yield* Fiber.join(second)
+      expect(observed).toEqual(["first", "second"])
+    }),
+  )
+
   it.effect("replays durable aggregate events after a sequence and tails new events", () =>
     Effect.gen(function* () {
       const bus = yield* Bus.Service

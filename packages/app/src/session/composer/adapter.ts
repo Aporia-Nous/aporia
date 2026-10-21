@@ -3,6 +3,7 @@ import type { ActiveComposerAdapter, ComposerControls } from "@/composer/adapter
 import { useComposerState } from "@/composer/persistence"
 import { useData } from "@/runtime/server/current"
 import { useServerSDK } from "@/runtime/server/client"
+import { tryUseEnginePort } from "@/shell/an/engine"
 import { useWorkspaceLocation } from "@/workspaces/location"
 
 export function createActiveComposerAdapter(input: {
@@ -19,20 +20,31 @@ export function createActiveComposerAdapter(input: {
   const data = useData()
   const server = useServerSDK()
   const location = useWorkspaceLocation()
+  // AP-ENGINE-PORT-01: under AnShell, composer send goes through EnginePort.prompt.
+  const engine = tryUseEnginePort()
 
   const adapter: ActiveComposerAdapter = {
     kind: "active-session",
     state,
     ready: prompt.ready,
     controls: input.controls,
-    working: () => data.session.status(id) === "running",
+    working: () => (engine ? engine.sessionStatus(id) === "running" : data.session.status(id) === "running"),
     submitted: input.submitted,
     setEditor: input.setEditor,
     session: () => ({
       id,
       directory: location().directory,
       api: server.api.session,
-      data,
+      data: {
+        location: data.location,
+        session: {
+          prompt: (admission) =>
+            (engine ? engine.prompt(admission) : data.session.prompt(admission)) as ReturnType<
+              typeof data.session.prompt
+            >,
+          setStatus: data.session.setStatus,
+        },
+      },
       current: () => data.session.get(id),
       admitted: (messageID) => data.session.input.has(id, messageID) || !!data.session.message.get(id, messageID),
     }),

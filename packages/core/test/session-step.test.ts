@@ -158,3 +158,195 @@ for (const fixture of [
     }),
   )
 }
+
+it.effect("skips end Snapshot.capture on text-only step (E04)", () =>
+  Effect.gen(function* () {
+    const db = (yield* Database.Service).db
+    const llm = yield* TestLLM.Test
+    const sessionID = Session.ID.create()
+    const assistantMessageID = SessionMessage.ID.create()
+    const start = Snapshot.ID.make("before")
+    let captures = 0
+    let filesCalls = 0
+    const steps = yield* SessionStep.make.pipe(
+      Effect.provide(
+        Layer.mock(Snapshot.Service)({
+          capture: () =>
+            Effect.sync(() => {
+              captures++
+              return start
+            }),
+          files: () =>
+            Effect.sync(() => {
+              filesCalls++
+              return []
+            }),
+        }),
+      ),
+    )
+    yield* db
+      .insert(ProjectTable)
+      .values({ id: Project.ID.global, worktree: AbsolutePath.make("/project"), sandboxes: [] })
+      .run()
+    yield* db
+      .insert(SessionTable)
+      .values({ id: sessionID, project_id: Project.ID.global, slug: "step-e04", directory: "/project", version: "test" })
+      .run()
+    const model = SessionRunnerModel.resolved(
+      LanguageModel.make({ id: "test-model", provider: "test", route: OpenAIChat.route }),
+      {
+        capabilities: { tools: true, input: ["text"], output: ["text"] },
+        limit: { context: 100_000, output: 1_000 },
+        cost: [
+          {
+            input: Money.USDPerMillionTokens.make(1),
+            output: Money.USDPerMillionTokens.make(2),
+            cache: { read: Money.USDPerMillionTokens.make(0.1), write: Money.USDPerMillionTokens.make(0.5) },
+          },
+        ],
+      },
+    )
+    yield* llm.push(
+      TestLLM.complete({
+        reason: { normalized: "stop" },
+        usage: {
+          inputTokens: 8,
+          outputTokens: 3,
+          nonCachedInputTokens: 8,
+          cacheReadInputTokens: 0,
+          cacheWriteInputTokens: 0,
+          reasoningTokens: 0,
+        },
+      }),
+    )
+    const result = yield* steps
+      .attempt({
+        isLocationClosed: () => false,
+        sessionID,
+        assistantMessageID,
+        agent: Agent.defaultID,
+        model,
+        prepared: {
+          retry: () => Effect.void,
+          request: LLM.request({ model: model.model, prompt: "Reply with text only" }),
+          options: {},
+          executeTool: () => Effect.die("text-only step must not execute tools"),
+        },
+        retry: (_cause, _error, retry) =>
+          Effect.succeed(retry ? { retry: true, attempt: 2, delay: 0 } : { retry: false }),
+        recoverContinuation: true,
+        recoverOverflow: Effect.succeed(false),
+      })
+      .pipe(Effect.exit)
+    expect(Exit.isSuccess(result)).toBe(true)
+    expect(captures).toBe(1)
+    expect(filesCalls).toBe(0)
+    const message = yield* db
+      .select()
+      .from(SessionMessageTable)
+      .where(eq(SessionMessageTable.id, assistantMessageID))
+      .get()
+    expect(message?.data).toMatchObject({
+      finish: "stop",
+      snapshot: { start, end: start, files: [] },
+    })
+  }),
+)
+
+it.effect("still dual-captures when edit tool runs (E04)", () =>
+  Effect.gen(function* () {
+    const db = (yield* Database.Service).db
+    const llm = yield* TestLLM.Test
+    const sessionID = Session.ID.create()
+    const assistantMessageID = SessionMessage.ID.create()
+    const start = Snapshot.ID.make("before")
+    const end = Snapshot.ID.make("after")
+    const files = [RelativePath.make("edited.ts")]
+    let captures = 0
+    const steps = yield* SessionStep.make.pipe(
+      Effect.provide(
+        Layer.mock(Snapshot.Service)({
+          capture: () => Effect.sync(() => (captures++ === 0 ? start : end)),
+          files: (input) => {
+            expect(input).toEqual({ from: start, to: end })
+            return Effect.succeed(files)
+          },
+        }),
+      ),
+    )
+    yield* db
+      .insert(ProjectTable)
+      .values({ id: Project.ID.global, worktree: AbsolutePath.make("/project"), sandboxes: [] })
+      .run()
+    yield* db
+      .insert(SessionTable)
+      .values({
+        id: sessionID,
+        project_id: Project.ID.global,
+        slug: "step-e04-edit",
+        directory: "/project",
+        version: "test",
+      })
+      .run()
+    const model = SessionRunnerModel.resolved(
+      LanguageModel.make({ id: "test-model", provider: "test", route: OpenAIChat.route }),
+      {
+        capabilities: { tools: true, input: ["text"], output: ["text"] },
+        limit: { context: 100_000, output: 1_000 },
+        cost: [
+          {
+            input: Money.USDPerMillionTokens.make(1),
+            output: Money.USDPerMillionTokens.make(2),
+            cache: { read: Money.USDPerMillionTokens.make(0.1), write: Money.USDPerMillionTokens.make(0.5) },
+          },
+        ],
+      },
+    )
+    yield* llm.push(
+      TestLLM.complete(
+        {
+          reason: { normalized: "stop" },
+          usage: {
+            inputTokens: 15,
+            outputTokens: 6,
+            nonCachedInputTokens: 10,
+            cacheReadInputTokens: 3,
+            cacheWriteInputTokens: 2,
+            reasoningTokens: 2,
+          },
+        },
+        LLMEvent.toolCall({ id: "call-edit", name: "edit", input: { path: "edited.ts" } }),
+      ),
+    )
+    const result = yield* steps
+      .attempt({
+        isLocationClosed: () => false,
+        sessionID,
+        assistantMessageID,
+        agent: Agent.defaultID,
+        model,
+        prepared: {
+          retry: () => Effect.void,
+          request: LLM.request({ model: model.model, prompt: "Edit a file" }),
+          options: {},
+          executeTool: () => Effect.succeed({ content: [{ type: "text", text: "Edited" }] }),
+        },
+        retry: (_cause, _error, retry) =>
+          Effect.succeed(retry ? { retry: true, attempt: 2, delay: 0 } : { retry: false }),
+        recoverContinuation: true,
+        recoverOverflow: Effect.succeed(false),
+      })
+      .pipe(Effect.exit)
+    expect(Exit.isSuccess(result)).toBe(true)
+    expect(captures).toBe(2)
+    const message = yield* db
+      .select()
+      .from(SessionMessageTable)
+      .where(eq(SessionMessageTable.id, assistantMessageID))
+      .get()
+    expect(message?.data).toMatchObject({
+      finish: "stop",
+      snapshot: { start, end, files },
+    })
+  }),
+)

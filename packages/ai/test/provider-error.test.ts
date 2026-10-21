@@ -53,6 +53,46 @@ describe("provider error classification", () => {
     expect(messages.some(isContextOverflow)).toBe(false)
   })
 
+  // E24: false-positive overflow phrases must not trigger compact recovery.
+  test("does not classify concurrent/output/config phrases as context overflow", () => {
+    const messages = [
+      "Request exceeds the limit of 50 concurrent connections for this key.",
+      "Too many concurrent requests. Please retry later.",
+      "too many tokens: max tokens must be less than or equal to 4096, the maximum output length for this model - received 1000000.",
+      "Output token limit exceeded for this completion.",
+      "The context window is not configured for this deployment.",
+      "Missing context window configuration in provider settings.",
+    ]
+    expect(messages.some(isContextOverflow)).toBe(false)
+    expect(
+      messages.map((message) => {
+        const reason = classifyProviderFailure({ message, status: 400 })
+        return reason._tag === "InvalidRequest" ? reason.classification : reason._tag
+      }),
+    ).not.toContain("context-overflow")
+  })
+
+  test("classifies structured overflow codes before phrase heuristics", () => {
+    const cases = [
+      { error: { code: "prompt_too_long", message: "Request failed" } },
+      { error: { code: "context_window_exceeded", message: "bad request" } },
+      { error: { code: "input_tokens_exceeded", message: "rejected" } },
+      { error: { code: "prompt_tokens_too_large", message: "rejected" } },
+      { error: { type: "invalid_request_error", code: "max_context_length", message: "rejected" } },
+      { error: { code: "string_above_max_length", message: "field too long" } },
+    ]
+    expect(
+      cases.map((body) => {
+        const reason = classifyProviderFailure({
+          message: body.error.message,
+          status: 400,
+          rawBody: JSON.stringify(body),
+        })
+        return reason._tag === "InvalidRequest" ? reason.classification : reason._tag
+      }),
+    ).toEqual(Array(cases.length).fill("context-overflow"))
+  })
+
   test("classifies V1 plain-text rate limit fallbacks", () => {
     expect(
       [

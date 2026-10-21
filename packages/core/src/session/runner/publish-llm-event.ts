@@ -610,6 +610,8 @@ export const createLLMEventPublisher = (bus: Pick<Bus.Interface, "publish">, inp
     failUnsettledTools,
     hasProviderError: () => providerFailed,
     hasStarted: () => stepStarted,
+    /** Tool names seen this step (local + hosted); used for end-snapshot skip heuristics. */
+    recordedToolNames: (): readonly string[] => Array.from(tools.values(), (tool) => tool.name),
     /** Immutable snapshot of everything recorded for this step so far. */
     record: (): StepRecord => ({
       outputStarted,

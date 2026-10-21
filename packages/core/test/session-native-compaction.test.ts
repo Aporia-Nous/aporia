@@ -447,3 +447,37 @@ test("retained user budget counts attachments and drops whole oldest messages", 
     SessionCompaction.recentUserMessages([user("x".repeat(63_000 * 4)), { ...newest, text: "new" }], model, 64_000),
   ).toHaveLength(1)
 })
+
+test("E25 native retain skips local reload unless a checkpoint bound the context", () => {
+  const user = SessionMessage.User.make({
+    id: SessionMessage.ID.create(),
+    type: "user",
+    text: "hello",
+    time: { created: DateTime.makeUnsafe(0) },
+  })
+  expect(SessionCompaction.needsLocalHistoryForNativeRetain([])).toBe(false)
+  expect(SessionCompaction.needsLocalHistoryForNativeRetain([user])).toBe(false)
+  const model = SessionRunnerModel.resolved(OpenAI.responses("gpt-5.4-mini"), {
+    capabilities: { tools: true, input: ["text"], output: ["text"] },
+    cost: [],
+    limit: { context: 200_000, output: 32_000 },
+  })
+  const provenance = SessionProviderContext.provenance(model)
+  if (!provenance) throw new Error("fixture provenance")
+  const checkpoint = SessionMessage.Compaction.make({
+    id: SessionMessage.ID.create(),
+    type: "compaction",
+    status: "completed",
+    reason: "manual",
+    summary: "",
+    recent: "",
+    time: { created: DateTime.makeUnsafe(0) },
+    providerContext: SessionProviderContext.encode(provenance, [
+      Message.user("retained"),
+      Message.assistant("checkpoint"),
+    ]),
+  })
+  expect(SessionProviderContext.isCheckpoint(checkpoint)).toBe(true)
+  expect(SessionCompaction.needsLocalHistoryForNativeRetain([checkpoint])).toBe(true)
+  expect(SessionCompaction.needsLocalHistoryForNativeRetain([user, checkpoint])).toBe(true)
+})

@@ -1,0 +1,10 @@
+recorded=2026-10-19
+task=AP-STAGE4-06
+worktree=C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+branch=stage4-an-shell
+base_tip=39bf053c7b
+tests=packages/app src/shell/an 26 pass / 0 fail
+cdp=hasShell=true mode=conversation cardCount=2 types=computer,team hasStreamCards=true hasNewTeammate=true pills=Local+3 unavailable
+screenshot=docs/an-rewrite/evidence/screenshots-2026-10-18/09-conversation-an-cards.png
+pass_claim=none (OPEN for review)
+merge_push=none

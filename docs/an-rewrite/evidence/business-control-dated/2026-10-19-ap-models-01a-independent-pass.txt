@@ -1,0 +1,33 @@
+AP-MODELS-01a independent PASS — recording date 2026-10-19 (America/Chicago)
+Work date: 2026-10-19
+Verifier only. No merge/push. Presence worktree untouched.
+
+Worktree: C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+Branch: stage4-an-shell
+Code: 37e0851fc4
+Author tip: 5691df3ffc
+Verifier tip: 6d60a0ccd4
+HEAD sync tip: 0e639dcc17
+Base ancestor: 4f1fe0fea9 OK
+
+Re-run author tests (packages/app):
+  bun test src/providers/catalog/order.test.ts src/runtime/i18n/free-models-honesty.test.ts
+  → 4 pass / 0 fail (135 expect)
+
+Honesty sample (freeModels.title → OpenCode, not Aporetic):
+  en, de, fr, es, ja, zh, ko, ar, ru, br, hi, tr — all OpenCode
+  Grep: zero Aporetic/Aporian leftovers on freeModels keys
+
+Discoverability:
+  unpaidFeaturedProviders + popularProviders include ollama, lmstudio
+  PROVIDER_NOTES includes ollama/lmstudio
+
+Negatives:
+  No billing/OmniRoute in code commit
+  No shell/an presence edits
+  No running-DEV proof claimed
+
+Verdict: PASS (source/unit, slice scope)
+Parent AP-MODELS-01: remains OPEN (residual default free-path model + product brief; acceptance not fully closed)
+
+Report: Stage4 docs/an-rewrite/CURSOR-AP-MODELS-01a.md

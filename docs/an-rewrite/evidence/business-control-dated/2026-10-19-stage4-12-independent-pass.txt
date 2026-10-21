@@ -1,0 +1,21 @@
+recorded=2026-10-19
+task=AP-STAGE4-12
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=AnShell owns composer dock presentation (composer-own vertical slice)
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=cf083186a3
+tip=5f810a9d51
+base=799f176044
+report=docs/an-rewrite/CURSOR-AP-STAGE4-12.md
+architecture_verified=data-an-owned=composer on SessionComposerRegion; SessionPanelFrame passthrough under .an-stream-legacy--composer-only; single void/gold ice dock (blur 42 / radius 18 / an-dock-settle); send/session wiring kept on core Prompt
+tests_re_ran=packages/app bun test src/shell/an → 36 pass 0 fail (incl. AP-STAGE4-12 owned-marker)
+live_cdp=bun docs/an-rewrite/evidence/cdp-probe-stage4-12-composer-after.mjs → RESULT ok:true
+live_marker=AP-STAGE4-12 composer 1792414064184
+live_probe=owned composer; ownConv true; composerOnly true; panelPassthrough shadow/backdrop/anim none; dockOwnedIce radius+backdrop; timeline display none; conv h 328; userTurnCount 2 with YOU texts
+screenshots=docs/an-rewrite/evidence/screenshots-2026-10-18/21-before-composer-own.png .. 24-after-send-visible.png
+known_residual_ok=OC model/agent chips + mic/call controls (skinned, not AN-native); nested void input inside ice dock; Mission cards above Conversation; OpenCode not fully replaced
+isolation=Stage0 tip 2469aed5d7 untouched; no merge/push; product C:\Tools\aporia not this branch; verifier did not modify product feature code (report status + re-shot 22–24 only)
+not_claimed=Stage 4 complete; OpenCode fully replaced; merge; push; Stage 8 / running-DEV acceptance PASS
+deferred=residual OC chips/cards/tool-inline AN parts; 4E Contraptions mount; 4F nav-Podman; Stage 4b-5

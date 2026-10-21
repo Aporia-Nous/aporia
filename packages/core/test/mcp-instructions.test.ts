@@ -10,6 +10,10 @@ import { readInitial, readUpdate } from "./lib/instructions"
 const instructions = (server: string, text: string) =>
   ({ server: Mcp.ServerName.make(server), instructions: text }) satisfies Mcp.ServerInstructions
 
+const hint =
+  'Call each server\'s tools through `execute` under `tools["<server>"]`, where <server> is the block name with characters other than letters, digits, `_`, and `-` replaced by `_`.'
+const direct = "    Tools from this server are callable directly, not through `execute`."
+
 const schema = { type: "object" as const }
 const tool = (server: string, name = "search") =>
   ({ server: Mcp.ServerName.make(server), name, inputSchema: schema }) satisfies Mcp.Tool
@@ -38,13 +42,12 @@ describe("McpInstructions", () => {
       expect(generation.text).toBe(
         [
           "<mcp_instructions>",
+          hint,
           '  <server name="alpha">',
-          '    Use tools from this server through `execute` under `tools["alpha"]`.',
           "    Alpha line one",
           "    Alpha line two",
           "  </server>",
           '  <server name="beta">',
-          '    Use tools from this server through `execute` under `tools["beta"]`.',
           "    Beta instructions",
           "  </server>",
           "</mcp_instructions>",
@@ -93,7 +96,9 @@ describe("McpInstructions", () => {
       expect(generation.text).toBe(
         [
           "<mcp_instructions>",
+          hint,
           '  <server name="alpha">',
+          direct,
           "    Alpha instructions",
           "  </server>",
           "</mcp_instructions>",
@@ -128,7 +133,9 @@ describe("McpInstructions", () => {
         [
           "The available MCP server instructions have changed. This list supersedes the previous one.",
           "<mcp_instructions>",
+          hint,
           '  <server name="alpha">',
+          direct,
           "    Alpha instructions",
           "  </server>",
           "</mcp_instructions>",
@@ -157,7 +164,6 @@ describe("McpInstructions", () => {
         [
           "New MCP server instructions are available in addition to those previously listed:",
           '  <server name="beta">',
-          '    Use tools from this server through `execute` under `tools["beta"]`.',
           "    Beta instructions",
           "  </server>",
         ].join("\n"),
@@ -169,12 +175,11 @@ describe("McpInstructions", () => {
         [
           "The available MCP server instructions have changed. This list supersedes the previous one.",
           "<mcp_instructions>",
+          hint,
           '  <server name="alpha">',
-          '    Use tools from this server through `execute` under `tools["alpha"]`.',
           "    Updated alpha",
           "  </server>",
           '  <server name="beta">',
-          '    Use tools from this server through `execute` under `tools["beta"]`.',
           "    Beta instructions",
           "  </server>",
           "</mcp_instructions>",

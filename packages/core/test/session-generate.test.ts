@@ -128,8 +128,10 @@ const tools = Layer.mock(Tool.Service, {
         ],
       },
       definitions: [ToolDefinition.make({ name: "lookup", description: "Lookup", inputSchema: { type: "object" } })],
+      definitionTokens: 0,
       execute: () => Effect.die(new Error("unused")),
     }),
+  revision: () => 0,
   transform: () => Effect.die(new Error("unused")),
 })
 

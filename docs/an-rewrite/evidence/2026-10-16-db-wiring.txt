@@ -1,0 +1,25 @@
+$ cd C:\Tools\aporia\.worktrees\opt\packages\cli
+$ bun src/index.ts debug paths   (run 4x with a different OPENCODE_DB; data dir = C:\Users\Dilla\.local\share\opencode)
+
+OPENCODE_DB=opencode-aporia-dev.db  (what run-dev-isolated.cmd sets)
+  exit 0
+  db         C:\Users\Dilla\.local\share\opencode\opencode-aporia-dev.db
+
+OPENCODE_DB=opencode-aporia.db      (what DEV does today: the installed app's file)
+  exit 0
+  db         C:\Users\Dilla\.local\share\opencode\opencode-aporia.db
+
+OPENCODE_DB unset                   (the CLI's own channel default)
+  exit 0
+  db         C:\Users\Dilla\.local\share\opencode\opencode-local.db
+
+OPENCODE_DB=<absolute temp path>     (proves the path is used as given, data dir untouched)
+  exit 0
+  db         C:\Users\Dilla\AppData\Local\Temp\opencode\aporia-db-wiring\probe.db
+
+files the CLI created at the absolute path (C:\Users\Dilla\AppData\Local\Temp\opencode\aporia-db-wiring):
+  probe.db
+  probe.db-shm
+  probe.db-wal
+
+Conclusion: the file that is opened is decided by OPENCODE_DB, not by the shared data directory.

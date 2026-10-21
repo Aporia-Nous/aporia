@@ -73,6 +73,12 @@ export const createTabComposerState = (
   ...args: Parameters<typeof createComposerState>
 ) => tabs.state(tab, "prompt", () => createComposerState(...args))
 
+/**
+ * Per-session composer draft store (AP-STAGE4-B1).
+ * Session scopes are retained via tabs.memory (`createTabComposerState`) so Mission/teammate
+ * A→B→A restores the prior Prompt; callers must flush live editor DOM before leave when input
+ * may not have reached the store yet (see `flushComposerEditorDom`).
+ */
 export const { use: useComposerState, provider: ComposerPersistenceProvider } = createSimpleContext({
   name: "ComposerState",
   gate: false,

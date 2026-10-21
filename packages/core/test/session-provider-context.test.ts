@@ -193,6 +193,26 @@ test("canonical provider context round-trips tools, opaque checkpoints and binar
   ).toThrow()
 })
 
+test("E11 encode matches JSON.stringify sanitize without string round-trip", () => {
+  const messages = [
+    ...replacement,
+    Message.user({ type: "media", media: Media.bytes(new Uint8Array([1, 2, 3]), "image/png") }),
+    Message.make({
+      role: "user",
+      content: [
+        { type: "text", text: "meta", metadata: { attachment: { name: undefined, source: { type: "inline" } } } },
+      ],
+      providerMetadata: { openai: { itemId: undefined, type: "message", status: undefined } },
+    }),
+  ]
+  const encoded = SessionProviderContext.encode(providerContext.provenance, messages)
+  const viaString = Schema.decodeSync(Schema.fromJsonString(Schema.Json))(JSON.stringify(messages))
+  expect(encoded.messages).toEqual(viaString)
+  expect(JSON.stringify(encoded.messages)).not.toContain("undefined")
+  expect(JSON.stringify(encoded.messages)).toContain("AQID")
+  expect(SessionProviderContext.decode(encoded)).toEqual(SessionProviderContext.decode({ ...encoded, messages: viaString }))
+})
+
 test("compatibility uses the actual deployment and endpoint rather than a catalog alias or variant", () => {
   expect(
     SessionProviderContext.compatible(

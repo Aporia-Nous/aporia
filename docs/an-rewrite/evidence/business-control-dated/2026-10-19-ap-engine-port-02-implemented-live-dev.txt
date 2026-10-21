@@ -1,0 +1,44 @@
+AP-ENGINE-PORT-02 — OPEN implemented+live-DEV (NOT INDEPENDENT PASS; NOT self-PASS)
+tasks=AP-ENGINE-PORT-02
+work_date=2026-10-19
+recorded_date=2026-10-19
+actor=cursor-stage4-writer
+verdict=OPEN implemented+live-DEV
+not_claimed=INDEPENDENT PASS; Stage 4 complete; merge; push; self-PASS; OC replaced
+
+branch=stage4-an-shell
+tip=741abaa063
+code=a560ea9824
+base=4c42d1d289
+report=docs/an-rewrite/CURSOR-AP-ENGINE-PORT-02.md
+worktree=C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+
+scope=
+1. EnginePort listProviders/listModels/syncCatalog/connectByok
+2. AN Settings host (settings-panel) — Aporetic by Aporia Nous; OpenCode fine print only
+3. Drop OC Settings React import on AnShell path (nav + Ctrl+, open in-shell panel)
+4. Preserve EnginePort send/stream + STAGE4/BF
+
+tests=
+bun test src/shell/an → 117 pass / 0 fail
+
+live_cdp=
+bun docs/an-rewrite/evidence/cdp-probe-engine-port-02.mjs APORETIC_CDP_PORT=9223
+→ RESULT ok:true EXIT=0 marker AP-ENGINE-PORT-02 settings 1792458661458
+settingsOk=true (owned=settings; theme=an; enginePort=02; no OC settings-screen; Aporetic by Aporia Nous; OpenCode fineprint; providers+BYOK+models)
+composerOk=true (owned=composer; timeline none; Message Grok…)
+contraptionsOk=true
+ws.close+process.exit retained
+
+shots=75-engine-port-02-before-settings.png; 76-engine-port-02-settings-an.png; 77-engine-port-02-contraptions-light.png
+
+residuals_ok=
+classic /settings OC React route remains for non-AnShell
+BYOK OAuth/Console not reimplemented in AN panel (API-key via port)
+models UI capped at 80 rows
+PORT-03 dual sync/poll shrink still open
+
+preserved=EnginePort+STAGE4/BF
+isolated_DEV=yes
+prod_DB=untouched
+next_after=audit second-pass or Ali says

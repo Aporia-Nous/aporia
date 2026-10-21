@@ -1,0 +1,41 @@
+AP-STAGE4-4C + AP-STAGE4-4D independent PASS — recording date 2026-10-19 (America/Chicago)
+Work date: 2026-10-19
+Verifier only. No merge/push. Main Stage4 (MODELS) tip untouched.
+
+Worktree: C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4-presence
+Branch: stage4-presence-computer-view
+Code: dc84ca2517
+Tip: c2a2952ab9
+Base: 4f1fe0fea9 (AP-STAGE4-10)
+Main stage4 tip (untouched): 0e639dcc17 (AP-MODELS-01a) — presence commits NOT ancestors
+
+Re-run author tests (packages/app):
+  bun test ./src/shell/an/tokens.test.ts ./src/shell/an/bind.test.ts ./src/shell/an/cards/map.test.ts
+  → 33 pass / 0 fail (138 expect)
+
+Honesty — presence (4C):
+  resolveAnPresence: call listening/thinking/speaking → same
+  awaitingUser → waiting
+  running+tool → working; running+stream → speaking; running+reasoning/none → thinking
+  idle/missing → unknown (never invent listening) — pinned by bind.test
+  shot 16: Quiet Idle shows Unknown (not Listening)
+
+Honesty — Computer View (4D):
+  mode id stays view; user-facing label Computer View
+  badge Unavailable when computerLive false
+  session-layout computerLive={false} hardwired — no invented control backend
+  empty/note copy: watch/control backends not attached — chrome only
+  shot 17 from stage4-4c-4d-fixture-view.html (data-mode=view; Computer View active)
+
+Negatives / not claimed:
+  merge into stage4-an-shell (PASS unblocks; not performed)
+  running-DEV proof
+  push
+  Stage 4 complete
+  live computer feed/control
+
+Verdict: PASS (source/unit + fixture chrome scope)
+Known gap OK: fixture shots not running-DEV; computerLive stays false until real feed
+
+Report: C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4-presence/docs/an-rewrite/CURSOR-AP-STAGE4-4C-4D.md
+Board: business-control/tasks.json AP-STAGE4-4C + AP-STAGE4-4D → DONE

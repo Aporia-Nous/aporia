@@ -3,11 +3,9 @@ import { createStore } from "solid-js/store"
 import { Predicate } from "effect"
 import { createAnimatedPresence } from "@/runtime/animated-presence"
 import type { SessionUserActions } from "@opencode/session-ui/actions"
-import { Button } from "@opencode/ui/button"
 import { Icon } from "@opencode/ui/icon"
 import { IconButton } from "@opencode/ui/icon-button"
 import { InlineInput } from "@opencode/ui/inline-input"
-import { Keybind } from "@opencode/ui/keybind"
 import { Menu } from "@opencode/ui/menu"
 import { TextShimmer } from "@opencode/ui/text-shimmer"
 import type { BackgroundTask, MountedSession, SessionScreen } from "@opencode/gui-extensions/sdk"
@@ -23,7 +21,6 @@ import { createTimelineVirtualizer } from "./virtualizer"
 import { containsDirectory } from "@opencode/util/path"
 import { isWorkspaceDirectory } from "@/workspaces/paths"
 import { parseCommentNote, readPromptPresentation } from "@/composer/comment-note"
-import { useCommand } from "@/shell/commands/command"
 import { SessionAncestorTrail, SessionProjectMenu, SessionTitleHeader } from "../session-identity-header"
 import { SessionHeaderSpacer } from "@/session/header/session-header"
 import { SessionRunningMenu } from "@/session/header/session-running-menu"
@@ -42,25 +39,8 @@ type SessionBackground = {
 }
 
 export function BackgroundMoveHint(props: { keybind?: string[]; onMove?: () => void }) {
-  const language = useLanguage()
-  const command = useCommand()
-  const keys = () => props.keybind ?? command.keybindParts("session.background")
-  const keybind = () => props.keybind?.join("+") ?? command.keybind("session.background")
-
-  return (
-    <Button
-      data-component="session-background-hint"
-      type="button"
-      variant="ghost-faint"
-      size="small"
-      class="max-w-full"
-      aria-label={language.t("session.background.moveInline", { keybind: keybind() })}
-      onClick={() => props.onMove?.()}
-    >
-      <span class="min-w-0 truncate">{language.t("session.background.moveRunning")}</span>
-      <Keybind keys={keys()} variant="neutral" />
-    </Button>
-  )
+  void props
+  return null
 }
 
 type MessageTimelineProps = {

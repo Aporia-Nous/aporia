@@ -1,0 +1,41 @@
+recorded=2026-10-19
+tasks=AP-ENGINE-E26
+actor=independent-verifier
+verdict=DONE MEASURED (not product code PASS; not INDEPENDENT PASS for product optimization)
+scope=E26 harness/measure only — engine hot-path wall-clock select/due/publish/SSE; distinct from perf/test-suite.md; EnginePort non-regress incidental
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=eb7179f500
+tip=7b2867c797
+base=d683e31f80
+head_verified=7b2867c79767a63731b2ff39207ab49abd4d768a matches claimed tip; code eb7179f500 + base d683e31f80 ancestors
+report=docs/an-rewrite/CURSOR-AP-ENGINE-E26.md
+audit=business-control/ENGINE-EFFICIENCY-AUDIT.md §E26
+metrics=business-control/evidence/2026-10-19-ap-engine-e26-metrics.json
+
+source_bar=
+  perf/engine-hotpath.md — honesty rules; not test-suite medians
+  packages/core/script/engine-hotpath-lib.ts + benchmark-engine-hotpath.ts
+  packages/core/test/engine-hotpath-bench.test.ts — asserts cache hits + evidence write
+  select: drain-scoped SessionContext.select + snapshotCalls/hits/misses
+  due: estimateContextCheap vs estimateContext on synthetic Loaded
+  publish: durable bus publish latency
+  sse: optional EventFeed encode-once + offer lag (relative import)
+
+metrics_coherence=
+  writer sample: steps=20 selects=6 samples=120 snapshotCalls=20 hits=100 misses=20; due messageCount=48 tokens 1840/1840; publish samples=32; sse events=48 offers=48 overflowDrops=0
+  independent re-run CLI: samples=120 snapshotCalls=20 hits=100 misses=20 p50Ms≈0.172 p95Ms≈0.538; due cheapP50≈0.001 preciseP50≈0.012 tokens 1840/1840; publish p50≈0.405; sse offers=48 overflowDrops=0
+  independent unit (8×4): samples=32 snapshotCalls=8 hits=24 misses=8; sse offers=24 overflowDrops=0
+  JSON keys coherent with harness; hits=(selectsPerStep-1)*steps; misses=steps; no invented wall-clock win vs baseline
+
+tests_re_ran=
+  packages/core bun test test/engine-hotpath-bench.test.ts → 1 pass 0 fail
+  packages/core bun run benchmark:engine-hotpath → E26_METRICS + evidence JSON rewrite
+  live CDP cdp-probe-engine-e26.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-ENGINE-E26 send 1792463956291; ws closed
+
+screenshots=worktree 99–101 re-shot during independent CDP; board copies evidence/2026-10-19-99..101-engine-E26-*.png
+
+residuals_ok=harness/measure only — no product runtime PASS; mock tools + file SQLite ≠ provider RTT; CDP markerHit may prefix-match prior E26 turn on crowded stream; E12/E14 still open
+isolation=no merge/push; no product features added by verifier
+not_claimed=product code PASS; INDEPENDENT PASS (optimization); wall-clock win vs baseline; self-PASS; Stage 4/8 PASS; merge; push
+deferred=next residual E12/E14

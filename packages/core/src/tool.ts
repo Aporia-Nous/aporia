@@ -16,6 +16,7 @@ import { SessionMessage } from "./session/message.js"
 import { SessionSchema } from "./session/schema.js"
 import { State } from "./state.js"
 import { definition, effectiveName, execute, normalizedName, normalizeContent } from "./tool/runtime.js"
+import { Token } from "./util/token.js"
 import { Wildcard } from "./util/wildcard.js"
 
 export class RegistrationError extends Schema.TaggedError<RegistrationError>()("Tool.RegistrationError", {
@@ -41,6 +42,8 @@ type Data = {
 export interface Interface extends State.Transformable<Editor> {
   readonly list: () => Effect.Effect<ReadonlyArray<Tool.Info & { readonly id: string }>>
   readonly snapshot: (permissions?: Permission.Ruleset) => Effect.Effect<Snapshot>
+  /** Registry edit generation; SessionContext drain cache keys on this. */
+  readonly revision: () => number
 }
 
 /** A local execution result after hooks and content normalization. */
@@ -50,6 +53,12 @@ export interface NormalizedResult extends Tool.Result {
 
 export interface Snapshot {
   readonly definitions: ReadonlyArray<ToolDefinition>
+  /**
+   * Cached Token.estimate of `definitions` (including JSON schema stringify). Computed once per
+   * snapshot so auto-compact due() does not re-stringify schemas every step. Optional on hand-built
+   * test snapshots; production `Tool.snapshot` always sets it.
+   */
+  readonly definitionTokens?: number
   readonly codeModeCatalog?: CodeModeCatalog.Inventory
   readonly execute: (input: {
     readonly sessionID: SessionSchema.ID
@@ -61,6 +70,13 @@ export interface Snapshot {
     readonly definitions?: ReadonlyMap<string, ToolDefinition>
   }) => Effect.Effect<NormalizedResult, Tool.Error>
 }
+
+/** Matches SessionCompaction's tool estimate so due() and snapshot share one number. */
+export const estimateDefinitionTokens = (tools: ReadonlyArray<ToolDefinition>): number =>
+  tools.reduce(
+    (sum, tool) => sum + Token.estimate(tool.name + tool.description + JSON.stringify(tool.inputSchema)),
+    0,
+  )
 
 export class Service extends Context.Service<Service, Interface>()("@opencode/Tool") {}
 
@@ -221,6 +237,7 @@ const layer = Layer.effect(
     return Service.of({
       transform: state.transform,
       reload: state.reload,
+      revision: state.revision,
       list: () => Effect.sync(() => Array.from(state.get().tools.values())),
       snapshot: Effect.fn("Tool.snapshot")((permissions) =>
         Effect.sync(() => {
@@ -252,14 +269,16 @@ const layer = Layer.effect(
               ? catalog.value
               : CodeModeTool.catalog(codeModeInventory)
           if (codeModeCatalog) catalog = { data, names, value: codeModeCatalog }
+          const definitions = [
+            ...Array.from(direct)
+              .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+              .map(([, tool]) => definition(tool)),
+            ...(codeModeTool ? [definition(codeModeTool)] : []),
+          ]
           return {
             ...(codeModeCatalog === undefined ? {} : { codeModeCatalog }),
-            definitions: [
-              ...Array.from(direct)
-                .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
-                .map(([, tool]) => definition(tool)),
-              ...(codeModeTool ? [definition(codeModeTool)] : []),
-            ],
+            definitions,
+            definitionTokens: estimateDefinitionTokens(definitions),
             execute: Effect.fnUntraced(function* (input: Parameters<Snapshot["execute"]>[0]) {
               const context: Tool.Context = {
                 sessionID: input.sessionID,

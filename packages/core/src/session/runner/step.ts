@@ -54,8 +54,11 @@ interface Input {
     retry: boolean,
   ) => Effect.Effect<{ readonly retry: false } | SessionRunnerRetry.Decision>
   readonly recoverContinuation: boolean
-  /** The runner owns compaction policy; the attempt invokes it only before durable output. */
-  readonly recoverOverflow: Effect.Effect<boolean>
+  /**
+   * The runner owns compaction policy; the attempt invokes it only before durable output.
+   * May fail with StepFailedError (e.g. AP-ENGINE-E13 drain compact stall/churn).
+   */
+  readonly recoverOverflow: Effect.Effect<boolean, StepFailedError>
 }
 
 const TOOLS_INTERRUPTED = { type: "aborted", message: "Tool execution interrupted" } as const
@@ -238,15 +241,22 @@ export const make = Effect.gen(function* () {
         const record = publisher.record()
         if (record.finish || record.failure) {
           const startSnapshot = yield* Fiber.join(pendingStartSnapshot)
-          const snapshot = yield* snapshots.capture()
-          const files =
-            startSnapshot && snapshot
+          // E04: skip end git capture when no local tools ran (and no FS-touching names recorded).
+          // Prefer false-positive capture when any local tool executed — missing diffs is worse than I/O.
+          const needsEndCapture = Snapshot.shouldCaptureEndSnapshot({
+            localToolCount: toolRuns.length,
+            recordedToolNames: publisher.recordedToolNames(),
+          })
+          const snapshot = needsEndCapture ? yield* snapshots.capture() : startSnapshot
+          const files = needsEndCapture
+            ? startSnapshot && snapshot
               ? startSnapshot === snapshot
                 ? []
                 : yield* snapshots
                     .files({ from: startSnapshot, to: snapshot })
                     .pipe(Effect.orElseSucceed(() => undefined))
               : undefined
+            : []
           const usage = record.finish
             ? { cost: SessionUsage.calculateCost(input.model.cost, record.finish.tokens), tokens: record.finish.tokens }
             : undefined

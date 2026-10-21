@@ -51,6 +51,8 @@ function knownThemes() {
 
 const names: Record<string, string> = {
   "oc-2": "OpenCode",
+  an: "AN Black/Gold",
+  aporia: "Aporetic",
   amoled: "AMOLED",
   aura: "Aura",
   ayu: "Ayu",

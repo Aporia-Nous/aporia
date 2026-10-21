@@ -1,0 +1,67 @@
+=== branch and push state, C:\Tools\aporia\.worktrees\opt === 
+ 
+--- command: git rev-parse --abbrev-ref HEAD --- 
+an/stage-2-event-store
+exit=0 
+ 
+--- command: git rev-parse --abbrev-ref --symbolic-full-name "@{u}"  (fails when the branch has no upstream) --- 
+fatal: no upstream configured for branch 'an/stage-2-event-store'
+exit=128 
+ 
+--- command: git remote -v --- 
+origin	https://github.com/Aporia-Nous/aporia.git (fetch)
+origin	https://github.com/Aporia-Nous/aporia.git (push)
+exit=0 
+ 
+--- command: git ls-remote --heads origin "refs/heads/an/*"  (empty = the stage branches exist only locally) --- 
+exit=0 
+ 
+--- command: git ls-remote --tags origin "refs/tags/an/*"  (empty = the checkpoint tag is local too) --- 
+exit=0 
+ 
+--- command: git branch -r --contains HEAD  (empty = no remote branch holds these commits) --- 
+exit=0 
+ 
+--- command: git rev-parse HEAD --- 
+e6869096f0b83f5520b3928b1422d01cc9153a8b
+exit=0 
+ 
+--- command: git log --oneline c2b211d313..HEAD  (every commit on this branch since the checkpoint; Stage 1's are included because the branch is based on its tip) --- 
+e6869096f0 docs(an-rewrite): Stage 2 closes on an independent PASS
+bceeb3b841 docs(an-rewrite): scope the Stage 2 pass-5 summary to what was recorded
+61d56d7af9 docs(an-rewrite): put the pass 5 record in STATUS and tree it in the passes file
+61c9c54782 docs(an-rewrite): store the packages/ tree-hash proof for Stage 2
+4609dc189e docs(an-rewrite): stop retyping the Stage 2 commit list
+3c7d13e7ed docs(an-rewrite): store the docs-only diff proof for Stage 2
+592834ffb2 docs(an-rewrite): complete the Stage 2 commit list and record pass 4
+3901d73d03 docs(an-rewrite): cite the tip the evidence was generated at
+a77ac8747c docs(an-rewrite): regenerate the Stage 2 evidence at the corrected tip
+71bcc139cb docs(an-rewrite): fix the six claims the second verifier pass failed
+225781f019 fix(mission): make the restart proof depend on the log, not the waker
+86e11bca69 docs(an-rewrite): correct the Stage 2 record after the first verifier pass
+df5054e918 test(mission): pin the role rules and the approval resume
+849840bb55 fix(mission): make append's result honest and the wake dedupe log-backed
+2abfc71bf5 docs(an-rewrite): record Stage 2 with its stored runs and the dev-copy state
+96ee966d94 test(mission): prove the coordination rules and coordinator recovery
+285d02fa91 feat(mission): derive coordination state and the wake rules from the log
+07a85dfafc feat(mission): append-only mission event log with a replay cursor
+28859fd16e docs(an-rewrite): Stage 1 independent verification PASS, with the push state stored
+28b6f22a4d docs(an-rewrite): correct the Stage 1 commit count and cite the dev-copy counters
+6167b94db4 docs(an-rewrite): back Stage 1's numbers with stored runs, fix the claims the verifier failed
+19f4e7cf24 test(mission): pin both tasks across a refused and a completed archive
+414d159845 fix(mission): bump each reassigned task's own revision on archive
+8a4724ff36 docs(an-rewrite): record Stage 1 and its replay evidence
+4d1de66eb5 fix(mission): let the backfill runner read counts before the domain tables exist
+e2be3f6b1b feat(mission): durable bot, team, mission and task domain
+exit=0 
+ 
+--- command: git log --oneline -3 rebrand/nousphere  (the trunk must not contain any Stage 2 commit) --- 
+c2b211d313 docs(an-rewrite): record the DEV isolation run, the resumed-turn hazard and the switch script
+602004a2f7 docs(an-rewrite): record the independent verifier verdict for Stage 0
+32cbce8f72 docs(an-rewrite): commit the evidence logs and correct the amended commit hash
+exit=0 
+ 
+--- command: git status --porcelain --- 
+ M docs/an-rewrite/evidence/2026-10-17-stage2-branch-log.txt
+ M docs/an-rewrite/evidence/2026-10-17-stage2-gates.txt
+exit=0 

@@ -1,0 +1,76 @@
+AP-NAME-AUTOMATION — Redstone public-record IP research — 2026-10-19 America/Chicago
+
+DISCLAIMER: Public-record research for Ali’s decision only. NOT legal advice. No clearance claimed. Does not say “safe to use” or predict lawsuit outcomes.
+
+Scope: USPTO-adjacent secondary digests + official search portals; Minecraft usage guidelines; notable software/company names; light EUIPO/WIPO/Swiss hits; light Contraption/Cue/Flint check. Not a full TESS clearance opinion.
+
+UI rename: remains HOLD. Keep Flows. No AP-STAGE4-10.
+
+=== FINDINGS (with links) ===
+
+1) USPTO / Class 9 & 42 (REDSTONE / RED STONE)
+- Official search: https://tmsearch.uspto.gov/
+- TSDR: https://tsdr.uspto.gov/
+- LIVE pending REDSTONE (Distributed Data Labs Sp. z o.o. / RedStone oracle), Classes 9/35/36/38/41/42 — blockchain data feeds, SaaS/PaaS software, downloadable software. Serials reported via digests:
+  - https://markinton.com/trademark/redstone-98546647
+  - https://markinton.com/trademark/redstone-98546678
+  (Filed ~May 2024; pending / suspension activity noted in digests as of 2026.)
+- LIVE RED STONE (L&K Logic Korea), Class 9 — computer game software / recorded software. Serial 79104119 / Reg 4216008:
+  - https://markinton.com/trademark/red-stone-79104119
+- DEAD examples (crowd history, not live blockers alone): REDSTONE CYBERSECURITY (cancelled Sec. 8, Class 42) https://markinton.com/trademark/redstone-cybersecurity-87727998 ; Bradford Technologies REDSTONE (dead) https://markinton.com/trademark/redstone-86579646
+- Related: REDSTONE TECHNOLOGY INC owns live REDEX (Class 9 AI/IoT software) https://markinton.com/trademark/redex-98932295
+
+2) Mojang / Microsoft / Minecraft
+- MINECRAFT registered (Microsoft owner of record in US digests): e.g. https://trademarks.justia.com/791/45/minecraft-79145431.html
+- Usage guidelines (name/brand/assets reserved; corporate commercial use of Minecraft for unrelated products restricted). “Redstone” appears as a game-feature word in naming examples:
+  - https://www.minecraft.net/en-us/usage-guidelines
+- No separate live USPTO “REDSTONE” registration owned by Mojang/Microsoft found in this pass. Risk here is brand association / guidelines / related rights, not a found dedicated REDSTONE Microsoft registration.
+
+3) Notable software / companies named Redstone (automation / devops / games-adjacent)
+- RedStone (blockchain oracle / DeFi data layer): https://www.redstone.finance/
+- Redstone Catalyst (agency; AI automation / conversation flows / DevOps): https://www.byredstone.com/
+- Historical Redstone Software (test automation → Eggplant / TestPlant, Boulder): PitchBook https://pitchbook.com/profiles/company/62133-22
+- Redstone (Sweden embedded/automation software): https://www.redstone.eu/
+- German VC Redstone — EUIPO clash with RedStone mark (press): https://www.law360.com/articles/2433918/german-vc-firm-wins-redstone-tm-clash-at-euipo ; firm site commonly redstone.vc / redstone.eu VC context
+
+4) Copyright (high level, ordinary English)
+- Copyright protects original expression (game code, art, text, specific works), not a monopoly on an ordinary English word like “redstone” by itself.
+- Trademark (and brand association / unfair competition theories) is what can restrict product naming in commerce when consumers may be confused or when a mark is used as a brand identifier.
+- Using Minecraft textures/logos/assets or presenting a product as official Minecraft tooling would engage copyright + trademark + guidelines — separate from bare word use.
+
+5) EUIPO / WIPO / Swiss (easy hits)
+- Swiss active RedStone (Distributed Data Labs), Classes 38/42: https://www.wirtschaft.ch/trademarks/RedStone/DISTRIBUTED+DATA+LABS+SP+Z+O+O/00+807+WARSCHAU/01635/2024/
+- Swiss Federal Administrative Court opposition matter involving Redstone/Red-Stone software-class claims (public case digest): https://mcp.opencaselaw.ch/entscheid/bvger_B-2055_2025
+- EUIPO: reported opposition appeal favoring German VC “Redstone” vs Polish RedStone expansion (Law360 Jan 2026 link above). Full EUIPO eSearch not exhaustively scraped this pass.
+- WIPO Global Brand Database not fully queried in this pass; EU/Swiss hits already show European crowding.
+
+=== SHORTLIST ALTERNATIVES (light) ===
+
+Contraption
+- Live USPTO CONTRAPTION Class 41 film/video production (not Class 9/42 automation) — https://markinton.com/trademark/contraption-99283061
+- Informal: no obvious Class 42 automation SaaS blocker found in this light pass.
+
+Cue
+- LIVE pending CUE (CUE Labs AG) Classes 9/42 — SaaS/downloadable software for configuration management, automating software deployment workflows, deployment pipelines (high topical overlap with automation). Serials 50111596 / 50111723 (filed Sep 2026 per digests):
+  - https://getcopymark.com/trademark/50111596
+  - https://markinton.com/trademark/cue-50111723
+- Informal: crowded / high conflict risk for automation product name.
+
+Flint
+- Live FLINT Class 42 SaaS healthcare automation/management — Reg 6660568 https://markinton.com/trademark/flint-90032955
+- Live FLINT Class 42 emergency-response cloud SaaS — Reg 8226050 https://furm.com/trademarks/flint-98901819
+- Informal: medium crowding in Class 42 SaaS (different verticals, still same class).
+
+=== INFORMAL RISK PICTURE (not legal opinion) ===
+- Redstone as Aporetic automation product name: HIGH crowding (live Class 9/42 REDSTONE apps + active RedStone finance software brand + EU fights + multiple Redstone software companies). Minecraft association adds MEDIUM brand/guidelines risk if marketed as Minecraft-inspired automation (especially with redstone aesthetic/assets). Copyright on the bare word: LOW relative to trademark/brand risk.
+- Cue: HIGH for automation/devops overlap (pending CUE Labs marks).
+- Flint: MEDIUM Class 42 SaaS crowding.
+- Contraption: comparatively LOWER on this light pass (no Class 42 automation hit found); still needs counsel clearance before brand commit.
+
+=== RECOMMENDATION (coordination, not counsel) ===
+- Prefer alternate brandable name (or Easter-egg / internal joke only) rather than shipping Redstone as the user-facing automation product name.
+- If Ali still wants Redstone as primary brand: engage trademark counsel for full TESS + EUIPO/WIPO clearance before any UI rename.
+- UI rename remains HOLD; keep Flows until Ali decides.
+
+Not claimed: legal advice, clearance, UI rename PASS, merge, push.
+Recording date: 2026-10-19. Research date: 2026-10-19.

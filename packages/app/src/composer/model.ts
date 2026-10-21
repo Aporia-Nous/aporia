@@ -26,6 +26,7 @@ import { createComposerHistory } from "./history/store"
 import { createComposerSubmit } from "./submit"
 import { useAttachmentDestination } from "./attachments/destination"
 import { parseClientSlashCommand } from "./client-slash-command"
+import { anComposerPlaceholder, isAnOwnedComposerHost } from "@/shell/an/composer-chrome"
 
 export type ComposerModel = ComposerEditorModel & {
   readonly model: ComposerControls["model"]
@@ -98,6 +99,12 @@ export function createComposerModel(adapter: ComposerAdapter, options?: { queue?
 
   const placeholder = () => {
     if (mode() === "shell") return language.t("prompt.placeholder.shell", { example: "git status" })
+
+    // AP-STAGE4-13: AN companion placeholder under AnShell-owned composer (not OC Ask anything…)
+    if (isAnOwnedComposerHost()) {
+      const agent = adapter.controls().agents.current
+      return anComposerPlaceholder(agent)
+    }
 
     if (adapter.working() || (options?.queue?.count() ?? 0) > 0)
       return language.t("ui.promptInput.placeholder.followUp", { slash: "/", at: "@" })

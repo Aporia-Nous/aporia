@@ -1,0 +1,4 @@
+﻿recorded=2026-10-18
+task=AP-STAGE4-03
+cmd=cd packages/app && bun test ./src/shell/an/tokens.test.ts ./src/shell/an/bind.test.ts
+result=13 pass / 0 fail

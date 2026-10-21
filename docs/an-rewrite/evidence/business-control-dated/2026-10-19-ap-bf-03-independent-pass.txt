@@ -1,0 +1,29 @@
+recorded=2026-10-19
+task=AP-BF-03
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=Browser-first Computer View single control lock + Takeover/Hand back/Stop; View watch-only until user Takeover; no Live Takeover layout-only
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=10cc4f0751
+tip=919dc1995e
+cited_also=b7b853ad37 (docs sync ancestor of tip; verified)
+base=ec74cc7c4d
+head_verified=919dc1995e2dd6f2aef497c2ec270f104fb57a6f matches claimed tip; code 10cc4f0751 ancestor; base ec74cc7c4d ancestor
+report=docs/an-rewrite/CURSOR-AP-BF-03.md
+architecture=business-control/BROWSER-FIRST-COMPUTER-VIEW.md
+architecture_verified=mission/control.ts single controller none|bot|user; Live+view bot watch-only pointer-events none + Bot cursor; Live+takeover user input botPaused You control Bot cursor hidden; Hand back/Stop releaseToBot needsFreshObservation; no Live Takeover mode=takeover userInput=false controller=none no feed; Disconnect clears lock+feed
+tests_re_ran=packages/app bun test src/shell/an src/aporia/flows-util.test.ts → 64 pass 0 fail; packages/core bun test ./src/mission/control.test.ts → 6 pass 0 fail
+live_cdp_bf03=bun docs/an-rewrite/evidence/cdp-probe-stage4-bf03-control.mjs → RESULT ok:true viewOk+takeoverOk+handbackOk+stopOk+disconnectOk+ownershipOk marker AP-BF-03 control 1792416600286
+live_cdp_nolive_takeover=one-shot CDP → RESULT ok:true mode=takeover live=false controller=none userInput=false hasFeed=false botPaused=false marker AP-BF-03 noLive-layout-only 1792416675569
+live_cdp_bf01_non_regression=bun docs/an-rewrite/evidence/cdp-probe-stage4-bf01-attach.mjs → RESULT ok:true liveOk+disconnectOk marker AP-BF-01 attach 1792416611266
+live_cdp_bf02_non_regression=bun docs/an-rewrite/evidence/cdp-probe-stage4-bf02-feed.mjs → RESULT ok:true feedOk+navOk+disconnectOk+ownershipOk marker AP-BF-02 feed 1792416616084
+live_cdp_4e_non_regression=bun docs/an-rewrite/evidence/cdp-probe-stage4-4e-contraptions.mjs → first run after BF-02 left panel open toggled closed (false positive); re-run RESULT ok:true mountOk:true ownershipOk:true panel 420x736 subtitle Automations & integrations
+live_cdp_stage4_12_non_regression=bun docs/an-rewrite/evidence/cdp-probe-stage4-12-composer-after.mjs → RESULT ok:true marker AP-STAGE4-12 composer 1792416621391 owned=composer composerOnly=true timelineDisplay=none YOU turns
+screenshots=business-control/evidence/2026-10-19-31-bf03-live-view-watch-only.png; 2026-10-19-32-bf03-takeover-user-control.png; 2026-10-19-33-bf03-handback-bot-lock.png; 2026-10-19-34-bf03-stop-to-view.png
+diff_scope=ec74cc7c4d..10cc4f0751 — mission/control.ts(+test) + computer-control.ts(+test) + an-shell Takeover wiring/CSS + session-layout sync; BF-01/02 honesty retained
+known_residual_ok=workspace srcdoc static copy may still say watch-only while Takeover chrome grants pointer-events auto + You control (lock attrs authoritative); bot drive = lock state only (plugin-browser RPC not yet); Stage 5 3-vs-4 OPEN; BF-04 external Edge/Chrome deferred; toast stack accumulates across CDP runs
+isolation=no merge/push; product C:\Tools\aporia not this branch; verifier did not implement new features (re-ran tests + live CDP + board/evidence/report status only)
+not_claimed=Stage 4 complete; merge; push; Stage 8 / running-DEV acceptance PASS; plugin-browser RPC attach
+deferred=AP-BF-04; AP-CE-01; AP-STAGE4-13 left alone
+worktree_note=unrelated dirty docs/screenshot mods present at review time; not part of BF-03 verdict; not committed

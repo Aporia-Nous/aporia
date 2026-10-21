@@ -1,0 +1,21 @@
+recorded=2026-10-19
+task=AP-STAGE4-11
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=AnShell owns Conversation stream / message visibility (own-stream vertical slice)
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=ed17538810
+tip=799f176044
+base=ed2936277b
+report=docs/an-rewrite/CURSOR-AP-STAGE4-11.md
+architecture_verified=AnConversationStream + messagesToConversationTurns; .an-stream-legacy--composer-only; opencode-timeline display:none; Mission cards max-height 28%
+tests_re_ran=packages/app bun test --conditions=solid --preload ./happydom.ts ./src/shell/an/ → 35 pass 0 fail (incl. conversation-turns)
+live_cdp=bun docs/an-rewrite/evidence/cdp-probe-stage4-11-own-stream.mjs → RESULT ok:true
+live_marker=AP-STAGE4-11 visibility 1792412305559
+live_probe=ownConv true; userTurnCount 4; timeline display none; conv h 327; composerOnly true
+screenshot=docs/an-rewrite/evidence/screenshots-2026-10-18/20-after-message-visible.png
+known_residual_ok=OpenCode composer dock (model chip / + menu / mic) still under AnShell — accepted residual for this slice
+isolation=Stage0 untouched; no merge/push; product C:\Tools\aporia not this branch; verifier did not modify product code
+not_claimed=Stage 4 complete; OpenCode fully replaced; merge; push; Stage 8 / running-DEV acceptance PASS
+deferred=residual OC composer/cards/tool-inline AN parts; 4E Contraptions mount; 4F nav-Podman; Stage 4b-5

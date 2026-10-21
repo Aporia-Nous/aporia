@@ -29,9 +29,16 @@ export const substitute = Effect.fn("ConfigVariable.substitute")(function* (inpu
     /\{env:([^}]+)\}/g,
     (_, varName: string) => (input.env?.[varName] ?? process.env[varName]) || "",
   )
-  if (!text.includes("{file:")) return text
-  return yield* substituteFiles(input, text)
+  // APORIA: {vault:NAME} resolves from the encrypted local vault, in memory only.
+  const vaultNames = [...text.matchAll(/\{vault:([A-Za-z0-9_.-]+)\}/g)].map((match) => match[1])
+  const vault = vaultNames.length ? yield* Effect.promise(async () => (await import("./aporia-vault.js")).resolveVault(vaultNames)) : undefined
+  const resolved = vault
+    ? text.replace(/\{vault:([A-Za-z0-9_.-]+)\}/g, (_, name: string) => JSON.stringify(vault.get(name) ?? "").slice(1, -1))
+    : text
+  if (!resolved.includes("{file:")) return resolved
+  return yield* substituteFiles(input, resolved)
 })
+
 
 const substituteFiles = Effect.fnUntraced(function* (input: SubstituteInput, text: string) {
   const fs = yield* FSUtil.Service

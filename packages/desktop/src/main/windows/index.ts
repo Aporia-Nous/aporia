@@ -25,6 +25,7 @@ import {
 import { registerRendererProtocol, setProtocolReporter } from "./protocol"
 import { loadWindow } from "./scheme"
 import { createWindowRegistry } from "./registry"
+import { isQuitting, setQuitting } from "./quitting"
 import { makeWindowRecovery } from "./recovery"
 import { takeEarlyWindow, type EarlyWindow } from "./early"
 import { manageWindowState, readWindowState, resolveWindowState, windowStateFile } from "./window-state"
@@ -75,6 +76,7 @@ export function setRelaunchHandler(handler: () => void) {
 
 export function setAppQuitting(quitting = true) {
   registry.setQuitting(quitting)
+  setQuitting(quitting)
 }
 
 export function getLastFocusedWindow() {
@@ -152,6 +154,9 @@ export const makeMainWindows = Effect.fn("Window.make")(function* () {
         ...appearance,
         webPreferences: {
           ...appearance.webPreferences,
+          // Keep the renderer ticking while the window is hidden in the tray, so background work
+          // (bot message delivery) keeps running when the window is closed.
+          backgroundThrottling: false,
           additionalArguments: windowArguments(id),
         },
       })
@@ -165,6 +170,16 @@ export const makeMainWindows = Effect.fn("Window.make")(function* () {
       wireNavigationPolicy(win, (url) => runFork(openExternalURL(url)))
       wireRendererHeaders(win)
       manageWindowState(win, stateFile, state, displays)
+    }
+
+    // Closing the window hides it and keeps the app alive in the tray (unless the user is really
+    // quitting), so background bot-message delivery never stops just because the window was closed.
+    if (!early && process.platform !== "darwin") {
+      win.on("close", (event) => {
+        if (isQuitting()) return
+        event.preventDefault()
+        win.hide()
+      })
     }
 
     wireWindowRecovery(win, id, () => relaunchHandler())

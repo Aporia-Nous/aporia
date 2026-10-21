@@ -1,5 +1,5 @@
 import { $ } from "bun"
-import { describe, expect } from "bun:test"
+import { describe, expect, test } from "bun:test"
 import fs from "fs/promises"
 import path from "path"
 import { Deferred, Effect, Fiber, Layer } from "effect"
@@ -12,6 +12,30 @@ import { Snapshot } from "@opencode/core/snapshot"
 import { Hash } from "@opencode/util/hash"
 import { tmpdir } from "./fixture/tmpdir"
 import { testEffect } from "./lib/effect"
+
+describe("Snapshot.endCaptureHeuristic (E04)", () => {
+  test("skips when no local tools and no filesystem-touching names", () => {
+    expect(Snapshot.shouldCaptureEndSnapshot({ localToolCount: 0 })).toBe(false)
+    expect(
+      Snapshot.shouldCaptureEndSnapshot({ localToolCount: 0, recordedToolNames: ["websearch", "question"] }),
+    ).toBe(false)
+  })
+
+  test("captures when any local tool ran (prefer false positive)", () => {
+    expect(Snapshot.shouldCaptureEndSnapshot({ localToolCount: 1, recordedToolNames: ["read"] })).toBe(true)
+    expect(Snapshot.shouldCaptureEndSnapshot({ localToolCount: 2 })).toBe(true)
+  })
+
+  test("captures when recorded names look filesystem-touching", () => {
+    expect(Snapshot.toolMayTouchFilesystem("edit")).toBe(true)
+    expect(Snapshot.toolMayTouchFilesystem("write")).toBe(true)
+    expect(Snapshot.toolMayTouchFilesystem("shell")).toBe(true)
+    expect(Snapshot.toolMayTouchFilesystem("websearch")).toBe(false)
+    expect(
+      Snapshot.shouldCaptureEndSnapshot({ localToolCount: 0, recordedToolNames: ["hosted_write"] }),
+    ).toBe(true)
+  })
+})
 
 describe("Snapshot", () => {
   testEffect(Layer.empty).live("keeps lazy repository discovery after the first caller is interrupted", () =>

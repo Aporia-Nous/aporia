@@ -639,6 +639,98 @@ describe("SessionProjector", () => {
     }),
   )
 
+  it.effect("publishes UsageUpdated from UsageRecorded with cumulative RETURNING totals", () =>
+    Effect.gen(function* () {
+      const db = yield* seedSession()
+      const service = yield* Bus.Service
+      const first = yield* service
+        .subscribe(SessionEvent.UsageUpdated)
+        .pipe(Stream.runHead, Effect.forkScoped({ startImmediately: true }))
+
+      yield* service.publish(SessionEvent.UsageRecorded, {
+        sessionID,
+        source: "title",
+        cost: Money.USD.make(0.5),
+        tokens: { input: 5, output: 1, reasoning: 0, cache: { read: 0, write: 0 } },
+      })
+      expect(Option.getOrThrow(yield* Fiber.join(first)).data).toEqual({
+        sessionID,
+        cost: Money.USD.make(0.5),
+        tokens: { input: 5, output: 1, reasoning: 0, cache: { read: 0, write: 0 } },
+      })
+
+      const second = yield* service
+        .subscribe(SessionEvent.UsageUpdated)
+        .pipe(Stream.runHead, Effect.forkScoped({ startImmediately: true }))
+      yield* service.publish(SessionEvent.UsageRecorded, {
+        sessionID,
+        source: "compaction",
+        cost: Money.USD.make(0.25),
+        tokens: { input: 2, output: 3, reasoning: 1, cache: { read: 4, write: 1 } },
+      })
+      expect(Option.getOrThrow(yield* Fiber.join(second)).data).toEqual({
+        sessionID,
+        cost: Money.USD.make(0.75),
+        tokens: { input: 7, output: 4, reasoning: 1, cache: { read: 4, write: 1 } },
+      })
+      expect(
+        yield* db.select().from(SessionTable).where(eq(SessionTable.id, sessionID)).get().pipe(Effect.orDie),
+      ).toMatchObject({
+        cost: 0.75,
+        tokens_input: 7,
+        tokens_output: 4,
+        tokens_reasoning: 1,
+        tokens_cache_read: 4,
+        tokens_cache_write: 1,
+      })
+    }),
+  )
+
+  it.effect("does not publish UsageUpdated when Step.Failed has no usage", () =>
+    Effect.gen(function* () {
+      const db = yield* seedSession()
+      yield* db
+        .insert(SessionMessageTable)
+        .values([assistantRow(SessionMessage.ID.make("msg_failed_no_usage"), 0)])
+        .run()
+        .pipe(Effect.orDie)
+
+      const service = yield* Bus.Service
+      // First UsageUpdated after a no-usage Failed must come from a later UsageRecorded
+      // (proves Failed did not emit a zero totals event).
+      const first = yield* service
+        .subscribe(SessionEvent.UsageUpdated)
+        .pipe(Stream.runHead, Effect.forkScoped({ startImmediately: true }))
+
+      yield* service.publish(SessionEvent.Step.Failed, {
+        sessionID,
+        assistantMessageID: SessionMessage.ID.make("msg_failed_no_usage"),
+        error: { type: "provider.invalid-request", message: "Failed" },
+      })
+      yield* service.publish(SessionEvent.UsageRecorded, {
+        sessionID,
+        source: "title",
+        cost: Money.USD.make(1),
+        tokens: { input: 9, output: 8, reasoning: 7, cache: { read: 6, write: 5 } },
+      })
+      expect(Option.getOrThrow(yield* Fiber.join(first)).data).toEqual({
+        sessionID,
+        cost: Money.USD.make(1),
+        tokens: { input: 9, output: 8, reasoning: 7, cache: { read: 6, write: 5 } },
+      })
+      expect(
+        yield* db.select().from(SessionTable).where(eq(SessionTable.id, sessionID)).get().pipe(Effect.orDie),
+      ).toMatchObject({
+        cost: 1,
+        tokens_input: 9,
+        tokens_output: 8,
+        tokens_reasoning: 7,
+        tokens_cache_read: 6,
+        tokens_cache_write: 5,
+      })
+    }),
+  )
+
   it.effect("projects ended and failed step terminal state", () =>
     Effect.gen(function* () {
       const db = yield* seedSession()

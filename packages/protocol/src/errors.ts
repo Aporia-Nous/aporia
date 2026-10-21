@@ -224,6 +224,42 @@ export class FormNotFoundError extends Schema.TaggedError<FormNotFoundError>()(
   { httpApiStatus: 404 },
 ) {}
 
+export class AttentionCardNotFoundError extends Schema.TaggedError<AttentionCardNotFoundError>()(
+  "AttentionCardNotFoundError",
+  {
+    id: Schema.String,
+    message: Schema.String,
+  },
+  { httpApiStatus: 404 },
+) {}
+
+export class FlowInvalidError extends Schema.TaggedError<FlowInvalidError>()(
+  "FlowInvalidError",
+  {
+    message: Schema.String,
+    problems: Schema.Array(Schema.String),
+  },
+  { httpApiStatus: 400 },
+) {}
+
+export class FlowNotFoundError extends Schema.TaggedError<FlowNotFoundError>()(
+  "FlowNotFoundError",
+  {
+    id: Schema.String,
+    message: Schema.String,
+  },
+  { httpApiStatus: 404 },
+) {}
+
+export class FlowRunNotFoundError extends Schema.TaggedError<FlowRunNotFoundError>()(
+  "FlowRunNotFoundError",
+  {
+    id: Schema.String,
+    message: Schema.String,
+  },
+  { httpApiStatus: 404 },
+) {}
+
 export class FormAlreadySettledError extends Schema.TaggedError<FormAlreadySettledError>()(
   "FormAlreadySettledError",
   {

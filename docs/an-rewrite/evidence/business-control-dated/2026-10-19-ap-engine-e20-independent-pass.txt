@@ -1,0 +1,37 @@
+recorded=2026-10-19
+tasks=AP-ENGINE-E20
+actor=independent-verifier
+verdict=INDEPENDENT PASS
+scope=E20 EventFeed EncodingError log+skip (no subscribers.clear / mass disconnect); optional EventSubscribeQuery sessionID/directory + matchesSubscribeFilter (global credential/MCP pass-through); metrics; default global SSE unchanged; E21 reconnect helpers intact; EnginePort/Settings/Contraptions non-regress
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=7c3aef6cbd
+tip=1606bc7af9
+base=a842027e63
+head_verified=1606bc7af9c27d3fdcf098e238a34660f8c57bbc matches claimed tip; code 7c3aef6cbd + base a842027e63 ancestors
+report=docs/an-rewrite/CURSOR-AP-ENGINE-E20.md
+audit=business-control/ENGINE-EFFICIENCY-AUDIT.md §E20
+
+source_bar=
+  packages/server/src/event-feed.ts — EncodingError catch → logError + encodeFailures++; return without subscribers.clear; matchesSubscribeFilter; metrics
+  packages/server/src/handlers/event.ts — optional sessionID/directory → feed.subscribe(filter); omitted → global
+  packages/protocol/src/groups/event.ts — EventSubscribeQuery; OpenAPI notes encode-fail skip-not-kill + default global
+  packages/server/test/event-feed.test.ts — encode-fail skip keeps subscribers; filter after encode-once; credential to filtered
+  packages/client/src/solid/connection.ts — E21 reconnectBackoffMs still present; default event.subscribe() no filter query
+  packages/app/src/runtime/server/sync.tsx + server-sync/connection.ts — reconnectSyncDirectories + createCoalescedRunner intact
+
+tests_re_ran=
+  packages/server bun test test/event-feed.test.ts → 9 pass 0 fail
+  packages/app bun test src/shell/an → 118 pass 0 fail
+
+live_cdp=bun docs/an-rewrite/evidence/cdp-probe-engine-e20.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-ENGINE-E20 send 1792460938516; ws.close+process.exit
+live_cdp_detail=enginePort=03; typed marker in composer + sendClick ok; Settings owned=settings enginePort=02 hasOcScreen=false mark Aporetic/Aporia Nous; STAGE4-12/13 owned=composer timeline none Message Grok…; 4E Contraptions ok
+writer_prior_marker=AP-ENGINE-E20 send 1792460755145 (prior live-DEV)
+
+screenshots=worktree docs/an-rewrite/evidence/screenshots-2026-10-18/84-engine-e20-before-send.png; 85-engine-e20-after-send-you.png; 86-engine-e20-contraptions-light.png; board copies business-control/evidence/2026-10-19-84..86-engine-e20-*.png (re-shot during independent CDP)
+
+residuals_ok=clients still default global SSE until opt-in query; Promise client codegen not regenerated; CDP markerHit may prefix-match prior E20 YOU turn on crowded stream (typed+sendClick+RESULT ok still met bar); running-DEV may need hard restart for server tip; E25/E11 alone
+isolation=no merge/push; product C:\Tools\aporia not this branch; no product features added by verifier
+not_claimed=Stage 4 complete; OpenCode replaced; agent loop rewrite; merge; push; install; Stage 8 / running-DEV acceptance PASS; E25; E11
+deferred=AP-ENGINE-EFFICIENCY-02 next act-first E25/E11
+worktree_note=unrelated dirty docs/screenshot mods present at review time; verifier did not implement product code

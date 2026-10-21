@@ -1,7 +1,7 @@
 export * as SessionProjector from "./projector.js"
 
 import { and, asc, desc, eq, gt, gte, inArray, isNull, lt, lte, or, sql } from "drizzle-orm"
-import { DateTime, Effect, Layer, Schema, Stream } from "effect"
+import { DateTime, Effect, Layer, Schema } from "effect"
 import path from "path"
 import { Database } from "../database/database.js"
 import { Bus } from "../bus.js"
@@ -55,6 +55,16 @@ const forkTitle = (value?: string) => {
   return `${value} (fork #1)`
 }
 
+type UsageTotals = {
+  cost: number
+  input: number
+  output: number
+  reasoning: number
+  cacheRead: number
+  cacheWrite: number
+}
+
+/** Apply usage increments and RETURNING the new session totals (E09: no follow-up SELECT). */
 function applyUsage(db: DatabaseService, sessionID: SessionSchema.ID, value: Usage, timeUpdated?: number) {
   return db
     .update(SessionTable)
@@ -68,7 +78,15 @@ function applyUsage(db: DatabaseService, sessionID: SessionSchema.ID, value: Usa
       time_updated: timeUpdated ?? sql`${SessionTable.time_updated}`,
     })
     .where(eq(SessionTable.id, sessionID))
-    .run()
+    .returning({
+      cost: SessionTable.cost,
+      input: SessionTable.tokens_input,
+      output: SessionTable.tokens_output,
+      reasoning: SessionTable.tokens_reasoning,
+      cacheRead: SessionTable.tokens_cache_read,
+      cacheWrite: SessionTable.tokens_cache_write,
+    })
+    .get()
     .pipe(Effect.orDie)
 }
 
@@ -81,24 +99,12 @@ function touch(db: DatabaseService, event: MessageEvent) {
     .pipe(Effect.orDie)
 }
 
-const publishSessionUsage = Effect.fn("SessionProjector.publishUsage")(function* (
-  db: DatabaseService,
+/** Publish UsageUpdated from applyUsage RETURNING row — drops the extra session SELECT (E09). */
+const publishUsageTotals = Effect.fn("SessionProjector.publishUsage")(function* (
   bus: Bus.Interface,
   sessionID: SessionSchema.ID,
+  row: UsageTotals | undefined,
 ) {
-  const row = yield* db
-    .select({
-      cost: SessionTable.cost,
-      input: SessionTable.tokens_input,
-      output: SessionTable.tokens_output,
-      reasoning: SessionTable.tokens_reasoning,
-      cacheRead: SessionTable.tokens_cache_read,
-      cacheWrite: SessionTable.tokens_cache_write,
-    })
-    .from(SessionTable)
-    .where(eq(SessionTable.id, sessionID))
-    .get()
-    .pipe(Effect.orDie)
   if (!row) return
   yield* bus.publish(SessionEvent.UsageUpdated, {
     sessionID,
@@ -613,7 +619,12 @@ const layer = Layer.effectDiscard(
         .pipe(Effect.orDie)
     })
     yield* bus.project(SessionEvent.MessageContentUpdated, (event) => run(db, event))
-    yield* bus.project(SessionEvent.UsageRecorded, (event) => applyUsage(db, event.data.sessionID, event.data))
+    yield* bus.project(SessionEvent.UsageRecorded, (event) =>
+      Effect.gen(function* () {
+        const row = yield* applyUsage(db, event.data.sessionID, event.data)
+        yield* publishUsageTotals(bus, event.data.sessionID, row)
+      }),
+    )
     yield* bus.project(SessionEvent.Forked, (event) => projectFork(db, event))
     yield* bus.project(SessionEvent.InboxDelivered, (event) =>
       Effect.gen(function* () {
@@ -700,20 +711,22 @@ const layer = Layer.effectDiscard(
     yield* bus.project(SessionEvent.Step.Ended, (event) =>
       Effect.gen(function* () {
         yield* run(db, event)
-        yield* applyUsage(db, event.data.sessionID, event.data, event.created)
+        const row = yield* applyUsage(db, event.data.sessionID, event.data, event.created)
+        yield* publishUsageTotals(bus, event.data.sessionID, row)
       }),
     )
     yield* bus.project(SessionEvent.Step.Failed, (event) =>
       Effect.gen(function* () {
         yield* run(db, event)
-        if (event.data.cost !== undefined && event.data.tokens !== undefined)
-          yield* applyUsage(
+        if (event.data.cost !== undefined && event.data.tokens !== undefined) {
+          const row = yield* applyUsage(
             db,
             event.data.sessionID,
             { cost: event.data.cost, tokens: event.data.tokens },
             event.created,
           )
-        else yield* touch(db, event)
+          yield* publishUsageTotals(bus, event.data.sessionID, row)
+        } else yield* touch(db, event)
       }),
     )
     yield* bus.project(SessionEvent.Text.Started, (event) => run(db, event))
@@ -792,17 +805,6 @@ const layer = Layer.effectDiscard(
           .pipe(Effect.orDie)
         yield* InstructionState.reset(db, event.data.sessionID)
       }),
-    )
-    yield* bus.subscribe([SessionEvent.Step.Ended, SessionEvent.Step.Failed, SessionEvent.UsageRecorded]).pipe(
-      Stream.runForEach((event) => {
-        if (
-          event.type === SessionEvent.Step.Failed.type &&
-          (event.data.cost === undefined || event.data.tokens === undefined)
-        )
-          return Effect.void
-        return publishSessionUsage(db, bus, event.data.sessionID)
-      }),
-      Effect.forkScoped({ startImmediately: true }),
     )
   }),
 )

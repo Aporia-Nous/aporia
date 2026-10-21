@@ -25,6 +25,7 @@ import {
   SessionCompactionMessage,
   SessionCompactionQueued,
 } from "../message/message-content"
+import { resultingContextAfterCompaction } from "../message/compaction-usage"
 import type { ContextGroupPart } from "../tools/tool-renderer"
 import { SessionRetry } from "../components/session-retry"
 import { SessionError } from "../components/session-error"
@@ -500,6 +501,13 @@ export function createSessionTimelineRowRenderer(input: {
       return unwrapErrorMessage(value.error.message)
     })
 
+    const compactionResultingContext = createMemo(() => {
+      const value = compaction()
+      if (!value) return undefined
+      // Map insertion order matches sessionMessages order in the projection.
+      return resultingContextAfterCompaction([...input.projection.messageByID().values()], value.id)
+    })
+
     const moved = createMemo(() => {
       const value = message()
 
@@ -572,7 +580,11 @@ export function createSessionTimelineRowRenderer(input: {
           {(message) => (
             <div data-slot="session-turn-message-container" class={`w-full ${inset()}`}>
               <div data-slot="session-turn-compaction">
-                <SessionCompactionMessage message={message()} error={compactionError()} />
+                <SessionCompactionMessage
+                  message={message()}
+                  error={compactionError()}
+                  resultingContext={compactionResultingContext()}
+                />
               </div>
             </div>
           )}

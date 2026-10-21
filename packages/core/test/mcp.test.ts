@@ -2317,6 +2317,108 @@ testEffect(Layer.empty).effect("coalesces queued MCP tool notifications after in
   )
 })
 
+testEffect(Layer.empty).effect("E22 skips tools.reload when ToolsChanged catalog fingerprint is unchanged", () => {
+  let reads = 0
+  const stable = [
+    {
+      server: Mcp.ServerName.make("demo"),
+      name: "search",
+      description: "stable",
+      codemode: false,
+      inputSchema: { type: "object", properties: {} },
+    } satisfies Mcp.Tool,
+  ]
+  return Effect.gen(function* () {
+    const registry = yield* Tool.Service
+    const registration = yield* McpTool.Service
+    const bus = yield* Bus.Service
+    yield* registration.flush
+    expect(reads).toBe(1)
+    const before = registry.revision()
+    yield* Effect.forEach(["demo", "other", "demo"], (server) => bus.publish(McpEvent.ToolsChanged, { server }))
+    yield* advance(() => reads >= 2)
+    yield* drain
+    expect(reads).toBe(2)
+    expect(registry.revision()).toBe(before)
+    expect((yield* toolDefinitions(registry)).map((tool) => tool.name)).toEqual(["demo_search", "execute"])
+  }).pipe(
+    Effect.provide(
+      AppNodeBuilder.build(LayerNode.group([Tool.node, McpTool.node, Bus.node]), [
+        Mcp.node.replace(
+          Layer.mock(Mcp.Service, {
+            tools: () =>
+              Effect.sync(() => {
+                reads++
+                return stable
+              }),
+          }),
+        ),
+        Permission.node.replace(Layer.mock(Permission.Service, { assert: () => Effect.void })),
+        Image.node.replace(imagePassthrough),
+      ]),
+    ),
+  )
+})
+
+testEffect(Layer.empty).effect("E22 coalesces multi-server ToolsChanged into one catalog reconcile", () => {
+  let reads = 0
+  return Effect.gen(function* () {
+    const registry = yield* Tool.Service
+    const registration = yield* McpTool.Service
+    const bus = yield* Bus.Service
+    yield* registration.flush
+    expect(reads).toBe(1)
+    yield* Effect.forEach(["alpha", "beta", "gamma", "alpha"], (server) =>
+      bus.publish(McpEvent.ToolsChanged, { server }),
+    )
+    yield* advance(() => reads >= 2)
+    yield* drain
+    expect(reads).toBe(2)
+    expect((yield* toolDefinitions(registry)).map((tool) => tool.name)).toEqual(["demo_burst_2", "execute"])
+  }).pipe(
+    Effect.provide(
+      AppNodeBuilder.build(LayerNode.group([Tool.node, McpTool.node, Bus.node]), [
+        Mcp.node.replace(
+          Layer.mock(Mcp.Service, {
+            tools: () =>
+              Effect.sync(() => [
+                {
+                  server: Mcp.ServerName.make("demo"),
+                  name: `burst_${++reads}`,
+                  codemode: false,
+                  inputSchema: { type: "object", properties: {} },
+                } satisfies Mcp.Tool,
+              ]),
+          }),
+        ),
+        Permission.node.replace(Layer.mock(Permission.Service, { assert: () => Effect.void })),
+        Image.node.replace(imagePassthrough),
+      ]),
+    ),
+  )
+})
+
+test("E22 catalogFingerprint is order-independent and sensitive to definitions", () => {
+  const a = {
+    server: Mcp.ServerName.make("demo"),
+    name: "a",
+    description: "one",
+    codemode: false,
+    inputSchema: { type: "object", properties: {} },
+  } satisfies Mcp.Tool
+  const b = {
+    server: Mcp.ServerName.make("other"),
+    name: "b",
+    description: "two",
+    codemode: true,
+    inputSchema: { type: "object", properties: { q: { type: "string" } } },
+  } satisfies Mcp.Tool
+  expect(McpTool.catalogFingerprint([a, b])).toBe(McpTool.catalogFingerprint([b, a]))
+  expect(McpTool.catalogFingerprint([a, b])).not.toBe(
+    McpTool.catalogFingerprint([{ ...a, description: "changed" }, b]),
+  )
+})
+
 it.effect("advertises MCP output schemas to Code Mode", () =>
   Effect.gen(function* () {
     const registry = yield* Tool.Service

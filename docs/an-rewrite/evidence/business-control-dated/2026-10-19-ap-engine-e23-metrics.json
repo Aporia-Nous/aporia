@@ -1,0 +1,15 @@
+{
+  "finding": "E23",
+  "sessions": 8,
+  "turnsPerSession": 24,
+  "publishes": 192,
+  "journalMode": "wal",
+  "busyOrLocked": 0,
+  "otherFailures": 0,
+  "p50Ms": 0.386,
+  "p95Ms": 26.185,
+  "maxMs": 39.948,
+  "minMs": 0.164,
+  "dbPath": "C:\\Users\\Dilla\\AppData\\Local\\Temp\\opencode-e23-stress-J30Vkl\\e23-stress.sqlite",
+  "measuredAt": "2026-10-20T02:16:09.930Z"
+}

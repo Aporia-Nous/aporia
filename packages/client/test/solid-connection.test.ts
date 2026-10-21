@@ -1,7 +1,18 @@
 import { expect, test } from "bun:test"
 import { createRoot } from "solid-js"
-import { createClientConnection } from "../src/solid"
+import { createClientConnection, reconnectBackoffMs, reconnectBaseDelayMs, reconnectMaxDelayMs } from "../src/solid"
 import { OpenCode, type OpenCodeEvent } from "../src/promise"
+
+test("E21 reconnect backoff is flat then exponential with jitter, capped", () => {
+  expect(reconnectBackoffMs(1, () => 0)).toBe(reconnectBaseDelayMs)
+  expect(reconnectBackoffMs(1, () => 1)).toBe(reconnectBaseDelayMs)
+  // attempt 2 → base 2000; jitter floor 0.5 → 1000, ceiling → 2000
+  expect(reconnectBackoffMs(2, () => 0)).toBe(1_000)
+  expect(reconnectBackoffMs(2, () => 1)).toBe(2_000)
+  // attempt 5 → base 16000 capped to 15000 before jitter
+  expect(reconnectBackoffMs(5, () => 1)).toBe(reconnectMaxDelayMs)
+  expect(reconnectBackoffMs(8, () => 1)).toBe(reconnectMaxDelayMs)
+})
 
 const connected = { id: "evt_connected", created: 1, type: "server.connected", data: {} }
 

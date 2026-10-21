@@ -1,4 +1,4 @@
-import { createResource } from "solid-js"
+import { Show, createResource } from "solid-js"
 import { useDialog } from "@opencode/ui/context/dialog"
 import { useLanguage } from "@/runtime/i18n/language"
 import { usePlatform } from "@/runtime/platform/platform"
@@ -8,6 +8,8 @@ import legal from "./legal.svg"
 import anomalyBrush from "./anomaly-brush.svg"
 import { AnimatedWordmark } from "./animated-wordmark"
 import { FALLBACK_OTHER_CONTRIBUTORS, loadOtherContributorCount } from "./contributors"
+import { aporiaPrefs } from "@/aporia/prefs"
+import { anSettingsAboutIntro, shouldOwnAnSettings } from "@/shell/an/settings-chrome"
 
 const writers = [
   "thdxr",
@@ -80,8 +82,11 @@ export function SettingsAbout(props: { active: boolean }) {
     ))
   }
 
+  const anAbout = () => shouldOwnAnSettings(aporiaPrefs.anShellEnabled())
+  const anIntro = () => anSettingsAboutIntro()
+
   return (
-    <div class="settings-about-content">
+    <div class="settings-about-content" data-an-about={anAbout() ? "true" : "false"}>
       <div class="settings-about-intro">
         <p>
           {language.t("settings.about.version", {
@@ -89,11 +94,20 @@ export function SettingsAbout(props: { active: boolean }) {
           })}
         </p>
         <p>{language.t("settings.about.license")}</p>
-        {/* APORIA */}
-        <p>Aporia, based on OpenCode (MIT)</p>
+        {/* APORIA / AP-STAGE4-19 */}
+        <Show when={anAbout()} fallback={<p>Aporetic, based on OpenCode (MIT)</p>}>
+          <p>
+            {anIntro().product} {anIntro().byline} — {anIntro().basedOn}
+          </p>
+        </Show>
       </div>
 
-      <AnimatedWordmark active={props.active} />
+      <Show when={anAbout()} fallback={<AnimatedWordmark active={props.active} />}>
+        <div class="settings-about-an-mark" data-an-part="settings-about-mark">
+          {anIntro().product}
+          <span class="settings-about-an-byline">{anIntro().byline}</span>
+        </div>
+      </Show>
 
       <div class="settings-about-credits">
         <p>{language.rich("settings.about.writtenByNames", { names: language.list(writerCredits()) })}</p>

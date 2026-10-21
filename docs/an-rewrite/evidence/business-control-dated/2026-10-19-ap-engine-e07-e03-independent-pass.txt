@@ -1,0 +1,32 @@
+recorded=2026-10-19
+tasks=AP-ENGINE-E07,AP-ENGINE-E03
+actor=independent-verifier
+verdict=INDEPENDENT PASS (both)
+scope=E07 boundRecentText keep-exceed truncate + E03 Compaction.Delta 100ms batch; EnginePort send non-regress
+worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+branch=stage4-an-shell
+code=7467e14aee
+tip=ac95b11f0f
+base=538e7b1999
+head_verified=ac95b11f0f001ba3b4091e20977bd679e51b4893 matches claimed tip; code 7467e14aee ancestor; base 538e7b1999 ancestor (PORT-01 PASS)
+report=docs/an-rewrite/CURSOR-AP-ENGINE-E07-E03.md
+audit=business-control/ENGINE-EFFICIENCY-AUDIT.md §E07 §E03
+
+source_bar_e07=packages/core/src/session/compaction.ts boundRecentText + RECENT_TRUNCATION_MARK "[recent truncated to keep]"; splitConversation recent: boundRecentText(retained, keep)
+source_bar_e03=COMPACTION_DELTA_BATCH_MS=100; enqueueDelta/flushDeltas/cancelDeltas; flush on stepFinish/success/interrupt; failAfterCancel on Failed; ephemeral Compaction.Delta only
+
+tests_re_ran=
+  packages/core bun run test -- test/session-compaction.test.ts → 24 pass 0 fail
+  packages/core bun run test -- test/session-compaction.test.ts test/session-compact.test.ts test/session-native-compaction.test.ts test/session-compaction-transport.test.ts test/session-projector.test.ts → 51 pass 0 fail
+  packages/core bun run typecheck → exit 0
+note_writer_42=writer live-DEV claimed focused 42; independent five-file set measured 51 pass (includes session-compaction 24); no fail
+
+live_cdp=bun docs/an-rewrite/evidence/cdp-probe-engine-e07-e03.mjs APORETIC_CDP_PORT=9223 → RESULT ok:true EXIT=0 marker AP-ENGINE-E07-E03 send 1792428183477
+live_cdp_detail=engine=oc-server enginePort=01 owned=composer timelineDisplay=none; ws.close+process.exit in probe finally
+writer_prior_marker=AP-ENGINE-E07-E03 send 1792428034546 (prior live-DEV; retained)
+
+residuals_ok=E01/E02/E04 not this slice; PORT-02 alone; running-DEV may need core reload for in-process compact code (unit is source of truth for E07/E03)
+isolation=no merge/push; no product features added by verifier; product C:\Tools\aporia not this branch
+not_claimed=Stage 4 complete; E01/E02/E04; PORT-02; merge; push; install; Stage 8 / running-DEV acceptance PASS
+deferred=next ranked E01/E02/E04 after Ali; AP-ENGINE-PORT-02 Settings
+worktree_note=unrelated dirty docs/screenshot mods present at review time; verifier did not implement product code

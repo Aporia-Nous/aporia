@@ -1,0 +1,1058 @@
+﻿============================== Flow stage 1 gates (branch an/flow-stage-1) ==============================
+generated: 2026-10-17 07:59:30 America/Chicago (box/PC local)
+HEAD: c8ec97edb7  base: 3666b13b38 (an/checkpoint-pre-flow1)
+log 3666b13b38..HEAD:
+c8ec97edb7 fix(app): read flow responses the way the generated client returns them
+722d11eb08 feat(app): native Flows section (list, run, history, step timeline, add from JSON) and /<flow id> slash commands
+7c597c5839 feat(server): serve the flow engine (server.flow group) and run the flow runner in the server
+4f3775f2ff feat(core): native flow engine stage 1 (definitions, deterministic steps, runner, crash window)
+92bc33d7f2 docs(an-rewrite): flow engine stage 1 plan, acceptance criteria and provisional decisions
+status --porcelain (before evidence is committed):
+
+=== 1. coordination rules (Stage 2, 13 tests) ===
+--- dir: packages\core
+--- command: bun test test/coordination.test.ts ---
+bun test v1.4.3 (c6da4a4d3)
+
+test\coordination.test.ts:
+(pass) coordination rules > an artifact wakes the reviewer once; a replay wakes nobody [37.95ms]
+(pass) coordination rules > a replayed task.created makes one task [15.93ms]
+(pass) coordination rules > an ack never produces a wake or another ack [33.16ms]
+(pass) coordination rules > a terminal task produces no wakes [10.80ms]
+(pass) coordination rules > new failing evidence reopens the task as revision 2 [17.46ms]
+(pass) coordination rules > fifty distinct messages are all routed: the count is not a cap [100.49ms]
+(pass) coordination rules > a repeat with nothing new coalesces, then escalates exactly once [12.23ms]
+(pass) coordination rules > one approval produces one attention item, however often it is raised [8.57ms]
+(pass) coordination rules > handling the same fact twice delivers one wake [6.46ms]
+(pass) coordination rules > a passed review wakes the verifier, and no other role [6.97ms]
+(pass) coordination rules > an event with nobody in that role raises one attention instead of silence [6.80ms]
+(pass) coordination rules > a granted approval resumes the owner exactly once [7.11ms]
+(pass) coordinator recovery > a restart drains what it has not seen and never delivers twice [130.75ms]
+
+ 13 pass
+ 0 fail
+ 126 expect() calls
+Ran 13 tests across 1 file. [1.98s]
+exit=0
+
+=== 2. Stage 1 domain tests ===
+--- dir: packages\core
+--- command: bun test test/mission.test.ts ---
+bun test v1.4.3 (c6da4a4d3)
+
+test\mission.test.ts:
+(pass) mission domain > renaming a bot keeps its tasks resolving by id [29.16ms]
+(pass) mission domain > archiving a bot with open work is refused until the work is reassigned [18.28ms]
+(pass) mission domain > restarting over the same file restores bots, teams, missions, tasks and ui state [1013.84ms]
+(pass) mission domain > linking a mission to a session writes only the link table [7.56ms]
+(pass) mission domain > task dependencies refuse cycles and cross-mission links [8.87ms]
+(pass) mission domain > reopening a terminal task bumps its revision; ordinary state moves do not [6.73ms]
+(pass) backfill planner > derives stable ids from the slug so a rerun is a no-op [0.45ms]
+(pass) backfill planner > skips malformed and duplicate files instead of throwing [0.05ms]
+(pass) backfill planner > applied twice to a real database inserts rows once [665.59ms]
+
+ 9 pass
+ 0 fail
+ 62 expect() calls
+Ran 9 tests across 1 file. [2.32s]
+exit=0
+
+=== 3. Stage 3 trigger + durable cards ===
+--- dir: packages\core
+--- command: bun test test/attention.test.ts ---
+bun test v1.4.3 (c6da4a4d3)
+
+test\attention.test.ts:
+(pass) coordinator trigger > a fact nobody handled is drained by the trigger, with no drain call [59.13ms]
+(pass) coordinator trigger > the boot drain recovers a fact recorded before the crash [144.83ms]
+(pass) coordinator trigger > a failing drain is remembered and the next tick still drains [131.68ms]
+(pass) coordinator trigger shutdown > an interrupted drain is not recorded or reported as a failed drain [99.42ms]
+(pass) attention cards > cards survive a restart, open and resolved alike [145.77ms]
+(pass) attention cards > an unknown card is an error, not a silent success [6.23ms]
+(pass) attention cards > attention.resolved is an outcome: the rules decide nothing for it [5.18ms]
+(pass) coordinator backlog > a live emit never skips an older fact nobody handled [7.91ms]
+(pass) coordinator backlog > resolving a card while a fact waits in the backlog does not lose that fact [8.80ms]
+
+ 9 pass
+ 0 fail
+ 49 expect() calls
+Ran 9 tests across 1 file. [1160.00ms]
+exit=0
+
+=== 3a. F1 pure parts (expr, validation, steps, planner) ===
+--- dir: packages\core
+--- command: bun test test/flow-unit.test.ts ---
+bun test v1.4.3 (c6da4a4d3)
+
+test\flow-unit.test.ts:
+(pass) expressions > a whole template keeps the value's type; inline templates interpolate [0.27ms]
+(pass) expressions > paths cannot reach code or the prototype [0.05ms]
+(pass) expressions > conditions compare, combine and never coerce [0.29ms]
+(pass) validation > a minimal flow is valid [0.34ms]
+(pass) validation > ids, names, step types, connections and cycles are checked [0.29ms]
+(pass) validation > http: declared exact hosts only, no template host, no credentials [0.29ms]
+(pass) validation > safety: GET and HEAD are idempotent, other methods unsafe unless declared, the rest pure [0.07ms]
+(pass) validation > the canonical form ignores key order [0.07ms]
+(pass) pure steps > set adds fields per item, keeps or drops the rest, and starts from nothing [0.22ms]
+(pass) pure steps > transform filters, sorts, limits, renames and picks [0.14ms]
+(pass) pure steps > if and switch split items by condition [0.07ms]
+(pass) pure steps > merge appends or combines by position [0.05ms]
+(pass) planner > starts the entry step, then the next one, then completes [0.40ms]
+(pass) planner > an unsafe step with no result raises a card, waits for it, and obeys the resolution [0.14ms]
+(pass) planner > a retryable failure waits for its time; a final one fails the run [0.06ms]
+(pass) planner > duplicate events fold once and a finished run plans nothing [0.03ms]
+(pass) planner > http backoff doubles to a cap and unsafe calls get one attempt [0.04ms]
+
+ 17 pass
+ 0 fail
+ 78 expect() calls
+Ran 17 tests across 1 file. [177.00ms]
+exit=0
+
+=== 3b. F1 engine (F1-1..F1-7, loopback server) ===
+--- dir: packages\core
+--- command: bun test test/flow.test.ts ---
+bun test v1.4.3 (c6da4a4d3)
+
+test\flow.test.ts:
+(pass) F1-1 definitions > an invalid definition is refused with every problem and nothing is recorded [30.99ms]
+(pass) F1-1 definitions > saving versions a flow; an identical save adds no version; runs keep their version [66.16ms]
+(pass) F1-2..F1-4 runs > set -> http -> if -> transform -> merge runs to completion against a local server with 0 tokens [16.59ms]
+(pass) F1-2..F1-4 runs > flow events are coordinator outcomes: draining them wakes nobody and raises nothing [84.80ms]
+(pass) F1-2..F1-4 runs > the untaken side of an if is skipped, and switch routes by case [17.58ms]
+(pass) F1-2..F1-4 runs > a wait step sleeps on the clock and resumes when it is due [85.08ms]
+(pass) F1-2..F1-4 runs > a GET that answers 500 is retried after a backoff; a 4xx or a redirect is final [12.78ms]
+(pass) F1-2..F1-4 runs > run-flow runs a child flow and hands its output back; nesting stops at the depth limit [140.70ms]
+(pass) F1-5 restart > a run stopped after step 2 of 5 resumes on the next boot and no step is recorded twice [285.04ms]
+(pass) F1-5 restart > the runner loop starts a requested run with no tick call [76.31ms]
+(pass) F1-6 replay > the same request twice starts one run, and re-running the runner adds nothing [65.61ms]
+(pass) F1-7 crash window > a pure step cut off before its result is simply run again [10.93ms]
+(pass) F1-7 crash window > an idempotent GET cut off mid-request is run again on its own [16.40ms]
+(pass) F1-7 crash window > an unsafe POST cut off mid-request raises one card; run-again repeats it exactly once [20.67ms]
+(pass) F1-7 crash window > any other resolution stops the run without repeating the POST [22.41ms]
+(pass) F1-7 crash window > a POST declared idempotent sends a stable Idempotency-Key and is re-run without a card [14.69ms]
+(pass) F1-7 crash window > an unsafe POST that answers 500 is not retried on its own [81.94ms]
+
+ 17 pass
+ 0 fail
+ 140 expect() calls
+Ran 17 tests across 1 file. [1.58s]
+exit=0
+
+=== 4. packages/core typecheck ===
+--- dir: packages\core
+--- command: bunx tsgo -b tsconfig.json tsconfig.tests.json ---
+exit=0
+
+=== 5. packages/server typecheck ===
+--- dir: packages\server
+--- command: bunx tsgo -b ---
+exit=0
+
+=== 6. packages/server mission + flow routes tests ===
+--- dir: packages\server
+--- command: bun test test/mission.test.ts test/flow.test.ts ---
+bun test v1.4.3 (c6da4a4d3)
+
+test\flow.test.ts:
+(pass) saves, lists and runs a flow over HTTP; the runner in the server finishes it [1193.75ms]
+
+test\mission.test.ts:
+(pass) serves attention cards and the running coordinator trigger [39.61ms]
+
+ 2 pass
+ 0 fail
+ 38 expect() calls
+Ran 2 tests across 2 files. [7.29s]
+exit=0
+
+=== 7. packages/protocol check:generated ===
+--- dir: packages\protocol
+--- command: bun run check:generated ---
+$ bun run script/generate-openapi.ts --check
+exit=0
+
+=== 8. packages/client check:generated ===
+--- dir: packages\client
+--- command: bun run check:generated ---
+$ bun run generate && git diff --exit-code -- src/promise/generated src/effect/generated src/effect/api
+$ bun run script/build.ts
+warning: in the working copy of 'packages/client/src/effect/api/.httpapi-codegen.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/client/src/effect/api/api.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/client/src/effect/generated/.httpapi-codegen.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/client/src/effect/generated/client-error.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/client/src/effect/generated/client.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/client/src/effect/generated/index.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/client/src/promise/generated/.httpapi-codegen.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/client/src/promise/generated/client-error.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/client/src/promise/generated/client.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/client/src/promise/generated/index.ts', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'packages/client/src/promise/generated/types.ts', LF will be replaced by CRLF the next time Git touches it
+exit=0
+
+=== 9. packages/app standing gate: bun test src/aporia ===
+--- dir: packages\app
+--- command: bun test src/aporia ---
+bun test v1.4.3 (c6da4a4d3)
+
+src\aporia\attention-util.test.ts:
+(pass) attention helpers > ago reads like a person would say it [0.08ms]
+(pass) attention helpers > the coordinator line never claims more than the status says [0.09ms]
+(pass) attention helpers > the badge is empty at zero and capped [0.03ms]
+(pass) attention helpers > a poll that left before a resolve cannot put the resolved card back [1.93ms]
+(pass) attention helpers > one request at a time: overlapping polls collapse into one follow-up [1.34ms]
+
+src\aporia\context-grounded.test.ts:
+(pass) memory prompt lists entries with ids and caps the count [0.24ms]
+(pass) empty memory leaves the task unchanged — no refusal instruction [0.02ms]
+(pass) memory prompt never tells the bot to answer only from the facts [0.03ms]
+(pass) extractCitations finds bracketed and bare ids [0.11ms]
+
+src\aporia\context-scope.test.ts:
+(pass) scopedEntries keeps only entries whose topic is in scope [0.13ms]
+(pass) undefined scopes means no scope yet — returns everything (Phase-2 fallback) [0.02ms]
+(pass) an empty scope list sees nothing
+(pass) normaliseFact ignores case, whitespace, and line endings [0.05ms]
+(pass) isDuplicate is true for the same topic and normalised text [0.04ms]
+(pass) isDuplicate is false for a different topic or text [0.02ms]
+
+src\aporia\context-stats.test.ts:
+(pass) counts entries per topic, sorted by count then name [0.16ms]
+(pass) empty input yields an empty list [0.01ms]
+
+src\aporia\dedupe.test.ts:
+(pass) fingerprint > ignores whitespace differences but not different words, senders, or targets [0.05ms]
+(pass) createDedupe > drops the second copy of the same words inside the window [0.11ms]
+(pass) createDedupe > never treats a retry of the same message as a duplicate [0.02ms]
+(pass) createDedupe > lets the same words through again once the window has passed [0.02ms]
+(pass) createDedupe > keeps distinct messages apart and forgets expired ones [0.02ms]
+
+src\aporia\dispatch-queue.test.ts:
+(pass) dispatch-queue independence > an unrelated bot is delivered while a room round is in flight [0.75ms]
+(pass) dispatch-queue independence > a slow bot does not block a different bot [0.18ms]
+(pass) per-target lock > two messages for the same bot run one after another (never overlapping) [11.95ms]
+(pass) per-target lock > a second message for an in-flight target queues behind it, not alongside [0.36ms]
+(pass) delivery semantics > priority messages are delivered before non-priority within a target [0.15ms]
+(pass) delivery semantics > a failed delivery is reported and the lock is released so the target recovers [0.16ms]
+(pass) delivery semantics > re-entrant ticks during load never schedule a target twice [19.10ms]
+(pass) delivery semantics > an empty inbox schedules nothing [0.14ms]
+(pass) dispatcher wiring > uses the per-target scheduler instead of a global running flag [0.09ms]
+
+src\aporia\expert-policy.test.ts:
+(pass) an expert with no findings must research first [0.03ms]
+(pass) an expert that already has a finding may answer
+(pass) a worker never has to research
+(pass) no kind behaves like a worker
+(pass) the research prompt names the scope and the question [0.03ms]
+(pass) the research prompt falls back when there is no scope [0.01ms]
+
+src\aporia\flows-util.test.ts:
+(pass) flow slash input > a JSON object is the input, anything else is text, nothing is {} [0.10ms]
+(pass) add flow from JSON > only a JSON object passes; the server does the real validation [0.05ms]
+(pass) request ids > match what the server accepts and differ per click [0.12ms]
+(pass) labels and timeline > statuses, durations and step lines read plainly [0.14ms]
+
+src\aporia\reactions-util.test.ts:
+(pass) reactionSignature > is stable for identical inputs so idle polls can early-out [0.05ms]
+(pass) reactionSignature > changes when the reaction list changes [0.01ms]
+(pass) reactionSignature > changes when the visible rows change (a scroll reveals new turns)
+(pass) reactionSignature > treats a missing list as empty
+
+src\aporia\reply.test.ts:
+(pass) isSilentReply > treats PASS as staying silent, with or without a full stop or padding [0.09ms]
+(pass) isSilentReply > keeps a real answer, so nothing useful is dropped [0.02ms]
+
+src\aporia\session-list-internal.test.ts:
+(pass) isInternalSession reads metadata.aporia.internal [0.04ms]
+(pass) mergeSessions drops internal (bot/dispatch) sessions [0.11ms]
+
+src\aporia\session-list.test.ts:
+(pass) sessionListOptions windowing bound > mounts a small, bounded window for 2000 rows [1.47ms]
+(pass) sessionListOptions windowing bound > bounds the window at every scroll position [0.41ms]
+(pass) row measurement > exposes the real-height measurer and a sane estimate [0.04ms]
+(pass) row measurement > a measured row overrides the estimate and shifts later rows [0.68ms]
+(pass) row measurement > a 0px read falls back to the estimate instead of collapsing the row [0.04ms]
+(pass) row measurement > the sidebar wrapper attaches the measurer (source wiring guard) [11.44ms]
+(pass) debouncedFilter > runs once for a burst of keystrokes and keeps the last query [0.34ms]
+(pass) mergeSessions > dedupes by id with the local store winning, and drops archived rows [0.12ms]
+(pass) mergeSessions > hides child sessions unless includeChildren is set [0.04ms]
+(pass) toSessionRows + filterSessionRows > precomputes title/date and sorts newest first [5.66ms]
+(pass) toSessionRows + filterSessionRows > filters on the precomputed lowercased title only (behavior parity) [0.10ms]
+(pass) toSessionRows + filterSessionRows > caps the base list at the render limit [2.46ms]
+(pass) row formatting helpers > prettyTitle rewrites the server placeholder and leaves real titles alone [0.12ms]
+(pass) row formatting helpers > projectName takes the last path segment [0.02ms]
+
+ 63 pass
+ 0 fail
+ 167 expect() calls
+Ran 63 tests across 12 files. [1284.00ms]
+exit=0
+
+=== 10. packages/desktop standing gate: bun test src/main/aporia ===
+--- dir: packages\desktop
+--- command: bun test src/main/aporia ---
+bun test v1.4.3 (c6da4a4d3)
+
+src\main\aporia-bots-watch.test.ts:
+(pass) regeneration scope > regenerating one bot's change leaves other agent files untouched [30.14ms]
+(pass) regeneration scope > a change to bot.json only regenerates that bot [17.09ms]
+(pass) regeneration scope > a shared USER.md change regenerates every bot [15.44ms]
+(pass) regeneration scope > changeTargets maps paths to the affected scope [1.90ms]
+(pass) watchers > watchers are installed then closed, and a finalizer is registered [7.42ms]
+(pass) source guards > no swallowed errors on the regeneration / watcher paths [1.58ms]
+
+src\main\aporia-bots.test.ts:
+(pass) aporia bots health > starts healthy and reports the failing stage instead of swallowing it [0.20ms]
+(pass) aporia bots health > returns to healthy after a successful run [0.04ms]
+(pass) aporia bots health > exposes the health flag over the bots ipc channel [0.12ms]
+(pass) boundary validation > safeSlug accepts real slugs and rejects traversal / separators / spaces [0.12ms]
+(pass) boundary validation > safeInboxId accepts generated ids and rejects anything path-shaped [0.06ms]
+(pass) boundary validation > safeModel keeps well-formed provider/model and rejects frontmatter injection [0.01ms]
+(pass) boundary validation > the bots ipc handler rejects traversal instead of reaching the filesystem [0.11ms]
+
+src\main\aporia-config.test.ts:
+(pass) serialized global-config writer > two writes issued concurrently both land (no lost edit) [21.61ms]
+(pass) serialized global-config writer > refuses a malformed config and leaves it byte-unchanged [7.55ms]
+(pass) serialized global-config writer > keeps a single .bak and prunes older timestamped backups [18.93ms]
+(pass) serialized global-config writer > serializes edits from independent callers through one queue [47.70ms]
+
+src\main\aporia-context-import.test.ts:
+(pass) turns each message into a sourced entry tagged by topic [1.62ms]
+(pass) skips messages with no text and counts them [0.52ms]
+(pass) re-importing the same sessions plans nothing new [6.29ms]
+(pass) a session with no messages does not crash [0.82ms]
+(pass) handleImport writes the planned entries and reports added/skipped [7.28ms]
+(pass) handleImport a second time adds nothing [7.30ms]
+(pass) skips a message with no id (never writes a fabricated source) [9.06ms]
+(pass) skips a message when the session has no id [0.72ms]
+
+src\main\aporia-context.test.ts:
+(pass) add + all round-trips an entry with its source [6.46ms]
+(pass) add is idempotent for the same source+topic+text [6.60ms]
+(pass) query filters by topic and tag [12.46ms]
+(pass) entryId is stable across calls [0.05ms]
+(pass) reopening the store sees persisted entries [7.59ms]
+(pass) handleContext dispatches all/add/query and throws on an unknown op [7.72ms]
+(pass) add refuses an entry with no source ref [0.91ms]
+(pass) add refuses a non-string text or non-array tags [0.73ms]
+(pass) contextDir defaults to ~/Aporia/context when APORIA_HOME is unset [0.05ms]
+
+src\main\aporia-fyi.test.ts:
+(pass) held no-reply messages > are written beside the bot, so a restart does not lose them [6.30ms]
+(pass) held no-reply messages > are read exactly once [12.67ms]
+(pass) held no-reply messages > start empty for a bot that has never been sent one [0.10ms]
+(pass) held no-reply messages > keep the newest when a bot is flooded [370.78ms]
+(pass) held no-reply messages > refuse a slug that is not a plain folder name [0.06ms]
+
+src\main\aporia-mcp.test.ts:
+(pass) aporia mcp persist > keeps comments and other keys, backs up, writes env refs [21.75ms]
+(pass) aporia mcp persist > rejects literal secrets [0.16ms]
+(pass) aporia mcp oauth casing > accepts camelCase OAuth (live config) and emits snake_case for the schema [0.05ms]
+(pass) aporia mcp oauth casing > still accepts snake_case OAuth fields [0.03ms]
+(pass) aporia mcp oauth casing > rejects a literal OAuth client secret in either casing [0.02ms]
+
+src\main\aporia-owner.test.ts:
+(pass) incremental daily spend > sums logged spends and persists a per-day spend file [11.10ms]
+(pass) incremental daily spend > does not re-read the whole activity log on each poll [9.96ms]
+(pass) incremental daily spend > resets across a day rollover [7.96ms]
+(pass) incremental daily spend > backfills the day total from the log once when no spend file exists yet [10.30ms]
+
+src\main\aporia-routines.test.ts:
+(pass) nextRun > a pathological cron (Feb 29) resolves fast and with a correct date [0.76ms]
+(pass) nextRun > a Feb 29 cron with no match inside a year still resolves to the next one [0.13ms]
+(pass) nextRun > a normal weekday cron is correct [9.49ms]
+(pass) nextRun > matches the brute-force reference across DST spring-forward [6.41ms]
+(pass) nextRun > matches the brute-force reference across DST fall-back (repeated hour) [0.26ms]
+(pass) nextRun > returns the next minute for an every-minute cron [15.33ms]
+(pass) nextRun > agrees with brute force for a spread of crons and starts [770.88ms]
+(pass) cronMatches > keeps the existing dom/dow semantics [0.08ms]
+
+src\main\aporia-startup.test.ts:
+(pass) runAporiaStartup > registers before the window and never starts on the ready->window path [0.23ms]
+(pass) runAporiaStartup > runs the expensive start only after the caller has finished (window on screen first) [0.09ms]
+(pass) runAporiaStartup > a failing registrar is isolated: the rest still register and the window still opens [0.08ms]
+(pass) runAporiaStartup > surfaces a failing start instead of swallowing it [0.03ms]
+(pass) aporia startup wiring (index.ts) > sets the short idle TTL before the app is ready (so the server child inherits it) [0.11ms]
+(pass) aporia startup wiring (index.ts) > registers bots and routines as separate startup steps [0.01ms]
+
+ 62 pass
+ 0 fail
+ 189 expect() calls
+Ran 62 tests across 10 files. [1.98s]
+exit=0
+
+=== 11. packages/app typecheck (known: 2 pre-existing TS1128 errors) ===
+--- dir: packages\app
+--- command: bunx tsgo -b ---
+src/custom-elements.d.ts(1,1): error TS1128: Declaration or statement expected.
+src/custom-elements.d.ts(1,2): error TS1128: Declaration or statement expected.
+exit=1
+
+=== 12. packages/desktop typecheck (same 2 pre-existing errors via ../app) ===
+--- dir: packages\desktop
+--- command: bunx tsgo -b ---
+../app/src/custom-elements.d.ts(1,1): error TS1128: Declaration or statement expected.
+../app/src/custom-elements.d.ts(1,2): error TS1128: Declaration or statement expected.
+exit=1
+
+=== 13. packages/server full suite ===
+--- dir: packages\server
+--- command: bun test ---
+bun test v1.4.3 (c6da4a4d3)
+
+test\auth.test.ts:
+(pass) accepts only the fixed opencode username [0.34ms]
+(pass) session tokens expire, resist tampering, and are revoked by changing the password [0.30ms]
+
+test\config.test.ts:
+(pass) returns ordered config entries for the requested directory [199.63ms]
+(pass) updates the global shell without replacing unrelated JSONC [557.35ms]
+
+test\cors.test.ts:
+(pass) custom origins extend the defaults without allowing other origins [0.12ms]
+(pass) PTY origin checks use the same allowlist and retain same-host access [0.07ms]
+
+test\event-feed.test.ts:
+(pass) EventFeed > preserves the public SSE frame encoding [0.07ms]
+(pass) EventFeed > encodes once and delivers the same frame to every subscriber [1.37ms]
+(pass) EventFeed > fails only the subscriber that exceeds its lag capacity [0.95ms]
+(pass) EventFeed > delivers global credential events to public subscribers [0.42ms]
+(pass) EventFeed > filters internal events before they consume subscriber capacity [0.36ms]
+(pass) EventFeed > disconnects current subscribers after an encoding failure and continues for later subscribers [0.60ms]
+
+test\fetch.test.ts:
+(pass) returns LocationNotFoundError for a missing folder and recovers once it exists [508.53ms]
+(pass) serves the HttpApi and enforces Basic auth like the Node server [18.65ms]
+(pass) activates credentials through the HttpApi [16.54ms]
+(pass) serves unauthenticated and answers CORS preflight when no password is configured [14.97ms]
+(pass) applies custom CORS origins to HTTP responses and PTY ticket checks [1090.60ms]
+(pass) returns 404 when a previously readable file is deleted [78.40ms]
+[13:00:15.521] INFO (#19355): event {
+  event: {
+    id: "evt_149f2dd21002BHE8VFqgB25E9y",
+    created: 1792242015521,
+    type: "command.updated",
+    location: {
+      directory: "C:\\Tools\\aporia\\.worktrees\\opt\\packages\\server",
+      workspaceID: undefined,
+    },
+    data: {},
+  },
+}
+(pass) cancels a stale OpenAI OAuth callback server before falling back [2822.23ms]
+Client.listPrompts() called but server does not advertise prompts capability - returning empty list
+[13:00:16.455] INFO (#21134): event {
+  event: {
+    id: "evt_149f2e0c7003KoIdlb4hdFfHyO",
+    created: 1792242016455,
+    type: "command.updated",
+    location: {
+      directory: "C:\\Tools\\aporia\\.worktrees\\opt\\packages\\server",
+      workspaceID: undefined,
+    },
+    data: {},
+  },
+}
+Client.listPrompts() called but server does not advertise prompts capability - returning empty list
+[13:00:16.579] INFO (#21134): event {
+  event: {
+    id: "evt_149f2e143003Rjjln8XIfV88Qa",
+    created: 1792242016579,
+    type: "command.updated",
+    location: {
+      directory: "C:\\Tools\\aporia\\.worktrees\\opt\\packages\\server",
+      workspaceID: undefined,
+    },
+    data: {},
+  },
+}
+[13:00:16.621] INFO (#21134): event {
+  event: {
+    id: "evt_149f2e16d0013v6ipxGQkiKX12",
+    created: 1792242016621,
+    type: "command.updated",
+    location: {
+      directory: "C:\\Tools\\aporia\\.worktrees\\opt\\packages\\server",
+      workspaceID: undefined,
+    },
+    data: {},
+  },
+}
+[mcp-sdk] SEP-2352: stored OAuth credential has no 'issuer' stamp (pre-upgrade storage or provider not round-tripping the value). SEP-2352 isolation is inactive for this read; ensure your provider round-trips the issuer field.
+[13:00:16.670] INFO (#21134): event {
+  event: {
+    id: "evt_149f2e19e002Ndwmuu1XrrouNc",
+    created: 1792242016670,
+    type: "command.updated",
+    location: {
+      directory: "C:\\Tools\\aporia\\.worktrees\\opt\\packages\\server",
+      workspaceID: undefined,
+    },
+    data: {},
+  },
+}
+[13:00:16.766] INFO (#21134): event {
+  event: {
+    id: "evt_149f2e1fe0028TM5uPRK0fEUSZ",
+    created: 1792242016766,
+    type: "command.updated",
+    location: {
+      directory: "C:\\Tools\\aporia\\.worktrees\\opt\\packages\\server",
+      workspaceID: undefined,
+    },
+    data: {},
+  },
+}
+Client.listPrompts() called but server does not advertise prompts capability - returning empty list
+[13:00:16.893] INFO (#21134): event {
+  event: {
+    id: "evt_149f2e27d004ybyoaETTgeVuUG",
+    created: 1792242016893,
+    type: "command.updated",
+    location: {
+      directory: "C:\\Tools\\aporia\\.worktrees\\opt\\packages\\server",
+      workspaceID: undefined,
+    },
+    data: {},
+  },
+}
+Client.listPrompts() called but server does not advertise prompts capability - returning empty list
+[13:00:17.540] INFO (#21134): event {
+  event: {
+    id: "evt_149f2e504005Ytvxd6CRW8xMGe",
+    created: 1792242017540,
+    type: "command.updated",
+    location: {
+      directory: "C:\\Tools\\aporia\\.worktrees\\opt\\packages\\server",
+      workspaceID: undefined,
+    },
+    data: {},
+  },
+}
+[mcp-sdk] SEP-2352: stored OAuth credential has no 'issuer' stamp (pre-upgrade storage or provider not round-tripping the value). SEP-2352 isolation is inactive for this read; ensure your provider round-trips the issuer field.
+(node:35092) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 listening listeners added to [Server]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(Use `bun --trace-warnings ...` to show where the warning was created)
+(pass) falls back to port 1457 when OpenAI OAuth port 1455 remains busy [2594.19ms]
+Client.listPrompts() called but server does not advertise prompts capability - returning empty list
+[13:00:19.046] INFO (#24837): event {
+  event: {
+    id: "evt_149f2eae6003h2pSB84pnYXgM9",
+    created: 1792242019046,
+    type: "command.updated",
+    location: {
+      directory: "C:\\Tools\\aporia\\.worktrees\\opt\\packages\\server",
+      workspaceID: undefined,
+    },
+    data: {},
+  },
+}
+[13:00:19.068] INFO (#24837): event {
+  event: {
+    id: "evt_149f2eafc003uPuPrchP43l0YC",
+    created: 1792242019068,
+    type: "command.updated",
+    location: {
+      directory: "C:\\Tools\\aporia\\.worktrees\\opt\\packages\\server",
+      workspaceID: undefined,
+    },
+    data: {},
+  },
+}
+[mcp-sdk] SEP-2352: stored OAuth credential has no 'issuer' stamp (pre-upgrade storage or provider not round-tripping the value). SEP-2352 isolation is inactive for this read; ensure your provider round-trips the issuer field.
+Client.listPrompts() called but server does not advertise prompts capability - returning empty list
+[13:00:19.083] INFO (#24837): event {
+  event: {
+    id: "evt_149f2eb0b003cL1dhbPtJuhnKl",
+    created: 1792242019083,
+    type: "command.updated",
+    location: {
+      directory: "C:\\Tools\\aporia\\.worktrees\\opt\\packages\\server",
+      workspaceID: undefined,
+    },
+    data: {},
+  },
+}
+[13:00:19.207] INFO (#24837): event {
+  event: {
+    id: "evt_149f2eb87003jhk7ph8COaojaL",
+    created: 1792242019207,
+    type: "command.updated",
+    location: {
+      directory: "C:\\Tools\\aporia\\.worktrees\\opt\\packages\\server",
+      workspaceID: undefined,
+    },
+    data: {},
+  },
+}
+[13:00:19.259] INFO (#24837): event {
+  event: {
+    id: "evt_149f2ebbb00230JmKACyGbcZI1",
+    created: 1792242019259,
+    type: "command.updated",
+    location: {
+      directory: "C:\\Tools\\aporia\\.worktrees\\opt\\packages\\server",
+      workspaceID: undefined,
+    },
+    data: {},
+  },
+}
+Client.listPrompts() called but server does not advertise prompts capability - returning empty list
+[13:00:19.412] INFO (#24837): event {
+  event: {
+    id: "evt_149f2ec54005yAydWUuWwO4lpw",
+    created: 1792242019412,
+    type: "command.updated",
+    location: {
+      directory: "C:\\Tools\\aporia\\.worktrees\\opt\\packages\\server",
+      workspaceID: undefined,
+    },
+    data: {},
+  },
+}
+Client.listPrompts() called but server does not advertise prompts capability - returning empty list
+[13:00:20.036] INFO (#24837): event {
+  event: {
+    id: "evt_149f2eec40022Dztx2bMlxS0oZ",
+    created: 1792242020036,
+    type: "command.updated",
+    location: {
+      directory: "C:\\Tools\\aporia\\.worktrees\\opt\\packages\\server",
+      workspaceID: undefined,
+    },
+    data: {},
+  },
+}
+(node:35092) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 listening listeners added to [Server]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(pass) explains how to recover when both OpenAI OAuth callback ports are busy [4375.41ms]
+(pass) serves the session view operation and missing-session error [136.05ms]
+(pass) routes pending requests through the Session's instance [377.19ms]
+(pass) stays serviceable when the first request aborts [13.98ms]
+
+test\flow.test.ts:
+(pass) saves, lists and runs a flow over HTTP; the runner in the server finishes it [1060.38ms]
+
+test\fs.test.ts:
+[13:00:24.614] INFO (#33483): spawning process {
+  command: "%USERPROFILE%\\.bun\\bin\\bun.exe",
+  args: [ "C:\\Tools\\aporia\\.worktrees\\opt\\packages\\server\\test\\fixture\\mcp-starts.cjs",
+    "%USERPROFILE%\\AppData\\Local\\Temp\\opencode-core-test-0EIAnr\\starts"
+  ],
+  cwd: "%USERPROFILE%\\AppData\\Local\\Temp\\opencode-core-test-0EIAnr\\root\\current",
+}
+Client.listPrompts() called but server does not advertise prompts capability - returning empty list
+[13:00:24.672] INFO (#31386): event {
+  event: {
+    id: "evt_149f300e0005tV5jFpOAlRiaHA",
+    created: 1792242024672,
+    type: "command.updated",
+    location: {
+      directory: "%USERPROFILE%\\AppData\\Local\\Temp\\opencode-core-test-0EIAnr\\root\\current",
+      workspaceID: undefined,
+    },
+    data: {},
+  },
+}
+(pass) browsing parents and siblings reuses the current Location and its MCP process [563.07ms]
+(pass) streams files with Range, conditional requests, confinement, and multi-megabyte byte integrity [326.17ms]
+(pass) opens no file for HEAD and closes it when a download is aborted [0.42ms]
+
+test\generate.test.ts:
+(pass) uses base configuration without depending on process.cwd() [194.84ms]
+
+test\handler-policy.test.ts:
+(pass) yieldable session errors preserve the handler failure policy [0.23ms]
+(pass) message decode policy preserves its reference and log annotations [0.52ms]
+
+test\message.test.ts:
+(pass) filters message types before paginating in either direction through the generated client [269.66ms]
+(pass) rejects unknown message type filters at the HTTP boundary [244.14ms]
+
+test\mission.test.ts:
+(pass) serves attention cards and the running coordinator trigger [30.22ms]
+
+test\model.test.ts:
+(pass) waits for plugin initialization before listing models [192.81ms]
+
+test\options.test.ts:
+(pass) accepts ephemeral port zero [0.13ms]
+(pass) rejects ports outside the valid range [0.11ms]
+(pass) accepts optional app metadata [0.06ms]
+(pass) accepts durable event persistence configuration [0.03ms]
+(pass) accepts an optional CORS allowlist [0.07ms]
+
+test\persistent-pty.test.ts:
+(skip) reads the latest controlled terminal with optional physical line counts through the SDK
+(skip) creates two persistent terminals for one session through the client API
+(skip) isolates servers sharing a database and preserves terminals only through explicit restart handoff
+(skip) migrates a legacy runtime directory on restart and boots fresh when the registration is gone
+
+test\process.test.ts:
+(pass) authenticates API requests behind the frontend transform while allowing browser preflight [65.78ms]
+(pass) pairing links sign in browsers with a cookie and API clients with a token [32.87ms]
+(pass) server info lists remote URLs alongside local addresses while they are available [25.86ms]
+
+test\provider.test.ts:
+(pass) provider reads stay nonblocking while authentication discovery waits for plugins [197.34ms]
+
+test\pty-socket.property.test.ts:
+(pass) runPtySocket preserves ordering, detaches once, and ends correctly under random interleavings [522.83ms]
+
+test\pty-socket.test.ts:
+(pass) delivers input in order and detaches when the client closes [0.64ms]
+(pass) writes queued output through the close frame and detaches [0.26ms]
+(pass) detaches when the socket fails while the outbox drain is blocked [0.26ms]
+(pass) detaches when interrupted [0.22ms]
+
+test\pty-transport.test.ts:
+(skip) PTY websocket preserves replay, text and binary input, resize, reconnect, and exit
+
+test\request-tracing.test.ts:
+(pass) requests ignore ambient parents and continue inbound trace context [0.79ms]
+
+test\rpc-handler-errors.test.ts:
+(pass) returns HTTP 500 without exposing the handler defect [182.40ms]
+(pass) returns HTTP 500 without exposing the schema defect [184.52ms]
+
+test\service-status.test.ts:
+(pass) moves from starting to ready [0.35ms]
+(pass) keeps a startup failure until shutdown [0.25ms]
+(pass) keeps stopping after shutdown begins [0.20ms]
+
+test\session-create.test.ts:
+(pass) creates a child at its parent's location and lists it under the parent [257.71ms]
+(pass) returns not found when creating a child of a missing session [12.92ms]
+
+test\session-diff.test.ts:
+(pass) serves turn diffs by user message with range validation [342.01ms]
+
+test\session-import.test.ts:
+(pass) preserves imported parentID through HTTP import, read, and parent filter [255.29ms]
+(pass) rejects a missing parent without creating the imported session [136.93ms]
+(pass) rejects a self parent without creating the imported session [131.53ms]
+
+test\session-instances.test.ts:
+(pass) isolates same-directory Session tools, hooks, commands, and HTTP requests through one selector [467.26ms]
+
+test\session-update.test.ts:
+(pass) updates session metadata through PATCH [289.27ms]
+
+test\sse-failure.test.ts:
+[13:00:29.757] INFO (#66970) http.span=1ms: Sent HTTP response {
+  "http.method": "GET",
+  "http.url": "/api/experimental/session/ses_test/log",
+  "http.status": 200,
+}
+(pass) encodes a mid-stream session log failure as the reserved SSE failure event [1.90ms]
+[13:00:29.768] INFO (#66973) http.span=1ms: Sent HTTP response {
+  "http.method": "GET",
+  "http.url": "/api/experimental/session/ses_test/log",
+  "http.status": 200,
+}
+(pass) the generated Effect client fails the session log stream with the server's defect [12.35ms]
+
+test\vcs.test.ts:
+(pass) initializes Git in a markerless project and refreshes its location [1115.84ms]
+(pass) does not create a project directory while initializing Git [60.58ms]
+(pass) accepts an explicit Git provider and rejects unknown providers without initializing [376.44ms]
+(pass) returns 501 when a registered VCS provider has no initializer [194.02ms]
+(skip) Mercurial initialization > initializes and serves an untracked-file diff through the Hg provider
+(pass) serves lazy review bases, committed diffs, and unavailable-base errors [1734.62ms]
+(pass) maps a failing base provider to HTTP 503 instead of null metadata [125.79ms]
+
+test\workerd.test.ts:
+(pass) boots the workerd profile over durable object storage [16.65ms]
+
+test\worktree.test.ts:
+(pass) list reads saved inventory even when its checkout is missing, without booting a location [389.33ms]
+(pass) refresh discovers both clones while list alone never discovers external worktrees [1521.19ms]
+(pass) remove loads canonical strategies and enforces project ownership [1399.94ms]
+(pass) lists, creates, and removes worktrees by project ID [1011.44ms]
+(pass) uses project configuration independently of default location headers [1238.37ms]
+(pass) uses canonical plugins for shared clones and recorded strategy removal [1839.58ms]
+(pass) canonical plugin setup can create using registrations made so far [971.18ms]
+
+6 tests skipped:
+(skip) reads the latest controlled terminal with optional physical line counts through the SDK
+(skip) creates two persistent terminals for one session through the client API
+(skip) isolates servers sharing a database and preserves terminals only through explicit restart handoff
+(skip) migrates a legacy runtime directory on restart and boots fresh when the registration is gone
+(skip) PTY websocket preserves replay, text and binary input, resize, reconnect, and exit
+(skip) Mercurial initialization > initializes and serves an untracked-file diff through the Hg provider
+
+ 79 pass
+ 6 skip
+ 0 fail
+ 5925 expect() calls
+Ran 85 tests across 31 files. [32.54s]
+exit=0
+
+
+=== 14. packages/core full suite (run separately to a file at 72f71d551a; the in-script capture was stopped because it was writing ~5 MB line by line) ===
+ 5345 pass
+ 1221 skip
+ 161 fail
+Ran 6727 tests across 268 files. [400.45s]
+
+--- the 15 core files that hold every failing test, run at the baseline an/checkpoint-pre-flow1 (3666b13b38) and at HEAD 72f71d551a:
+files: test/config/command-subagent, config/config, config/reload, effect/cross-spawn-spawner, location-filesystem, npm, persistent-pty-daemon, preload, session-runner-recorded, shell-scan/{arithmetic,bash-safety,bash-syntax,compound-parity,parity-regressions}, snapshot
+baseline 3666b13b38:
+ 1322 pass
+ 414 skip
+ 160 fail
+Ran 1896 tests across 15 files. [80.98s]
+HEAD 72f71d551a:
+ 1323 pass
+ 414 skip
+ 159 fail
+Ran 1896 tests across 15 files. [78.04s]
+Reading: the failures are pre-existing and environment-bound (real bash on Windows, home/XDG roots, npm cache, daemons, timing). They fail the same way before F1. None of these files imports src/flow.
+
+=== 15. after 72f71d551a (new flow tests): core typecheck exit 0; bun test test/flow-unit.test.ts test/flow.test.ts -> 35 pass, 0 fail ===
+
+=== 16. Dev check (opencode-aporia-dev.db only; loopback test server 127.0.0.1:48123; screenshots on the box under /workspace/aporetic/flow1/) ===
+19 flow.saved flow:saved:five:1   2026-10-17T12:52:29.968Z
+20 flow.run.requested flow:run:manual:five:panel-mvceco4e-jfnsfehcom   2026-10-17T12:52:42.403Z
+21 flow.step.started flow:step:cor_149ebf323001jkIznC8t8MEr3K:start:1   2026-10-17T12:52:42.616Z
+22 flow.step.succeeded flow:step:cor_149ebf323001jkIznC8t8MEr3K:start:1:ok   2026-10-17T12:52:42.617Z
+23 flow.step.started flow:step:cor_149ebf323001jkIznC8t8MEr3K:fetch:1   2026-10-17T12:52:42.617Z
+24 flow.step.succeeded flow:step:cor_149ebf323001jkIznC8t8MEr3K:fetch:1:ok   2026-10-17T12:52:42.619Z
+25 flow.step.started flow:step:cor_149ebf323001jkIznC8t8MEr3K:check:1   2026-10-17T12:52:42.637Z
+26 flow.step.succeeded flow:step:cor_149ebf323001jkIznC8t8MEr3K:check:1:ok   2026-10-17T12:52:42.638Z
+27 flow.step.started flow:step:cor_149ebf323001jkIznC8t8MEr3K:shape:1   2026-10-17T12:52:42.639Z
+28 flow.step.succeeded flow:step:cor_149ebf323001jkIznC8t8MEr3K:shape:1:ok   2026-10-17T12:52:42.640Z
+29 flow.step.started flow:step:cor_149ebf323001jkIznC8t8MEr3K:join:1   2026-10-17T12:52:42.641Z
+30 flow.step.succeeded flow:step:cor_149ebf323001jkIznC8t8MEr3K:join:1:ok   2026-10-17T12:52:42.641Z
+31 flow.run.completed flow:run-end:cor_149ebf323001jkIznC8t8MEr3K   2026-10-17T12:52:42.643Z
+32 flow.run.requested flow:run:manual:five:panel-mvcef4k1-kbhy8p771c   2026-10-17T12:54:37.012Z
+33 flow.step.started flow:step:cor_149edb2d30013PVaAf8SpA2Zlc:start:1   2026-10-17T12:54:37.846Z
+34 flow.step.succeeded flow:step:cor_149edb2d30013PVaAf8SpA2Zlc:start:1:ok   2026-10-17T12:54:37.847Z
+35 flow.step.started flow:step:cor_149edb2d30013PVaAf8SpA2Zlc:fetch:1   2026-10-17T12:54:37.850Z
+36 flow.step.succeeded flow:step:cor_149edb2d30013PVaAf8SpA2Zlc:fetch:1:ok   2026-10-17T12:54:37.851Z
+37 flow.step.started flow:step:cor_149edb2d30013PVaAf8SpA2Zlc:check:1   2026-10-17T12:54:37.852Z
+38 flow.step.succeeded flow:step:cor_149edb2d30013PVaAf8SpA2Zlc:check:1:ok   2026-10-17T12:54:37.853Z
+39 flow.step.started flow:step:cor_149edb2d30013PVaAf8SpA2Zlc:shape:1   2026-10-17T12:54:37.854Z
+40 flow.step.succeeded flow:step:cor_149edb2d30013PVaAf8SpA2Zlc:shape:1:ok   2026-10-17T12:54:37.854Z
+41 flow.step.started flow:step:cor_149edb2d30013PVaAf8SpA2Zlc:join:1   2026-10-17T12:54:37.855Z
+42 flow.step.succeeded flow:step:cor_149edb2d30013PVaAf8SpA2Zlc:join:1:ok   2026-10-17T12:54:37.856Z
+43 flow.run.completed flow:run-end:cor_149edb2d30013PVaAf8SpA2Zlc   2026-10-17T12:54:37.857Z
+44 flow.run.requested flow:run:slash:five:slash-mvcegrig-r3cavvx6um   2026-10-17T12:55:53.419Z
+45 flow.step.started flow:step:cor_149eedd4a0015dDTmS3OsTm136:start:1   2026-10-17T12:55:53.967Z
+46 flow.step.succeeded flow:step:cor_149eedd4a0015dDTmS3OsTm136:start:1:ok   2026-10-17T12:55:53.968Z
+47 flow.step.started flow:step:cor_149eedd4a0015dDTmS3OsTm136:fetch:1   2026-10-17T12:55:53.976Z
+48 flow.step.succeeded flow:step:cor_149eedd4a0015dDTmS3OsTm136:fetch:1:ok   2026-10-17T12:55:53.977Z
+49 flow.step.started flow:step:cor_149eedd4a0015dDTmS3OsTm136:check:1   2026-10-17T12:55:53.979Z
+50 flow.step.succeeded flow:step:cor_149eedd4a0015dDTmS3OsTm136:check:1:ok   2026-10-17T12:55:53.979Z
+51 flow.step.started flow:step:cor_149eedd4a0015dDTmS3OsTm136:shape:1   2026-10-17T12:55:53.981Z
+52 flow.step.succeeded flow:step:cor_149eedd4a0015dDTmS3OsTm136:shape:1:ok   2026-10-17T12:55:53.982Z
+53 flow.step.started flow:step:cor_149eedd4a0015dDTmS3OsTm136:join:1   2026-10-17T12:55:53.982Z
+54 flow.step.succeeded flow:step:cor_149eedd4a0015dDTmS3OsTm136:join:1:ok   2026-10-17T12:55:53.983Z
+55 flow.run.completed flow:run-end:cor_149eedd4a0015dDTmS3OsTm136   2026-10-17T12:55:53.984Z
+56 flow.saved flow:saved:nap:1   2026-10-17T12:56:48.716Z
+57 flow.run.requested flow:run:manual:nap:panel-mvcei7uy-qd7m5xux9a   2026-10-17T12:57:01.262Z
+58 flow.step.started flow:step:cor_149efe64e001QE2FkA0g4cVgt6:a:1   2026-10-17T12:57:02.070Z
+59 flow.step.succeeded flow:step:cor_149efe64e001QE2FkA0g4cVgt6:a:1:ok   2026-10-17T12:57:02.070Z
+60 flow.step.started flow:step:cor_149efe64e001QE2FkA0g4cVgt6:b:1   2026-10-17T12:57:02.071Z
+61 flow.step.succeeded flow:step:cor_149efe64e001QE2FkA0g4cVgt6:b:1:ok   2026-10-17T12:57:02.071Z
+62 flow.step.started flow:step:cor_149efe64e001QE2FkA0g4cVgt6:nap:1   2026-10-17T12:57:02.072Z
+63 flow.step.succeeded flow:step:cor_149efe64e001QE2FkA0g4cVgt6:nap:1:ok   2026-10-17T12:57:35.088Z
+64 flow.step.started flow:step:cor_149efe64e001QE2FkA0g4cVgt6:fetch:1   2026-10-17T12:57:35.097Z
+65 flow.step.succeeded flow:step:cor_149efe64e001QE2FkA0g4cVgt6:fetch:1:ok   2026-10-17T12:57:35.108Z
+66 flow.step.started flow:step:cor_149efe64e001QE2FkA0g4cVgt6:done:1   2026-10-17T12:57:35.110Z
+67 flow.step.succeeded flow:step:cor_149efe64e001QE2FkA0g4cVgt6:done:1:ok   2026-10-17T12:57:35.111Z
+68 flow.run.completed flow:run-end:cor_149efe64e001QE2FkA0g4cVgt6   2026-10-17T12:57:35.113Z
+test server hits after the check: {"GET /hits":6,"GET /data":4}
+Dev listeners (worktree processes): 127.0.0.1:3084, 127.0.0.1:9222, ::1:5173 (vite), 127.0.0.1 sidecar API port; 4096 (installed app, pid 34140) untouched; 49375 (orphan pid 41844) untouched.
+
+
+==================== Re-fix after the independent verifier's FAIL at 54cdbd55e6 (still NOT closed) ====================
+generated: 2026-10-17 10:10 America/Chicago (PC local)
+pre-fix checkpoint tag: an/checkpoint-flow1-pre-fix = 54cdbd55e6
+fix commit: 8007ecff2c fix(core): one flow runner per database, no lock across I/O, and a tighter HTTP boundary
+bun: 1.4.3 (%USERPROFILE%\.bun\bin\bun.exe, matching the repo pin; the 1.4.0 npm shim was not used)
+
+--- A. the new regression tests run against the OLD engine (src/flow/{service,run,runner,http,definition,steps,expr}.ts
+       temporarily checked out from 54cdbd55e6, tests and lease files from the fix; restored afterwards, git status clean for those files) ---
+
+(fail) H1 one runner per database > two services on one file database: a slow GET in flight is called once, with no 
+card [10247.86ms]
+(fail) H1 one runner per database > two services on one file database: a slow POST in flight is called once, with no 
+card [110.09ms]
+(fail) H1 one runner per database > two runner loops on one file database: a slow GET is called once, with no card 
+[468.01ms]
+(fail) H1 one runner per database > two runner loops on one file database: a slow POST is called once, with no card 
+[467.49ms]
+(pass) H1 one runner per database > a step whose owner no longer holds the lease was cut off: a GET runs again, a POST 
+raises one card [11.59ms]
+(fail) H1 one runner per database > a step whose owner still holds the lease is left alone; once the lease runs out it 
+is a crash [46.61ms]
+(fail) M3 no lock across I/O > a slow step (60 s timeout, still in flight) in one run does not hold up another run 
+[15000.26ms]
+(fail) M3 no lock across I/O > the runner loop keeps polling while a slow step is in flight [1085.79ms]
+(fail) M1/M2 routing headers and userinfo > save refuses Host, hop-by-hop, Proxy-*, X-Forwarded-*, method overrides 
+and userinfo [252.56ms]
+(fail) M1/M2 routing headers and userinfo > a definition that slipped past save (an older version) is refused again at 
+run, with no request sent [12.03ms]
+(fail) M1/M2 routing headers and userinfo > a set step writing __proto__ is refused at save and fails at run without 
+touching the prototype [90.87ms]
+ 19 pass
+ 10 fail
+
+
+
+Reading: 10 of the 11 new engine tests fail on the old code, which is the reproduction. The one that passes on both
+("owner no longer holds the lease ... GET runs again, POST raises one card") is the guard that a genuinely dead owner
+still yields the crash behaviour; it must pass before and after.
+
+--- B. gates at 8007ecff2c (script: one command per gate, summary lines kept) ---
+bun: 1.4.3  HEAD: 8007ecff2c  started: 2026-10-17 09:59:05 America/Chicago
+
+=== 1. coordination ===
+--- cwd: packages\core ; command: bun test test/coordination.test.ts ---
+ 13 pass
+ 0 fail
+Ran 13 tests across 1 file. [941.00ms]
+exit=0
+
+=== 2. mission ===
+--- cwd: packages\core ; command: bun test test/mission.test.ts ---
+ 9 pass
+ 0 fail
+Ran 9 tests across 1 file. [1267.00ms]
+exit=0
+
+=== 3. attention ===
+--- cwd: packages\core ; command: bun test test/attention.test.ts ---
+ 9 pass
+ 0 fail
+Ran 9 tests across 1 file. [1162.00ms]
+exit=0
+
+=== 3a. flow-unit ===
+--- cwd: packages\core ; command: bun test test/flow-unit.test.ts ---
+ 22 pass
+ 0 fail
+Ran 22 tests across 1 file. [154.00ms]
+exit=0
+
+=== 3b. flow (engine + H1/M3/M1/M2 regressions) ===
+--- cwd: packages\core ; command: bun test test/flow.test.ts ---
+ 29 pass
+ 0 fail
+Ran 29 tests across 1 file. [4.56s]
+exit=0
+
+=== 4. core typecheck ===
+--- cwd: packages\core ; command: bunx tsgo -b tsconfig.json tsconfig.tests.json ---
+exit=0
+
+=== 4a. core migration check ===
+--- cwd: packages\core ; command: bun run script/migration.ts --check ---
+exit=0
+
+=== 5. server typecheck ===
+--- cwd: packages\server ; command: bunx tsgo -b ---
+exit=0
+
+=== 6. server mission + flow routes ===
+--- cwd: packages\server ; command: bun test test/mission.test.ts test/flow.test.ts ---
+ 2 pass
+ 0 fail
+Ran 2 tests across 2 files. [9.27s]
+exit=0
+
+=== 7. protocol check:generated ===
+--- cwd: packages\protocol ; command: bun run check:generated ---
+$ bun run script/generate-openapi.ts --check
+error: script "check:generated" exited with code 1
+exit=1
+
+=== 8. client check:generated ===
+--- cwd: packages\client ; command: bun run check:generated ---
+$ bun run generate && git diff --exit-code -- src/promise/generated src/effect/generated src/effect/api
+$ bun run script/build.ts
+exit=0
+
+=== 9. app bun test src/aporia ===
+--- cwd: packages\app ; command: bun test src/aporia ---
+ 63 pass
+ 0 fail
+Ran 63 tests across 12 files. [1.54s]
+exit=0
+
+=== 10. desktop bun test src/main/aporia ===
+--- cwd: packages\desktop ; command: bun test src/main/aporia ---
+ 62 pass
+ 0 fail
+Ran 62 tests across 10 files. [1.93s]
+exit=0
+
+=== 11. app typecheck (known: 2 pre-existing TS1128) ===
+--- cwd: packages\app ; command: bunx tsgo -b ---
+src/custom-elements.d.ts(1,1): error TS1128: Declaration or statement expected.
+src/custom-elements.d.ts(1,2): error TS1128: Declaration or statement expected.
+exit=1
+
+=== 12. desktop typecheck (same 2 via ../app) ===
+--- cwd: packages\desktop ; command: bunx tsgo -b ---
+../app/src/custom-elements.d.ts(1,1): error TS1128: Declaration or statement expected.
+../app/src/custom-elements.d.ts(1,2): error TS1128: Declaration or statement expected.
+exit=1
+
+=== 13. server full suite ===
+--- cwd: packages\server ; command: bun test ---
+TimeoutError: Operation timed out after '2s'
+ ~effect/Cause/TimeoutError: "~effect/Cause/TimeoutError",
+error: Operation timed out after '2s'
+ ~effect/Cause/TimeoutError: "~effect/Cause/TimeoutError",
+(fail) cancels a stale OpenAI OAuth callback server before falling back [2118.59ms]
+(fail) falls back to port 1457 when OpenAI OAuth port 1455 remains busy [6833.98ms]
+106 |         const onError = (error: Error) => resume(Effect.fail(error))
+error: Failed to start server. Is port 1455 in use?
+106 |         const onError = (error: Error) => resume(Effect.fail(error))
+error: Failed to start server. Is port 1455 in use?
+(fail) explains how to recover when both OpenAI OAuth callback ports are busy [1.18ms]
+(skip) PTY websocket preserves replay, text and binary input, resize, reconnect, and exit
+(skip) PTY websocket preserves replay, text and binary input, resize, reconnect, and exit
+(fail) cancels a stale OpenAI OAuth callback server before falling back [2118.59ms]
+(fail) falls back to port 1457 when OpenAI OAuth port 1455 remains busy [6833.98ms]
+(fail) explains how to recover when both OpenAI OAuth callback ports are busy [1.18ms]
+ 76 pass
+ 6 skip
+ 3 fail
+Ran 85 tests across 31 files. [31.81s]
+exit=1
+
+finished: 2026-10-17 10:00:19 America/Chicago
+
+Notes on B:
+- Gate 7 (protocol check:generated) failed on its first run: the check compares bytes, and the working copy of
+  packages/protocol/openapi.json had CRLF line endings (core.autocrlf=true). `bun run generate` rewrote it with no
+  content change (`git diff --exit-code -- packages/protocol packages/client` exit 0), and the re-run passed:
+  `bun run check:generated` exit=0. This commit does not touch packages/protocol or packages/client.
+- Gate 13 (server full suite) had 3 failures on its first run, all OpenAI OAuth callback tests in test/fetch.test.ts
+  ("port 1455 in use"); port 1455 showed only TIME_WAIT sockets (owning pid 0) from earlier test runs. test/fetch.test.ts
+  alone: 12 pass / 0 fail twice; full server suite re-run 60 s later: 79 pass, 6 skip, 0 fail, Ran 85 tests across 31 files, exit=0.
+- Gates 11/12: only the two pre-existing TS1128 errors in packages/app/src/custom-elements.d.ts, as before.
+
+--- C. packages/core full suite at 8007ecff2c (bun test, written to a file) ---
+ 5363 pass
+ 1221 skip
+ 159 fail
+Ran 6743 tests across 268 files. [399.30s]
+exit=1
+Compared by failing test name (unique names): 152 unique failing names now; every one of them also fails in the
+verifier's baseline full-suite log at an/checkpoint-pre-flow1 (3666b13b38). Failing now but not at baseline: 0.
+No failing test name mentions flow, lease or the F1/H1/M3 suites. Totals move from 6727 to 6743 tests (+16 new:
+11 engine, 5 unit) and from 161 to 159 failures (the earlier evidence at 72f71d551a); the remaining failures are the
+pre-existing environment-bound ones (real bash on Windows, home/XDG roots, npm cache, daemons, timing).
+Caveat: the verifier's baseline log came from a noisier run (894 failures), so "subset of it" is a weak test on its own.
+Stronger check: the 159 failures now come from 13 files: config/command-subagent 4, config/config 3, config/reload 4,
+effect/cross-spawn-spawner 1, location-filesystem 1, persistent-pty-daemon 1, preload 1, session-runner-recorded 1,
+shell-scan/arithmetic 7, bash-safety 81, bash-syntax 50, compound-parity 4, parity-regressions 1. All 13 are among the 15
+known-failing files listed in section 14 (npm and snapshot have no failures in this run). None of them imports src/flow.
+
+--- D. not re-run in this pass ---
+- The Dev check (Dev app on opencode-aporia-dev.db). Running Dev with this code would apply the additive
+  flow_runner_lease migration to the dev database; that was left for the re-verify or for Ali.
+- Untouched throughout: the installed app, port 4096, the orphan pid 41844 on 49375, switch-dev-to-isolated.cmd, the
+  verifier's worktree .worktrees\verify-flow1 and its logs (only read). Nothing pushed; no done tag.

@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en" data-an-theme="an">
+<head>
+  <meta charset="utf-8" />
+  <title>AP-STAGE4-4C/4D chrome fixture — Aporetic</title>
+  <style>
+    /* Inlined from packages/ui/src/styles/tokens/an.css + presence/Computer View chrome */
+    :root, [data-an-theme="an"] {
+      --an-gold: #f0c66d; --an-gold-deep: #d79a2e; --an-gold-soft: #e5c57f; --an-gold-muted: #cfac62;
+      --an-green: #3be78c; --an-ink: #03070b; --an-void: #020509;
+      --an-panel: rgba(6, 14, 22, 0.44); --an-panel-raised: rgba(8, 16, 24, 0.52); --an-panel-glass: rgba(10, 20, 30, 0.32);
+      --an-border: rgba(240, 198, 109, 0.26); --an-border-soft: rgba(240, 198, 109, 0.12); --an-border-strong: rgba(240, 198, 109, 0.42);
+      --an-glow: rgba(231, 154, 29, 0.22); --an-text: #f0e6d2; --an-text-muted: #cfac62; --an-text-faint: #7b8aa3;
+      --an-radius-sm: 10px; --an-radius: 14px; --an-radius-pill: 999px;
+      --an-nav-width: 56px; --an-roster-width: 280px; --an-attention-width: 320px; --an-attention-width-view: 420px;
+      --an-blur-strong: 42px; --an-ease: 280ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: #020509; color: var(--an-text);
+      font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif; }
+    .note { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 5;
+      font-size: 11px; color: var(--an-text-faint); letter-spacing: 0.04em; }
+    [data-component="an-shell"] {
+      display: grid; height: 100vh;
+      grid-template-columns: var(--an-nav-width) var(--an-roster-width) minmax(0,1fr) var(--an-attention-width);
+      color: var(--an-text);
+      background:
+        radial-gradient(ellipse 88% 52% at 76% -10%, rgba(240,198,109,0.16), transparent 54%),
+        radial-gradient(ellipse 55% 42% at 12% 8%, rgba(170,210,255,0.07), transparent 50%),
+        linear-gradient(165deg, #040910 0%, var(--an-void) 44%, #03070c 100%);
+    }
+    [data-component="an-shell"][data-mode="view"] {
+      grid-template-columns: var(--an-nav-width) var(--an-roster-width) minmax(0,1fr) var(--an-attention-width-view);
+    }
+    .an-nav, .an-roster, .an-attention, .an-main {
+      border-right: 1px solid var(--an-border-soft);
+      backdrop-filter: blur(var(--an-blur-strong));
+      background: var(--an-panel-glass);
+    }
+    .an-nav { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 14px 0; }
+    .an-nav-brand { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center;
+      border: 1px solid var(--an-border); color: var(--an-gold); font-weight: 700; }
+    .an-roster { padding: 14px 12px; display: flex; flex-direction: column; gap: 10px; }
+    .an-roster-header strong { display: block; color: var(--an-gold); }
+    .an-roster-header span { font-size: 11px; color: var(--an-text-muted); }
+    .an-roster-member { display: flex; gap: 10px; align-items: center; width: 100%;
+      padding: 8px; border-radius: 12px; border: 1px solid transparent; background: transparent; color: inherit; text-align: left; }
+    .an-roster-member[data-selected="true"] { border-color: var(--an-border); background: var(--an-panel); }
+    .an-roster-avatar { position: relative; width: 36px; height: 36px; border-radius: 50%;
+      display: grid; place-items: center; background: rgba(240,198,109,0.12); border: 1px solid var(--an-border-soft); font-size: 11px; font-weight: 700; }
+    .an-presence { position: absolute; right: -1px; bottom: -1px; width: 9px; height: 9px; border-radius: 50%;
+      border: 2px solid var(--an-ink); }
+    .an-presence-listening { background: var(--an-green); box-shadow: 0 0 6px rgba(59,231,140,0.35); }
+    .an-presence-thinking { background: var(--an-gold-soft); animation: an-presence-pulse 1.6s ease-in-out infinite; }
+    .an-presence-speaking { background: var(--an-gold); box-shadow: 0 0 10px var(--an-glow); animation: an-presence-pulse 1.1s ease-in-out infinite; }
+    .an-presence-working { background: var(--an-gold-deep); box-shadow: 0 0 8px var(--an-glow); }
+    .an-presence-waiting { background: #c9a35a; }
+    .an-presence-unknown { background: var(--an-text-faint); }
+    @keyframes an-presence-pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.72;transform:scale(.92)} }
+    .an-roster-text { display: flex; flex-direction: column; min-width: 0; gap: 2px; }
+    .an-roster-text strong { font-size: 13px; }
+    .an-roster-text span { font-size: 11px; color: var(--an-text-muted); }
+    .an-roster-presence { font-size: 10px !important; color: var(--an-text-muted); }
+    .an-roster-presence[data-presence="listening"] { color: var(--an-green) !important; }
+    .an-roster-presence[data-presence="thinking"],
+    .an-roster-presence[data-presence="speaking"],
+    .an-roster-presence[data-presence="working"] { color: var(--an-gold-muted) !important; }
+    .an-roster-presence[data-presence="waiting"] { color: #c9a35a !important; }
+    .an-roster-presence[data-presence="unknown"] { color: var(--an-text-faint) !important; }
+    .an-main { display: flex; flex-direction: column; min-width: 0; border-right: 1px solid var(--an-border-soft); }
+    .an-mission { display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      padding: 12px 16px; border-bottom: 1px solid var(--an-border-soft); background: var(--an-panel); }
+    .an-mission-copy strong { display: block; }
+    .an-mission-copy span { font-size: 11px; color: var(--an-text-muted); }
+    .an-mode-switch { display: flex; gap: 6px; }
+    .an-mode-btn { border-radius: var(--an-radius-pill); border: 1px solid var(--an-border-soft);
+      background: transparent; color: var(--an-text-muted); padding: 6px 12px; font-size: 12px; cursor: default; }
+    .an-mode-btn[data-active="true"] { border-color: var(--an-border-strong); color: var(--an-gold); background: rgba(240,198,109,0.08); }
+    .an-stream { flex: 1; padding: 16px; color: var(--an-text-muted); font-size: 12px; }
+    .an-attention { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+    .an-computer { border: 1px solid var(--an-border-soft); border-radius: var(--an-radius); padding: 10px;
+      background: var(--an-panel); display: flex; flex-direction: column; gap: 8px; }
+    .an-computer[data-size="large"] .an-computer-surface { min-height: 160px; }
+    .an-computer-header { display: flex; justify-content: space-between; align-items: center; }
+    .an-computer-header strong { font-size: 12px; }
+    .an-computer-badge { padding: 2px 8px; border-radius: var(--an-radius-pill); border: 1px solid var(--an-border-soft);
+      color: var(--an-text-faint); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; }
+    .an-computer-badge[data-live="true"] { color: var(--an-green); border-color: rgba(59,231,140,0.4); }
+    .an-computer-surface { display: grid; place-items: center; min-height: 88px; border-radius: var(--an-radius-sm);
+      border: 1px solid var(--an-border-soft); background: rgba(2,5,9,0.72); }
+    .an-computer-empty, .an-computer-note, .an-attention-empty { font-size: 11px; color: var(--an-text-faint); margin: 0; }
+    .an-attention-header { font-size: 11px; color: var(--an-gold-muted); letter-spacing: 0.06em; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <p class="note">Fixture chrome from stage4-presence-computer-view — not running-DEV live · AP-STAGE4-4C/4D</p>
+  <div data-component="an-shell" data-an-theme="an" data-mode="conversation" data-attention-always-on id="shell">
+    <nav class="an-nav" aria-label="AN navigation">
+      <div class="an-nav-brand" title="Aporetic">AN</div>
+    </nav>
+    <aside class="an-roster" aria-label="Bot Team roster">
+      <header class="an-roster-header">
+        <strong>Aporetic</strong>
+        <span>Local-first agentic teams</span>
+      </header>
+      <div class="an-roster-list">
+        <button type="button" class="an-roster-member" data-selected="true" data-presence="listening">
+          <span class="an-roster-avatar">OR<i class="an-presence an-presence-listening"></i></span>
+          <span class="an-roster-text"><strong>Orion</strong><span>Lead</span>
+            <span class="an-roster-presence" data-presence="listening">Listening</span></span>
+        </button>
+        <button type="button" class="an-roster-member" data-presence="thinking">
+          <span class="an-roster-avatar">MI<i class="an-presence an-presence-thinking"></i></span>
+          <span class="an-roster-text"><strong>Mira</strong><span>Research</span>
+            <span class="an-roster-presence" data-presence="thinking">Thinking</span></span>
+        </button>
+        <button type="button" class="an-roster-member" data-presence="speaking">
+          <span class="an-roster-avatar">KA<i class="an-presence an-presence-speaking"></i></span>
+          <span class="an-roster-text"><strong>Kai</strong><span>Builder</span>
+            <span class="an-roster-presence" data-presence="speaking">Speaking</span></span>
+        </button>
+        <button type="button" class="an-roster-member" data-presence="working">
+          <span class="an-roster-avatar">NO<i class="an-presence an-presence-working"></i></span>
+          <span class="an-roster-text"><strong>Nova</strong><span>Ops</span>
+            <span class="an-roster-presence" data-presence="working">Working</span></span>
+        </button>
+        <button type="button" class="an-roster-member" data-presence="waiting">
+          <span class="an-roster-avatar">RE<i class="an-presence an-presence-waiting"></i></span>
+          <span class="an-roster-text"><strong>Rex</strong><span>Review</span>
+            <span class="an-roster-presence" data-presence="waiting">Waiting</span></span>
+        </button>
+        <button type="button" class="an-roster-member" data-presence="unknown">
+          <span class="an-roster-avatar">??<i class="an-presence an-presence-unknown"></i></span>
+          <span class="an-roster-text"><strong>Quiet</strong><span>Idle</span>
+            <span class="an-roster-presence" data-presence="unknown">Unknown</span></span>
+        </button>
+      </div>
+    </aside>
+    <section class="an-main" aria-label="Mission conversation">
+      <header class="an-mission">
+        <div class="an-mission-copy">
+          <strong>Mission</strong>
+          <span>aporia-orion · demo</span>
+        </div>
+        <div class="an-mode-switch" role="radiogroup" aria-label="Shell mode (Conversation, Computer View, Takeover)">
+          <button type="button" class="an-mode-btn" data-mode="conversation" data-active="true">Conversation</button>
+          <button type="button" class="an-mode-btn" data-mode="view" data-active="false">Computer View</button>
+          <button type="button" class="an-mode-btn" data-mode="takeover" data-active="false">Takeover</button>
+        </div>
+      </header>
+      <div class="an-stream">Conversation stream (fixture). Presence labels are mapped from real signals in code — demo roster shows the five design states + unknown.</div>
+    </section>
+    <aside class="an-attention" aria-label="Attention and live computer">
+      <section class="an-computer" data-size="compact" aria-label="Computer View">
+        <header class="an-computer-header">
+          <strong>Computer View</strong>
+          <span class="an-computer-badge" data-live="false" data-state="unavailable">Unavailable</span>
+        </header>
+        <div class="an-computer-surface" data-empty="true">
+          <p class="an-computer-empty">Computer View has no live feed yet. Watch/control backends are not attached — chrome only.</p>
+        </div>
+        <p class="an-computer-note">Watch-only Computer View — live feed not attached. Input requires Takeover.</p>
+      </section>
+      <div class="an-attention-header">Attention</div>
+      <p class="an-attention-empty">No blockers right now.</p>
+    </aside>
+  </div>
+  <script>
+    // Toggle Computer View for second screenshot via ?mode=view
+    const params = new URLSearchParams(location.search)
+    const mode = params.get("mode") === "view" ? "view" : "conversation"
+    const shell = document.getElementById("shell")
+    shell.dataset.mode = mode
+    document.querySelectorAll(".an-mode-btn").forEach((btn) => {
+      btn.dataset.active = btn.dataset.mode === mode ? "true" : "false"
+    })
+    const computer = document.querySelector(".an-computer")
+    if (computer) computer.dataset.size = mode === "view" ? "large" : "compact"
+  </script>
+</body>
+</html>

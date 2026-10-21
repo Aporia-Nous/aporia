@@ -1,0 +1,34 @@
+bun test v1.4.0 (34cbb9a40)
+bun.exe : 
+At C:\Users\Dilla\AppData\Roaming\npm\bun.ps1:14 char:3
++   & "$basedir/node_modules/bun/bin/bun.exe"   $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+test\session-compaction.test.ts:
+(pass) compaction prompt preserves detailed work state and relevant files [0.07ms]
+(pass) S4: boundSummaryOutput caps estimated tokens at SUMMARY_BUDGET [0.15ms]
+(pass) compaction describes tool media without embedding base64 [69.86ms]
+(pass) compaction truncation does not split surrogate pairs [23.57ms]
+(pass) compaction prompt requires the checkpoint headings in order [0.11ms]
+(pass) compaction update prompt rewrites legacy checkpoints only when asked [0.03ms]
+(pass) compaction prompts prohibit task execution [0.03ms]
+(pass) auto compaction estimates current content against the buffered prompt ceiling [57.29ms]
+(pass) recent text fits keep even when the last user message is far behind the budget [15.11ms]
+(pass) manual compaction summarizes short context instead of no-op [14.85ms]
+(pass) compaction hooks can supply the summary instead of the model [12.14ms]
+(pass) native compaction fails without a model call on a route that cannot compact [9.91ms]
+(pass) forked session compaction reuses the fork root prompt cache key [12.24ms]
+(pass) J fixture 1: a session crossing the threshold keeps the correction, reference, restriction and pending work 
+[12.57ms]
+(pass) J fixture 4: tool schemas, tool output and attachments are accounted for and the compacted context fits 
+[13.95ms]
+(pass) J fixture 5: successive compactions keep one checkpoint, drop covered history and stay in budget [31.86ms]
+(pass) S4: successive comps store summary text within SUMMARY_BUDGET [17.73ms]
+(pass) S2: a near-zero reclaim cannot immediately auto-compact again [16.82ms]
+
+ 18 pass
+ 0 fail
+ 151 expect() calls
+Ran 18 tests across 1 file. [1045.00ms]

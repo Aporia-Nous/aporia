@@ -1,0 +1,32 @@
+AP-ENGINE-E05 writer live-DEV evidence
+recorded_date: 2026-10-19 (America/Chicago)
+work_date: 2026-10-19
+status: OPEN implemented+live-DEV (NOT INDEPENDENT PASS; NOT self-PASS)
+worktree: C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+branch: stage4-an-shell
+base: f3617b6685 (AP-ENGINE-E10 INDEPENDENT PASS)
+code: 7edeb4596c
+tip: 72dce8c771
+
+Shipped:
+  E05 — SessionHistory.assistantsWithOpenTools SQL EXISTS (streaming|running)
+       settleStaleToolCalls decodes only matching assistants
+       same post-compaction "latest" bound as prior store.context
+       drop unused SessionStore yield from SessionRunnerLLM settle path
+
+Unit (packages/core):
+  bun test test/session-history-open-tools.test.ts → 2 pass
+  bun test test/session-runner.test.ts -t "left running|stale subagent|pending tool input|abandoned compaction" → 6 pass
+  typecheck exit 0
+
+Live CDP (APORETIC_CDP_PORT=9223):
+  probe: docs/an-rewrite/evidence/cdp-probe-engine-e05.mjs
+  RESULT ok:true EXIT=0
+  marker: AP-ENGINE-E05 send 1792432372919
+  engine=oc-server enginePort=01 owned=composer timelineDisplay=none
+  note: EnginePort send non-regress; E05 behavior proven by unit
+  ws.close + process.exit
+
+Not claimed: INDEPENDENT PASS, E13, PORT-02, merge/push/install
+Follow-up: independent verifier; next ranked E13 after PASS
+Left alone: E13, PORT-02

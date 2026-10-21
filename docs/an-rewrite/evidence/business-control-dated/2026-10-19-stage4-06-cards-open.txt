@@ -1,0 +1,9 @@
+task=AP-STAGE4-06
+status=OPEN (ready for review; no PASS)
+worktree=C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4
+branch=stage4-an-shell
+base=39bf053c7b
+report=CURSOR-AP-STAGE4-06.md
+screenshot=09-conversation-an-cards.png
+tests=26 pass shell/an
+merge_push=none

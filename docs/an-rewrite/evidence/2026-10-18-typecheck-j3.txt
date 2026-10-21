@@ -1,0 +1,7 @@
+bun.exe : $ tsgo -b tsconfig.json tsconfig.tests.json
+At C:\Users\Dilla\AppData\Roaming\npm\bun.ps1:14 char:3
++   & "$basedir/node_modules/bun/bin/bun.exe"   $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ($ tsgo -b tscon...nfig.tests.json:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 

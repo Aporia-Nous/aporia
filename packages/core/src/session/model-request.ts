@@ -37,6 +37,7 @@ import { SessionProviderContext } from "./provider-context.js"
 import { SessionRunnerModel } from "./runner/model.js"
 import { SessionSchema } from "./schema.js"
 import { SessionSystemPrompt } from "./system-prompt.js"
+import { mergeLeanPackIntoInitial, omitRecentSectionFromPackText } from "./lean-pack.js"
 import { toLLMMessages } from "./runner/to-llm-message.js"
 import type { SessionMessage } from "./message.js"
 
@@ -49,8 +50,9 @@ const GENERATION_KEYS = new Set(Object.keys(GenerationOptions.fields))
 const OUTPUT_TOKEN_FALLBACK = 32_000
 // No reply needs more, however much the model allows.
 const OUTPUT_TOKEN_MAX = 256_000
-// A summary never needs more, and a request asking for more cannot be shrunk to fit a window the catalog overstates.
-const SUMMARY_OUTPUT_MAX = 32_000
+// A summary never needs more than the stored summary budget (RESERVE_MIN / SessionCompaction.SUMMARY_BUDGET). Asking
+// for more wastes tokens and lets successive updates grow the checkpoint past what we keep.
+const SUMMARY_OUTPUT_MAX = 16_000
 // Prompt text is estimated at about 4 characters per token, which can run low on dense text such as code.
 const ESTIMATE_ERROR = 0.15
 // Never ask for less; only reachable with automatic compaction off, since it keeps the window from filling this far.
@@ -102,16 +104,29 @@ export const baseTranscript = (input: {
   readonly model: SessionRunnerModel.Resolved
   readonly tools: Tool.Snapshot
   readonly initial: string
+  /**
+   * FLOW-GENIUS-02/03: optional shared lean pack text. Merged into `initial` once
+   * (no duplicate paste). SessionRunner drain auto-wires via mission-fold when linked;
+   * callers that already folded the pack into `initial` may omit this.
+   *
+   * AP-STAGE6-EFFICIENCY: when `messages` are non-empty, any `### Recent messages`
+   * block is stripped before merge so recent turns are not double-costed against
+   * `toLLMMessages`. Header guard still blocks re-paste into the same initial.
+   */
+  readonly leanPack?: string
   readonly messages: ReadonlyArray<SessionMessage.Info>
 }) => {
   const providerMetadataKey = input.model.model.route.providerMetadataKey ?? input.model.model.provider
+  const leanPack =
+    input.messages.length > 0 ? omitRecentSectionFromPackText(input.leanPack) : (input.leanPack?.trim() ?? "")
+  const initial = mergeLeanPackIntoInitial(input.initial, leanPack.length > 0 ? leanPack : undefined)
   return {
     providerMetadataKey,
     system: [
       input.agent.system
         ? input.agent.system
         : SessionSystemPrompt.make(input.tools.definitions.map((tool) => tool.name)),
-      input.initial,
+      initial,
     ]
       .filter((part) => part.length > 0)
       .map(SystemPart.make),
@@ -243,11 +258,28 @@ export const layer = Layer.effect(
         definitions: [],
         execute: () => new Tool.Error({ message: "Tools are not available for this request" }),
       }
+      // primary→context, compaction→compaction, generate→generate. Title has no tools.
+      // Clone schemas only when that hook family is registered; otherwise pass by reference
+      // so large MCP/code-mode toolsets do not allocate on every prepare (E06).
+      const toolHook =
+        kind === "primary" ? "context" : kind === "compaction" ? "compaction" : kind === "generate" ? "generate" : undefined
+      const hasToolHooks =
+        toolHook !== undefined && (yield* hooks.has("session", toolHook, model.ref.providerID))
       // Remember which tool each definition object came from. Hooks rename a tool by moving
       // its definition to a new key, so after the hook we find the tool by object identity.
-      const given = new Map(
-        tools.definitions.map((t) => [{ description: t.description, input: { ...t.inputSchema } }, t] as const),
-      )
+      type HookDef = Definitions[string]
+      let given: Map<HookDef, (typeof tools.definitions)[number]> | undefined
+      let toolsForHook: Definitions
+      if (hasToolHooks) {
+        given = new Map(
+          tools.definitions.map((t) => [{ description: t.description, input: { ...t.inputSchema } }, t] as const),
+        )
+        toolsForHook = Object.fromEntries(Array.from(given, ([d, t]) => [t.name, d]))
+      } else {
+        toolsForHook = Object.fromEntries(
+          tools.definitions.map((t) => [t.name, { description: t.description, input: t.inputSchema }]),
+        )
+      }
       // Hooks see the default output limit and may change or remove it. Titles and generate keep the provider default,
       // because their reasoning is hard to budget.
       const shaped = yield* shape(
@@ -261,14 +293,14 @@ export const layer = Layer.effect(
               ? { maxTokens: outputLimit(model.limit, kind, input.inputTokens) }
               : {},
         },
-        Object.fromEntries(Array.from(given, ([d, t]) => [t.name, d])),
+        toolsForHook,
       )
       // Match by identity first, then by key. Entries matching neither were invented by a
       // hook and are dropped. `t.name` stays the real name so execution can map renames back.
       const byName = new Map(tools.definitions.map((t) => [t.name, t]))
       const hooked = new Map(
         Object.entries(shaped.tools ?? {}).flatMap(([name, d]) => {
-          const t = given.get(d) ?? byName.get(name)
+          const t = given?.get(d) ?? byName.get(name)
           return t ? [[name, { ...t, description: d.description, inputSchema: d.input }] as const] : []
         }),
       )

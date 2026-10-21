@@ -1,4 +1,4 @@
-// APORIA: Settings > General toggle for the Aporia layout.
+// APORIA: Settings > General toggle for the Aporetic layout.
 import "./aporia.css"
 import { createResource, createSignal, For, Show } from "solid-js"
 import { Switch } from "@opencode/ui/switch"
@@ -8,7 +8,7 @@ import { aporiaPrefs } from "./prefs"
 export function AporiaLayoutSettingRow() {
   return (
     <SettingsRow
-      title="Aporia layout"
+      title="Aporetic layout"
       description="Three-column chat with a sessions sidebar, Details/Library/Computer panel, and Connect apps. Turn off for the stock view."
     >
       <div data-action="settings-aporia-layout">
@@ -21,11 +21,24 @@ export function AporiaLayoutSettingRow() {
 export function AporiaThemeSettingRow() {
   return (
     <SettingsRow
-      title="Aporia theme"
-      description="Keep the navy Aporia theme applied. Turn off to choose any other theme in Appearance."
+      title="Aporetic theme"
+      description="Keep the navy Aporetic theme applied when AN shell is off. Turn off to choose any other theme in Appearance."
     >
       <div data-action="settings-aporia-theme">
         <Switch checked={aporiaPrefs.aporiaTheme()} onChange={(checked) => aporiaPrefs.setAporiaTheme(checked)} />
+      </div>
+    </SettingsRow>
+  )
+}
+
+export function AnShellSettingRow() {
+  return (
+    <SettingsRow
+      title="AN shell"
+      description="Stage 4 black/gold shell: nav, roster, mission header, attention. Sticky an theme. Turn off for the navy Aporetic three-column layout."
+    >
+      <div data-action="settings-an-shell">
+        <Switch checked={aporiaPrefs.anShellEnabled()} onChange={(checked) => aporiaPrefs.setAnShellEnabled(checked)} />
       </div>
     </SettingsRow>
   )
@@ -66,7 +79,7 @@ export function AporiaOwnerSettingRows() {
       </SettingsRow>
       <SettingsRow
         title="Daily spend cap"
-        description={`Optional. Blocks spend-type Votel actions through Aporia once reached. ${info()?.spendCap ? `Now $${info()!.spendCap}/day, $${(info()?.spentToday ?? 0).toFixed(2)} used today.` : "Off."}`}
+        description={`Optional. Blocks spend-type Votel actions through Aporetic once reached. ${info()?.spendCap ? `Now $${info()!.spendCap}/day, $${(info()?.spentToday ?? 0).toFixed(2)} used today.` : "Off."}`}
       >
         <form
           class="flex items-center gap-2"

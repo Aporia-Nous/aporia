@@ -61,7 +61,31 @@ const exclusions = [
   /too many requests/i,
   // Cohere reports an output limit above the model maximum as "too many tokens"; compaction cannot fix it.
   /max[_ ]tokens must be less than/i,
+  // Concurrent/connection caps and output caps share overflow-looking phrasing.
+  // Keep these narrow: Workers AI reports "input and maximum output tokens … exceeded
+  // this model context window" which must still classify as context-overflow.
+  /exceeds the limit of \d+ (?:concurrent|simultaneous|parallel|active)/i,
+  /too many (?:concurrent|active|parallel) (?:requests|connections|sessions)/i,
+  /output token(?:s)? (?:limit|cap|budget) exceeded/i,
+  /maximum output length for this model/i,
+  // Config/setup language — not a prompt that compaction can shrink.
+  /missing (?:the )?context window/i,
+  /context window (?:is )?(?:not )?(?:configured|set|available)/i,
 ]
+
+/** Structured codes checked before phrase heuristics (OpenAI / Azure / gateways / Bedrock skins). */
+const CONTEXT_OVERFLOW_CODES = new Set([
+  "context_length_exceeded",
+  "model_context_window_exceeded",
+  "request_too_large",
+  "prompt_too_long",
+  "context_window_exceeded",
+  "input_tokens_exceeded",
+  "prompt_tokens_too_large",
+  "max_context_length",
+  "context_length",
+  "string_above_max_length",
+])
 
 export const isContextOverflow = (message: string) =>
   !exclusions.some((pattern) => pattern.test(message)) &&
@@ -246,13 +270,7 @@ export function classifyProviderFailure(input: ProviderFailure): AIError["reason
   const text = [input.message, body].filter((value) => value.length > 0).join("\n")
   const clientScoped = input.status === undefined || (input.status >= 400 && input.status < 500)
 
-  if (
-    clientScoped &&
-    (codes.includes("context_length_exceeded") ||
-      codes.includes("model_context_window_exceeded") ||
-      codes.includes("request_too_large") ||
-      isContextOverflow(text))
-  )
+  if (clientScoped && (codes.some((code) => CONTEXT_OVERFLOW_CODES.has(code)) || isContextOverflow(text)))
     return new InvalidRequestError({ ...details, classification: "context-overflow" })
   if (input.status === 413 || isPayloadTooLarge(text))
     return new InvalidRequestError({ ...details, classification: "payload-too-large" })

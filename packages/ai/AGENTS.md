@@ -20,7 +20,7 @@ Media payloads are always `Media.Asset` (`src/media.ts`). Construct them with `M
 
 Nothing in `src/*` except `src/promise.ts` may know about Promises. `@opencode/ai/promise` (`AI.make({ layer? })`, default `ai`) is the single Promise/`AsyncIterable` surface for LLM and media; it runs the Effect APIs in one `ManagedRuntime` and rethrows `AIError` unchanged.
 
-- Prefer forward compatibility for provider-defined options that OpenCode only passes through. For pass-through string enums, expose known values for autocomplete while accepting future values with `Known | (string & {})`, and accept any string at runtime. Closed literals are appropriate when OpenCode branches on a value, transforms its associated structure, or otherwise cannot correctly handle an unknown variant. New options whose shape or behavior requires implementation remain unsupported until they are handled; do not blindly forward unknown structures.
+- Prefer forward compatibility for provider-defined options that Aporetic only passes through. For pass-through string enums, expose known values for autocomplete while accepting future values with `Known | (string & {})`, and accept any string at runtime. Closed literals are appropriate when Aporetic branches on a value, transforms its associated structure, or otherwise cannot correctly handle an unknown variant. New options whose shape or behavior requires implementation remain unsupported until they are handled; do not blindly forward unknown structures.
 - Order reasoning-effort values from lowest to highest: `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`. Provider-specific subsets follow the same relative order in types, schemas, option lists, and tests.
 
 ## Tests

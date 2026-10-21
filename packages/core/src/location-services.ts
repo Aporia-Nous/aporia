@@ -53,6 +53,8 @@ export function buildLocationServiceMap(
         },
         // Retain healthy graphs. Boot failures, not local filesystem probes,
         // decide whether a location (including workspace placement) can retry.
+        // Idle eviction is owned by LocationActivity (location-activity.ts), which interrupts
+        // in-flight work before closing a location's scope; the LayerMap never evicts on its own.
         { idleTimeToLive: Duration.infinity },
       )
       const map = {

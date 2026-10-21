@@ -1,0 +1,193 @@
+============================== Stage 2 gates (branch an/stage-2-event-store) ============================== 
+branch: 
+an/stage-2-event-store
+log: 
+e6869096f0 docs(an-rewrite): Stage 2 closes on an independent PASS
+bceeb3b841 docs(an-rewrite): scope the Stage 2 pass-5 summary to what was recorded
+61d56d7af9 docs(an-rewrite): put the pass 5 record in STATUS and tree it in the passes file
+61c9c54782 docs(an-rewrite): store the packages/ tree-hash proof for Stage 2
+4609dc189e docs(an-rewrite): stop retyping the Stage 2 commit list
+3c7d13e7ed docs(an-rewrite): store the docs-only diff proof for Stage 2
+592834ffb2 docs(an-rewrite): complete the Stage 2 commit list and record pass 4
+3901d73d03 docs(an-rewrite): cite the tip the evidence was generated at
+a77ac8747c docs(an-rewrite): regenerate the Stage 2 evidence at the corrected tip
+71bcc139cb docs(an-rewrite): fix the six claims the second verifier pass failed
+225781f019 fix(mission): make the restart proof depend on the log, not the waker
+86e11bca69 docs(an-rewrite): correct the Stage 2 record after the first verifier pass
+df5054e918 test(mission): pin the role rules and the approval resume
+849840bb55 fix(mission): make append's result honest and the wake dedupe log-backed
+2abfc71bf5 docs(an-rewrite): record Stage 2 with its stored runs and the dev-copy state
+96ee966d94 test(mission): prove the coordination rules and coordinator recovery
+285d02fa91 feat(mission): derive coordination state and the wake rules from the log
+07a85dfafc feat(mission): append-only mission event log with a replay cursor
+28859fd16e docs(an-rewrite): Stage 1 independent verification PASS, with the push state stored
+28b6f22a4d docs(an-rewrite): correct the Stage 1 commit count and cite the dev-copy counters
+note: the status below is taken before the evidence files this run writes are committed, so they 
+appear there as modified, untracked or deleted. Every code and docs file is otherwise at the state shown. 
+status --porcelain: 
+ D docs/an-rewrite/evidence/2026-10-17-stage2-branch-log.txt
+ M docs/an-rewrite/evidence/2026-10-17-stage2-gates.txt
+ 
+=== 1. coordination rules + restart recovery (test/coordination.test.ts) === 
+--- command: bun test test/coordination.test.ts --- 
+bun test v1.4.3 (c6da4a4d3)
+
+ 13 pass
+ 0 fail
+ 126 expect() calls
+Ran 13 tests across 1 file. [4.49s]
+exit=0 
+--- the test names in that file, so the run can be matched to the claims --- 
+71:  it.effect("an artifact wakes the reviewer once; a replay wakes nobody", () =>
+100:  it.effect("a replayed task.created makes one task", () =>
+122:  it.effect("an ack never produces a wake or another ack", () =>
+159:  it.effect("a terminal task produces no wakes", () =>
+193:  it.effect("new failing evidence reopens the task as revision 2", () =>
+233:  it.effect("fifty distinct messages are all routed: the count is not a cap", () =>
+271:  it.effect("a repeat with nothing new coalesces, then escalates exactly once", () =>
+303:  it.effect("one approval produces one attention item, however often it is raised", () =>
+322:  it.effect("handling the same fact twice delivers one wake", () =>
+344:  it.effect("a passed review wakes the verifier, and no other role", () =>
+366:  it.effect("an event with nobody in that role raises one attention instead of silence", () =>
+389:  it.effect("a granted approval resumes the owner exactly once", () =>
+417:  it.effect("a restart drains what it has not seen and never delivers twice", () =>
+--- the describe blocks --- 
+70:describe("coordination rules", () => {
+416:describe("coordinator recovery", () => {
+ 
+=== 2. Stage 1 domain tests still green (test/mission.test.ts) === 
+--- command: bun test test/mission.test.ts --- 
+bun test v1.4.3 (c6da4a4d3)
+
+ 9 pass
+ 0 fail
+ 62 expect() calls
+Ran 9 tests across 1 file. [1045.00ms]
+exit=0 
+ 
+=== 3. packages/core typecheck (tsgo -b tsconfig.json tsconfig.tests.json) === 
+$ tsgo -b tsconfig.json tsconfig.tests.json
+exit=0 
+ 
+=== 4. packages/app standing gate: bun test src/aporia === 
+bun test v1.4.3 (c6da4a4d3)
+
+ 54 pass
+ 0 fail
+ 118 expect() calls
+Ran 54 tests across 10 files. [1086.00ms]
+exit=0 
+ 
+=== 5. packages/desktop standing gate: bun test src/main/aporia === 
+bun test v1.4.3 (c6da4a4d3)
+
+ 62 pass
+ 0 fail
+ 189 expect() calls
+Ran 62 tests across 10 files. [1.75s]
+exit=0 
+ 
+=== 6. packages/app typecheck (known: 2 pre-existing custom-elements.d.ts TS1128 errors) === 
+$ tsgo -b
+src/custom-elements.d.ts(1,1): error TS1128: Declaration or statement expected.
+src/custom-elements.d.ts(1,2): error TS1128: Declaration or statement expected.
+error: script "typecheck" exited with code 1
+exit=1 
+ 
+=== 7. packages/desktop typecheck (same 2 pre-existing errors, reached through ../app) === 
+$ tsgo -b
+../app/src/custom-elements.d.ts(1,1): error TS1128: Declaration or statement expected.
+../app/src/custom-elements.d.ts(1,2): error TS1128: Declaration or statement expected.
+error: script "typecheck" exited with code 1
+exit=1 
+ 
+=== 8. DEV copy state, read-only (migration applied to opencode-aporia-dev.db only) === 
+file: C:\Users\Dilla\.local\share\opencode\opencode-aporia-dev.db
+bytes: 1232502784
+integrity: "ok"
+journal_mode: "wal"
+tables: 36
+domain tables present: 10/10
+mission_event columns: seq, id, mission_id, task_id, correlation_id, type, actor, payload, idempotency_key, time_created
+mission_coordinator_cursor columns: id, seq
+stage2 migration recorded: 1
+{"session_v2":701,"session_message":71130,"project":38,"migration":52,"bot":13,"team":1,"mission":1,"task":0,"mission_event":0,"mission_coordinator_cursor":0}
+indexes: mission_event_correlation_idx, mission_event_idempotency_idx, mission_event_mission_idx, mission_event_task_idx, sqlite_autoindex_mission_coordinator_cursor_1, sqlite_autoindex_mission_event_1
+--- the dev copy's tables, read-only, to reconcile the count against the backup --- 
+file: C:\Users\Dilla\.local\share\opencode\opencode-aporia-dev.db
+tables: 36
+  account
+  account_state
+  bot
+  control_account
+  credential
+  event
+  event_sequence
+  instruction_blob
+  instruction_entry
+  instruction_state
+  kv
+  message
+  migration
+  mission
+  mission_coordinator_cursor
+  mission_event
+  mission_session
+  mission_ui_state
+  part
+  permission
+  project
+  project_directory
+  session
+  session_inbox
+  session_message
+  session_pending
+  session_share
+  session_v2
+  sqlite_sequence
+  task
+  task_dependency
+  team
+  team_member
+  todo
+  workspace
+  worktree
+exit=0 
+ 
+=== 9. the Stage 2 migration as generated === 
+import { Effect } from "effect"
+import type { DatabaseMigration } from "../migration.js"
+
+const migration: DatabaseMigration.Migration = {
+  id: "20261017084824_stage2_mission_event",
+  up(tx) {
+    return Effect.gen(function* () {
+      yield* tx.run(`
+        CREATE TABLE \`mission_coordinator_cursor\` (
+          \`id\` text PRIMARY KEY,
+          \`seq\` integer DEFAULT 0 NOT NULL
+        );
+      `)
+      yield* tx.run(`
+        CREATE TABLE \`mission_event\` (
+          \`seq\` integer PRIMARY KEY AUTOINCREMENT,
+          \`id\` text NOT NULL UNIQUE,
+          \`mission_id\` text,
+          \`task_id\` text,
+          \`correlation_id\` text NOT NULL,
+          \`type\` text NOT NULL,
+          \`actor\` text NOT NULL,
+          \`payload\` text NOT NULL,
+          \`idempotency_key\` text NOT NULL,
+          \`time_created\` integer NOT NULL
+        );
+      `)
+      yield* tx.run(`CREATE UNIQUE INDEX \`mission_event_idempotency_idx\` ON \`mission_event\` (\`idempotency_key\`);`)
+      yield* tx.run(`CREATE INDEX \`mission_event_correlation_idx\` ON \`mission_event\` (\`correlation_id\`,\`seq\`);`)
+      yield* tx.run(`CREATE INDEX \`mission_event_task_idx\` ON \`mission_event\` (\`task_id\`,\`seq\`);`)
+      yield* tx.run(`CREATE INDEX \`mission_event_mission_idx\` ON \`mission_event\` (\`mission_id\`,\`seq\`);`)
+    })
+  },
+}
+
+export default migration

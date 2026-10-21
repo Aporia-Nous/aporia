@@ -1,0 +1,24 @@
+recorded_date=2026-10-19
+work_date=2026-10-19
+event=AP-STAGE4-4C-4D-integrated-running-dev
+actor=Cursor agent
+authorization=Ali: AP-STAGE4-4C/4D PASS. Merge presence worktree into main Stage 4 and restart isolated DEV.
+main_worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4
+main_branch=stage4-an-shell
+presence_worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4-presence
+presence_branch=stage4-presence-computer-view
+merge=ort merge (not FF): parents 0e639dcc17 (MODELS-01a) + c2a2952ab9 (4C/4D); no conflicts; both trees kept
+new_tip=ed2936277b2d87af59c9b3d19ae2cfba15bad449
+code_commit=dc84ca2517
+models_tip_kept=0e639dcc17
+launcher=run-dev-isolated.cmd
+OPENCODE_DB=opencode-aporia-dev.db
+renderer=http://localhost:5173/
+cdp=http://127.0.0.1:9222/
+electron_pid=40776
+window_title=Aporetic
+screenshot=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic-stage4/docs/an-rewrite/evidence/screenshots-2026-10-18/18-computer-view-presence-merged-dev.png
+probe=live CDP (no CSS inject); click Computer View; shellMode=view; label Computer View; computerTitle Computer View; badge Unavailable; presence labels Unknown (honest idle); computerSize large; shot 18 bytes 262292
+stage0_worktree=C:/Users/Dilla/.cursor/worktrees/opt/cursor-aporetic left alone at 2469aed5d7
+remote_push=false
+not_claimed=independent PASS of merge itself; Stage 4 complete; live computer feed/control; promote; push
