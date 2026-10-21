@@ -213,7 +213,7 @@ describe("AP-CE-01 0-token mechanical fixtures", () => {
         const { runId } = yield* flows.requestRun({
           flowId: slash.flowId,
           requestId: rid("slash"),
-          input: slash.input,
+          input: slash.input as import("../src/flow/expr.js").Item,
           trigger: "slash",
         })
         yield* flows.tick

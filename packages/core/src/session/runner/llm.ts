@@ -425,7 +425,7 @@ const layer = Layer.effect(
       }
     })
 
-    return Service.of({ drain })
+    return Service.of({ drain: drain as Interface["drain"] })
   }),
 )
 

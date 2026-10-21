@@ -213,8 +213,8 @@ describe("AP-CE-02 gated FlowRunner fixtures (modelTokensSum=0)", () => {
               flows.requestRun({
                 flowId: s.flowId,
                 requestId: rid("ce02-slash"),
-                input: s.input,
-                trigger: s.trigger,
+                input: s.input as import("../src/flow/expr.js").Item,
+                trigger: s.trigger === "slash" ? "slash" : "manual",
               }),
             ),
         }),

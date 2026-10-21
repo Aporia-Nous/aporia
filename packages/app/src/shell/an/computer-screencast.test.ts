@@ -132,15 +132,19 @@ describe("AP-BF-05 computer screencast", () => {
   })
 
   test("resolveExternalTargetWsUrl rejects non-loopback and missing region (mock fetch)", async () => {
-    const remote = await resolveExternalTargetWsUrl("http://192.168.1.9:9222", "R1", async () => {
-      throw new Error("should not fetch")
-    })
+    const remote = await resolveExternalTargetWsUrl(
+      "http://192.168.1.9:9222",
+      "R1",
+      (async () => {
+        throw new Error("should not fetch")
+      }) as unknown as typeof fetch,
+    )
     expect(remote.ok).toBe(false)
 
     const missing = await resolveExternalTargetWsUrl(
       "http://127.0.0.1:9222",
       "MISSING_REGION",
-      async () =>
+      (async () =>
         new Response(
           JSON.stringify([
             {
@@ -150,7 +154,7 @@ describe("AP-BF-05 computer screencast", () => {
             },
           ]),
           { status: 200, headers: { "Content-Type": "application/json" } },
-        ),
+        )) as unknown as typeof fetch,
     )
     expect(missing.ok).toBe(false)
     if (!missing.ok) expect(missing.error).toContain("MISSING_REGION")
@@ -158,7 +162,7 @@ describe("AP-BF-05 computer screencast", () => {
     const ok = await resolveExternalTargetWsUrl(
       "http://127.0.0.1:9222",
       "PAGE_OK",
-      async () =>
+      (async () =>
         new Response(
           JSON.stringify([
             {
@@ -170,7 +174,7 @@ describe("AP-BF-05 computer screencast", () => {
             },
           ]),
           { status: 200, headers: { "Content-Type": "application/json" } },
-        ),
+        )) as unknown as typeof fetch,
     )
     expect(ok.ok).toBe(true)
     if (ok.ok) {
@@ -181,7 +185,7 @@ describe("AP-BF-05 computer screencast", () => {
     const badWs = await resolveExternalTargetWsUrl(
       "http://127.0.0.1:9222",
       "REMOTE_WS",
-      async () =>
+      (async () =>
         new Response(
           JSON.stringify([
             {
@@ -191,7 +195,7 @@ describe("AP-BF-05 computer screencast", () => {
             },
           ]),
           { status: 200, headers: { "Content-Type": "application/json" } },
-        ),
+        )) as unknown as typeof fetch,
     )
     expect(badWs.ok).toBe(false)
   })

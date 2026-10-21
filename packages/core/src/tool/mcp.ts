@@ -2,6 +2,7 @@ export * as McpTool from "./mcp.js"
 
 import { ToolFailure } from "@opencode/ai"
 import { McpEvent } from "@opencode/schema/mcp-event"
+import type { Context as ToolContext } from "@opencode/schema/tool"
 import { Context, Effect, Fiber, type JsonSchema, Layer, PubSub, Semaphore, Stream } from "effect"
 import { createHash } from "node:crypto"
 import { makeLocationNode } from "@opencode/util/effect/app-node"
@@ -49,7 +50,7 @@ const registerTool = (tool: Mcp.Tool, mcp: Mcp.Interface, permission: Permission
   description: tool.description ?? "",
   input: (tool.inputSchema ?? { type: "object", properties: {} }) as JsonSchema.JsonSchema,
   output: (tool.outputSchema ?? {}) as JsonSchema.JsonSchema,
-  execute: (input, context) =>
+  execute: (input: unknown, context: ToolContext) =>
     Effect.gen(function* () {
       yield* permission.assert({
         action: name(tool.server, tool.name),

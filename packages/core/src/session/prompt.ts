@@ -51,9 +51,9 @@ export const prepare = Effect.fn("SessionPrompt.prepare")(function* (request: {
           })
         : {
             text: request.input.text,
-            files: request.input.files,
-            agents: request.input.agents,
-            skills: request.input.skills,
+            files: request.input.files?.slice(),
+            agents: request.input.agents?.slice(),
+            skills: request.input.skills?.slice(),
           },
       metadata: hasPromptHooks ? structuredClone(request.input.metadata) : request.input.metadata,
       delivery: request.input.delivery ?? "steer",

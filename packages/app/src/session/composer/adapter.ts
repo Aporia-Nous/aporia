@@ -38,7 +38,10 @@ export function createActiveComposerAdapter(input: {
       data: {
         location: data.location,
         session: {
-          prompt: (admission) => (engine ? engine.prompt(admission) : data.session.prompt(admission)),
+          prompt: (admission) =>
+            (engine ? engine.prompt(admission) : data.session.prompt(admission)) as ReturnType<
+              typeof data.session.prompt
+            >,
           setStatus: data.session.setStatus,
         },
       },

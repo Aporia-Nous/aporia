@@ -109,7 +109,7 @@ export function buildSyntheticStreamMessages(messageCount: number): SessionMessa
       type: "assistant",
       time: { created: t, completed: t + 1 },
       agent: "orion",
-      model: { providerID: "test", modelID: "test" },
+      model: { id: "test", providerID: "test" },
       content,
     } as SessionMessageInfo)
     t += 2

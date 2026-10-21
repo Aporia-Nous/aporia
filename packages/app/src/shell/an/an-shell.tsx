@@ -34,7 +34,7 @@ import {
   presenceDotClass,
   type AnShellMode,
 } from "./tokens"
-import type { AnShellProps } from "./types"
+import type { AnNavItem, AnShellProps } from "./types"
 import type { AnDraftIdentity } from "./session-draft-store"
 import "./an-shell.css"
 
@@ -89,14 +89,14 @@ function StreamRegion(
   )
 }
 
-const DEFAULT_NAV = [
+const DEFAULT_NAV: AnNavItem[] = [
   { id: "home", label: "Home", icon: "home", active: true },
   { id: "missions", label: "Missions", icon: "missions" },
   { id: "contraptions", label: "Contraptions", icon: "contraptions" },
   { id: "review", label: "Review", icon: "review" },
   { id: "knowledge", label: "Knowledge", icon: "knowledge" },
   { id: "settings", label: "Settings", icon: "settings" },
-] as const
+]
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean)

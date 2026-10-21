@@ -65,7 +65,7 @@ export function attemptNativeWindowCapture(_input?: {
 }
 
 export function isNativeWindowCaptureAvailable(): boolean {
-  return AN_COMPUTER_CDP_ISOLATION_SURFACE.nativeWindowCapture === true
+  return Boolean(AN_COMPUTER_CDP_ISOLATION_SURFACE.nativeWindowCapture)
 }
 
 /**

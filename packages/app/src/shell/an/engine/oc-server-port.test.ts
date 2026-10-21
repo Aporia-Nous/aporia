@@ -160,7 +160,7 @@ describe("AP-ENGINE-PORT-01 OcServerEnginePort", () => {
             type: "assistant",
             time: { created: 2, completed: 3 },
             agent: "an",
-            model: { providerID: "test", modelID: "test" },
+            model: { id: "test", providerID: "test" },
             content: [{ type: "text", text: "pong" }],
           } as SessionMessageInfo,
         ],

@@ -235,14 +235,14 @@ describe("AN card mapping", () => {
     expect(shouldIncludeTeamStreamCard({ teamHandoff: true })).toBe(true)
 
     const noSwitch = [
-      { id: "a1", type: "assistant", time: { created: 1, completed: 2 }, agent: "orion", model: { providerID: "t", modelID: "t" }, content: [{ type: "text", text: "hi" }] },
-      { id: "a2", type: "assistant", time: { created: 3, completed: 4 }, agent: "orion", model: { providerID: "t", modelID: "t" }, content: [{ type: "text", text: "still me" }] },
+      { id: "a1", type: "assistant", time: { created: 1, completed: 2 }, agent: "orion", model: { id: "t", providerID: "t" }, content: [{ type: "text", text: "hi" }] },
+      { id: "a2", type: "assistant", time: { created: 3, completed: 4 }, agent: "orion", model: { id: "t", providerID: "t" }, content: [{ type: "text", text: "still me" }] },
     ] as SessionMessageInfo[]
     expect(detectTeamHandoff(noSwitch)).toBeUndefined()
 
     const switched = [
-      { id: "a1", type: "assistant", time: { created: 1, completed: 2 }, agent: "orion", model: { providerID: "t", modelID: "t" }, content: [{ type: "text", text: "hi" }] },
-      { id: "a2", type: "assistant", time: { created: 3, completed: 4 }, agent: "nova", model: { providerID: "t", modelID: "t" }, content: [{ type: "text", text: "taking over" }] },
+      { id: "a1", type: "assistant", time: { created: 1, completed: 2 }, agent: "orion", model: { id: "t", providerID: "t" }, content: [{ type: "text", text: "hi" }] },
+      { id: "a2", type: "assistant", time: { created: 3, completed: 4 }, agent: "nova", model: { id: "t", providerID: "t" }, content: [{ type: "text", text: "taking over" }] },
     ] as SessionMessageInfo[]
     const handoff = detectTeamHandoff(switched)
     expect(handoff).toEqual({ fromAgent: "orion", toAgent: "nova" })

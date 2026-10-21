@@ -16,7 +16,7 @@ describe("messagesToConversationTurns", () => {
         type: "assistant",
         time: { created: 2 },
         agent: "build",
-        model: { providerID: "test", modelID: "test" },
+        model: { id: "test", providerID: "test" },
         content: [
           { type: "tool", id: "t1", name: "read", time: { created: 2 }, state: { status: "completed", input: {}, content: [{ type: "text", text: "ok" }] } },
           { type: "text", text: "Hi Ali — I see you." },
@@ -33,7 +33,7 @@ describe("messagesToConversationTurns", () => {
         type: "assistant",
         time: { created: 4, completed: 5 },
         agent: "build",
-        model: { providerID: "test", modelID: "test" },
+        model: { id: "test", providerID: "test" },
         content: [
           {
             type: "tool",
@@ -66,7 +66,7 @@ describe("messagesToConversationTurns", () => {
         type: "assistant",
         time: { created: 1, completed: 2 },
         agent: "orion",
-        model: { providerID: "test", modelID: "test" },
+        model: { id: "test", providerID: "test" },
         content: [{ type: "text", text: "Done." }],
       },
     ] as SessionMessageInfo[]

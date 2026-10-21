@@ -61,11 +61,11 @@ describe("EventFeed", () => {
     const otherSession = sessionEvent("b", "ses_b", "/proj-a")
     const otherDir = sessionEvent("c", "ses_a", "/proj-b")
 
-    expect(EventFeed.matchesSubscribeFilter(global, { sessionID: "ses_a" })).toBeTrue()
-    expect(EventFeed.matchesSubscribeFilter(matched, { sessionID: "ses_a", directory: "/proj-a" })).toBeTrue()
-    expect(EventFeed.matchesSubscribeFilter(otherSession, { sessionID: "ses_a" })).toBeFalse()
-    expect(EventFeed.matchesSubscribeFilter(otherDir, { directory: "/proj-a" })).toBeFalse()
-    expect(EventFeed.matchesSubscribeFilter(matched, undefined)).toBeTrue()
+    expect(EventFeed.matchesSubscribeFilter(global as never, { sessionID: "ses_a" })).toBeTrue()
+    expect(EventFeed.matchesSubscribeFilter(matched as never, { sessionID: "ses_a", directory: "/proj-a" })).toBeTrue()
+    expect(EventFeed.matchesSubscribeFilter(otherSession as never, { sessionID: "ses_a" })).toBeFalse()
+    expect(EventFeed.matchesSubscribeFilter(otherDir as never, { directory: "/proj-a" })).toBeFalse()
+    expect(EventFeed.matchesSubscribeFilter(matched as never, undefined)).toBeTrue()
   })
 
   it.effect("encodes once and delivers the same frame to every subscriber", () =>

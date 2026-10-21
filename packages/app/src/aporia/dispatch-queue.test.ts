@@ -137,7 +137,9 @@ describe("delivery semantics", () => {
       }),
       target,
       priority: (m) => m.priority,
-      deliver: async (m) => order.push(m.id),
+      deliver: async (m) => {
+        order.push(m.id)
+      },
     })
 
     await scheduler.tick()

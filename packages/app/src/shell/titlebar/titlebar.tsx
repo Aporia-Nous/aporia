@@ -68,7 +68,6 @@ export function Titlebar(props: { verticalTabs?: { mount?: HTMLElement } }) {
 
   const mac = createMemo(() => platform.platform === "desktop" && platform.os === "macos")
   const windows = createMemo(() => platform.platform === "desktop" && platform.os === "windows")
-  const linux = createMemo(() => platform.platform === "desktop" && platform.os === "linux")
   const macTrafficLights = createMemo(() => mac() && !platform.windowFullscreen?.())
   const macVerticalTabs = createMemo(() => mac() && !!props.verticalTabs)
   const zoom = () => platform.webviewZoom?.() ?? 1

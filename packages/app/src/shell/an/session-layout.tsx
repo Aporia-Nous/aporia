@@ -436,11 +436,12 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       ? {
           registeredIds: () => listRegisteredContraptionIds(),
           start: async (start) => {
+            const trigger = start.trigger === "slash" ? ("slash" as const) : ("manual" as const)
             const started = (await reviewSdk!.api.flow.start({
               flowID: start.flowId,
               requestId: start.requestId,
-              input: start.input,
-              trigger: start.trigger,
+              input: start.input as { readonly [x: string]: import("@opencode/client/promise").JsonValue },
+              trigger,
             })) as { runId: string; created: boolean }
             showToast({
               title: started.created
@@ -681,7 +682,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       aporiaAlerts.push({
         title: "Takeover",
         detail: "Connect and attach a local browser workspace before taking control. Layout-only until Live.",
-        level: "warn",
+        level: "warning",
       })
     }
     // AP-STAGE5-08: view/takeover open Review Computer — Conversation stays the main stream.
@@ -981,7 +982,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       aporiaAlerts.push({
         title: "Browser windowing",
         detail: result.error,
-        level: "warn",
+        level: "warning",
       })
       return
     }
@@ -1063,7 +1064,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       aporiaAlerts.push({
         title: "Computer View",
         detail: "Open a session before connecting a browser workspace.",
-        level: "warn",
+        level: "warning",
       })
       return
     }
@@ -1091,7 +1092,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     void probeExternalBrowserEndpoint(draft).then((result) => {
       if (!result.ok) {
         setComputerAttach((prev) => ({ ...prev, error: result.error }))
-        aporiaAlerts.push({ title: "External browser", detail: result.error, level: "warn" })
+        aporiaAlerts.push({ title: "External browser", detail: result.error, level: "warning" })
         return
       }
       setComputerAttach((prev) =>
@@ -1111,14 +1112,14 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     setComputerAttach((prev) => {
       const next = confirmComputerAttach(prev)
       if (next.error) {
-        aporiaAlerts.push({ title: "Computer View", detail: next.error, level: "warn" })
+        aporiaAlerts.push({ title: "Computer View", detail: next.error, level: "warning" })
         return next
       }
       if (!isComputerLive(next)) {
         aporiaAlerts.push({
           title: "Computer View",
           detail: "Attach did not go Live — check consent path and try again.",
-          level: "warn",
+          level: "warning",
         })
         return next
       }
@@ -1185,7 +1186,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       aporiaAlerts.push({
         title: "Computer View",
         detail: "Attach a browser workspace before navigating the page feed.",
-        level: "warn",
+        level: "warning",
       })
       return
     }
@@ -1201,7 +1202,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     setComputerFeed((prev) => {
       const next = navigateComputerFeed(prev, input, computerAttach())
       if (next.error) {
-        aporiaAlerts.push({ title: "Page feed", detail: next.error, level: "warn" })
+        aporiaAlerts.push({ title: "Page feed", detail: next.error, level: "warning" })
         return prev
       }
       setComputerFeedDraft(next.url)
@@ -1215,7 +1216,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       if (regionId) {
         const gate = authorizeCdpNavigate(computerScope(), regionId)
         if (!gate.ok) {
-          aporiaAlerts.push({ title: "CDP isolation", detail: gate.error, level: "warn" })
+          aporiaAlerts.push({ title: "CDP isolation", detail: gate.error, level: "warning" })
           return
         }
       }
@@ -1223,7 +1224,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       if (normalized.ok && normalized.url !== "about:blank") {
         void session.navigate(normalized.url).then((result) => {
           if (!result.ok) {
-            aporiaAlerts.push({ title: "CDP navigate", detail: result.error, level: "warn" })
+            aporiaAlerts.push({ title: "CDP navigate", detail: result.error, level: "warning" })
           }
         })
       }
@@ -1308,7 +1309,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         aporiaAlerts.push({
           title: "Duplicate identity detected",
           detail: `Slug "${identity.conflictSlug}" exists — sheet will use "${identity.suggestedName}".`,
-          level: "warn",
+          level: "warning",
         })
       }
       openTeammateImport(raw)

@@ -57,7 +57,11 @@ export const jsonSanitize = (value: unknown): Schema.Json => {
   if (typeof value !== "object") return null
 
   const withJson = value as { toJSON?: () => unknown }
-  if (typeof withJson.toJSON === "function" && !(Array.isArray(value) && withJson.toJSON === Array.prototype.toJSON)) {
+  const arrayToJSON = (Array.prototype as { toJSON?: () => unknown }).toJSON
+  if (
+    typeof withJson.toJSON === "function" &&
+    !(Array.isArray(value) && arrayToJSON !== undefined && withJson.toJSON === arrayToJSON)
+  ) {
     return jsonSanitize(withJson.toJSON())
   }
   if (Array.isArray(value)) {

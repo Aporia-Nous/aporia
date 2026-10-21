@@ -24,7 +24,7 @@ import {
   setDefaultMnemosynePort,
   type MnemosyneSeed,
 } from "../src/mission/mnemosyne-port.js"
-import { assembleLeanPack, measureLeanVsFull } from "../src/session/lean-pack.js"
+import { measureLeanVsFull } from "../src/session/lean-pack.js"
 import { assembleMissionLeanPack, foldMissionLeanInput, loadLeanPackForSession } from "../src/session/mission-fold.js"
 import { Token } from "../src/util/token.js"
 import { testEffect } from "./lib/effect"

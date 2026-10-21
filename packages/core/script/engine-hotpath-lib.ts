@@ -400,5 +400,5 @@ export function runEngineHotpath(options: HotpathOptions): Effect.Effect<Hotpath
     }
 
     return metrics
-  }).pipe(Effect.scoped, Effect.provide(Layer.fresh(layer)))
+  }).pipe(Effect.scoped, Effect.provide(Layer.fresh(layer)), Effect.orDie)
 }

@@ -120,26 +120,6 @@ function AporiaFrame(props: ParentProps<{ view: AporiaView }>) {  const [connect
   const messages = () => props.view.messages()
   const context = createMemo(() => contextTokens(messages()))
   const total = createMemo(() => tokenTotal(info()?.tokens))
-  const lastAssistantText = () => {
-    const msgs = (props.view.messages?.() ?? []) as any[]
-    for (let i = msgs.length - 1; i >= 0; i--) {
-      const m = msgs[i]
-      const kind = m?.role ?? m?.type
-      if (kind !== "assistant") continue
-      const parts = m.content ?? m.parts
-      if (Array.isArray(parts)) {
-        const text = parts
-          .filter((p: any) => (p?.type === "text" || p?.type === "assistant.text") && !p?.synthetic)
-          .map((p: any) => p.text ?? "")
-          .join("\n")
-          .trim()
-        if (text) return text
-      } else if (typeof parts === "string" && parts.trim()) return parts.trim()
-      if (typeof m.text === "string" && m.text.trim()) return m.text.trim()
-    }
-    return ""
-  }
-
   return (
     <div class="ap-root" classList={{ "ap-right-collapsed": !rightOpen(), "ap-rail-collapsed": !railOpen() }} data-component="aporia-layout">
       <Portal><AlertToasts /></Portal>

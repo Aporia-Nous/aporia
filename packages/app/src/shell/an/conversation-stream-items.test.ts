@@ -76,7 +76,7 @@ describe("AP-STAGE4-15 conversation stream items", () => {
         type: "assistant",
         time: { created: 1, completed: 2 },
         agent: "orion",
-        model: { providerID: "t", modelID: "t" },
+        model: { id: "t", providerID: "t" },
         content: [{ type: "text", text: "starting" }],
       },
       {
@@ -84,7 +84,7 @@ describe("AP-STAGE4-15 conversation stream items", () => {
         type: "assistant",
         time: { created: 3, completed: 4 },
         agent: "nova",
-        model: { providerID: "t", modelID: "t" },
+        model: { id: "t", providerID: "t" },
         content: [{ type: "text", text: "handoff" }],
       },
     ] as SessionMessageInfo[]
@@ -113,7 +113,7 @@ describe("AP-STAGE4-15 conversation stream items", () => {
         type: "assistant",
         time: { created: 2, completed: 3 },
         agent: "orion",
-        model: { providerID: "test", modelID: "test" },
+        model: { id: "test", providerID: "test" },
         content: [
           { type: "text", text: "Working on it." },
           {
@@ -150,9 +150,9 @@ describe("AP-STAGE4-15 conversation stream items", () => {
     const items = buildConversationStreamItems({ messages, contextCards: context })
     const kinds = items.map((i) => (i.kind === "turn" ? `turn:${i.turn.role}` : `card:${i.card.type}`))
     expect(kinds).toEqual(["turn:user", "turn:assistant", "card:proof"])
-    expect(items.find((i) => i.kind === "card" && i.card.type === "proof")?.card.title).toContain(
-      "src/a.ts",
-    )
+    const proof = items.find((i) => i.kind === "card")
+    expect(proof?.kind === "card" ? proof.card.title : undefined).toContain("src/a.ts")
+    expect(proof?.kind === "card" ? proof.card.type : undefined).toBe("proof")
     const flat = flattenStreamItems(items)
     expect(flat.turns).toHaveLength(2)
     expect(flat.cards.some((c) => c.type === "proof")).toBe(true)

@@ -67,11 +67,14 @@ export function AporiaRightPanel(props: { view: AporiaView; onClose?: () => void
     const bridge = (globalThis as any).electron?.aporia
     if (!text || !bridge?.tts) return
     // Per-bot voice wins: if this session's teammate has its own voice, use it; else the picked default.
-    const teammateVoice = (() => {
+    const teammateVoice = await (async () => {
       try {
-        const bot = bots().find((b) => agentFor(b) === agentName())
+        const list = (await bots({ op: "list" })) as Array<{ slug: string; voice?: string }>
+        const bot = list.find((b) => agentFor(b.slug) === agentName())
         return bot?.voice || undefined
-      } catch { return undefined }
+      } catch {
+        return undefined
+      }
     })()
     setSpeaking(true)
     try {

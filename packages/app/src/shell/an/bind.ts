@@ -128,12 +128,12 @@ export function botsToRoster(input: {
   const signalOf = (agent: string): AnPresenceSignal => {
     const map = input.agentSignals
     if (map) {
-      const fromMap = map instanceof Map ? map.get(agent) : map[agent]
+      const fromMap = map instanceof Map ? map.get(agent) : (map as Record<string, AnPresenceSignal>)[agent]
       if (fromMap) return fromMap
     }
     const statusMap = input.agentStatus
     if (!statusMap) return {}
-    const status = statusMap instanceof Map ? statusMap.get(agent) : statusMap[agent]
+    const status = statusMap instanceof Map ? statusMap.get(agent) : (statusMap as Record<string, string>)[agent]
     return status ? { sessionStatus: status } : {}
   }
   return input.bots.map((bot) => {

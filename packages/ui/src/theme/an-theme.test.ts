@@ -12,7 +12,7 @@ describe("AN black/gold desktop theme", () => {
     expect(anTheme.id).toBe("an")
     const dark = anTheme.dark
     expect("palette" in dark).toBe(true)
-    if ("palette" in dark) {
+    if ("palette" in dark && dark.palette) {
       expect(dark.palette.neutral.toLowerCase()).toBe("#020509")
       expect(dark.palette.primary.toLowerCase()).toBe("#f0c66d")
       expect(dark.palette.accent?.toLowerCase()).toBe("#d79a2e")
