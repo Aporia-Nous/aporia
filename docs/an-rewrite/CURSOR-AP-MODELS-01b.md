@@ -4,6 +4,7 @@
 **Work date / recorded:** 2026-10-21 (America/Chicago)  
 **Worktree:** `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` branch `stage4-an-shell`  
 **Base tip before slice:** `b408df0824` (AP-STAGE9-ACCEPT docs tip; Stage 9 ACCEPT complete)  
+**Code tip (writer):** `c2e49c773b`  
 **Scope:** Free-path default session/teammate model + AnShell empty-state / Settings About free+BYOK product brief. No billing, no OmniRoute, no paid model turns, no Podman install, no design freestyle, no merge/push/install.
 
 ## Goal
