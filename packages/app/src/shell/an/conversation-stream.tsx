@@ -87,8 +87,11 @@ export function AnConversationStream(props: {
     const list = items()
     const count = list.length
     const last = list[count - 1]
-    void last?.kind === "turn" ? last.turn.text : last?.card.title
-    void last?.kind === "turn" ? last.turn.streaming : undefined
+    // Track last-item content for auto-scroll. Parenthesize ternary — bare
+    // `void last?.kind === "turn" ? … : last?.card.title` is always the card
+    // branch (void binds tighter than ===), and turn items throw on .card.title.
+    void (last?.kind === "turn" ? last.turn.text : last?.card?.title)
+    void (last?.kind === "turn" ? last.turn.streaming : undefined)
     if (!root || count === 0) return
     if (restorePending) return
     const streaming = last?.kind === "turn" && last.turn.streaming
