@@ -6,6 +6,7 @@
 | branch | `stage4-an-shell` |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | tip / code | `5bac458f62` |
+| docs / HEAD | `476474aa4f` (code tip ancestor) |
 | base | AP-STAGE8-01 tip `d53552a156` / HEAD prior `6df5c48589` |
 | authority | Ali continue-finish 2026-10-21 (except design) |
 | merge/push/install | **No** |
