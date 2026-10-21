@@ -23,6 +23,8 @@ describe("settings-chrome (AP-ENGINE-PORT-02)", () => {
     expect(intro.byline).toBe(AN_PRODUCT_BYLINE)
     expect(intro.basedOn).toContain("OpenCode")
     expect(intro.finePrint.toLowerCase()).toContain("opencode")
+    expect(intro.modelsBrief).toContain("BYOK")
+    expect(intro.modelsBrief).toContain("does not subsidize")
     expect(AN_SETTINGS_SURFACE.dropOcSettingsReactImport).toBe(true)
     expect(AN_SETTINGS_SURFACE.opencodeFinePrintOnly).toBe(true)
     expect(AN_SETTINGS_SURFACE.part).toBe("settings")

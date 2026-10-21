@@ -138,6 +138,9 @@ export function AnSettingsPanel(props: AnSettingsPanelProps): JSX.Element {
             <p class="an-settings-meta">
               Version {platform.version ?? "dev"} · free path + BYOK · no second model stack
             </p>
+            <p class="an-settings-brief" data-an-part="settings-models-brief">
+              {intro.modelsBrief}
+            </p>
             <p class="an-settings-fineprint" data-an-part="settings-opencode-fineprint">
               {intro.finePrint}
             </p>

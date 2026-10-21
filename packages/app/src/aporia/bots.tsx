@@ -7,6 +7,7 @@ import { Session } from "@opencode/schema/session"
 import type { SessionInfo } from "@opencode/client/promise"
 import { useData, useServer } from "@/runtime/server/current"
 import { sessionHref } from "@/shell/routes/session"
+import { AN_FREE_PATH_DEFAULT_MODEL } from "@/shell/an/models-free-path"
 import { aporiaAlerts } from "./alerts"
 
 export type Bot = {
@@ -38,7 +39,7 @@ export function TeammatesSection(props: { sessions: SessionInfo[]; currentAgent?
     const existing = fresh ? undefined : props.sessions.find((s) => s.agent === agent && !s.parentID && !s.time.archived)
     if (existing) return navigate(sessionHref(server.key, existing.id))
     try {
-      const [providerID, ...rest] = (bot.model || "deepseek/deepseek-flash").split("/")
+      const [providerID, ...rest] = (bot.model || AN_FREE_PATH_DEFAULT_MODEL).split("/")
       const directory = `${paths()?.bots ?? ""}\\${bot.slug}`
       const created = data.session.create({ id: Session.ID.create(), agent, model: { id: rest.join("/"), providerID }, location: { directory } } as any)
       await created.request
@@ -53,7 +54,7 @@ export function TeammatesSection(props: { sessions: SessionInfo[]; currentAgent?
     <div data-component="aporia-teammates">
       <div class="ap-section-label ap-chats-label">
         Teammates <span class="ap-count">{list()?.length ?? 0}</span>
-        <button type="button" class="ap-sub-toggle" title="New bot" data-action="aporia-bot-new" onClick={() => setEditing({ name: "", role: "", instructions: "", model: "deepseek/deepseek-flash", folder: "Teammates" })}>+ New bot</button>
+        <button type="button" class="ap-sub-toggle" title="New bot" data-action="aporia-bot-new" onClick={() => setEditing({ name: "", role: "", instructions: "", model: AN_FREE_PATH_DEFAULT_MODEL, folder: "Teammates" })}>+ New bot</button>
         <button type="button" class="ap-sub-toggle" title="Import a .aporia-bot.json template" data-action="aporia-bot-import" onClick={async () => { try { const b = await routines({ op: "import" }); if (b) { refreshBots(); aporiaAlerts.push({ title: `Imported ${b.name}`, detail: "Its routines are off until you enable them.", level: "success" }) } } catch (err) { aporiaAlerts.push({ title: "Import failed", detail: String((err as Error)?.message ?? err), level: "error" }) } }}>Import</button>
       </div>
       <nav class="ap-bot-list ap-bot-chips">
@@ -154,7 +155,7 @@ function BotEditor(props: { bot: Partial<Bot>; onClose: () => void }) {
             <label>Folder<input style={field} value={b().folder ?? ""} onInput={(e) => set("folder", e.currentTarget.value)} /></label>
             <label>Role / description<textarea style={{ ...field, "min-height": "60px" }} value={b().role ?? ""} onInput={(e) => set("role", e.currentTarget.value)} /></label>
             <label>Instructions<textarea style={{ ...field, "min-height": "180px" }} value={b().instructions ?? ""} onInput={(e) => set("instructions", e.currentTarget.value)} /></label>
-            <label>Model (never auto-upgraded)<input style={field} value={b().model ?? "deepseek/deepseek-flash"} onInput={(e) => set("model", e.currentTarget.value)} /></label>
+            <label>Model (never auto-upgraded)<input style={field} value={b().model ?? AN_FREE_PATH_DEFAULT_MODEL} onInput={(e) => set("model", e.currentTarget.value)} /></label>
             <label>Skills (comma separated)<input style={field} value={(b().skills ?? []).join(", ")} onInput={(e) => set("skills", list(e.currentTarget.value))} /></label>
             <label>Allowed tools (comma separated, empty = all)<input style={field} value={(b().tools ?? []).join(", ")} onInput={(e) => set("tools", list(e.currentTarget.value))} /></label>
             <label>Allowed MCPs (comma separated, empty = all)<input style={field} value={(b().mcps ?? []).join(", ")} onInput={(e) => set("mcps", list(e.currentTarget.value))} /></label>

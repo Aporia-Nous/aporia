@@ -43,12 +43,14 @@ import {
   AnTeammateFooterActions,
   AnTeammateRosterMenu,
   AnTeammateSheet,
+  AN_TEAMMATE_DEFAULT_MODEL,
   archiveTeammateCopy,
   installAnTeammateWindowProbe,
   parseTeammateTemplate,
   resolveImportIdentity,
   type AnTeammateSheetMode,
 } from "./teammate"
+import { AN_FREE_BYOK_CONVERSATION_EMPTY } from "./models-free-path"
 import { AnPodmanChromeCard } from "./podman-card"
 import {
   AN_PODMAN_SURFACE,
@@ -922,7 +924,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         return
       }
       const paths = (await bots({ op: "paths" })) as { bots?: string }
-      const [providerID, ...rest] = (bot.model || "deepseek/deepseek-flash").split("/")
+      const [providerID, ...rest] = (bot.model || AN_TEAMMATE_DEFAULT_MODEL).split("/")
       const directory = `${paths?.bots ?? ""}\\${bot.slug}`
       const created = engine.createSession({
         id: Session.ID.create(),
@@ -1360,7 +1362,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
           streamItems={streamItems()}
           conversationTurns={conversationTurns()}
           conversationScrollIdentity={conversationScrollIdentity()}
-          conversationEmpty="No messages yet — send from the composer below. Conversation is owned by AnShell."
+          conversationEmpty={AN_FREE_BYOK_CONVERSATION_EMPTY}
           onSelectNav={onSelectNav}
           onSelectMember={(id) => void openMember(id)}
           onMemberContextMenu={(id, event) => {

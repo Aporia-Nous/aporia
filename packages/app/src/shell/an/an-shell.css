@@ -3094,6 +3094,14 @@
   font-size: 12px;
 }
 
+.an-settings-brief {
+  margin: 10px 0 0;
+  max-width: 36rem;
+  color: var(--an-text, #e8d5a3);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .an-settings-fineprint {
   margin: 12px 0 0;
   font-size: 10px;

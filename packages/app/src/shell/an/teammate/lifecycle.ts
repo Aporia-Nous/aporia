@@ -3,8 +3,11 @@
  * No Electron side effects. Cancel never calls save; archive is soft-retire semantics.
  */
 
+import { AN_FREE_PATH_DEFAULT_MODEL } from "../models-free-path"
+
 export const AN_TEAMMATE_TEMPLATE_FORMAT = "aporia-bot" as const
-export const AN_TEAMMATE_DEFAULT_MODEL = "deepseek/deepseek-flash"
+/** Free-path default (OpenCode Free). See AP-MODELS-01b. */
+export const AN_TEAMMATE_DEFAULT_MODEL = AN_FREE_PATH_DEFAULT_MODEL
 
 export type AnTeammateDraft = {
   slug?: string

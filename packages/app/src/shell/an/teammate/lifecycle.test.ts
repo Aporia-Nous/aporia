@@ -61,8 +61,9 @@ describe("AP-STAGE4-NEW-TEAMMATE lifecycle", () => {
     expect(soft.preservesHistory).toBe(true)
     expect(soft.detail).toContain("Memory folder")
     expect(soft.detail).toContain("not automated")
-    expect(permissionsCostNote(emptyTeammateDraft({ model: "deepseek/deepseek-flash" }))).toContain(
+    expect(permissionsCostNote(emptyTeammateDraft({ model: "opencode/big-pickle" }))).toContain(
       "does not grant new provider access",
     )
+    expect(emptyTeammateDraft().model).toBe("opencode/big-pickle")
   })
 })

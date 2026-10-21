@@ -4,6 +4,7 @@
  * does not import OC Settings React (`@/settings/shell`). OpenCode is fine print only.
  */
 
+import { AN_FREE_BYOK_PRODUCT_BRIEF } from "./models-free-path"
 import { AN_PRODUCT_BYLINE, AN_PRODUCT_NAME, AN_SETTINGS_SURFACE } from "./tokens"
 
 /** True when AnShell preference is on — Settings should wear AN ownership markers. */
@@ -35,12 +36,15 @@ export function anSettingsAboutIntro(): {
   byline: string
   basedOn: string
   finePrint: string
+  /** AP-MODELS-01b free+BYOK product brief (Settings → About). */
+  modelsBrief: string
 } {
   return {
     product: AN_PRODUCT_NAME,
     byline: AN_PRODUCT_BYLINE,
     basedOn: "Based on OpenCode (MIT)",
     finePrint: "Engine: OpenCode (MIT) — session, providers, tools",
+    modelsBrief: AN_FREE_BYOK_PRODUCT_BRIEF,
   }
 }
 

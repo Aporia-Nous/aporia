@@ -6,6 +6,7 @@ import { onCleanup, onMount } from "solid-js"
 import { Session } from "@opencode/schema/session"
 import { useData } from "@/runtime/server/current"
 import { useServerSDK } from "@/runtime/server/client"
+import { AN_FREE_PATH_DEFAULT_MODEL } from "@/shell/an/models-free-path"
 import { aporiaAlerts } from "./alerts"
 import { agentFor, bots, refreshBots, type Bot } from "./bots"
 import { createDispatchScheduler } from "./dispatch-queue"
@@ -44,7 +45,7 @@ export function BotDispatcher() {
 
   const paths = bots({ op: "paths" }) as Promise<{ bots: string }>
   async function createSession(bot: Bot, title?: string) {
-    const [providerID, ...rest] = (bot.model || "deepseek/deepseek-flash").split("/")
+    const [providerID, ...rest] = (bot.model || AN_FREE_PATH_DEFAULT_MODEL).split("/")
     const directory = `${(await paths).bots}\\${bot.slug}`
     const created = data.session.create({ id: Session.ID.create(), agent: agentFor(bot.slug), model: { id: rest.join("/"), providerID }, location: { directory } } as any)
     await created.request
