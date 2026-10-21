@@ -47,7 +47,7 @@ export function decideExternalBrowserWindowing(input: {
     return {
       action: "open-tab-existing",
       reason: "cdp-reachable",
-      detail: "Debugging endpoint answered — open a tab in that existing Edge/Chrome window (not a second window).",
+      detail: "Your browser answered — open a tab in that existing Edge/Chrome window (not a second window).",
     }
   }
   if (input.browserProcessRunning) {
@@ -55,13 +55,13 @@ export function decideExternalBrowserWindowing(input: {
       action: "refuse-second-window",
       reason: "browser-running-without-cdp",
       detail:
-        "Edge/Chrome is already open without a loopback debugging port. Will not spawn a second window — restart that browser with remote debugging for Aporetic, or attach an existing debug endpoint.",
+        "Edge/Chrome is already open without a local debug port. Will not open a second window — restart that browser for Aporetic, or connect to an address that is already ready.",
     }
   }
   return {
     action: "spawn-window",
     reason: "no-browser-running",
-    detail: "No Edge/Chrome process detected — spawning one window with local debugging is allowed.",
+    detail: "No Edge/Chrome window found — opening one with local debugging is allowed.",
   }
 }
 

@@ -17,17 +17,19 @@ describe("AP-MODELS-01b free-path defaults", () => {
     expect(isFreePathDefaultModel("deepseek/deepseek-flash")).toBe(false)
   })
 
-  test("conversation empty tip is honest free+BYOK product brief", () => {
+  test("conversation empty tip is honest free + your-key product brief", () => {
     expect(AN_FREE_BYOK_CONVERSATION_EMPTY).toContain("OpenCode Free")
-    expect(AN_FREE_BYOK_CONVERSATION_EMPTY).toContain("BYOK")
-    expect(AN_FREE_BYOK_CONVERSATION_EMPTY).toContain("does not subsidize")
+    expect(AN_FREE_BYOK_CONVERSATION_EMPTY).toContain("API key")
+    expect(AN_FREE_BYOK_CONVERSATION_EMPTY).toContain("does not pay for model usage")
+    expect(AN_FREE_BYOK_CONVERSATION_EMPTY.toLowerCase()).not.toContain("byok")
     expect(AN_FREE_BYOK_CONVERSATION_EMPTY.toLowerCase()).not.toContain("omniroute")
   })
 
   test("settings product brief matches economics", () => {
     expect(AN_FREE_BYOK_PRODUCT_BRIEF).toContain("OpenCode Free")
     expect(AN_FREE_BYOK_PRODUCT_BRIEF).toContain("Ollama")
-    expect(AN_FREE_BYOK_PRODUCT_BRIEF).toContain("BYOK")
-    expect(AN_FREE_BYOK_PRODUCT_BRIEF).toContain("does not subsidize")
+    expect(AN_FREE_BYOK_PRODUCT_BRIEF).toContain("API key")
+    expect(AN_FREE_BYOK_PRODUCT_BRIEF).toContain("does not pay for model usage")
+    expect(AN_FREE_BYOK_PRODUCT_BRIEF.toLowerCase()).not.toContain("byok")
   })
 })

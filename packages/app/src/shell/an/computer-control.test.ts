@@ -55,7 +55,7 @@ describe("AP-BF-03 computer control lock", () => {
     })
     expect(synced.controller).toBe("none")
     expect(userMayInput(synced)).toBe(false)
-    expect(computerControlBannerCopy(false, synced).pill).toBe("Takeover chrome")
+    expect(computerControlBannerCopy(false, synced).pill).toBe("Takeover layout")
   })
 
   test("Live View keeps watch-only; Live Takeover grants user and pauses bot", () => {

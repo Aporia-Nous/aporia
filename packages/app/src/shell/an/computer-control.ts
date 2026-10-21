@@ -227,8 +227,8 @@ export function computerControlBannerCopy(
   const target = opts?.targetName?.trim()
   if (!live) {
     return {
-      pill: "Takeover chrome",
-      copy: "No Live attach — Takeover layout only. Connect a local browser workspace before controlling the page.",
+      pill: "Takeover layout",
+      copy: "Not Live yet — this is the Takeover layout only. Connect a browser workspace before controlling the page.",
     }
   }
   if (userMayInput(state)) {
@@ -257,16 +257,16 @@ export function computerControlBannerCopy(
 
 export function computerControlNote(live: boolean, state: ComputerControlState): string {
   if (!live) {
-    return "Watch-only Computer View — connect a local browser workspace to go Live. Takeover needs Live."
+    return "Watch-only Computer View — connect a browser workspace to go Live. Takeover needs Live first."
   }
   if (userMayInput(state)) {
-    return "Takeover: you hold the lock; bot paused. Hand back / Stop returns bot control (fresh observation required)."
+    return "Takeover: you control the page; the bot is paused. Hand back or Stop returns control to the bot (it will look at the page again first)."
   }
   if (state.botPaused) {
-    return "Live + watch-only. Bot drive paused — Resume restores drive; Take over grants you input."
+    return "Live and watch-only. The bot is paused — Resume lets it continue; Take over gives you the page."
   }
   if (state.needsFreshObservation) {
-    return "Live + watch-only. Bot holds the lock after Hand back — fresh observation required before bot drives."
+    return "Live and watch-only. After Hand back, the bot must look at the page again before it can continue."
   }
-  return "Live = consented attach + watch-only feed. Bot holds the lock. Pause / Takeover stop bot drive."
+  return "Live means you approved a connection and the feed is watch-only. The bot controls the page. Pause or Takeover stops the bot."
 }

@@ -31,7 +31,7 @@ export const AN_COMPUTER_CDP_ISOLATION_SURFACE = {
   nativeWindowCapture: false,
   nativeWindowCaptureStatus: "BLOCKED" as const,
   nativeWindowCaptureBlockedReason:
-    "No Electron desktopCapturer / getDisplayMedia window adapter or HWND/DPI remapper in isolated DEV. Window-scope authorize gates exist; OS pixels are not captured. Do not fake native capture.",
+    "Capturing a whole desktop window is not available yet. You can still approve a browser tab; the desktop itself is not captured.",
   /** Browser background control tested via CDP region pin — separate from native. */
   browserBackgroundControlFlag: "cdp-region-pin" as const,
   nativeBackgroundControlFlag: "unsupported" as const,
@@ -79,12 +79,12 @@ export function authorizeCdpRegionAction(
 ): CdpIsolationGateResult {
   const id = regionId.trim()
   if (!id) {
-    return { ok: false, error: "CDP region id is required.", code: "missing-target" }
+    return { ok: false, error: "A browser tab id is required.", code: "missing-target" }
   }
   if (!hasComputerScope(scope)) {
     return {
       ok: false,
-      error: "No control scope assigned — CDP action refused (scope was not widened).",
+      error: "No control scope assigned — action refused (scope was not widened).",
       code: "no-scope",
     }
   }
@@ -100,7 +100,7 @@ export function authorizeCdpRegionAction(
   if (scope.kind === "local-workspace") {
     return {
       ok: false,
-      error: "Local workspace uses iframe feed — external CDP region actions are out of scope.",
+      error: "The built-in workspace uses its own page view — external browser tab actions are out of scope.",
       code: "unauthorized-tab",
     }
   }
@@ -167,14 +167,14 @@ export function resolveActiveCdpTargetInScope(
     if (!hit) {
       return {
         ok: false,
-        error: `Authorized region ${preferred} is not present on the debugging endpoint (stale target — not retargeted).`,
+        error: `Approved tab ${preferred} is no longer open (not switched to another tab).`,
         code: "missing-target",
       }
     }
     if (!hit.webSocketDebuggerUrl) {
       return {
         ok: false,
-        error: `Region ${preferred} has no WebSocket debugger URL.`,
+        error: `Tab ${preferred} is not available for viewing right now.`,
         code: "missing-target",
       }
     }
@@ -184,7 +184,7 @@ export function resolveActiveCdpTargetInScope(
   if (allowed.length === 0) {
     return {
       ok: false,
-      error: "No authorize CDP tabs from this scope are present on the debugging endpoint.",
+      error: "None of the approved tabs from this scope are open right now.",
       code: "missing-target",
     }
   }
@@ -203,7 +203,7 @@ export function refuseSilentTabGroupWiden(
   if (scope.kind !== "tab-group" || !hasComputerScope(scope)) {
     return {
       ok: false,
-      error: "Silent widen refused — assign tab-group scope explicitly first.",
+      error: "Can't add tabs automatically — choose which tabs are in scope first.",
       scope,
     }
   }
@@ -212,7 +212,7 @@ export function refuseSilentTabGroupWiden(
   if (extras.length === 0) return { ok: true, scope }
   return {
     ok: false,
-    error: `Silent tab-group widen refused (${extras.length} new id(s)). Reassign scope explicitly — scope was not widened.`,
+    error: `Can't add ${extras.length} new tab(s) automatically. Choose which tabs are in scope again — scope was not widened.`,
     scope,
   }
 }
@@ -239,18 +239,18 @@ export function autoPauseOnUserTargetInteraction(
 }
 
 export function computerCdpIsolationStatusCopy(scope: ComputerScopeState): string {
-  if (!hasComputerScope(scope)) return "CDP isolation idle — no scope."
+  if (!hasComputerScope(scope)) return "Tab scope idle — none assigned."
   switch (scope.kind) {
     case "tab-group": {
       const n = scope.tabIds?.length ?? 0
-      return `CDP isolation on · tab-group allowlist (${n}). Unauthorized tabs rejected.`
+      return `Tab scope on · ${n} approved tab(s). Other tabs stay out of reach.`
     }
     case "local-workspace":
-      return "Local workspace · iframe feed (no external CDP region)."
+      return "Built-in workspace · page view (not an external browser tab)."
     case "window":
-      return `Window scope assigned · native capture ${AN_COMPUTER_CDP_ISOLATION_SURFACE.nativeWindowCaptureStatus}.`
+      return "Window scope set · capturing the whole window is not available yet."
     case "none":
-      return "CDP isolation idle — no scope."
+      return "Tab scope idle — none assigned."
     default: {
       const _exhaustive: never = scope.kind
       return _exhaustive

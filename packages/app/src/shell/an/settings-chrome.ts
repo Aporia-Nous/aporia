@@ -43,7 +43,7 @@ export function anSettingsAboutIntro(): {
     product: AN_PRODUCT_NAME,
     byline: AN_PRODUCT_BYLINE,
     basedOn: "Based on OpenCode (MIT)",
-    finePrint: "Engine: OpenCode (MIT) — session, providers, tools",
+    finePrint: "Uses OpenCode (MIT) for sessions, providers, and tools",
     modelsBrief: AN_FREE_BYOK_PRODUCT_BRIEF,
   }
 }

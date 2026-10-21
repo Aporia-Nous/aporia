@@ -96,7 +96,7 @@ describe("AP-BF-01 computer attach", () => {
     })
     state = confirmComputerAttach(state)
     expect(isComputerLive(state)).toBe(false)
-    expect(state.error).toMatch(/region/i)
+    expect(state.error).toMatch(/tab id/i)
 
     state = setExternalAttachDraft(state, { region: "TARGET_A1" })
     state = confirmComputerAttach(state)
@@ -106,7 +106,7 @@ describe("AP-BF-01 computer attach", () => {
     expect(state.externalRegionId).toBe("TARGET_A1")
     expect(isComputerLive(state)).toBe(true)
     expect(computerAttachPathLabel(state)).toContain("Edge")
-    expect(computerAttachEmptyCopy(state)).toMatch(/region attached/i)
+    expect(computerAttachEmptyCopy(state)).toMatch(/tab attached/i)
   })
 
   test("external path rejects non-loopback hosts", () => {

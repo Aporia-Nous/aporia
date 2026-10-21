@@ -430,15 +430,15 @@ export function computerToCard(input?: {
           : undefined
   const detailDefault = !live
     ? consenting
-      ? "Live attach offer — confirm a local browser workspace to go Live."
-      : "No live attach — connect a local browser workspace to go Live."
+      ? "Connect offer — confirm a browser workspace to go Live."
+      : "Not connected — connect a browser workspace to go Live."
     : userControl
-      ? "You hold the control lock (Takeover). Bot is paused until Hand back or Stop."
+      ? "You control the page (Takeover). The bot is paused until Hand back or Stop."
       : eventDensity === "inline"
-        ? "Inline Live preview in Conversation — Open in Computer View or Take control (view-only until Takeover)."
+        ? "Live preview in Conversation — Open in Computer View or Take control (view-only until Takeover)."
         : feedActive
-          ? "Local browser workspace attached with watch-only page feed. Bot holds the lock; Bot cursor is overlay chrome only."
-          : "Local browser workspace attached (consented). Page feed pending."
+          ? "Browser workspace attached with a watch-only page view. The bot controls the page; the Bot cursor is only a label here."
+          : "Browser workspace attached. Page view is starting…"
   const actions: AnCardModel["actions"] = [
     {
       id: "view",

@@ -111,7 +111,7 @@ describe("AP-STAGE5-06 CDP isolation + native capture honesty", () => {
     const widened = refuseSilentTabGroupWiden(scope, ["only", "extra"])
     expect(widened.ok).toBe(false)
     if (!widened.ok) {
-      expect(widened.error).toMatch(/Silent tab-group widen refused/)
+      expect(widened.error).toMatch(/Can't add .*tab/i)
       expect(widened.scope.tabIds).toEqual(["only"])
     }
   })
@@ -128,7 +128,7 @@ describe("AP-STAGE5-06 CDP isolation + native capture honesty", () => {
       expect(blocked.code).toBe("native-blocked")
       expect(blocked.error).toMatch(/desktopCapturer|getDisplayMedia|not captured/i)
     }
-    expect(computerCdpIsolationStatusCopy(win)).toMatch(/BLOCKED/)
+    expect(computerCdpIsolationStatusCopy(win)).toMatch(/not available yet/i)
 
     const local = assignLocalWorkspaceScope(initialComputerScopeState("ses_loc"), {
       sessionID: "ses_loc",

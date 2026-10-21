@@ -228,8 +228,8 @@ export function archiveTeammateCopy(input: {
   const linked = input.sessions?.length ?? 0
   const detail =
     linked > 0
-      ? `${input.name} leaves the roster. Memory folder and a bot.json backup stay on disk (${linked} linked session id(s) recorded). Pending mission reassignment is not automated yet — treat open work as blocked/needs Ali.`
-      : `${input.name} leaves the roster. Memory folder and a bot.json backup stay on disk. Historical messages are not deleted.`
+      ? `${input.name} leaves the roster. Their memory folder and a backup stay on disk (${linked} linked conversation(s) kept). Open work is not moved automatically — reassign it yourself if needed.`
+      : `${input.name} leaves the roster. Their memory folder and a backup stay on disk. Past messages are not deleted.`
   return { title: `Archive ${input.name}?`, detail, preservesHistory: true }
 }
 

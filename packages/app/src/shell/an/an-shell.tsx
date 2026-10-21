@@ -309,7 +309,7 @@ export function AnLiveComputerPanel(props: {
                     data-an-part={AN_COMPUTER_SCREENCAST_SURFACE.framePart}
                     data-cursor-in-capture="false"
                     data-watch-only={watchOnly() ? "true" : "false"}
-                    alt="Live CDP page pixels"
+                    alt="Live page view"
                     src={props.screencastFrameUrl}
                     draggable={false}
                   />
@@ -425,7 +425,7 @@ export function AnLiveComputerPanel(props: {
                 </select>
               </label>
               <label class="an-computer-external-field">
-                <span>Loopback endpoint</span>
+                <span>Local address</span>
                 <input
                   type="text"
                   data-action="computer-external-endpoint"
@@ -437,11 +437,11 @@ export function AnLiveComputerPanel(props: {
                 />
               </label>
               <label class="an-computer-external-field">
-                <span>Region id</span>
+                <span>Tab id</span>
                 <input
                   type="text"
                   data-action="computer-external-region"
-                  placeholder="CDP target id from your browser"
+                  placeholder="Tab id from your browser"
                   value={props.externalDraftRegion ?? ""}
                   onInput={(event) =>
                     props.onExternalDraftChange?.({ region: event.currentTarget.value })
@@ -454,14 +454,14 @@ export function AnLiveComputerPanel(props: {
                 data-action="computer-external-probe"
                 onClick={() => props.onExternalProbe?.()}
               >
-                Check endpoint
+                Check address
               </button>
               <button
                 type="button"
                 class="an-computer-btn"
                 data-action="computer-external-open-tab"
                 data-an-part="computer-external-window"
-                title="Open a tab in the existing Edge/Chrome window when debugging is up; spawn only if none is running"
+                title="Open a tab in the existing Edge/Chrome window when it is ready; open a new window only if none is running"
                 onClick={() => props.onExternalOpenTab?.()}
               >
                 Open tab in browser
