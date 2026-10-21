@@ -2,7 +2,7 @@
 
 | Field | Value |
 |-------|-------|
-| status | **OPEN** (writer measured — **not** Stage 9 complete; **not** independent PASS) |
+| status | **INDEPENDENT PASS** (scoped) — closed under **AP-STAGE9-ACCEPT** GATE PASS 2026-10-21; parent Stage 9 complete via ACCEPT with residuals |
 | branch | `stage4-an-shell` |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | base | AP-STAGE8-ACCEPT code tip `5bac458f62` / docs `e0dcea9450` |
@@ -43,15 +43,14 @@ Probe EXIT=0 (`measuredOk` = G1 ∧ G4). Shots `156`–`159`.
 - shell/an + flows-util **190** pass
 - a11y+perf **11** pass
 
-## Remaining for Stage 9 complete
+## Closed under AP-STAGE9-ACCEPT
 
-1. Independent verifier PASS (read-only) + final receipt DONE/CHANGED/BLOCKED
-2. Optional: Stop interrupt + live diff when Ali authorizes a model/tool turn
-3. Ali owns install promote (separate)
+Independent PASS landed; parent Stage 9 closed via `CURSOR-AP-STAGE9-ACCEPT.md` GATE PASS 2026-10-21 with honest residuals (G2/G3 paid-turn BLOCKED; Podman BLOCKED; visual EXCEPTED).
 
-## Not claimed
+Optional remaining (not Stage 9 fail): paid Stop/diff; Ali install promote.
 
-- Stage 9 complete / independent PASS
+## Not claimed (by this writer report alone)
+
 - Full brief-G PASS (Stop interrupt + live diff)
 - Visual fidelity / design freestyle
 - Merge / push / install / production promote
