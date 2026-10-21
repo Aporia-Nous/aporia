@@ -911,7 +911,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     if (!roster.available()) {
       aporiaAlerts.push({
         title: "Could not open teammate",
-        detail: "Teammate roster unavailable (desktop bridge not connected).",
+        detail: "Teammate list unavailable (desktop connection not ready).",
         level: "error",
       })
       return
@@ -1072,7 +1072,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     }
     aporiaAlerts.push({
       title: "Confirm browser attach",
-      detail: "Choose Local workspace or your Edge/Chrome region (loopback). Not a VM. Confirm to go Live.",
+      detail: "Choose the built-in browser workspace or a tab in your Edge/Chrome on this computer. Not a virtual machine. Confirm to go Live.",
       level: "info",
     })
   }
@@ -1101,10 +1101,10 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
         setExternalAttachDraft({ ...prev, error: undefined }, { endpoint: result.endpoint }),
       )
       aporiaAlerts.push({
-        title: "Endpoint reachable",
+        title: "Address reachable",
         detail: result.browser
-          ? `${result.browser} answered on ${result.endpoint}. Enter a region id, then Confirm attach.`
-          : `${result.endpoint} answered. Enter a region id, then Confirm attach.`,
+          ? `${result.browser} answered on ${result.endpoint}. Enter a tab id, then Confirm attach.`
+          : `${result.endpoint} answered. Enter a tab id, then Confirm attach.`,
         level: "info",
       })
     })
@@ -1135,12 +1135,12 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       aporiaAlerts.push({
         title:
           next.backend === "external-chromium"
-            ? "Edge/Chrome region attached"
+            ? "Edge/Chrome tab attached"
             : "Browser workspace attached",
         detail:
           next.backend === "external-chromium"
-            ? `Live on ${next.externalEndpoint} · region ${next.externalRegionId}. Watch-only until Takeover. Computer View in Review; Conversation stays primary.`
-            : "Computer View is Live (watch-only) in the Review sidebar. Conversation stays the main stream. Disconnect clears Live and feed.",
+            ? `Live on ${next.externalEndpoint} · tab ${next.externalRegionId}. Watch-only until Takeover. Computer View is in Review; Conversation stays primary.`
+            : "Computer View is Live (watch-only) in the Review sidebar. Conversation stays the main stream. Disconnect clears Live and the page feed.",
         level: "info",
       })
       return next
@@ -1165,7 +1165,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
     if (mode() === "takeover") setMode("view")
     aporiaAlerts.push({
       title: "Browser workspace disconnected",
-      detail: "Live, page feed, CDP screencast, control lock, and scope cleared. Re-connect requires fresh consent.",
+      detail: "Live view, page feed, control, and scope cleared. Connect again to continue.",
       level: "info",
     })
   }
@@ -1218,7 +1218,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       if (regionId) {
         const gate = authorizeCdpNavigate(computerScope(), regionId)
         if (!gate.ok) {
-          aporiaAlerts.push({ title: "CDP isolation", detail: gate.error, level: "warning" })
+          aporiaAlerts.push({ title: "Tab scope", detail: gate.error, level: "warning" })
           return
         }
       }
@@ -1226,7 +1226,7 @@ function AnShellFrame(props: ParentProps<{ view: ShellView }>) {
       if (normalized.ok && normalized.url !== "about:blank") {
         void session.navigate(normalized.url).then((result) => {
           if (!result.ok) {
-            aporiaAlerts.push({ title: "CDP navigate", detail: result.error, level: "warning" })
+            aporiaAlerts.push({ title: "Page navigation", detail: result.error, level: "warning" })
           }
         })
       }

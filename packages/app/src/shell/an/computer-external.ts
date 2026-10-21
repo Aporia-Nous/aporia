@@ -6,7 +6,7 @@ export const AN_COMPUTER_EXTERNAL_SURFACE = {
   part: "computer-external",
   partAttr: 'data-an-part="computer-external"',
   backend: "external-chromium",
-  pathLabel: "Your Edge/Chrome (consented region)",
+  pathLabel: "Your Edge/Chrome (approved tab)",
   loopbackOnly: true,
   defaultEndpointHint: "http://127.0.0.1:9222",
   /** User launches Edge/Chrome with remote debugging for Aporetic — not silent attach. */
@@ -47,26 +47,26 @@ export function normalizeExternalBrowserEndpoint(
   if (!raw) {
     return {
       ok: false,
-      error: "Enter the loopback debugging address you started (for example http://127.0.0.1:9222).",
+      error: "Enter the local address you started on this computer (for example http://127.0.0.1:9222).",
     }
   }
   // Require explicit http:// (or bare host:port). Do not treat "localhost:9222" as a custom scheme.
   const withScheme = /^https?:\/\//i.test(raw) ? raw : `http://${raw}`
   if (!URL.canParse(withScheme)) {
-    return { ok: false, error: "Endpoint could not be parsed." }
+    return { ok: false, error: "That address could not be read." }
   }
   const url = new URL(withScheme)
   if (url.username || url.password) {
-    return { ok: false, error: "Endpoints with credentials are not supported." }
+    return { ok: false, error: "Addresses with passwords are not supported." }
   }
   if (url.protocol !== "http:") {
-    return { ok: false, error: "Only http:// loopback endpoints are supported for this attach path." }
+    return { ok: false, error: "Only http:// addresses on this computer are supported." }
   }
   const host = url.hostname.toLowerCase()
   if (host !== "127.0.0.1" && host !== "localhost") {
     return {
       ok: false,
-      error: "External browser attach is local-only — use 127.0.0.1 or localhost (not a remote host).",
+      error: "Your browser must be on this computer — use 127.0.0.1 or localhost (not a remote machine).",
     }
   }
   const port = url.port ? Number(url.port) : 80
@@ -74,10 +74,10 @@ export function normalizeExternalBrowserEndpoint(
     return { ok: false, error: "Port must be an integer from 1 to 65535." }
   }
   if (url.pathname && url.pathname !== "/" && url.pathname !== "") {
-    return { ok: false, error: "Use the debugging base address only (no path)." }
+    return { ok: false, error: "Use the base address only (no path)." }
   }
   if (url.search || url.hash) {
-    return { ok: false, error: "Use the debugging base address only (no query or hash)." }
+    return { ok: false, error: "Use the base address only (no query or hash)." }
   }
   const normalizedHost = host === "localhost" ? "localhost" : "127.0.0.1"
   return {
@@ -99,7 +99,7 @@ export function normalizeExternalBrowserRegion(
   if (!regionId) {
     return {
       ok: false,
-      error: "Enter the target region id from your Edge/Chrome debugging list (one tab/page).",
+      error: "Enter the tab id from your Edge/Chrome list (one tab or page).",
     }
   }
   if (regionId.length > 128) {
@@ -143,7 +143,7 @@ export async function probeExternalBrowserEndpoint(
     if (!res.ok) {
       return {
         ok: false,
-        error: `No debugging response at ${normalized.endpoint} (HTTP ${res.status}). Launch Edge/Chrome with remote debugging for Aporetic, then retry.`,
+        error: `No response at ${normalized.endpoint} (HTTP ${res.status}). Start Edge/Chrome for Aporetic on this computer, then try again.`,
       }
     }
     const body = (await res.json()) as { Browser?: string; "Protocol-Version"?: string }
@@ -156,12 +156,12 @@ export async function probeExternalBrowserEndpoint(
   } catch {
     return {
       ok: false,
-      error: `Could not reach ${normalized.endpoint}. Start your Edge/Chrome with a local debugging port you choose, then Check again.`,
+      error: `Could not reach ${normalized.endpoint}. Start Edge/Chrome with a local port you choose, then Check again.`,
     }
   }
 }
 
 export function externalAttachConsentCopy(family: ExternalBrowserFamily): string {
   const label = externalBrowserFamilyLabel(family)
-  return `Confirm to attach a region in your ${label} (loopback debugging you launch). Local only — not a VM, not remote takeover.`
+  return `Confirm to attach a tab in your ${label} that you open for Aporetic on this computer. Local only — not a virtual machine, not remote control.`
 }

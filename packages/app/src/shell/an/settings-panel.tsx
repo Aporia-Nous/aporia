@@ -66,7 +66,7 @@ export function AnSettingsPanel(props: AnSettingsPanelProps): JSX.Element {
     event.preventDefault()
     if (!engine.connectByok) {
       setByokStatus("error")
-      setByokError("BYOK connect not wired on EnginePort")
+      setByokError("Connecting an API key is not available yet in this build.")
       return
     }
     setByokStatus("saving")
@@ -100,7 +100,7 @@ export function AnSettingsPanel(props: AnSettingsPanelProps): JSX.Element {
           <strong data-an-part="settings-about-mark">
             {AN_PRODUCT_NAME} <span class="an-settings-byline">{AN_PRODUCT_BYLINE}</span>
           </strong>
-          <span class="an-settings-sub">Settings · providers, models, BYOK</span>
+          <span class="an-settings-sub">Settings · providers, models, and your API keys</span>
         </div>
         <button
           type="button"
@@ -136,7 +136,7 @@ export function AnSettingsPanel(props: AnSettingsPanelProps): JSX.Element {
             <h2 class="an-settings-title">{intro.product}</h2>
             <p class="an-settings-lead">{intro.byline}</p>
             <p class="an-settings-meta">
-              Version {platform.version ?? "dev"} · free path + BYOK · no second model stack
+              Version {platform.version ?? "dev"} · free models or your own API key
             </p>
             <p class="an-settings-brief" data-an-part="settings-models-brief">
               {intro.modelsBrief}
@@ -150,14 +150,14 @@ export function AnSettingsPanel(props: AnSettingsPanelProps): JSX.Element {
         <Show when={tab() === "providers"}>
           <section class="an-settings-pane" data-an-settings-tab="providers">
             <h2 class="an-settings-title">Providers</h2>
-            <p class="an-settings-lead">Free catalog + local + BYOK via EnginePort</p>
+            <p class="an-settings-lead">Free catalog, local models, and your own API keys</p>
             <ul class="an-settings-list" data-an-part="settings-providers-list">
               <For each={providers()} fallback={<li class="an-settings-empty">No providers loaded yet</li>}>
                 {(provider) => (
                   <li class="an-settings-row" data-provider-id={provider.id} data-path={provider.path}>
                     <span class="an-settings-row-name">{provider.name}</span>
                     <span class="an-settings-row-meta">
-                      {provider.path} · {provider.modelCount} models
+                      {providerPathLabel(provider.path)} · {provider.modelCount} models
                     </span>
                   </li>
                 )}
@@ -165,7 +165,7 @@ export function AnSettingsPanel(props: AnSettingsPanelProps): JSX.Element {
             </ul>
 
             <form class="an-settings-byok" data-an-part="settings-byok" onSubmit={(e) => void submitByok(e)}>
-              <h3 class="an-settings-subtitle">Connect BYOK</h3>
+              <h3 class="an-settings-subtitle">Connect your API key</h3>
               <label class="an-settings-field">
                 <span>Provider</span>
                 <select
@@ -209,7 +209,7 @@ export function AnSettingsPanel(props: AnSettingsPanelProps): JSX.Element {
         <Show when={tab() === "models"}>
           <section class="an-settings-pane" data-an-settings-tab="models">
             <h2 class="an-settings-title">Models</h2>
-            <p class="an-settings-lead">Catalog from EnginePort (free path honest)</p>
+            <p class="an-settings-lead">Models from your connected providers</p>
             <ul class="an-settings-list" data-an-part="settings-models-list">
               <For
                 each={models().slice(0, 80)}
@@ -237,6 +237,21 @@ export function AnSettingsPanel(props: AnSettingsPanelProps): JSX.Element {
 }
 
 const FREE_LOCAL = new Set(["opencode", "opencode-go", "ollama", "lmstudio"])
+
+function providerPathLabel(path: string): string {
+  switch (path) {
+    case "free":
+      return "free"
+    case "byok":
+      return "your key"
+    case "local":
+      return "local"
+    case "other":
+      return "other"
+    default:
+      return path
+  }
+}
 
 const TABS: Array<{ id: AnSettingsTab; label: string }> = [
   { id: "about", label: "About" },

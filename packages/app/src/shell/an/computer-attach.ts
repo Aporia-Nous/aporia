@@ -87,7 +87,7 @@ export function isComputerCursorVisible(state: ComputerAttachState): boolean {
 export function computerAttachPathLabel(state: ComputerAttachState): string {
   if (state.path === "external-chromium" || state.backend === "external-chromium") {
     if (state.externalFamily) {
-      return `${externalBrowserFamilyLabel(state.externalFamily)} · consented region`
+      return `${externalBrowserFamilyLabel(state.externalFamily)} · approved tab`
     }
     return AN_COMPUTER_ATTACH_SURFACE.externalPathLabel
   }
@@ -232,29 +232,29 @@ export function computerAttachEmptyCopy(state: ComputerAttachState): string {
     if (state.path === "external-chromium") {
       return externalAttachConsentCopy(state.externalDraftFamily ?? "edge")
     }
-    return "Confirm to attach Aporetic’s local Chromium workspace (Edge/Chrome family). Watch-only until Takeover. Not a VM."
+    return "Confirm to attach Aporetic’s built-in browser workspace. Watch-only until Takeover. Not a virtual machine."
   }
   if (isComputerLive(state)) {
     if (state.backend === "external-chromium") {
       const family = state.externalFamily ? externalBrowserFamilyLabel(state.externalFamily) : "Edge/Chrome"
-      return `${family} region attached (loopback). Live CDP page pixels stream when the screencast connects; labeled Bot cursor is a Computer View overlay only.`
+      return `${family} tab attached on this computer. Live page view appears when the connection is ready; the Bot cursor is only a label in Computer View.`
     }
-    return "Local browser workspace attached. Watch-only iframe page feed is active; labeled Bot cursor is a Computer View overlay only."
+    return "Built-in browser workspace attached. Watch-only page view is active; the Bot cursor is only a label in Computer View."
   }
-  return "Computer View is unavailable until you connect a local browser workspace or your Edge/Chrome region. Browser-first — not VM."
+  return "Computer View is unavailable until you connect the built-in browser workspace or a tab in your Edge/Chrome. Browser-first — not a virtual machine."
 }
 
 export function computerAttachNote(state: ComputerAttachState): string {
   if (isComputerLive(state)) {
     if (state.backend === "external-chromium") {
-      return "Live = consented Edge/Chrome region on loopback + CDP screencast page pixels. Bot cursor is overlay chrome — not in page captures. Takeover is separate."
+      return "Live means you approved a tab in Edge/Chrome on this computer, and the page view is watch-only. The Bot cursor is a panel label — not part of the page. Takeover is separate."
     }
-    return "Live = consented local browser attach + watch-only iframe page feed. Bot cursor is overlay chrome — not in page captures. Takeover is separate."
+    return "Live means you approved the built-in browser workspace, and the page view is watch-only. The Bot cursor is a panel label — not part of the page. Takeover is separate."
   }
   if (state.phase === "consenting") {
     return state.path === "external-chromium"
-      ? "Consent required — your browser, loopback only; disconnect clears Live."
-      : "Consent required — local only; disconnect clears Live."
+      ? "Confirmation required — your browser on this computer only; disconnect clears Live."
+      : "Confirmation required — built-in workspace only; disconnect clears Live."
   }
-  return "Watch-only Computer View — connect a local workspace or your Edge/Chrome region to go Live."
+  return "Watch-only Computer View — connect the built-in workspace or a tab in your Edge/Chrome to go Live."
 }

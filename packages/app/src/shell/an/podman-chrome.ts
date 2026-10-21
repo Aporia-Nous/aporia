@@ -70,8 +70,7 @@ export function resolvePodmanStatus(
   if (result == null) {
     return {
       phase: "probe-unavailable",
-      detail:
-        "Desktop bridge which() unavailable — not inventing Podman online. Isolation runtime status unknown.",
+      detail: "Can't check whether Podman is installed from this window. Status unknown.",
       measured: measuredAttach,
     }
   }
@@ -79,7 +78,7 @@ export function resolvePodmanStatus(
     return {
       phase: "missing",
       detail:
-        "Podman not found on PATH. Isolation runtime unavailable. Not auto-installed. Browser Computer View stays the default.",
+        "Podman is not installed (or not on PATH). Not installed automatically. Computer View still uses the browser by default.",
       // Host missing: never attach invented resource zeros.
       measured: undefined,
     }
@@ -89,10 +88,10 @@ export function resolvePodmanStatus(
     phase: "present",
     path,
     detail: path
-      ? `Binary found at ${path}.${measuredAttach ? ` ${measuredAttach.line}.` : " Idle/active only when Stage 7 seam measures — not claiming containers online."}`
+      ? `Found at ${path}.${measuredAttach ? ` ${measuredAttach.line}.` : " Usage shows only when measured — not claiming containers are running."}`
       : measuredAttach
-        ? `Binary found on PATH. ${measuredAttach.line}.`
-        : "Binary found on PATH. Idle/active only when Stage 7 seam measures — not claiming containers online.",
+        ? `Found on PATH. ${measuredAttach.line}.`
+        : "Found on PATH. Usage shows only when measured — not claiming containers are running.",
     measured: measuredAttach,
   }
 }

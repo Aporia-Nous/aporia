@@ -207,7 +207,7 @@ export function rosterBindResult(input: {
   if (!input.available) {
     return {
       roster: [],
-      emptyReason: "Teammate roster unavailable (desktop bridge not connected).",
+      emptyReason: "Teammate list unavailable (desktop connection not ready).",
     }
   }
   const roster = botsToRoster(input)

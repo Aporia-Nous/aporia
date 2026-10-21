@@ -31,7 +31,7 @@ describe("AP-STAGE4-4F Podman chrome honesty", () => {
     expect(podmanStatusTitle(status)).toBe("Podman · not installed")
     expect(podmanDotLabel(status)).toBe("Unavailable")
     expect(podmanStatusTone(status)).toBe("warn")
-    expect(status.detail?.toLowerCase()).toContain("not auto-installed")
+    expect(status.detail?.toLowerCase()).toContain("not installed automatically")
     expect(podmanStatusTitle(status).toLowerCase()).not.toContain("running")
     expect(status.measured).toBeUndefined()
     // Invented measure must not attach on missing even if caller passes one.
@@ -49,7 +49,7 @@ describe("AP-STAGE4-4F Podman chrome honesty", () => {
     expect(podmanDotLabel(status)).toBe("Installed")
     expect(podmanStatusTone(status)).toBe("neutral")
     expect(status.path).toContain("podman")
-    expect(status.detail?.toLowerCase()).toContain("stage 7")
+    expect(status.detail?.toLowerCase()).toContain("when measured")
     expect(podmanStatusTitle(status).toLowerCase()).not.toContain("running")
     expect(status.detail?.toLowerCase()).not.toMatch(/\d+\s*containers?/)
     expect(status.detail?.toLowerCase()).not.toMatch(/\d+(\.\d+)?\s*gb/)
@@ -75,7 +75,7 @@ describe("AP-STAGE4-4F Podman chrome honesty", () => {
     const status = resolvePodmanStatus(null)
     expect(status.phase).toBe("probe-unavailable")
     expect(podmanStatusTitle(status)).toContain("unknown")
-    expect(status.detail?.toLowerCase()).toContain("not inventing")
+    expect(status.detail?.toLowerCase()).toContain("can't check")
   })
 
   test("mission pill never claims running", () => {

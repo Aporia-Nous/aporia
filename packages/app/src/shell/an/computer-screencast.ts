@@ -167,15 +167,15 @@ export function syncComputerScreencast(
 export function computerScreencastStatusCopy(state: ComputerScreencastState): string {
   switch (state.phase) {
     case "idle":
-      return "No CDP pixel feed."
+      return "No live page view yet."
     case "connecting":
-      return "Connecting to consented page pixels (loopback CDP screencast)…"
+      return "Connecting to the page you approved…"
     case "streaming":
-      return "Live CDP page pixels (watch-only). Bot cursor is overlay chrome — not in frames."
+      return "Live page view (watch only). The Bot cursor is a label on this panel — not drawn on the page."
     case "error":
-      return state.error ?? "CDP screencast failed."
+      return state.error ?? "Could not show the live page view."
     case "stopped":
-      return "CDP screencast stopped."
+      return "Live page view stopped."
     default: {
       const _exhaustive: never = state.phase
       return _exhaustive

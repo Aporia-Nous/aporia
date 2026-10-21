@@ -59,8 +59,8 @@ describe("AP-STAGE4-NEW-TEAMMATE lifecycle", () => {
   test("archive copy preserves history honesty", () => {
     const soft = archiveTeammateCopy({ name: "Probe", sessions: ["s1", "s2"] })
     expect(soft.preservesHistory).toBe(true)
-    expect(soft.detail).toContain("Memory folder")
-    expect(soft.detail).toContain("not automated")
+    expect(soft.detail.toLowerCase()).toContain("memory folder")
+    expect(soft.detail).toContain("not moved automatically")
     expect(permissionsCostNote(emptyTeammateDraft({ model: "opencode/big-pickle" }))).toContain(
       "does not grant new provider access",
     )
