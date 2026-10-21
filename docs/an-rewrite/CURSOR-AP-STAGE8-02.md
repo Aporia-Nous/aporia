@@ -5,7 +5,7 @@
 | status | **IMPLEMENTED + MEASURED** (OPEN for independent PASS — not Stage 8 complete) |
 | branch | `stage4-an-shell` |
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
-| tip / code | _(fill after commit)_ |
+| tip / code | `5bac458f62` |
 | base | AP-STAGE8-01 tip `d53552a156` / HEAD prior `6df5c48589` |
 | authority | Ali continue-finish 2026-10-21 (except design) |
 | merge/push/install | **No** |
