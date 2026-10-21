@@ -7,6 +7,8 @@ files:
   - "packages/gui-extensions/src/*/**/*.ts"
 ignores:
   - "packages/gui-extensions/src/sdk/**"
+  # Intentional: Electron session file:// guards outlive pane reload (see pane.ts comment).
+  - "packages/gui-extensions/src/browser/pane.ts"
 rule:
   all:
     - any:
