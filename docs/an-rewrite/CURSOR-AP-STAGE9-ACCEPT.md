@@ -7,6 +7,7 @@
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | stage9 code tip | `2ccefc716c` |
 | typecheck tip | `3b35b11d96` |
+| ACCEPT docs tip | `2cf2ece062` |
 | prior docs tip | `d118cd62a3` |
 | base | AP-STAGE8-ACCEPT `5bac458f62` |
 | independent marker | `AP-STAGE9-EXAMPLE-G 1792565038197` |
