@@ -7,6 +7,7 @@
 | worktree | `C:\Users\Dilla\.cursor\worktrees\opt\cursor-aporetic-stage4` |
 | code tip | `5bac458f62` (AP-STAGE8-02) |
 | docs HEAD at gate | `ad68fbf74a` |
+| ACCEPT docs tip | `e0dcea9450` |
 | base slices | AP-STAGE8-01 `d53552a156` + AP-STAGE8-02 `5bac458f62` |
 | authority | Ali continue-finish 2026-10-21 (except design) |
 | merge/push/install | **No** |
