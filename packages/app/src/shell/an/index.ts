@@ -218,6 +218,16 @@ export {
   type AnTeammateSheetMode,
 } from "./teammate"
 export {
+  AN_A11Y_LANDMARK_LABELS,
+  AN_A11Y_SURFACE,
+  countLandmarkLabels,
+  evaluateAnA11yContract,
+  hasFocusVisibleContract,
+  hasReducedMotionContract,
+  type AnA11yContractCheck,
+  type AnA11yContractReport,
+} from "./a11y-contract"
+export {
   initialPodmanStatus,
   podmanDotLabel,
   podmanMissionPill,
