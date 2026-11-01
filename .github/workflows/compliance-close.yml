@@ -2,8 +2,9 @@ name: compliance-close
 
 on:
   schedule:
-    # Run every 30 minutes to check for expired compliance windows
-    - cron: "*/30 * * * *"
+    # A 72-hour compliance window does not need a 30-minute polling cadence.
+    # Run once daily to preserve automatic cleanup while minimizing Actions usage.
+    - cron: "17 9 * * *"
   workflow_dispatch:
 
 permissions:
